@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../models/episode.dart';
 import '../services/firebase_service.dart';
-import '../widgets/episode_row.dart';
+import '../services/language_manager.dart';
+import '../services/image_cache_service.dart';
+import '../widgets/category_group_box.dart';
+import '../widgets/welcome_header.dart';
 import 'episode_detail_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
+  final LanguageManager _languageManager = LanguageManager();
   List<Category> _categories = [];
   bool _isLoading = true;
   String? _error;
@@ -33,6 +37,9 @@ class _HomePageState extends State<HomePage> {
 
       final categories = await _firebaseService.getHomePageData();
       
+      // Preload images for better performance
+      _preloadImages(categories);
+      
       setState(() {
         _categories = categories;
         _isLoading = false;
@@ -45,29 +52,77 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Preload images for better performance
+  void _preloadImages(List<Category> categories) {
+    final imageUrls = <String>[];
+    
+    // Collect all image URLs from first few episodes of each category
+    for (final category in categories) {
+      final episodes = category.episodes.take(3); // Only preload first 3 episodes
+      for (final episode in episodes) {
+        if (episode.thumbImage.isNotEmpty) {
+          imageUrls.add(episode.thumbImage);
+        }
+      }
+    }
+    
+    // Preload images in background
+    if (imageUrls.isNotEmpty) {
+      ImageCacheService().preloadImages(imageUrls);
+    }
+  }
+
   void _navigateToEpisodeDetail(Episode episode) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpisodeDetailScreen(episode: episode),
-      ),
-    );
+    // Tìm category chứa episode này
+    Category? episodeCategory;
+    for (final category in _categories) {
+      if (category.name == episode.category) {
+        episodeCategory = category;
+        break;
+      }
+    }
+
+    if (episodeCategory != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpisodeDetailScreen(
+            episode: episode,
+            categoryEpisodes: episodeCategory!.episodes,
+          ),
+        ),
+      );
+    } else {
+      // Fallback nếu không tìm thấy category
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EpisodeDetailScreen(
+            episode: episode,
+            categoryEpisodes: [episode],
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Đang tải dữ liệu...'),
-          ],
-        ),
-      );
-    }
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        if (_isLoading) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(_languageManager.getText('loading')),
+              ],
+            ),
+          );
+        }
 
     if (_error != null) {
       return Center(
@@ -81,7 +136,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Có lỗi xảy ra',
+              _languageManager.getText('errorOccurred'),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
@@ -93,7 +148,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadData,
-              child: const Text('Thử lại'),
+              child: Text(_languageManager.getText('tryAgain')),
             ),
           ],
         ),
@@ -101,19 +156,19 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (_categories.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.inbox_outlined,
               size: 64,
               color: Colors.grey,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Không có dữ liệu',
-              style: TextStyle(fontSize: 18),
+              _languageManager.getText('noData'),
+              style: const TextStyle(fontSize: 18),
             ),
           ],
         ),
@@ -123,52 +178,26 @@ class _HomePageState extends State<HomePage> {
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _categories.length,
+        padding: const EdgeInsets.only(bottom: 4),
+        itemCount: _categories.length + 1, // +1 for welcome header
         itemBuilder: (context, index) {
-          final category = _categories[index];
-          final latestEpisodes = category.latestEpisodes;
-
-          if (latestEpisodes.isEmpty) {
-            return const SizedBox.shrink();
+          if (index == 0) {
+            // Welcome header ở đầu
+            return const WelcomeHeader();
           }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Category Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    Text(
-                      category.name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[800],
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${category.episodes.length} episodes',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Episodes List
-              ...latestEpisodes.map((episode) => EpisodeRow(
-                episode: episode,
-                onTap: () => _navigateToEpisodeDetail(episode),
-              )),
-              const SizedBox(height: 8),
-            ],
+          
+          // Categories bắt đầu từ index 1
+          final categoryIndex = index - 1;
+          final category = _categories[categoryIndex];
+          
+          return CategoryGroupBox(
+            category: category,
+            onEpisodeTap: _navigateToEpisodeDetail,
           );
         },
       ),
+        );
+      },
     );
   }
 }

@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Quyền cho BroadcastReceiver -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.BATTERY_STATS" />
+    
     <application
-        android:label="bbc_reborn"
+        android:label="Learning English with B.B.C"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/logo">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,6 +34,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- Media Notification Receiver -->
+        <receiver
+            android:name=".MediaNotificationReceiver"
+            android:exported="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

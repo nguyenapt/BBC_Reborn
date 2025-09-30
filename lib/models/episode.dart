@@ -8,8 +8,11 @@ class Episode {
   final String thumbImage;
   final String? id; // ID của episode trong Firebase
   final String? fileUrl;
+  final String? secondFileUrl;
   final String? summary;
   final String? year;
+  final String? transcriptHtml;
+  final String? vocabulary;
 
   Episode({
     required this.actor,
@@ -21,8 +24,11 @@ class Episode {
     required this.thumbImage,
     this.id,
     this.fileUrl,
+    this.secondFileUrl,
     this.summary,
     this.year,
+    this.transcriptHtml,
+    this.vocabulary,
   });
 
   factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
@@ -36,8 +42,11 @@ class Episode {
       transcript: json['Transcript'] ?? '',
       thumbImage: json['ThumbImage'] ?? '',
       fileUrl: json['FileUrl'],
+      secondFileUrl: json['SecondFileUrl'],
       summary: json['Summary'],
       year: json['Year'],
+      transcriptHtml: json['TranscriptHtml'],
+      vocabulary: json['Vocabulary'],
     );
   }
 
@@ -68,6 +77,13 @@ class Episode {
       'episodeName': episodeName,
       'transcript': transcript,
       'thumbImage': thumbImage,
+      'transcriptHtml': transcriptHtml,
+      'vocabulary': vocabulary,
+      'summary': summary,
+      'year': year,
+      'fileUrl': fileUrl,
+      'secondFileUrl': secondFileUrl,
+      'id': id,
     };
   }
 

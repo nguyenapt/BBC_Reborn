@@ -1,203 +1,260 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
+import '../utils/category_colors.dart';
+import '../services/audio_player_service.dart';
+import '../services/language_manager.dart';
+import '../widgets/audio_player_widget.dart';
+import '../widgets/episode_info_slide.dart';
+import '../widgets/transcript_slide.dart';
+import '../widgets/vocabulary_slide.dart';
 
-class EpisodeDetailScreen extends StatelessWidget {
+class EpisodeDetailScreen extends StatefulWidget {
   final Episode episode;
+  final List<Episode> categoryEpisodes;
 
   const EpisodeDetailScreen({
     super.key,
     required this.episode,
+    required this.categoryEpisodes,
   });
 
   @override
+  State<EpisodeDetailScreen> createState() => _EpisodeDetailScreenState();
+}
+
+class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
+  late final AudioPlayerService _audioService;
+  late final PageController _pageController;
+  late final LanguageManager _languageManager;
+  int _currentPageIndex = 0; // Mặc định là slide thứ 1 (Episode Info)
+
+  @override
+  void initState() {
+    super.initState();
+    _audioService = AudioPlayerService();
+    _languageManager = LanguageManager();
+    _pageController = PageController(initialPage: 0); // Khởi tạo ở slide thứ 1 (Episode Info)
+
+    // Load episode vào audio service với category episodes
+    _audioService.loadEpisodeWithCategory(widget.episode, widget.categoryEpisodes);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    // Release audio player khi rời khỏi màn hình
+    _audioService.stop();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+        
+        return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text(episode.episodeName),
-        backgroundColor: Colors.blue[800],
+        backgroundColor: categoryColor,
         foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          // Favourite button
+          ListenableBuilder(
+            listenable: _audioService,
+            builder: (context, child) {
+              return IconButton(
+                onPressed: () => _audioService.toggleFavourite(),
+                icon: Icon(
+                  _audioService.isFavourite ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.white,
+                ),
+              );
+            },
+          ),
+          // Download button
+          ListenableBuilder(
+            listenable: _audioService,
+            builder: (context, child) {
+              return IconButton(
+                onPressed: _audioService.isDownloaded 
+                    ? null 
+                    : () => _audioService.downloadEpisode(),
+                icon: Icon(
+                  _audioService.isDownloaded ? Icons.download_done : Icons.download,
+                  color: Colors.white,
+                ),
+              );
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Episode Image
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  episode.thumbImage,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 64,
-                      ),
-                    );
-                  },
+      body: Column(
+        children: [
+          // Episode Name Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                bottom: BorderSide(
+                  color: categoryColor.withOpacity(0.2),
+                  width: 1,
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            
-            // Episode Info
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Episode Name
+                Text(
+                  widget.episode.episodeName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    height: 1.3,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                // Category Badge, Duration and Date - Cùng một dòng
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Category Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.blue[100],
+                        color: categoryColor,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        episode.category,
-                        style: TextStyle(
-                          fontSize: 14,
+                        widget.episode.category,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue[800],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Episode Name
-                    Text(
-                      episode.episodeName,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
                     // Duration and Date
                     Row(
                       children: [
                         Icon(
                           Icons.access_time,
-                          color: Colors.grey[600],
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Text(
-                          'Thời lượng: ${episode.duration}',
+                          widget.episode.duration,
                           style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
+                        const SizedBox(width: 16),
                         Icon(
                           Icons.calendar_today,
-                          color: Colors.grey[600],
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Text(
-                          'Ngày phát hành: ${_formatDate(episode.publishedDate)}',
+                          _formatDate(widget.episode.publishedDate),
                           style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Diễn viên: ${episode.actor}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 24),
-            
-            // Transcript
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Transcript',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+          ),
+          // Carousel Indicators
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(3, (index) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPageIndex == index ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentPageIndex == index 
+                        ? categoryColor 
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
+            ),
+          ),
+          // Carousel Content
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPageIndex = index;
+                });
+              },
+              children: [
+                // Slide 1: Episode Info
+                EpisodeInfoSlide(
+                  languageManager: _languageManager,
+                  episode: widget.episode,
+                  topEpisodes: widget.categoryEpisodes,
+                  onEpisodeTap: (episode) {
+                    // Navigate to new episode detail với cùng category episodes
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EpisodeDetailScreen(
+                          episode: episode,
+                          categoryEpisodes: widget.categoryEpisodes,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      episode.transcript,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              ),
+                // Slide 2: Transcript
+                TranscriptSlide(episode: widget.episode),
+                // Slide 3: Vocabulary
+                VocabularySlide(episode: widget.episode),
+              ],
             ),
-            const SizedBox(height: 24),
-            
-            // Play Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Implement audio playback
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tính năng phát audio sẽ được triển khai sau'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Phát Audio'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[800],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          // Audio Player
+          AudioPlayerWidget(audioService: _audioService),
+        ],
       ),
+        );
+      },
     );
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final now = DateTime.now();
+    final difference = now.difference(date).inDays;
+    
+    if (difference == 0) {
+      return _languageManager.getText('today');
+    } else if (difference == 1) {
+      return _languageManager.getText('yesterday');
+    } else if (difference < 7) {
+      return '${_languageManager.getText('daysAgo')} $difference';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }

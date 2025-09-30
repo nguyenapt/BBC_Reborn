@@ -1,11 +1,11 @@
 {
-    "name": "bbc_reborn",
-    "short_name": "bbc_reborn",
+    "name": "Learning English with B.B.C",
+    "short_name": "BBC Learning",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Learn English through listening with B.B.C Learning English",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

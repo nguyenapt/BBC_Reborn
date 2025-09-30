@@ -1,15 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_page.dart';
+import 'screens/categories_screen.dart';
+import 'screens/saved_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/grammar_screen.dart';
+import 'services/language_manager.dart';
+import 'services/audio_player_service.dart';
+import 'services/user_service.dart';
+import 'services/auth_service.dart';
+import 'services/image_cache_service.dart';
 
-
-void main() => runApp(const BBCLearningApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Khởi tạo các service
+  await LanguageManager().initialize();
+  await UserService().initialize();
+  await AuthService().initialize();
+  await AudioPlayerService().initialize();
+  
+  runApp(const BBCLearningApp());
+}
 
 class BBCLearningApp extends StatelessWidget {
   const BBCLearningApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: BBCLearningAppStateful());
+    return ListenableBuilder(
+      listenable: LanguageManager(),
+      builder: (context, child) {
+        return MaterialApp(
+          navigatorKey: NavigationService.navigatorKey,
+          title: 'Learning English with B.B.C',
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: LanguageManager.supportedLocales,
+          locale: LanguageManager().currentLocale,
+          themeMode: LanguageManager().themeMode,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            textTheme: TextTheme(
+              bodyLarge: TextStyle(fontSize: 16 * LanguageManager().textScaleFactor),
+              bodyMedium: TextStyle(fontSize: 14 * LanguageManager().textScaleFactor),
+              bodySmall: TextStyle(fontSize: 12 * LanguageManager().textScaleFactor),
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            textTheme: TextTheme(
+              bodyLarge: TextStyle(fontSize: 16 * LanguageManager().textScaleFactor),
+              bodyMedium: TextStyle(fontSize: 14 * LanguageManager().textScaleFactor),
+              bodySmall: TextStyle(fontSize: 12 * LanguageManager().textScaleFactor),
+            ),
+          ),
+          home: const BBCLearningAppStateful(),
+        );
+      },
+    );
   }
 }
 
@@ -25,6 +79,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> {
 
   @override
   Widget build(BuildContext context) {
+    final languageManager = LanguageManager();
     final ThemeData theme = Theme.of(context);
     return Scaffold(
       bottomNavigationBar: NavigationBar(
@@ -35,27 +90,27 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> {
         },
         indicatorColor: Colors.amber,
         selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
+        destinations: <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+            selectedIcon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
+            label: languageManager.getText('home'),
           ),
           NavigationDestination(
-            label: 'Categories',
-            icon: Icon(Icons.category),
+            icon: const Icon(Icons.list_outlined),
+            label: languageManager.getText('categories'),
           ),
           NavigationDestination(
-            label: 'Vocabularies',
-            icon: Icon(Icons.library_books),
+            icon: const Icon(Icons.favorite),
+            label: languageManager.getText('saved'),
           ),
           NavigationDestination(
-            label: 'Grammar',
-            icon: Icon(Icons.menu_book),
+            icon: const Icon(Icons.menu_book),
+            label: languageManager.getText('grammar'),
           ),
           NavigationDestination(
-            label: 'Settings',
-            icon: Icon(Icons.settings),
+            icon: const Icon(Icons.settings),
+            label: languageManager.getText('settings'),
           ),
         ],
       ),
@@ -63,68 +118,17 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> {
         /// Home page
         const HomePage(),
 
-        /// Notifications page
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Column(
-            children: <Widget>[
-              Card(
-                child: ListTile(
-                  leading: Icon(Icons.notifications_sharp),
-                  title: Text('Notification 1'),
-                  subtitle: Text('This is a notification'),
-                ),
-              ),
-              Card(
-                child: ListTile(
-                  leading: Icon(Icons.notifications_sharp),
-                  title: Text('Notification 2'),
-                  subtitle: Text('This is a notification'),
-                ),
-              ),
-            ],
-          ),
-        ),
+        /// Categories page
+        const CategoriesScreen(),
 
-        /// Messages page
-        ListView.builder(
-          reverse: true,
-          itemCount: 2,
-          itemBuilder: (BuildContext context, int index) {
-            if (index == 0) {
-              return Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  margin: const EdgeInsets.all(8.0),
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    'Hello',
-                    style: theme.textTheme.bodyLarge!.copyWith(color: theme.colorScheme.onPrimary),
-                  ),
-                ),
-              );
-            }
-            return Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                margin: const EdgeInsets.all(8.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Text(
-                  'Hi!',
-                  style: theme.textTheme.bodyLarge!.copyWith(color: theme.colorScheme.onPrimary),
-                ),
-              ),
-            );
-          },
-        ),
+        /// Saved page
+        const SavedScreen(),
+
+        /// Grammar page
+        const GrammarScreen(),
+
+        /// Settings page
+        const SettingsScreen(),
       ][currentPageIndex],
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
+import '../utils/category_colors.dart';
+import '../services/image_cache_service.dart';
 
 class EpisodeRow extends StatelessWidget {
   final Episode episode;
@@ -14,77 +16,30 @@ class EpisodeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      //margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Thumbnail bên trái (100x100)
-              ClipRRect(
+              ImageCacheService().buildCachedImage(
+                imageUrl: episode.thumbImage,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  episode.thumbImage,
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  },
-                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               // Thông tin bên phải
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Category
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        episode.category,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue[800],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                  children: [                    
+                    const SizedBox(height: 6),
                     // Episode Name
                     Text(
                       episode.episodeName,
@@ -95,10 +50,12 @@ class EpisodeRow extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    // Transcript (short text)
+                    const SizedBox(height: 6),
+                    // Summary (short text) với fallback là shortTranscript
                     Text(
-                      episode.shortTranscript,
+                      episode.summary?.isNotEmpty == true 
+                          ? episode.summary! 
+                          : episode.shortTranscript,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -107,10 +64,31 @@ class EpisodeRow extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     // Duration và Published Date
                     Row(
                       children: [
+                        // Category
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            episode.category,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: CategoryColors.getCategoryColor(episode.category),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         Icon(
                           Icons.access_time,
                           size: 16,
@@ -124,7 +102,7 @@ class EpisodeRow extends StatelessWidget {
                             color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 6),
                         Icon(
                           Icons.calendar_today,
                           size: 16,
