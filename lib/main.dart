@@ -12,6 +12,7 @@ import 'services/user_service.dart';
 import 'services/auth_service.dart';
 import 'services/image_cache_service.dart';
 import 'services/admob_service.dart';
+import 'services/vocabulary_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 
@@ -23,6 +24,7 @@ void main() async {
   await UserService().initialize();
   await AuthService().initialize();
   await AudioPlayerService().initialize();
+  await VocabularyService().initialize();
   
   runApp(const BBCLearningApp());
 }
@@ -105,19 +107,22 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    // Tạo App Open Ad và hiển thị sau khi UI đã sẵn sàng (chỉ trên mobile)
+    // Giảm tần suất App Open Ad khi khởi động app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Delay lâu hơn để đảm bảo UI đã render xong và ổn định
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      Future.delayed(const Duration(milliseconds: 3000), () {
         if (!kIsWeb && mounted) {
-          // Tạo App Open Ad trước khi hiển thị
-          AdMobService().createAppOpenAd();
-          // Delay thêm một chút để ad load xong
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (mounted) {
-              AdMobService().showAppOpenAdIfReady();
-            }
-          });
+          // Chỉ hiển thị App Open Ad 30% thời gian để giảm quảng cáo
+          if (DateTime.now().millisecondsSinceEpoch % 10 < 3) {
+            // Tạo App Open Ad trước khi hiển thị
+            AdMobService().createAppOpenAd();
+            // Delay thêm một chút để ad load xong
+            Future.delayed(const Duration(milliseconds: 1000), () {
+              if (mounted) {
+                AdMobService().showAppOpenAdIfReady();
+              }
+            });
+          }
         }
       });
     });
@@ -133,13 +138,11 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     
-    // Hiển thị App Open Ad khi app được resume từ background (chỉ trên mobile)
-    if (state == AppLifecycleState.resumed && !kIsWeb) {
-      // Delay một chút để tránh hiển thị ngay lập tức
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        AdMobService().showAppOpenAdIfReady();
-      });
-    }
+    // Xử lý audio player khi có cuộc gọi điện thoại
+    AudioPlayerService().handleAppLifecycleChange(state);
+    
+    // Bỏ App Open Ad khi resume từ background để giảm quảng cáo
+    // Chỉ giữ lại App Open Ad khi app khởi động lần đầu
   }
 
   @override

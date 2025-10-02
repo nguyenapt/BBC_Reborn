@@ -136,5 +136,13 @@ class AppEn {
     'manageImageCache': 'Manage Image Cache',
     'cacheSize': 'Cache Size',
     'clearCache': 'Clear Cache',
+    
+    // Notification Settings
+    'pushNotifications': 'Push Notifications',
+    'notificationDescription': 'Receive notifications about new episodes and updates',
+    'enablePushNotifications': 'Enable push notifications',
+    'notificationsEnabled': 'Push notifications enabled',
+    'notificationsDisabled': 'Push notifications disabled',
+    'notificationFeatureNote': 'This feature will be developed in the next version',
   };
 }

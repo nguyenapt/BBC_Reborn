@@ -13,6 +13,7 @@ class Episode {
   final String? year;
   final String? transcriptHtml;
   final String? vocabulary;
+  final List<dynamic>? vocabularies;
 
   Episode({
     required this.actor,
@@ -29,6 +30,7 @@ class Episode {
     this.year,
     this.transcriptHtml,
     this.vocabulary,
+    this.vocabularies,
   });
 
   factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
@@ -47,6 +49,7 @@ class Episode {
       year: json['Year']?.toString(),
       transcriptHtml: json['TranscriptHtml']?.toString(),
       vocabulary: json['Vocabulary']?.toString(),
+      vocabularies: json['Vocabularies'] as List<dynamic>?,
     );
   }
 
@@ -98,6 +101,7 @@ class Episode {
       'thumbImage': thumbImage,
       'transcriptHtml': transcriptHtml,
       'vocabulary': vocabulary,
+      'vocabularies': vocabularies,
       'summary': summary,
       'year': year,
       'fileUrl': fileUrl,

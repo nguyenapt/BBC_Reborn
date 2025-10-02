@@ -137,6 +137,14 @@ class AppVi {
     'cacheSize': 'Kích thước cache',
     'clearCache': 'Xóa cache',
     
+    // Notification Settings
+    'pushNotifications': 'Thông báo đẩy',
+    'notificationDescription': 'Nhận thông báo về episodes mới và cập nhật',
+    'enablePushNotifications': 'Bật thông báo đẩy',
+    'notificationsEnabled': 'Đã bật thông báo đẩy',
+    'notificationsDisabled': 'Đã tắt thông báo đẩy',
+    'notificationFeatureNote': 'Tính năng này sẽ được phát triển trong phiên bản tiếp theo',
+    
     // Grammar
     'grammarLessons': 'Bài học ngữ pháp',
     'theory': 'Lý thuyết',

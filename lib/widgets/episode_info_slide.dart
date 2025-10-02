@@ -3,6 +3,7 @@ import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
+import 'banner_ad_widget.dart';
 
 class EpisodeInfoSlide extends StatelessWidget {
   final Episode episode;
@@ -27,6 +28,8 @@ class EpisodeInfoSlide extends StatelessWidget {
           // Current Episode Section
           _buildCurrentEpisodeSection(context),
           const SizedBox(height: 24),
+          //Thêm 1 banner ads ở đây 
+          const BannerAdWidget(),
           // Top Episodes Section
           _buildTopEpisodesSection(context),
         ],
@@ -78,26 +81,13 @@ class EpisodeInfoSlide extends StatelessWidget {
                   )
                 else
                   Text(
-                    'Không có tóm tắt cho episode này.',
+                    languageManager.getText('noSummary'),
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                       fontStyle: FontStyle.italic,
                     ),
-                  ),
-                const SizedBox(height: 12),
-                // Year - Căn sang phải
-                if (episode.year != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Icon(
-                        Icons.calendar_month,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      )                      
-                    ],
-                  ),
+                  ),                
               ],
             ),
           ),
@@ -123,7 +113,7 @@ class EpisodeInfoSlide extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Top ${topEpisodes.length} Episodes cùng category',
+              '${languageManager.getText('topEpisodes')} ${topEpisodes.length}',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/episode.dart';
+import '../models/vocabulary_item.dart';
+import '../models/favourite_episode.dart';
 import 'auth_service.dart';
 
 class StorageService {
@@ -10,14 +12,14 @@ class StorageService {
   StorageService._internal();
 
   static const String _vocabulariesKey = 'saved_vocabularies';
+  static const String _vocabularyItemsKey = 'saved_vocabulary_items';
   static const String _favouriteEpisodesDataKey = 'favourite_episodes_data';
   
   final AuthService _authService = AuthService();
 
   /// Favourite Episodes Management
-  Future<List<Episode>> getFavouriteEpisodes() async {
+  Future<List<FavouriteEpisode>> getFavouriteEpisodes() async {
     try {
-      // Load episodes directly from local storage (stored as complete Episode objects)
       final prefs = await SharedPreferences.getInstance();
       final episodesJson = prefs.getString(_favouriteEpisodesDataKey);
       
@@ -27,22 +29,22 @@ class StorageService {
       }
       
       final List<dynamic> episodesData = json.decode(episodesJson);
-      final List<Episode> favouriteEpisodes = [];
+      final List<FavouriteEpisode> favouriteEpisodes = [];
       
       debugPrint('Total episodes in storage: ${episodesData.length}');
       
       for (final episodeData in episodesData) {
         try {
-          final episode = Episode.fromJson(episodeData, episodeData['id']);
-          favouriteEpisodes.add(episode);
-          debugPrint('Added episode: ${episode.episodeName}');
+          final favouriteEpisode = FavouriteEpisode.fromJson(episodeData);
+          favouriteEpisodes.add(favouriteEpisode);
+          debugPrint('Added favourite episode: ${favouriteEpisode.episodeName}');
         } catch (e) {
-          debugPrint('Error parsing episode: $e');
+          debugPrint('Error parsing favourite episode: $e');
         }
       }
       
-      // Sort by published date (newest first)
-      favouriteEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      // Sort by saved date (newest first)
+      favouriteEpisodes.sort((a, b) => b.savedAt.compareTo(a.savedAt));
       
       debugPrint('Loaded ${favouriteEpisodes.length} favourite episodes from local storage');
       return favouriteEpisodes;
@@ -54,7 +56,7 @@ class StorageService {
 
   Future<List<String>> getFavouriteEpisodeIds() async {
     final episodes = await getFavouriteEpisodes();
-    return episodes.map((e) => e.id).where((id) => id != null && id.isNotEmpty).cast<String>().toList();
+    return episodes.map((e) => e.id).where((id) => id != null).cast<String>().toList();
   }
 
   Future<bool> isEpisodeFavourite(String episodeId) async {
@@ -62,17 +64,20 @@ class StorageService {
     return episodes.any((e) => e.id == episodeId);
   }
 
-  Future<void> addFavouriteEpisode(String episodeId, Episode episode) async {
+  Future<void> addFavouriteEpisode(Episode episode) async {
     try {
       // Check if episode already exists
       final existingEpisodes = await getFavouriteEpisodes();
-      if (existingEpisodes.any((e) => e.id == episodeId)) {
-        debugPrint('Episode $episodeId already in favourites');
+      if (existingEpisodes.any((e) => e.id == episode.id)) {
+        debugPrint('Episode ${episode.id} already in favourites');
         return;
       }
       
+      // Create FavouriteEpisode from Episode
+      final favouriteEpisode = FavouriteEpisode.fromEpisode(episode);
+      
       // Add new episode to the list
-      existingEpisodes.add(episode);
+      existingEpisodes.add(favouriteEpisode);
       
       // Save updated list to local storage
       await _saveEpisodesList(existingEpisodes);
@@ -104,7 +109,7 @@ class StorageService {
     }
   }
 
-  Future<void> _saveEpisodesList(List<Episode> episodes) async {
+  Future<void> _saveEpisodesList(List<FavouriteEpisode> episodes) async {
     final prefs = await SharedPreferences.getInstance();
     final episodesData = episodes.map((e) => e.toJson()).toList();
     await prefs.setString(_favouriteEpisodesDataKey, json.encode(episodesData));
@@ -151,11 +156,39 @@ class StorageService {
     await prefs.setString(_vocabulariesKey, json.encode(vocabularies));
   }
 
+  /// VocabularyItem Management (new methods)
+  Future<List<VocabularyItem>> getSavedVocabularyItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vocabulariesJson = prefs.getString(_vocabularyItemsKey);
+    if (vocabulariesJson != null) {
+      final List<dynamic> vocabularies = json.decode(vocabulariesJson);
+      return vocabularies.map((v) => VocabularyItem(
+        id: v['id'] ?? '',
+        bbcEpisodeId: v['bbcEpisodeId'] ?? '',
+        vocab: v['vocab'] ?? '',
+        mean: v['mean'] ?? '',
+      )).toList();
+    }
+    return [];
+  }
+
+  Future<void> saveVocabularyItems(List<VocabularyItem> vocabularies) async {
+    final prefs = await SharedPreferences.getInstance();
+    final vocabulariesData = vocabularies.map((v) => {
+      'id': v.id,
+      'bbcEpisodeId': v.bbcEpisodeId,
+      'vocab': v.vocab,
+      'mean': v.mean,
+    }).toList();
+    await prefs.setString(_vocabularyItemsKey, json.encode(vocabulariesData));
+  }
+
 
   /// Clear all data
   Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_vocabulariesKey);
+    await prefs.remove(_vocabularyItemsKey);
     await prefs.remove(_favouriteEpisodesDataKey);
   }
 }

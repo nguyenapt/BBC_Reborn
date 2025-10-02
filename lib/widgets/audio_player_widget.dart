@@ -50,49 +50,61 @@ class AudioPlayerWidget extends StatelessWidget {
             ? audioService.currentPosition.inMilliseconds / audioService.totalDuration.inMilliseconds
             : 0.0;
 
-        return Column(
+        final remainingDuration = audioService.totalDuration - audioService.currentPosition;
+
+        return Row(
           children: [
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: audioService.currentEpisode != null
-                    ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                    : Colors.blue,
-                inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                thumbColor: audioService.currentEpisode != null
-                    ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                    : Colors.blue,
-                overlayColor: audioService.currentEpisode != null
-                    ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category).withOpacity(0.2)
-                    : Colors.blue.withOpacity(0.2),
-              ),
-              child: Slider(
-                value: progress.clamp(0.0, 1.0),
-                onChanged: (value) async {
-                  final newPosition = Duration(
-                    milliseconds: (value * audioService.totalDuration.inMilliseconds).round(),
-                  );
-                  await audioService.seekTo(newPosition);
-                },
+            // Thời gian đã chạy bên trái
+            SizedBox(
+              width: 40,
+              child: Text(
+                _formatDuration(audioService.currentPosition),
+                style: TextStyle(
+                  fontSize: 12, 
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _formatDuration(audioService.currentPosition),
-                  style: TextStyle(
-                    fontSize: 12, 
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+            const SizedBox(width: 4),
+            // Progress bar ở giữa
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: audioService.currentEpisode != null
+                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
+                      : Colors.blue,
+                  inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                  thumbColor: audioService.currentEpisode != null
+                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
+                      : Colors.blue,
+                  overlayColor: audioService.currentEpisode != null
+                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category).withOpacity(0.2)
+                      : Colors.blue.withOpacity(0.2),
                 ),
-                Text(
-                  _formatDuration(audioService.totalDuration),
-                  style: TextStyle(
-                    fontSize: 12, 
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                child: Slider(
+                  value: progress.clamp(0.0, 1.0),
+                  onChanged: (value) async {
+                    final newPosition = Duration(
+                      milliseconds: (value * audioService.totalDuration.inMilliseconds).round(),
+                    );
+                    await audioService.seekTo(newPosition);
+                  },
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            // Thời gian còn lại bên phải
+            SizedBox(
+              width: 40,
+              child: Text(
+                '-${_formatDuration(remainingDuration)}',
+                style: TextStyle(
+                  fontSize: 12, 
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         );
@@ -114,19 +126,19 @@ class AudioPlayerWidget extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Previous button
-            IconButton(
-              onPressed: audioService.currentEpisodeIndex > 0
-                  ? () => audioService.previousEpisode()
-                  : null,
-              icon: Icon(
-                Icons.skip_previous,
-                color: audioService.currentEpisodeIndex > 0 
-                    ? categoryColor 
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                size: 32,
-              ),
-            ),
+            // Previous button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
+            // IconButton(
+            //   onPressed: audioService.currentEpisodeIndex > 0
+            //       ? () => audioService.previousEpisode()
+            //       : null,
+            //   icon: Icon(
+            //     Icons.skip_previous,
+            //     color: audioService.currentEpisodeIndex > 0 
+            //         ? categoryColor 
+            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            //     size: 32,
+            //   ),
+            // ),
             // Skip backward button
             IconButton(
               onPressed: () async => await audioService.skipBackward(),
@@ -172,19 +184,19 @@ class AudioPlayerWidget extends StatelessWidget {
                 size: 28,
               ),
             ),
-            // Next button
-            IconButton(
-              onPressed: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-                  ? () => audioService.nextEpisode()
-                  : null,
-              icon: Icon(
-                Icons.skip_next,
-                color: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-                    ? categoryColor
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                size: 32,
-              ),
-            ),
+            // Next button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
+            // IconButton(
+            //   onPressed: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
+            //       ? () => audioService.nextEpisode()
+            //       : null,
+            //   icon: Icon(
+            //     Icons.skip_next,
+            //     color: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
+            //         ? categoryColor
+            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            //     size: 32,
+            //   ),
+            // ),
           ],
         );
       },

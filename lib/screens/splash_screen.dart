@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
                       scale: _scaleAnimation,
                       child: Container(
                         width: 120,
-                        height: 120,
+                        height: 129,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
@@ -135,7 +135,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         child: const Center(
                           child: Text(
-                            'BBC',
+                            'L.E.O',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -155,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: const Text(
-                  'Learning English',
+                  'Learning English - 6 minutes',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
@@ -170,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Text(
-                  'Learning English - 6 minutes',
+                  'Listen. Engage. Own.',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withOpacity(0.8),

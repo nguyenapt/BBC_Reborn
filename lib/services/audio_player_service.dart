@@ -33,10 +33,15 @@ class AudioPlayerService extends ChangeNotifier {
   bool _isFavourite = false;
   bool _isDownloaded = false;
   String? _currentAudioUrl;
+  
+  // Biến để track trạng thái trước khi bị gián đoạn (cuộc gọi điện thoại)
+  bool _wasPlayingBeforeInterruption = false;
+  Duration _positionBeforeInterruption = Duration.zero;
 
   // Getters
   AudioPlayerState get playerState => _playerState;
   Duration get currentPosition => _currentPosition;
+  int get currentPositionMs => _currentPosition.inMilliseconds;
   Duration get totalDuration => _totalDuration;
   Episode? get currentEpisode => _currentEpisode;
   List<Episode> get currentCategoryEpisodes => _currentCategoryEpisodes;
@@ -361,9 +366,9 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> _saveFavouriteStatus(String episodeId, bool isFavourite) async {
     try {
       if (isFavourite) {
-        // Need to pass the current episode to save its data
+        // Save complete episode data to local storage
         if (_currentEpisode != null) {
-          await _storageService.addFavouriteEpisode(episodeId, _currentEpisode!);
+          await _storageService.addFavouriteEpisode(_currentEpisode!);
         }
         // Only save to Firebase if user is logged in
         if (_authService.isLoggedIn) {
@@ -390,6 +395,63 @@ class AudioPlayerService extends ChangeNotifier {
   /// Save download status
   Future<void> _saveDownloadStatus(String episodeId, bool isDownloaded) async {
     // TODO: Implement actual storage save
+  }
+
+  /// Xử lý khi có cuộc gọi điện thoại đến (app bị gián đoạn)
+  Future<void> handleInterruption() async {
+    if (_playerState == AudioPlayerState.playing) {
+      debugPrint('📞 Phone call incoming - pausing audio');
+      
+      // Lưu trạng thái hiện tại
+      _wasPlayingBeforeInterruption = true;
+      _positionBeforeInterruption = _currentPosition;
+      
+      // Tạm dừng audio
+      await pause();
+      
+      debugPrint('📞 Audio paused due to phone call');
+    }
+  }
+
+  /// Xử lý khi cuộc gọi điện thoại kết thúc (app được resume)
+  Future<void> handleResumeAfterInterruption() async {
+    if (_wasPlayingBeforeInterruption) {
+      debugPrint('📞 Phone call ended - resuming audio');
+      
+      // Seek về vị trí trước khi bị gián đoạn
+      await seekTo(_positionBeforeInterruption);
+      
+      // Tiếp tục play
+      await play();
+      
+      // Reset trạng thái
+      _wasPlayingBeforeInterruption = false;
+      _positionBeforeInterruption = Duration.zero;
+      
+      debugPrint('📞 Audio resumed after phone call');
+    }
+  }
+
+  /// Xử lý app lifecycle changes
+  void handleAppLifecycleChange(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App bị pause hoặc inactive (có thể do cuộc gọi điện thoại)
+        handleInterruption();
+        break;
+      case AppLifecycleState.resumed:
+        // App được resume (cuộc gọi điện thoại kết thúc)
+        handleResumeAfterInterruption();
+        break;
+      case AppLifecycleState.detached:
+        // App bị terminate
+        stop();
+        break;
+      case AppLifecycleState.hidden:
+        // App bị ẩn
+        break;
+    }
   }
 
   @override

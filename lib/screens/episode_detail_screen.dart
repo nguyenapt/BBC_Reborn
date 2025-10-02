@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../services/audio_player_service.dart';
@@ -39,8 +40,31 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(widget.episode, widget.categoryEpisodes);
     
+    // Bật Always Display (Wakelock) để màn hình không tự tắt
+    _enableAlwaysDisplay();
+    
     // Tạo interstitial ad để sẵn sàng hiển thị
     AdMobService().createInterstitialAd();
+  }
+
+  // Bật Always Display
+  Future<void> _enableAlwaysDisplay() async {
+    try {
+      await WakelockPlus.enable();
+      print('Always Display enabled - Screen will stay on');
+    } catch (e) {
+      print('Failed to enable Always Display: $e');
+    }
+  }
+
+  // Tắt Always Display
+  Future<void> _disableAlwaysDisplay() async {
+    try {
+      await WakelockPlus.disable();
+      print('Always Display disabled - Screen can turn off');
+    } catch (e) {
+      print('Failed to disable Always Display: $e');
+    }
   }
 
   @override
@@ -49,11 +73,16 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Release audio player khi rời khỏi màn hình
     _audioService.stop();
     
-    // Hiển thị interstitial ad khi rời khỏi màn hình
-    // (sẽ hiển thị sau 2 giây để tránh conflict với navigation)
-    Future.delayed(const Duration(seconds: 2), () {
-      AdMobService().showInterstitialAd();
-    });
+    // Tắt Always Display khi rời khỏi màn hình
+    _disableAlwaysDisplay();
+    
+    // Giảm tần suất interstitial ad khi rời khỏi màn hình
+    // Chỉ hiển thị 50% thời gian để giảm quảng cáo
+    if (DateTime.now().millisecondsSinceEpoch % 2 == 0) {
+      Future.delayed(const Duration(seconds: 2), () {
+        AdMobService().showInterstitialAd();
+      });
+    }
     
     super.dispose();
   }
@@ -239,7 +268,20 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   },
                 ),
                 // Slide 2: Transcript
-                TranscriptSlide(episode: widget.episode),
+                ListenableBuilder(
+                  listenable: _audioService,
+                  builder: (context, child) {
+                    return TranscriptSlide(
+                      episode: widget.episode,
+                      currentPositionMs: _audioService.currentPositionMs,
+                      onPlayAtTime: (startTimeMs) {
+                        // Seek audio đến thời điểm cụ thể và play
+                        _audioService.seekTo(Duration(milliseconds: startTimeMs));
+                        _audioService.play();
+                      },
+                    );
+                  },
+                ),
                 // Slide 3: Vocabulary
                 VocabularySlide(episode: widget.episode),
               ],

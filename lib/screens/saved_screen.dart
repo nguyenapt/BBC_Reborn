@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/episode.dart';
+import '../models/vocabulary_item.dart';
+import '../models/favourite_episode.dart';
 import '../services/storage_service.dart';
 import '../services/firebase_storage_service.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../services/language_manager.dart';
+import '../services/vocabulary_service.dart';
 import '../widgets/episode_row.dart';
 import 'episode_detail_screen.dart';
 
@@ -23,9 +26,10 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   final UserService _userService = UserService();
   final LanguageManager _languageManager = LanguageManager();
   final AuthService _authService = AuthService();
+  final VocabularyService _vocabularyService = VocabularyService();
 
-  List<Episode> _favouriteEpisodes = [];
-  List<String> _savedVocabularies = [];
+  List<FavouriteEpisode> _favouriteEpisodes = [];
+  List<VocabularyItem> _savedVocabularies = [];
   bool _isLoadingFavourites = true;
   bool _isLoadingVocabularies = true;
   String? _favouritesError;
@@ -36,11 +40,19 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    
+    // Listen to vocabulary changes
+    _vocabularyService.addListener(() {
+      if (mounted) {
+        _loadSavedVocabularies();
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _vocabularyService.removeListener(() {});
     super.dispose();
   }
 
@@ -69,8 +81,10 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         // Only try Firebase if user is logged in and local storage is empty
         try {
           final firebaseEpisodes = await _firebaseStorageService.getFavouriteEpisodes(_userService.userId);
+          // Convert Episode list to FavouriteEpisode list
+          final favouriteEpisodes = firebaseEpisodes.map((episode) => FavouriteEpisode.fromEpisode(episode)).toList();
           setState(() {
-            _favouriteEpisodes = firebaseEpisodes;
+            _favouriteEpisodes = favouriteEpisodes;
           });
         } catch (firebaseError) {
           debugPrint('Firebase load failed: $firebaseError');
@@ -95,20 +109,11 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     });
 
     try {
-      // Load from Firebase first
-      final firebaseVocabularies = await _firebaseStorageService.getSavedVocabularies(_userService.userId);
-      
-      if (firebaseVocabularies.isNotEmpty) {
-        setState(() {
-          _savedVocabularies = firebaseVocabularies;
-        });
-      } else {
-        // Fallback to local storage
-        final localVocabularies = await _storageService.getSavedVocabularies();
-        setState(() {
-          _savedVocabularies = localVocabularies;
-        });
-      }
+      // Load từ VocabularyService
+      final savedVocabularies = _vocabularyService.savedVocabularies;
+      setState(() {
+        _savedVocabularies = savedVocabularies;
+      });
     } catch (e) {
       setState(() {
         _vocabulariesError = e.toString();
@@ -120,30 +125,32 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     }
   }
 
-  void _navigateToEpisodeDetail(Episode episode) {
+  void _navigateToEpisodeDetail(FavouriteEpisode favouriteEpisode) {
+    // Convert FavouriteEpisode to Episode for navigation
+    final episode = favouriteEpisode.toEpisode();
+    final episodes = _favouriteEpisodes.map((fe) => fe.toEpisode()).toList();
+    
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
-          categoryEpisodes: _favouriteEpisodes, // Use favourites as category episodes
+          categoryEpisodes: episodes,
         ),
       ),
     );
   }
 
-  Future<void> _removeVocabulary(String vocabulary) async {
+  Future<void> _removeVocabulary(String vocab) async {
     try {
-      await _storageService.removeVocabulary(vocabulary);
-      await _firebaseStorageService.removeVocabulary(_userService.userId, vocabulary);
+      await _vocabularyService.removeVocabulary(vocab);
       
-      setState(() {
-        _savedVocabularies.remove(vocabulary);
-      });
+      // Reload vocabulary list
+      await _loadSavedVocabularies();
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã xóa "$vocabulary" khỏi vocabulary cá nhân'),
+          content: Text('Đã xóa "$vocab" khỏi vocabulary cá nhân'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -160,7 +167,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _languageManager,
+      listenable: Listenable.merge([_languageManager, _vocabularyService]),
       builder: (context, child) {
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.background,
@@ -329,10 +336,11 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
       child: ListView.builder(
         itemCount: _favouriteEpisodes.length,
         itemBuilder: (context, index) {
-          final episode = _favouriteEpisodes[index];
+          final favouriteEpisode = _favouriteEpisodes[index];
+          final episode = favouriteEpisode.toEpisode();
           return EpisodeRow(
             episode: episode,
-            onTap: () => _navigateToEpisodeDetail(episode),
+            onTap: () => _navigateToEpisodeDetail(favouriteEpisode),
           );
         },
       ),
@@ -414,22 +422,58 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           final vocabulary = _savedVocabularies[index];
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: Icon(
-                Icons.bookmark,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              title: Text(
-                vocabulary,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              trailing: IconButton(
-                onPressed: () => _removeVocabulary(vocabulary),
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.red[400],
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.bookmark,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          vocabulary.vocab,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _removeVocabulary(vocabulary.vocab),
+                        icon: const Icon(Icons.delete_outline),
+                        color: Colors.red[400],
+                        tooltip: 'Xóa từ vựng',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    vocabulary.mean,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                  if (vocabulary.bbcEpisodeId.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Episode ID: ${vocabulary.bbcEpisodeId}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           );

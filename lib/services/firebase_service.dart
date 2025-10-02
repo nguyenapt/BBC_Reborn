@@ -101,7 +101,7 @@ class FirebaseService {
         final List<Episode> episodes = [];
 
         if (data is Map<String, dynamic>) {
-          // Trường hợp API trả về Map
+          // Trường hợp API trả về Map với nhiều episodes
           data.forEach((episodeId, episodeData) {
             if (episodeData is Map<String, dynamic>) {
               episodes.add(Episode.fromJson(episodeData, episodeId));
@@ -116,6 +116,10 @@ class FirebaseService {
               episodes.add(Episode.fromJson(episodeData, episodeId));
             }
           }
+        } else if (data is Map<String, dynamic> && data.containsKey('Id')) {
+          // Trường hợp API trả về một episode duy nhất (như REE/2025/0.json)
+          final episodeId = data['Id']?.toString() ?? '0';
+          episodes.add(Episode.fromJson(data, episodeId));
         }
 
         // Sắp xếp theo PublishedDate (mới nhất trước)

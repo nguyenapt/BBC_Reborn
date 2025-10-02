@@ -17,6 +17,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final ImageCacheService _imageCacheService = ImageCacheService();
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
+  
+  // Notification settings - tạm thời để đó, sẽ phát triển sau
+  bool _pushNotificationsEnabled = true;
 
   @override
   void initState() {
@@ -246,7 +249,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           // Cache Management Section
           _buildCacheSection(),
-          const SizedBox(height: 16),         
+          const SizedBox(height: 16),
+          
+          // Notification Settings Section
+          _buildNotificationSection(),
+          const SizedBox(height: 16),
           
           
           
@@ -626,6 +633,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(color: Colors.grey[600]),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.notifications, color: Colors.orange),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('pushNotifications'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+                ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('notificationDescription'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _languageManager.getText('enablePushNotifications'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Switch(
+                  value: _pushNotificationsEnabled,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _pushNotificationsEnabled = value;
+                    });
+                    // TODO: Implement notification settings logic
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          value 
+                            ? _languageManager.getText('notificationsEnabled')
+                            : _languageManager.getText('notificationsDisabled')
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  activeColor: Colors.orange,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _languageManager.getText('notificationFeatureNote'),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
