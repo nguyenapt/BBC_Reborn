@@ -2,13 +2,13 @@ class AppKo {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC 영어 학습',
-    'welcomeMessage': 'BBC와 함께 영어를 배우세요!',
+    'welcomeMessage': '「6분으로 영어를 배우자」에 오신 것을 환영합니다!',
     
     // Greetings
     'goodMorning': '좋은 아침입니다!',
     'goodAfternoon': '좋은 오후입니다!',
     'goodEvening': '좋은 저녁입니다!',
-    'learnEnglishThroughListening': 'BBC의 흥미로운 듣기 자료로 영어를 배우세요.',
+    'learnEnglishThroughListening': '흥미로운 듣기 자료로 영어를 배우세요.',
     
     // Navigation
     'home': '홈',

@@ -2,13 +2,13 @@ class AppAr {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'بي بي سي تعلم الإنجليزية',
-    'welcomeMessage': 'مرحباً بكم في تعلم اللغة الإنجليزية مع BBC!',
+    'welcomeMessage': 'مرحباً بكم في تعلم اللغة الإنجليزية - 6 دقائق!',
     
     // Greetings
     'goodMorning': 'صباح الخير!',
     'goodAfternoon': 'مساء الخير!',
     'goodEvening': 'مساء الخير!',
-    'learnEnglishThroughListening': 'تعلم الإنجليزية من خلال الاستماع الممتع من بي بي سي.',
+    'learnEnglishThroughListening': 'تعلم الإنجليزية من خلال الاستماع الممتع.',
     
     // Navigation
     'home': 'الرئيسية',

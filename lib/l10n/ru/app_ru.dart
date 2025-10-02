@@ -2,13 +2,13 @@ class AppRu {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC Изучение Английского',
-    'welcomeMessage': 'Добро пожаловать на курс изучения английского языка с B.B.C.!',
+    'welcomeMessage': 'Добро пожаловать на курс изучения английского языка - 6 минут!',
     
     // Greetings
     'goodMorning': 'Доброе утро!',
     'goodAfternoon': 'Добрый день!',
     'goodEvening': 'Добрый вечер!',
-    'learnEnglishThroughListening': 'Изучайте английский через интересные аудиоматериалы BBC.',
+    'learnEnglishThroughListening': 'Изучайте английский через интересные аудиоматериалы.',
     
     // Navigation
     'home': 'Главная',

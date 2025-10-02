@@ -28,14 +28,24 @@ class FirebaseService {
             
             for (final episodeData in categoryData) {
               if (episodeData is Map<String, dynamic>) {
-                episodes.add(Episode.fromJson(episodeData, episodeData['Id'] ?? ''));
+                try {
+                  final episodeId = episodeData['Id']?.toString() ?? '';
+                  if (episodeId.isNotEmpty) {
+                    episodes.add(Episode.fromJson(episodeData, episodeId));
+                  }
+                } catch (e) {
+                  print('Error parsing episode: $e');
+                  // Skip episode này và tiếp tục
+                }
               }
             }
             
-            categories.add(Category(
-              name: categoryName,
-              episodes: episodes,
-            ));
+            if (episodes.isNotEmpty) {
+              categories.add(Category(
+                name: categoryName,
+                episodes: episodes,
+              ));
+            }
           }
         });
 
@@ -82,7 +92,7 @@ class FirebaseService {
   static Future<List<Episode>> getCategoryData(String category, int year) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/$category/2024.json'),
+        Uri.parse('$_baseUrl/$category/$year.json'),
         headers: {'Accept': 'application/json'},
       );
 

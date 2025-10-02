@@ -7,6 +7,7 @@ import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
 import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
+import '../services/admob_service.dart';
 
 class EpisodeDetailScreen extends StatefulWidget {
   final Episode episode;
@@ -26,17 +27,20 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
-  int _currentPageIndex = 0; // Mặc định là slide thứ 1 (Episode Info)
+  int _currentPageIndex = 1; // Mặc định là slide thứ 1 (Episode Info)
 
   @override
   void initState() {
     super.initState();
     _audioService = AudioPlayerService();
     _languageManager = LanguageManager();
-    _pageController = PageController(initialPage: 0); // Khởi tạo ở slide thứ 1 (Episode Info)
+    _pageController = PageController(initialPage: 1); // Khởi tạo ở slide thứ 1 (Episode Info)
 
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(widget.episode, widget.categoryEpisodes);
+    
+    // Tạo interstitial ad để sẵn sàng hiển thị
+    AdMobService().createInterstitialAd();
   }
 
   @override
@@ -44,6 +48,13 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     _pageController.dispose();
     // Release audio player khi rời khỏi màn hình
     _audioService.stop();
+    
+    // Hiển thị interstitial ad khi rời khỏi màn hình
+    // (sẽ hiển thị sau 2 giây để tránh conflict với navigation)
+    Future.delayed(const Duration(seconds: 2), () {
+      AdMobService().showInterstitialAd();
+    });
+    
     super.dispose();
   }
 

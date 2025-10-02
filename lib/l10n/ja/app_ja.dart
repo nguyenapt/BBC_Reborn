@@ -2,13 +2,13 @@ class AppJa {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC英語学習',
-    'welcomeMessage': 'B.B.C で英語を学ぶへようこそ!',
+    'welcomeMessage': '「6分で英語を学ぶ」へようこそ！',
     
     // Greetings
     'goodMorning': 'おはようございます！',
     'goodAfternoon': 'こんにちは！',
     'goodEvening': 'こんばんは！',
-    'learnEnglishThroughListening': 'BBCの興味深いリスニング教材で英語を学びましょう。',
+    'learnEnglishThroughListening': '興味深いリスニング教材で英語を学びましょう。',
     
     // Navigation
     'home': 'ホーム',

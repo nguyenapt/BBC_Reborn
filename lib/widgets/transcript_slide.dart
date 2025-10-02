@@ -52,7 +52,7 @@ class TranscriptSlide extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 child: Text(
-                  episode.transcript,
+                  episode.transcriptHtml ?? episode.transcript,
                   style: TextStyle(
                     fontSize: 16,
                     height: 1.6,

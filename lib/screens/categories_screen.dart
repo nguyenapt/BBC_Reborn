@@ -3,6 +3,7 @@ import '../models/episode.dart';
 import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../widgets/episode_row.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'episode_detail_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
@@ -297,16 +298,26 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       onRefresh: () => _loadCategoryData(category),
       child: ListView.builder(
         padding: const EdgeInsets.all(12),
-        itemCount: episodes.length,
+        itemCount: episodes.length + 1, // +1 for banner ad
         itemBuilder: (context, index) {
-          final episode = episodes[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: EpisodeRow(
-              episode: episode,
-              onTap: () => _navigateToEpisodeDetail(episode),
-            ),
-          );
+          if (index == episodes.length) {
+            // Banner ad ở cuối danh sách
+            return const BannerAdWidget();
+          }
+          
+          if (index >= 0 && index < episodes.length) {
+            final episode = episodes[index];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: EpisodeRow(
+                episode: episode,
+                onTap: () => _navigateToEpisodeDetail(episode),
+              ),
+            );
+          }
+          
+          // Fallback - không nên xảy ra
+          return const SizedBox.shrink();
         },
       ),
     );

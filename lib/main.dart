@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_page.dart';
 import 'screens/categories_screen.dart';
@@ -10,6 +11,9 @@ import 'services/audio_player_service.dart';
 import 'services/user_service.dart';
 import 'services/auth_service.dart';
 import 'services/image_cache_service.dart';
+import 'services/admob_service.dart';
+import 'screens/splash_screen.dart';
+import 'utils/double_back_exit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +37,7 @@ class BBCLearningApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: NavigationService.navigatorKey,
-          title: 'Learning English with B.B.C',
+          title: 'Learning English - 6 minutes',
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -46,21 +50,39 @@ class BBCLearningApp extends StatelessWidget {
             useMaterial3: true,
             brightness: Brightness.light,
             textTheme: TextTheme(
-              bodyLarge: TextStyle(fontSize: 16 * LanguageManager().textScaleFactor),
-              bodyMedium: TextStyle(fontSize: 14 * LanguageManager().textScaleFactor),
-              bodySmall: TextStyle(fontSize: 12 * LanguageManager().textScaleFactor),
+              bodyLarge: TextStyle(
+                fontSize: 16 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
+              bodyMedium: TextStyle(
+                fontSize: 14 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
+              bodySmall: TextStyle(
+                fontSize: 12 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
             ),
           ),
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             textTheme: TextTheme(
-              bodyLarge: TextStyle(fontSize: 16 * LanguageManager().textScaleFactor),
-              bodyMedium: TextStyle(fontSize: 14 * LanguageManager().textScaleFactor),
-              bodySmall: TextStyle(fontSize: 12 * LanguageManager().textScaleFactor),
+              bodyLarge: TextStyle(
+                fontSize: 16 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
+              bodyMedium: TextStyle(
+                fontSize: 14 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
+              bodySmall: TextStyle(
+                fontSize: 12 * LanguageManager().textScaleFactor,
+                decoration: TextDecoration.none,
+              ),
             ),
           ),
-          home: const BBCLearningAppStateful(),
+          home: const SplashScreen(),
         );
       },
     );
@@ -74,14 +96,63 @@ class BBCLearningAppStateful extends StatefulWidget {
   State<BBCLearningAppStateful> createState() => _BBCLearningAppStatefulState();
 }
 
-class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> {
+class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> 
+    with WidgetsBindingObserver, DoubleBackExitMixin {
   int currentPageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Tạo App Open Ad và hiển thị sau khi UI đã sẵn sàng (chỉ trên mobile)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Delay lâu hơn để đảm bảo UI đã render xong và ổn định
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (!kIsWeb && mounted) {
+          // Tạo App Open Ad trước khi hiển thị
+          AdMobService().createAppOpenAd();
+          // Delay thêm một chút để ad load xong
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              AdMobService().showAppOpenAdIfReady();
+            }
+          });
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Hiển thị App Open Ad khi app được resume từ background (chỉ trên mobile)
+    if (state == AppLifecycleState.resumed && !kIsWeb) {
+      // Delay một chút để tránh hiển thị ngay lập tức
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        AdMobService().showAppOpenAdIfReady();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final languageManager = LanguageManager();
-    final ThemeData theme = Theme.of(context);
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          onWillPop();
+        }
+      },
+      child: Scaffold(
       bottomNavigationBar: NavigationBar(
         onDestinationSelected: (int index) {
           setState(() {
@@ -130,6 +201,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> {
         /// Settings page
         const SettingsScreen(),
       ][currentPageIndex],
+      ),
     );
   }
 }

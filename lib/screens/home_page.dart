@@ -6,6 +6,7 @@ import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../widgets/category_group_box.dart';
 import '../widgets/welcome_header.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'episode_detail_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -35,7 +36,9 @@ class _HomePageState extends State<HomePage> {
         _error = null;
       });
 
+      print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
+      print('Loaded ${categories.length} categories');
       
       // Preload images for better performance
       _preloadImages(categories);
@@ -45,6 +48,7 @@ class _HomePageState extends State<HomePage> {
         _isLoading = false;
       });
     } catch (e) {
+      print('Error loading data: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -179,24 +183,33 @@ class _HomePageState extends State<HomePage> {
       onRefresh: _loadData,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 4),
-        itemCount: _categories.length + 1, // +1 for welcome header
+        itemCount: _categories.length + 2, // +1 for welcome header, +1 for banner ad
         itemBuilder: (context, index) {
           if (index == 0) {
             // Welcome header ở đầu
             return const WelcomeHeader();
           }
           
-          // Categories bắt đầu từ index 1
-          final categoryIndex = index - 1;
-          final category = _categories[categoryIndex];
+          if (index == 1) {
+            // Banner ad sau welcome header
+            return const BannerAdWidget();
+          }
           
-          return CategoryGroupBox(
-            category: category,
-            onEpisodeTap: _navigateToEpisodeDetail,
-          );
+          // Categories bắt đầu từ index 2
+          final categoryIndex = index - 2;
+          if (categoryIndex >= 0 && categoryIndex < _categories.length) {
+            final category = _categories[categoryIndex];
+            return CategoryGroupBox(
+              category: category,
+              onEpisodeTap: _navigateToEpisodeDetail,
+            );
+          }
+          
+          // Fallback - không nên xảy ra
+          return const SizedBox.shrink();
         },
       ),
-        );
+    );
       },
     );
   }

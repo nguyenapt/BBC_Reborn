@@ -2,13 +2,13 @@ class AppPt {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC Aprenda Inglês',
-    'welcomeMessage': 'Bem-vindo ao Learning English with B.B.C!',
+    'welcomeMessage': 'Bem-vindo ao Learning English - 6 minutos!',
     
     // Greetings
     'goodMorning': 'Bom dia!',
     'goodAfternoon': 'Boa tarde!',
     'goodEvening': 'Boa noite!',
-    'learnEnglishThroughListening': 'Aprenda inglês através de audios interessantes da BBC.',
+    'learnEnglishThroughListening': 'Aprenda inglês através de audios interessantes.',
     
     // Navigation
     'home': 'Início',

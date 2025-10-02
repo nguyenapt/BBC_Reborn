@@ -2,13 +2,13 @@ class AppVi {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC Học Tiếng Anh',
-    'welcomeMessage': 'Chào mừng đến với Learning English với B.B.C!',
+    'welcomeMessage': 'Chào mừng đến với Learning English - 6 phút!',
     
     // Greetings
     'goodMorning': 'Chào buổi sáng!',
     'goodAfternoon': 'Chào buổi chiều!',
     'goodEvening': 'Chào buổi tối!',
-    'learnEnglishThroughListening': 'Học tiếng Anh qua các bài nghe thú vị từ BBC.',
+    'learnEnglishThroughListening': 'Học tiếng Anh qua các bài nghe thú vị.',
     
     // Navigation
     'home': 'Trang chủ',

@@ -34,19 +34,19 @@ class Episode {
   factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
     return Episode(
       id: episodeId,
-      actor: json['Actor'] ?? '',
-      category: json['Category'] ?? '',
+      actor: json['Actor']?.toString() ?? '',
+      category: json['Category']?.toString() ?? '',
       duration: _formatDuration(json['Duration']),
-      publishedDate: DateTime.parse(json['PublishedDate'] ?? DateTime.now().toIso8601String()),
-      episodeName: json['EpisodeName'] ?? '',
-      transcript: json['Transcript'] ?? '',
-      thumbImage: json['ThumbImage'] ?? '',
-      fileUrl: json['FileUrl'],
-      secondFileUrl: json['SecondFileUrl'],
-      summary: json['Summary'],
-      year: json['Year'],
-      transcriptHtml: json['TranscriptHtml'],
-      vocabulary: json['Vocabulary'],
+      publishedDate: _parseDate(json['PublishedDate']),
+      episodeName: json['EpisodeName']?.toString() ?? '',
+      transcript: json['Transcript']?.toString() ?? '',
+      thumbImage: json['ThumbImage']?.toString() ?? '',
+      fileUrl: json['FileUrl']?.toString(),
+      secondFileUrl: json['SecondFileUrl']?.toString(),
+      summary: json['Summary']?.toString(),
+      year: json['Year']?.toString(),
+      transcriptHtml: json['TranscriptHtml']?.toString(),
+      vocabulary: json['Vocabulary']?.toString(),
     );
   }
 
@@ -66,6 +66,25 @@ class Episode {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  // Parse date an toàn với fallback
+  static DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    
+    try {
+      if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      } else if (dateValue is int) {
+        // Nếu là timestamp
+        return DateTime.fromMillisecondsSinceEpoch(dateValue);
+      } else {
+        return DateTime.now();
+      }
+    } catch (e) {
+      print('Error parsing date: $dateValue, error: $e');
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toJson() {

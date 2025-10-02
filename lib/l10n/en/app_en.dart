@@ -2,13 +2,13 @@ class AppEn {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC Learning English',
-    'welcomeMessage': 'Welcome to Learning English with B.B.C!',
+    'welcomeMessage': 'Welcome to Learning English - 6 minutes!',
     
     // Greetings
     'goodMorning': 'Good morning!',
     'goodAfternoon': 'Good afternoon!',
     'goodEvening': 'Good evening!',
-    'learnEnglishThroughListening': 'Learn English through interesting listening from BBC.',
+    'learnEnglishThroughListening': 'Learn English through interesting listening materials.',
     
     // Navigation
     'home': 'Home',

@@ -2,13 +2,13 @@ class AppZh {
   static const Map<String, String> texts = {
     // App Info
     'appTitle': 'BBC英语学习',
-    'welcomeMessage': '欢迎来到 B.B.C 学习英语！',
+    'welcomeMessage': '欢迎来到「6分钟学习英语」！',
     
     // Greetings
     'goodMorning': '早上好！',
     'goodAfternoon': '下午好！',
     'goodEvening': '晚上好！',
-    'learnEnglishThroughListening': '通过BBC有趣的听力材料学习英语。',
+    'learnEnglishThroughListening': '通过有趣的听力材料学习英语。',
     
     // Navigation
     'home': '首页',
