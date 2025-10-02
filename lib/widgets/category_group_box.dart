@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
+import '../utils/category_names.dart';
 import 'episode_row.dart';
 import '../services/language_manager.dart';
 
@@ -9,11 +10,13 @@ import '../services/language_manager.dart';
 class CategoryGroupBox extends StatelessWidget {
   final Category category;
   final Function(Episode) onEpisodeTap;
+  final Function(String)? onViewAllTap;
 
   const CategoryGroupBox({
     super.key,
     required this.category,
     required this.onEpisodeTap,
+    this.onViewAllTap,
   });
 
   @override
@@ -69,7 +72,7 @@ class CategoryGroupBox extends StatelessWidget {
                 // Tên category
                 Expanded(
                   child: Text(
-                    category.name,
+                    CategoryNames.getDisplayName(category.name),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -77,19 +80,26 @@ class CategoryGroupBox extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Số lượng episodes
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${category.episodes.length} episodes',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                // Số lượng episodes (có thể click)
+                GestureDetector(
+                  onTap: () {
+                    if (onViewAllTap != null) {
+                      onViewAllTap!(category.name);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${category.episodes.length} episodes',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -136,13 +146,17 @@ class CategoryGroupBox extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 8),
                     child: TextButton.icon(
                       onPressed: () {
-                        // TODO: Navigate to category detail page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${languageManager.getText('viewAll')} ${category.name} ${languageManager.getText('episodes')}'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                        if (onViewAllTap != null) {
+                          onViewAllTap!(category.name);
+                        } else {
+                          // Fallback: hiển thị SnackBar nếu không có callback
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${languageManager.getText('viewAll')} ${CategoryNames.getDisplayName(category.name)} ${languageManager.getText('episodes')}'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                       icon: Icon(
                         Icons.arrow_forward,
@@ -150,7 +164,7 @@ class CategoryGroupBox extends StatelessWidget {
                         size: 16,
                       ),
                       label: Text(
-                        '${languageManager.getText('viewAll')} (${category.episodes.length})',
+                        '${languageManager.getText('viewAll')} ${CategoryNames.getDisplayName(category.name)} (${category.episodes.length})',
                         style: TextStyle(
                           color: CategoryColors.getCategoryColor(category.name),
                           fontWeight: FontWeight.w600,

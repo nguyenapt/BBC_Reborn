@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/language_manager.dart';
 import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
+import '../services/rate_app_service.dart';
 import '../widgets/auth_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -255,8 +256,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildNotificationSection(),
           const SizedBox(height: 16),
           
-          
-          
+          // Rate App Section
+          _buildRateAppSection(),
             ],
           ),
         );
@@ -705,6 +706,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontSize: 12,
                 color: Colors.grey[500],
                 fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRateAppSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('rateAppInSettings'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('rateAppMessage'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await RateAppService.markAsRated();
+                  await RateAppService.openPlayStore();
+                },
+                icon: const Icon(Icons.star),
+                label: Text(_languageManager.getText('rateNow')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
           ],

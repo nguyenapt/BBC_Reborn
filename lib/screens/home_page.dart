@@ -8,9 +8,12 @@ import '../widgets/category_group_box.dart';
 import '../widgets/welcome_header.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'episode_detail_screen.dart';
+import 'categories_screen.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Function(String)? onNavigateToCategory;
+  
+  const HomePage({super.key, this.onNavigateToCategory});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -110,6 +113,21 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _navigateToCategory(String categoryName) {
+    // Sử dụng callback từ main.dart nếu có, ngược lại sử dụng Navigator.push
+    if (widget.onNavigateToCategory != null) {
+      widget.onNavigateToCategory!(categoryName);
+    } else {
+      // Fallback: sử dụng Navigator.push
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CategoriesScreen(initialTab: categoryName),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -202,6 +220,7 @@ class _HomePageState extends State<HomePage> {
             return CategoryGroupBox(
               category: category,
               onEpisodeTap: _navigateToEpisodeDetail,
+              onViewAllTap: _navigateToCategory,
             );
           }
           

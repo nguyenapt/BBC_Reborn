@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
+import '../utils/category_names.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'episode_detail_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  const CategoriesScreen({super.key});
+  final String? initialTab;
+  
+  const CategoriesScreen({super.key, this.initialTab});
 
   @override
   State<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -36,8 +39,20 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     
-    // Load data cho tab đầu tiên
-    _loadCategoryData('6M');
+    // Xác định tab ban đầu
+    final categories = ['6M', 'TEWS', 'REE'];
+    String initialCategory = '6M'; // Default
+    
+    if (widget.initialTab != null) {
+      final tabIndex = categories.indexOf(widget.initialTab!);
+      if (tabIndex != -1) {
+        _tabController.index = tabIndex;
+        initialCategory = widget.initialTab!;
+      }
+    }
+    
+    // Load data cho tab được chọn
+    _loadCategoryData(initialCategory);
   }
 
   @override
@@ -194,9 +209,9 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         ),
         dividerColor: Colors.transparent,
         tabs: const [
-          Tab(text: '6M'),
-          Tab(text: 'TEWS'),
-          Tab(text: 'REE'),
+          Tab(text: '6 Minutes English'),
+          Tab(text: 'The English We Speak'),
+          Tab(text: 'Real Easy English'),
         ],
       ),
     );

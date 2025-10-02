@@ -13,6 +13,7 @@ import 'services/auth_service.dart';
 import 'services/image_cache_service.dart';
 import 'services/admob_service.dart';
 import 'services/vocabulary_service.dart';
+import 'services/rate_app_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 
@@ -101,11 +102,33 @@ class BBCLearningAppStateful extends StatefulWidget {
 class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> 
     with WidgetsBindingObserver, DoubleBackExitMixin {
   int currentPageIndex = 0;
+  String? categoriesInitialTab;
+
+  void navigateToCategoriesWithTab(String tabName) {
+    setState(() {
+      categoriesInitialTab = tabName;
+      currentPageIndex = 1; // Categories tab index
+    });
+  }
+
+  Future<void> _checkAndShowRateDialog() async {
+    try {
+      if (await RateAppService.shouldShowRatePrompt()) {
+        await RateAppService.incrementPromptCount();
+        await RateAppService.showRateDialog(context);
+      }
+    } catch (e) {
+      debugPrint('Error showing rate dialog: $e');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Khởi tạo dữ liệu cho rate app service
+    RateAppService.initializeForNewUser();
     
     // Giảm tần suất App Open Ad khi khởi động app
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,6 +146,13 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
               }
             });
           }
+        }
+      });
+      
+      // Hiển thị popup rate app nếu cần
+      Future.delayed(const Duration(milliseconds: 5000), () {
+        if (mounted) {
+          _checkAndShowRateDialog();
         }
       });
     });
@@ -190,10 +220,24 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       ),
       body: <Widget>[
         /// Home page
-        const HomePage(),
+        HomePage(onNavigateToCategory: navigateToCategoriesWithTab),
 
         /// Categories page
-        const CategoriesScreen(),
+        Builder(
+          builder: (context) {
+            // Reset categoriesInitialTab sau khi CategoriesScreen được tạo
+            if (categoriesInitialTab != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    categoriesInitialTab = null;
+                  });
+                }
+              });
+            }
+            return CategoriesScreen(initialTab: categoriesInitialTab);
+          },
+        ),
 
         /// Saved page
         const SavedScreen(),

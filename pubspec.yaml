@@ -46,6 +46,7 @@ dependencies:
   flutter_html: ^3.0.0-beta.2 # For HTML rendering
   google_mobile_ads: ^5.1.0 # For Google AdMob integration
   wakelock_plus: ^1.1.4 # For keeping screen on
+  url_launcher: ^6.2.5 # For opening external URLs
 
 dev_dependencies:
   flutter_test:
