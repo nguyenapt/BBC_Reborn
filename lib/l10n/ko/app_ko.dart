@@ -136,5 +136,7 @@ class AppKo {
     'manageImageCache': '이미지 캐시 관리',
     'cacheSize': '캐시 크기',
     'clearCache': '캐시 지우기',
+    'grammarDesc': '문법 수업과 이론',
+    'settingsDesc': '앱 설정',
   };
 }

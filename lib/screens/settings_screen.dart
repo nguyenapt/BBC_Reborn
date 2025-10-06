@@ -44,224 +44,133 @@ class _SettingsScreenState extends State<SettingsScreen> {
       listenable: _authService,
       builder: (context, child) {
         return Scaffold(
-          appBar: AppBar(
-            title: Text(_languageManager.getText('settings')),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          body: Column(
             children: [
-              // Authentication Section
-              _buildAuthSection(),
+              // Custom Header
+              _buildHeader(),
+
               const SizedBox(height: 16),
               
-              // Language Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.language, color: Colors.blue),
-                      const SizedBox(width: 12),
-                      Text(
-                        _languageManager.getText('language'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _languageManager.getText('selectLanguage'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListenableBuilder(
-                    listenable: _languageManager,
-                    builder: (context, child) {
-                      return DropdownButtonFormField<Locale>(
-                        value: _languageManager.currentLocale,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        onChanged: (Locale? newLocale) {
-                          if (newLocale != null) {
-                            _languageManager.changeLanguage(newLocale);
-                          }
-                        },
-                        items: LanguageManager.supportedLocales.map<DropdownMenuItem<Locale>>((Locale locale) {
-                          return DropdownMenuItem<Locale>(
-                            value: locale,
-                            child: Text(_languageManager.getLanguageName(locale.languageCode)),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Theme Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.palette, color: Colors.purple),
-                      const SizedBox(width: 12),
-                      Text(
-                        _languageManager.getText('theme'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _languageManager.getText('selectTheme'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListenableBuilder(
-                    listenable: _languageManager,
-                    builder: (context, child) {
-                      return DropdownButtonFormField<String>(
-                        value: _languageManager.currentTheme,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        onChanged: (String? newTheme) {
-                          if (newTheme != null) {
-                            _languageManager.changeTheme(newTheme);
-                          }
-                        },
-                        items: ['light', 'dark', 'system'].map<DropdownMenuItem<String>>((String theme) {
-                          return DropdownMenuItem<String>(
-                            value: theme,
-                            child: Text(_languageManager.getThemeName(theme)),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Font Size Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.text_fields, color: Colors.orange),
-                      const SizedBox(width: 12),
-                      Text(
-                        _languageManager.getText('fontSize'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _languageManager.getText('selectFontSize'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListenableBuilder(
-                    listenable: _languageManager,
-                    builder: (context, child) {
-                      return DropdownButtonFormField<String>(
-                        value: _languageManager.currentFontSize,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        onChanged: (String? newFontSize) {
-                          if (newFontSize != null) {
-                            _languageManager.changeFontSize(newFontSize);
-                          }
-                        },
-                        items: ['small', 'normal', 'large'].map<DropdownMenuItem<String>>((String fontSize) {
-                          return DropdownMenuItem<String>(
-                            value: fontSize,
-                            child: Text(_languageManager.getFontSizeName(fontSize)),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Cache Management Section
-          _buildCacheSection(),
-          const SizedBox(height: 16),
-          
-          // Notification Settings Section
-          _buildNotificationSection(),
-          const SizedBox(height: 16),
-          
-          // Rate App Section
-          _buildRateAppSection(),
+              // Body content
+              Expanded(child: _buildBody()),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHeader() {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    String greeting;
+    String emoji;
+    
+    if (hour < 12) {
+      greeting = _languageManager.getText('goodMorning');
+      emoji = '🌅';
+    } else if (hour < 17) {
+      greeting = _languageManager.getText('goodAfternoon');
+      emoji = '☀️';
+    } else {
+      greeting = _languageManager.getText('goodEvening');
+      emoji = '🌙';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      child: Row(
+        children: [          
+          // Title và subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _languageManager.getText('settings'),
+                  style: theme.textTheme.headlineSmall!.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _languageManager.getText('settingsDesc'),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // App icon đơn giản
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.primaryContainer.withOpacity(0.3),
+            ),
+            child: Icon(
+              Icons.settings,
+              color: colorScheme.onPrimary,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Authentication Section
+        _buildAuthSection(),
+        const SizedBox(height: 16),
+        
+        // Language Section
+        _buildLanguageSection(),
+        const SizedBox(height: 16),
+
+        // Theme Section
+        _buildThemeSection(),
+        const SizedBox(height: 16),
+
+        // Cache Section
+        _buildCacheSection(),
+        const SizedBox(height: 16),
+
+        // Rate App Section
+        _buildRateAppSection(),
+        const SizedBox(height: 16),
+
+        // Notification Section (Placeholder)
+        _buildNotificationSection(),
+        const SizedBox(height: 16),
+
+        // About Section
+        _buildAboutSection(),
+      ],
     );
   }
 
@@ -707,6 +616,194 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: Colors.grey[500],
                 fontStyle: FontStyle.italic,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.language, color: Colors.blue),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('language'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('selectLanguage'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListenableBuilder(
+              listenable: _languageManager,
+              builder: (context, child) {
+                return DropdownButtonFormField<Locale>(
+                  value: _languageManager.currentLocale,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  onChanged: (Locale? newLocale) {
+                    if (newLocale != null) {
+                      _languageManager.changeLanguage(newLocale);
+                    }
+                  },
+                  items: LanguageManager.supportedLocales.map<DropdownMenuItem<Locale>>((Locale locale) {
+                    return DropdownMenuItem<Locale>(
+                      value: locale,
+                      child: Text(_languageManager.getLanguageName(locale.languageCode)),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.palette, color: Colors.purple),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('theme'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('selectTheme'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListenableBuilder(
+              listenable: _languageManager,
+              builder: (context, child) {
+                return DropdownButtonFormField<String>(
+                  value: _languageManager.currentTheme,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  onChanged: (String? newTheme) {
+                    if (newTheme != null) {
+                      _languageManager.changeTheme(newTheme);
+                    }
+                  },
+                  items: ['light', 'dark', 'system'].map<DropdownMenuItem<String>>((String theme) {
+                    return DropdownMenuItem<String>(
+                      value: theme,
+                      child: Text(_languageManager.getThemeName(theme)),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.green),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('about'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('aboutMessage'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _languageManager.getText('version'),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  '1.0.0',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _languageManager.getText('developer'),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  'BBC Learning Team',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
             ),
           ],
         ),

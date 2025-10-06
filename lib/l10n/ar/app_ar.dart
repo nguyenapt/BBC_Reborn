@@ -136,5 +136,7 @@ class AppAr {
     'manageImageCache': 'إدارة غرفة الصور',
     'cacheSize': 'حجم الغرفة',
     'clearCache': 'مسح الغرفة',
+    'grammarDesc': 'دروس القواعد والنظرية',
+    'settingsDesc': 'الإعدادات للتطبيق',
   };
 }

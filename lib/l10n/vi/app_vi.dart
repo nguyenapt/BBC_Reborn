@@ -165,5 +165,7 @@ class AppVi {
     'loadingAd': 'Đang tải quảng cáo...',
     'adNotAvailable': 'Quảng cáo không khả dụng',
     'retry': 'Thử lại',
+    'grammarDesc': 'Bài học ngữ pháp và lý thuyết',
+    'settingsDesc': 'Cài đặt cho ứng dụng',
   };
 }

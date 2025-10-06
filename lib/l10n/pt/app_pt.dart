@@ -136,5 +136,7 @@ class AppPt {
     'manageImageCache': 'Gerenciar Cache de Imagens',
     'cacheSize': 'Tamanho do Cache',
     'clearCache': 'Limpar Cache',
+    'grammarDesc': 'Leções de gramática e teoria',
+    'settingsDesc': 'Configurações para a aplicação',
   };
 }

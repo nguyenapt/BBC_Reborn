@@ -136,5 +136,7 @@ class AppRu {
     'manageImageCache': 'Управление кэшем изображений',
     'cacheSize': 'Размер кэша',
     'clearCache': 'Очистить кэш',
+    'grammarDesc': 'Уроки грамматики и теории',
+    'settingsDesc': 'Настройки для приложения',
   };
 }

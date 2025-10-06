@@ -136,5 +136,7 @@ class AppZh {
     'manageImageCache': '管理图片缓存',
     'cacheSize': '缓存大小',
     'clearCache': '清除缓存',
+    'grammarDesc': '语法课程和理论',
+    'settingsDesc': '应用程序设置',
   };
 }

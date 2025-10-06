@@ -61,14 +61,97 @@ class _GrammarScreenState extends State<GrammarScreen> {
       builder: (context, child) {
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: AppBar(
-            title: Text(_languageManager.getText('grammar')),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          body: Column(
+            children: [
+              // Custom Header
+              _buildHeader(),
+              // Body content
+              Expanded(child: _buildBody()),
+            ],
           ),
-          body: _buildBody(),
         );
       },
+    );
+  }
+
+  Widget _buildHeader() {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    String greeting;
+    String emoji;
+    
+    if (hour < 12) {
+      greeting = _languageManager.getText('goodMorning');
+      emoji = '🌅';
+    } else if (hour < 17) {
+      greeting = _languageManager.getText('goodAfternoon');
+      emoji = '☀️';
+    } else {
+      greeting = _languageManager.getText('goodEvening');
+      emoji = '🌙';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      child: Row(
+        children: [
+          
+          // Title và subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _languageManager.getText('grammar'),
+                  style: theme.textTheme.headlineSmall!.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _languageManager.getText('grammarDesc'),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // App icon đơn giản
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.primaryContainer.withOpacity(0.3),
+            ),
+            child: Icon(
+              Icons.menu_book,
+              color: colorScheme.onPrimary,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

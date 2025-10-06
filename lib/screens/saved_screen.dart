@@ -175,6 +175,8 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
             children: [
               // Custom Header
               _buildHeader(),
+
+              const SizedBox(height: 16),
               // TabBar với shadow
               _buildTabBar(),
               // TabBarView content
@@ -195,19 +197,79 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   }
 
   Widget _buildHeader() {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    String greeting;
+    String emoji;
+    
+    if (hour < 12) {
+      greeting = _languageManager.getText('goodMorning');
+      emoji = '🌅';
+    } else if (hour < 17) {
+      greeting = _languageManager.getText('goodAfternoon');
+      emoji = '☀️';
+    } else {
+      greeting = _languageManager.getText('goodEvening');
+      emoji = '🌙';
+    }
+
     return Container(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _languageManager.getText('saved'),
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 8),
-          Text(
-            _languageManager.getText('savedDesc'),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      child: Row(
+        children: [          
+          // Title và subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _languageManager.getText('saved'),
+                  style: theme.textTheme.headlineSmall!.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _languageManager.getText('savedDesc'),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // App icon đơn giản
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.primaryContainer.withOpacity(0.3),
+            ),
+            child: Icon(
+              Icons.favorite,
+              color: colorScheme.onPrimary,
+              size: 20,
+            ),
           ),
         ],
       ),

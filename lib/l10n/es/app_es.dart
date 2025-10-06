@@ -136,5 +136,7 @@ class AppEs {
     'manageImageCache': 'Gestionar Cache de Imágenes',
     'cacheSize': 'Tamaño de Cache',
     'clearCache': 'Limpiar Cache',
+    'grammarDesc': 'Lecciones de gramática y teoría',
+    'settingsDesc': 'Configuraciones para la aplicación',
   };
 }

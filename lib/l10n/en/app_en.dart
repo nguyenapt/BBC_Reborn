@@ -158,5 +158,7 @@ class AppEn {
     'loadingAd': 'Loading advertisement...',
     'adNotAvailable': 'Advertisement not available',
     'retry': 'Retry',
+    'grammarDesc': 'Grammar lessons and theory',
+    'settingsDesc': 'Settings for the app',
   };
 }

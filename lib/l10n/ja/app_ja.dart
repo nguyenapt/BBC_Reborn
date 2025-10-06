@@ -136,5 +136,7 @@ class AppJa {
     'manageImageCache': '画像キャッシュの管理',
     'cacheSize': 'キャッシュサイズ',
     'clearCache': 'キャッシュをクリア',
+    'grammarDesc': '文法のレッスンと理論',
+    'settingsDesc': 'アプリの設定',
   };
 }
