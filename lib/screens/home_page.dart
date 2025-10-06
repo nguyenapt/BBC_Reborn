@@ -128,6 +128,172 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Xây dựng Pinned Header dựa trên code mẫu
+  Widget _buildPinnedHeader() {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    String greeting;
+    String emoji;
+    
+    if (hour < 12) {
+      greeting = _languageManager.getText('goodMorning');
+      emoji = '🌅';
+    } else if (hour < 17) {
+      greeting = _languageManager.getText('goodAfternoon');
+      emoji = '☀️';
+    } else {
+      greeting = _languageManager.getText('goodEvening');
+      emoji = '🌙';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue[600]!,
+            Colors.purple[600]!,
+            Colors.indigo[700]!,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Material(
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.15),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Row(
+            children: [
+              // Logo tròn với hiệu ứng glassmorphism
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.3),
+                      Colors.white.withOpacity(0.1),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Greeting text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      greeting,
+                      style: theme.textTheme.headlineSmall!.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _languageManager.getText('welcomeMessage'),
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // App icon với hiệu ứng
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.2),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  Icons.school,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -199,34 +365,38 @@ class _HomePageState extends State<HomePage> {
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 4),
-        itemCount: _categories.length + 2, // +1 for welcome header, +1 for banner ad
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            // Welcome header ở đầu
-            return const WelcomeHeader();
-          }
+      child: CustomScrollView(
+        slivers: <Widget>[
+          // PinnedHeaderSliver cho WelcomeHeader
+          PinnedHeaderSliver(
+            child: _buildPinnedHeader(),
+          ),
           
-          if (index == 1) {
-            // Banner ad sau welcome header
-            return const BannerAdWidget();
-          }
+          // Banner Ad
+          SliverToBoxAdapter(
+            child: const BannerAdWidget(),
+          ),
           
-          // Categories bắt đầu từ index 2
-          final categoryIndex = index - 2;
-          if (categoryIndex >= 0 && categoryIndex < _categories.length) {
-            final category = _categories[categoryIndex];
-            return CategoryGroupBox(
-              category: category,
-              onEpisodeTap: _navigateToEpisodeDetail,
-              onViewAllTap: _navigateToCategory,
-            );
-          }
+          // Categories
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final category = _categories[index];
+                return CategoryGroupBox(
+                  category: category,
+                  onEpisodeTap: _navigateToEpisodeDetail,
+                  onViewAllTap: _navigateToCategory,
+                );
+              },
+              childCount: _categories.length,
+            ),
+          ),
           
-          // Fallback - không nên xảy ra
-          return const SizedBox.shrink();
-        },
+          // Bottom padding
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 20),
+          ),
+        ],
       ),
     );
       },
