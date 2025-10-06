@@ -132,3 +132,8 @@ TranscriptSlide(
 - ✅ **Visual consistency** - design phù hợp với app theme
 - ✅ **Seamless integration** với existing audio player
 
+
+
+
+
+

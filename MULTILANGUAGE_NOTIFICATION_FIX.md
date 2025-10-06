@@ -166,3 +166,8 @@ class AppVi {
 - ✅ **Easy to maintain** - centralized text management
 - ✅ **Scalable** - dễ dàng thêm ngôn ngữ mới
 
+
+
+
+
+

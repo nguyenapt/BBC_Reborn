@@ -44,7 +44,7 @@ class EpisodeRow extends StatelessWidget {
                     Text(
                       episode.episodeName,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 2,
@@ -57,7 +57,7 @@ class EpisodeRow extends StatelessWidget {
                           ? episode.summary! 
                           : episode.shortTranscript,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: Colors.grey[600],
                         height: 1.4,
                       ),
@@ -82,7 +82,7 @@ class EpisodeRow extends StatelessWidget {
                           child: Text(
                             episode.category,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: CategoryColors.getCategoryColor(episode.category),
                             ),
@@ -91,28 +91,28 @@ class EpisodeRow extends StatelessWidget {
                         const SizedBox(width: 6),
                         Icon(
                           Icons.access_time,
-                          size: 16,
+                          size: 14,
                           color: Colors.grey[600],
                         ),
                         const SizedBox(width: 4),
                         Text(
                           episode.duration,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.grey[600],
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(
                           Icons.calendar_today,
-                          size: 16,
+                          size: 14,
                           color: Colors.grey[600],
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(episode.publishedDate),
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.grey[600],
                           ),
                         ),

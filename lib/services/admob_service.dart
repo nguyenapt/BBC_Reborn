@@ -68,7 +68,9 @@ class AdMobService {
       print('AdMob không được hỗ trợ trên web');
       return;
     }
-    await MobileAds.instance.initialize();
+    
+    // MobileAds đã được khởi tạo trong main.dart, không cần khởi tạo lại
+    print('AdMob service initialized (MobileAds already initialized in main.dart)');
   }
 
   // Tạo Banner Ad

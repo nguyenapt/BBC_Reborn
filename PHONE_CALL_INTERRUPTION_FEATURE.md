@@ -197,3 +197,8 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
 - ✅ **Robust implementation** - xử lý edge cases
 - ✅ **Debug friendly** - có logging để troubleshoot
 
+
+
+
+
+

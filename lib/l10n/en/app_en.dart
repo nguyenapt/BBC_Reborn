@@ -151,5 +151,12 @@ class AppEn {
     'notificationsEnabled': 'Push notifications enabled',
     'notificationsDisabled': 'Push notifications disabled',
     'notificationFeatureNote': 'This feature will be developed in the next version',
+    
+    // Advertisement
+    'advertisementNotice': 'Advertisement Notice',
+    'advertisementMessage': 'We display advertisements to maintain our free service — we hope you understand and continue to support us!',
+    'loadingAd': 'Loading advertisement...',
+    'adNotAvailable': 'Advertisement not available',
+    'retry': 'Retry',
   };
 }

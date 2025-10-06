@@ -81,18 +81,29 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
             ],
           ),
           const SizedBox(height: 16),
-          // Transcript Content
-          Expanded(
-            child: transcriptLines.isEmpty
-                ? Center(
-                    child: Text(
-                      'No transcript available',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                  )
-                : ListView.builder(
+              // Transcript Content
+              Expanded(
+                child: transcriptLines.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.description_outlined,
+                              size: 64,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No transcript available',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     itemCount: transcriptLines.length,
@@ -126,7 +137,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                             Text(
                               line.speaker,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: isActive 
                                     ? CategoryColors.getCategoryColor(widget.episode.category)
@@ -138,7 +149,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                             Text(
                               line.text,
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 14,
                                 height: 1.5,
                                 color: isActive 
                                     ? Theme.of(context).colorScheme.onSurface
@@ -157,7 +168,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                   icon: Icon(
                                     Icons.play_arrow,
                                     color: CategoryColors.getCategoryColor(widget.episode.category),
-                                    size: 20,
+                                    size: 16,
                                   ),
                                   tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
                                   padding: EdgeInsets.zero,
@@ -170,7 +181,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                 Text(
                                   '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                 ),

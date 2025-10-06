@@ -223,3 +223,8 @@ ScaffoldMessenger.of(context).showSnackBar(
 - ✅ **Future ready** - dễ dàng extend với actual notification logic
 - ✅ **Consistent design** - phù hợp với app theme và settings pattern
 
+
+
+
+
+

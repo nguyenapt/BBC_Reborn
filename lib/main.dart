@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'screens/home_page.dart';
 import 'screens/categories_screen.dart';
 import 'screens/saved_screen.dart';
@@ -19,6 +20,11 @@ import 'utils/double_back_exit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Khởi tạo Google Mobile Ads (chỉ trên mobile, không phải web)
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
   
   // Khởi tạo các service
   await LanguageManager().initialize();
