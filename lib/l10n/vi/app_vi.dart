@@ -167,5 +167,13 @@ class AppVi {
     'retry': 'Thử lại',
     'grammarDesc': 'Bài học ngữ pháp và lý thuyết',
     'settingsDesc': 'Cài đặt cho ứng dụng',
+    'addToFavouritesDesc': 'Hãy bấm vào icon trái tim để thêm episode vào danh sách yêu thích',
+    'addToVocabulariesDesc': 'Hãy bấm vào icon bookmark để lưu từ vựng vào danh sách cá nhân',
+    'removedFromVocabularies': 'Đã xóa "{vocab}" khỏi vocabulary cá nhân',
+    'loadingFavouritesError': 'Đang tải danh sách yêu thích...',
+    'loadingVocabulariesError': 'Đang tải vocabulary...',
+    'loadingFavouritesErrorDesc': 'Có lỗi xảy ra: {error}',
+    'loadingVocabulariesErrorDesc': 'Có lỗi xảy ra: {error}',
+    'doubleBackExit': 'Nhấn Back lần nữa để thoát',
   };
 }

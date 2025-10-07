@@ -138,5 +138,13 @@ class AppKo {
     'clearCache': '캐시 지우기',
     'grammarDesc': '문법 수업과 이론',
     'settingsDesc': '앱 설정',
+    'addToFavouritesDesc': '하트 아이콘을 눌러 에피소드를 즐겨찾기에 추가하세요',
+    'addToVocabulariesDesc': '북마크 아이콘을 눌러 어휘를 개인 목록에 저장하세요',
+    'removedFromVocabularies': '어휘에서 제거',
+    'loadingFavouritesError': '즐겨찾기 로딩 중...',
+    'loadingVocabulariesError': '어휘 로딩 중...',
+    'loadingFavouritesErrorDesc': '오류가 발생했습니다: {error}',
+    'loadingVocabulariesErrorDesc': '오류가 발생했습니다: {error}',
+    'doubleBackExit': '뒤로 버튼을 다시 눌러 종료',
   };
 }

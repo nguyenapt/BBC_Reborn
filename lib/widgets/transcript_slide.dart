@@ -66,7 +66,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,7 +105,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                       )
                     : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     itemCount: transcriptLines.length,
                     itemBuilder: (context, index) {
                       final line = transcriptLines[index];
@@ -114,8 +114,8 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                           line.isPassedAt(widget.currentPositionMs!);
                       
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.all(6),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isActive 
                               ? CategoryColors.getCategoryColor(widget.episode.category).withOpacity(0.1)
@@ -133,16 +133,50 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Speaker name
-                            Text(
-                              line.speaker,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isActive 
-                                    ? CategoryColors.getCategoryColor(widget.episode.category)
-                                    : Theme.of(context).colorScheme.primary,
-                              ),
+                            // Speaker name, Time info và Play button cùng một dòng
+                            Row(
+                              children: [
+                                // Speaker name
+                                Expanded(
+                                  child: Text(
+                                    line.speaker,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: isActive 
+                                          ? CategoryColors.getCategoryColor(widget.episode.category)
+                                          : Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                                // Time info
+                                Text(
+                                  '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Play button
+                                IconButton(
+                                  onPressed: () {
+                                    // Gọi callback để play tại startTime của dòng này
+                                    widget.onPlayAtTime?.call(line.startTime);
+                                  },
+                                  icon: Icon(
+                                    Icons.play_arrow,
+                                    color: CategoryColors.getCategoryColor(widget.episode.category),
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 6),
                             // Text content
@@ -155,37 +189,6 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     ? Theme.of(context).colorScheme.onSurface
                                     : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            // Play button thay vì time info
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    // Gọi callback để play tại startTime của dòng này
-                                    widget.onPlayAtTime?.call(line.startTime);
-                                  },
-                                  icon: Icon(
-                                    Icons.play_arrow,
-                                    color: CategoryColors.getCategoryColor(widget.episode.category),
-                                    size: 16,
-                                  ),
-                                  tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                    minWidth: 24,
-                                    minHeight: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),
@@ -204,6 +207,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
     super.dispose();
   }
 }
+
 
 
 

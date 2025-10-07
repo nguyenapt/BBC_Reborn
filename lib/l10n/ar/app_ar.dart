@@ -138,5 +138,13 @@ class AppAr {
     'clearCache': 'مسح الغرفة',
     'grammarDesc': 'دروس القواعد والنظرية',
     'settingsDesc': 'الإعدادات للتطبيق',
+    'addToFavouritesDesc': 'اضغط على أيقونة القلب لإضافة الحلقات إلى المفضلة',
+    'addToVocabulariesDesc': 'اضغط على أيقونة المرجع لحفظ المفردات في قائمتك الشخصية',
+    'removedFromVocabularies': 'إزالة من المفردات',
+    'loadingFavouritesError': 'جاري تحميل المفضلة...',
+    'loadingVocabulariesError': 'جاري تحميل المفردات...',
+    'loadingFavouritesErrorDesc': 'حدث خطأ: {error}',
+    'loadingVocabulariesErrorDesc': 'حدث خطأ: {error}',
+    'doubleBackExit': 'اضغط على زر الخلف مرة أخرى للخروج',
   };
 }

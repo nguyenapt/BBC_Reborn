@@ -138,5 +138,13 @@ class AppEs {
     'clearCache': 'Limpiar Cache',
     'grammarDesc': 'Lecciones de gramática y teoría',
     'settingsDesc': 'Configuraciones para la aplicación',
+    'addToFavouritesDesc': 'Toca el ícono del corazón para agregar episodios a favoritos',
+    'addToVocabulariesDesc': 'Toca el ícono de marcador para guardar vocabulario en tu lista personal',
+    'removedFromVocabularies': 'Quitar del vocabulario',
+    'loadingFavouritesError': 'Cargando favoritos...',
+    'loadingVocabulariesError': 'Cargando vocabulario...',
+    'loadingFavouritesErrorDesc': 'Ocurrió un error: {error}',
+    'loadingVocabulariesErrorDesc': 'Ocurrió un error: {error}',
+    'doubleBackExit': 'Presiona el botón de atrás nuevamente para salir',
   };
 }

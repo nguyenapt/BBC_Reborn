@@ -46,7 +46,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
 
     // Nếu có vocabulary, hiển thị bình thường
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -82,7 +82,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
@@ -101,8 +101,8 @@ class _VocabularySlideState extends State<VocabularySlide> {
                       final isSaved = _vocabularyService.isVocabularySaved(item.vocab);
                       
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(12),

@@ -138,5 +138,13 @@ class AppRu {
     'clearCache': 'Очистить кэш',
     'grammarDesc': 'Уроки грамматики и теории',
     'settingsDesc': 'Настройки для приложения',
+    'addToFavouritesDesc': 'Нажмите на иконку сердца, чтобы добавить эпизоды в избранное',
+    'addToVocabulariesDesc': 'Нажмите на иконку закладки, чтобы сохранить слова в личный список',
+    'removedFromVocabularies': 'Удалить из словаря',
+    'loadingFavouritesError': 'Загрузка избранного...',
+    'loadingVocabulariesError': 'Загрузка словаря...',
+    'loadingFavouritesErrorDesc': 'Произошла ошибка: {error}',
+    'loadingVocabulariesErrorDesc': 'Произошла ошибка: {error}',
+    'doubleBackExit': 'Нажмите на кнопку назад еще раз, чтобы выйти',
   };
 }

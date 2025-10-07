@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/language_manager.dart';
 import '../services/vocabulary_service.dart';
 import '../widgets/episode_row.dart';
+import '../l10n/localized_text.dart';
 import 'episode_detail_screen.dart';
 
 class SavedScreen extends StatefulWidget {
@@ -150,14 +151,14 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã xóa "$vocab" khỏi vocabulary cá nhân'),
+          content: LocalizedText('removedFromVocabularies'),
           duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Có lỗi xảy ra: $e'),
+          content: Text(_languageManager.getText('errorOccurred')),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -334,7 +335,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Đang tải danh sách yêu thích...'),
+            LocalizedText('loadingFavourites'),
           ],
         ),
       );
@@ -350,14 +351,14 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               Icon(Icons.error_outline, color: Colors.red, size: 40),
               const SizedBox(height: 16),
               Text(
-                'Lỗi: $_favouritesError',
+                '${_languageManager.getText('errorOccurred')}: $_favouritesError',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.red),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadFavouriteEpisodes,
-                child: const Text('Thử lại'),
+                child: LocalizedText('retry'),
               ),
             ],
           ),
@@ -372,16 +373,16 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           children: [
             Icon(Icons.favorite_border, color: Colors.grey, size: 60),
             const SizedBox(height: 16),
-            Text(
-              'Chưa có episode yêu thích nào',
+            LocalizedText(
+              'noFavouriteEpisodes',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Hãy bấm vào icon trái tim để thêm episode vào danh sách yêu thích',
+            LocalizedText(              
+              'addToFavouritesDesc',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -403,6 +404,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           return EpisodeRow(
             episode: episode,
             onTap: () => _navigateToEpisodeDetail(favouriteEpisode),
+            languageManager: _languageManager,
           );
         },
       ),
@@ -417,7 +419,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Đang tải vocabulary...'),
+            LocalizedText('loadingVocabularies'),
           ],
         ),
       );
@@ -433,14 +435,14 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               Icon(Icons.error_outline, color: Colors.red, size: 40),
               const SizedBox(height: 16),
               Text(
-                'Lỗi: $_vocabulariesError',
+                '${_languageManager.getText('errorOccurred')}: $_vocabulariesError',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.red),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadSavedVocabularies,
-                child: const Text('Thử lại'),
+                child: LocalizedText('retry'),
               ),
             ],
           ),
@@ -455,16 +457,16 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           children: [
             Icon(Icons.book_outlined, color: Colors.grey, size: 60),
             const SizedBox(height: 16),
-            Text(
-              'Chưa có vocabulary nào được lưu',
+            LocalizedText(
+              'noSavedVocabularies',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Hãy bấm vào icon bookmark để lưu từ vựng vào danh sách cá nhân',
+            LocalizedText(
+              'addToVocabulariesDesc',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -511,7 +513,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                         onPressed: () => _removeVocabulary(vocabulary.vocab),
                         icon: const Icon(Icons.delete_outline),
                         color: Colors.red[400],
-                        tooltip: 'Xóa từ vựng',
+                        tooltip: 'removeFromVocabularies',
                       ),
                     ],
                   ),
@@ -524,17 +526,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                       height: 1.4,
                     ),
                   ),
-                  if (vocabulary.bbcEpisodeId.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Episode ID: ${vocabulary.bbcEpisodeId}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
                 ],
               ),
             ),

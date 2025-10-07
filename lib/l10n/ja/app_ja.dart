@@ -138,5 +138,13 @@ class AppJa {
     'clearCache': 'キャッシュをクリア',
     'grammarDesc': '文法のレッスンと理論',
     'settingsDesc': 'アプリの設定',
+    'addToFavouritesDesc': 'エピソードをお気に入りに追加',
+    'addToVocabulariesDesc': '語彙を個人リストに保存',
+    'removedFromVocabularies': '語彙から削除',
+    'loadingFavouritesError': 'お気に入りを読み込み中...',
+    'loadingVocabulariesError': '語彙を読み込み中...',
+    'loadingFavouritesErrorDesc': 'エラーが発生しました: {error}',
+    'loadingVocabulariesErrorDesc': 'エラーが発生しました: {error}',
+    'doubleBackExit': '戻るボタンを再度押して退出',
   };
 }

@@ -383,6 +383,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
               child: EpisodeRow(
                 episode: episode,
                 onTap: () => _navigateToEpisodeDetail(episode),
+                languageManager: _languageManager,
               ),
             );
           }

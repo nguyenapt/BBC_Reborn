@@ -138,5 +138,13 @@ class AppZh {
     'clearCache': '清除缓存',
     'grammarDesc': '语法课程和理论',
     'settingsDesc': '应用程序设置',
+    'addToFavouritesDesc': '点击心形图标将课程添加到收藏',
+    'addToVocabulariesDesc': '点击书签图标将词汇保存到个人列表',
+    'removedFromVocabularies': '从词汇中移除',
+    'loadingFavouritesError': '加载收藏...',
+    'loadingVocabulariesError': '加载词汇...',
+    'loadingFavouritesErrorDesc': '发生错误: {error}',
+    'loadingVocabulariesErrorDesc': '发生错误: {error}',
+    'doubleBackExit': '点击返回按钮再次退出',
   };
 }

@@ -21,7 +21,7 @@ class EpisodeInfoSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -132,12 +132,12 @@ class EpisodeInfoSlide extends StatelessWidget {
     final isCurrentEpisode = topEpisode.id == episode.id;
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 4),
       child: InkWell(
         onTap: () => onEpisodeTap(topEpisode),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isCurrentEpisode 
                 ? CategoryColors.getCategoryColor(episode.category).withOpacity(0.1)
@@ -223,7 +223,7 @@ class EpisodeInfoSlide extends StatelessWidget {
     } else if (difference == 1) {
       return languageManager.getText('yesterday');
     } else if (difference < 7) {
-      return '${languageManager.getText('daysAgo')} $difference';
+      return languageManager.getTextWithParams('daysAgo', {'count': difference});
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

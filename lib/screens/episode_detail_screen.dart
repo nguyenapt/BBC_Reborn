@@ -305,7 +305,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     } else if (difference == 1) {
       return _languageManager.getText('yesterday');
     } else if (difference < 7) {
-      return '${_languageManager.getText('daysAgo')} $difference';
+      return _languageManager.getTextWithParams('daysAgo', {'count': difference});
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

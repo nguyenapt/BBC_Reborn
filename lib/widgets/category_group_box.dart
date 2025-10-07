@@ -137,6 +137,7 @@ class CategoryGroupBox extends StatelessWidget {
                   child: EpisodeRow(
                     episode: episode,
                     onTap: () => onEpisodeTap(episode),
+                    languageManager: languageManager,
                   ),
                 )),
                 // View All button

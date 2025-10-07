@@ -160,5 +160,13 @@ class AppEn {
     'retry': 'Retry',
     'grammarDesc': 'Grammar lessons and theory',
     'settingsDesc': 'Settings for the app',
+    'addToFavouritesDesc': 'Tap the heart icon to add episodes to your favourites',
+    'addToVocabulariesDesc': 'Tap the bookmark icon to save vocabularies to your personal list',
+    'removedFromVocabularies': 'Remove from vocabularies',
+    'loadingFavouritesError': 'Loading favourites...',
+    'loadingVocabulariesError': 'Loading vocabularies...',
+    'loadingFavouritesErrorDesc': 'An error occurred: {error}',
+    'loadingVocabulariesErrorDesc': 'An error occurred: {error}',
+    'doubleBackExit': 'Press the back button again to exit',
   };
 }

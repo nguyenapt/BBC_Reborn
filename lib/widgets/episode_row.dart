@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../services/image_cache_service.dart';
+import '../services/language_manager.dart';
 
 class EpisodeRow extends StatelessWidget {
   final Episode episode;
   final VoidCallback onTap;
-
+  final LanguageManager languageManager;
   const EpisodeRow({
     super.key,
     required this.episode,
     required this.onTap,
+    required this.languageManager,
   });
 
   @override
@@ -66,7 +68,9 @@ class EpisodeRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     // Duration và Published Date
+                    //Căn phải 2 text này
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         // Category
                         Container(
@@ -133,11 +137,11 @@ class EpisodeRow extends StatelessWidget {
     final difference = now.difference(date).inDays;
     
     if (difference == 0) {
-      return 'Hôm nay';
+      return languageManager.getText('today');
     } else if (difference == 1) {
-      return 'Hôm qua';
+      return languageManager.getText('yesterday');
     } else if (difference < 7) {
-      return '$difference ngày trước';
+      return languageManager.getTextWithParams('daysAgo', {'count': difference});
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

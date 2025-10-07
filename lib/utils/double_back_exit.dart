@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/localized_text.dart';
 
 mixin DoubleBackExitMixin<T extends StatefulWidget> on State<T> {
   DateTime? _lastBackPressed;
@@ -13,7 +14,7 @@ mixin DoubleBackExitMixin<T extends StatefulWidget> on State<T> {
       // Hiển thị snackbar thông báo
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Nhấn Back lần nữa để thoát'),
+          content: const LocalizedText('doubleBackExit'),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
