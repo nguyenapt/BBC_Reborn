@@ -58,6 +58,26 @@ class AudioPlayerService extends ChangeNotifier {
   /// Initialize service
   Future<void> initialize() async {
     await _userService.initialize();
+    
+    // Cấu hình AudioContext cho background playback
+    await _audioPlayer.setAudioContext(AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: {
+          AVAudioSessionOptions.defaultToSpeaker,
+          AVAudioSessionOptions.allowBluetooth,
+          AVAudioSessionOptions.allowBluetoothA2DP,
+          AVAudioSessionOptions.mixWithOthers,
+        },
+      ),
+      android: AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: true,
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.gain,
+      ),
+    ));
   }
 
   /// Load episode và category episodes
@@ -437,19 +457,21 @@ class AudioPlayerService extends ChangeNotifier {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // App bị pause hoặc inactive (có thể do cuộc gọi điện thoại)
-        handleInterruption();
+        // App bị pause hoặc inactive - KHÔNG tự động pause audio
+        // Chỉ pause khi có cuộc gọi điện thoại (được xử lý riêng)
+        debugPrint('App paused/inactive - audio continues playing in background');
         break;
       case AppLifecycleState.resumed:
-        // App được resume (cuộc gọi điện thoại kết thúc)
-        handleResumeAfterInterruption();
+        // App được resume - không cần làm gì đặc biệt
+        debugPrint('App resumed - audio continues playing');
         break;
       case AppLifecycleState.detached:
-        // App bị terminate
+        // App bị terminate - dừng audio
         stop();
         break;
       case AppLifecycleState.hidden:
-        // App bị ẩn
+        // App bị ẩn - audio vẫn tiếp tục phát
+        debugPrint('App hidden - audio continues playing in background');
         break;
     }
   }

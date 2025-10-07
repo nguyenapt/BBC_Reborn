@@ -26,13 +26,13 @@ class AudioPlayerWidget extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Progress bar
               _buildProgressBar(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 2),
               // Control buttons
               _buildControlButtons(),
             ],
@@ -56,7 +56,7 @@ class AudioPlayerWidget extends StatelessWidget {
           children: [
             // Thời gian đã chạy bên trái
             SizedBox(
-              width: 40,
+              width: 45,
               child: Text(
                 _formatDuration(audioService.currentPosition),
                 style: TextStyle(
@@ -96,7 +96,7 @@ class AudioPlayerWidget extends StatelessWidget {
             const SizedBox(width: 4),
             // Thời gian còn lại bên phải
             SizedBox(
-              width: 40,
+              width: 45,
               child: Text(
                 '-${_formatDuration(remainingDuration)}',
                 style: TextStyle(

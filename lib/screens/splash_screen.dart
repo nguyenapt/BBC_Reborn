@@ -51,19 +51,39 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
-    // Bỏ qua splash screen nếu chạy trên web
-    if (kIsWeb) {
+    try {
+      debugPrint('🎬 Splash screen starting...');
+      
+      // Bỏ qua splash screen nếu chạy trên web
+      if (kIsWeb) {
+        debugPrint('🌐 Web platform detected, skipping splash');
+        await _navigateToAppropriateScreen();
+        return;
+      }
+      
+      // Khởi tạo AdMob (chỉ trên mobile) với error handling
+      try {
+        debugPrint('📱 Initializing AdMob in splash...');
+        await AdMobService.initialize();
+        debugPrint('✅ AdMob initialized in splash');
+      } catch (e) {
+        debugPrint('❌ Error initializing AdMob: $e');
+        // Tiếp tục chạy app ngay cả khi AdMob lỗi
+      }
+      
+      // Delay để hiển thị splash screen ít nhất 2 giây (chỉ trên mobile)
+      debugPrint('⏳ Waiting 2 seconds...');
+      await Future.delayed(const Duration(milliseconds: 2000));
+      
+      debugPrint('🚀 Navigating to appropriate screen...');
       await _navigateToAppropriateScreen();
-      return;
+    } catch (e) {
+      debugPrint('❌ Error in splash screen initialization: $e');
+      // Vẫn chuyển đến màn hình chính ngay cả khi có lỗi
+      if (mounted) {
+        await _navigateToAppropriateScreen();
+      }
     }
-    
-    // Khởi tạo AdMob (chỉ trên mobile)
-    await AdMobService.initialize();
-    
-    // Delay để hiển thị splash screen ít nhất 2 giây (chỉ trên mobile)
-    await Future.delayed(const Duration(milliseconds: 2000));
-    
-    await _navigateToAppropriateScreen();
   }
 
   Future<void> _navigateToAppropriateScreen() async {

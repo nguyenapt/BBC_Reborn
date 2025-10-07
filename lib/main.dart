@@ -20,19 +20,40 @@ import 'utils/double_back_exit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('🚀 App starting...');
   
   // Khởi tạo Google Mobile Ads (chỉ trên mobile, không phải web)
   if (!kIsWeb) {
+    debugPrint('📱 Initializing MobileAds...');
     await MobileAds.instance.initialize();
+    debugPrint('✅ MobileAds initialized');
   }
   
-  // Khởi tạo các service
-  await LanguageManager().initialize();
-  await UserService().initialize();
-  await AuthService().initialize();
-  await AudioPlayerService().initialize();
-  await VocabularyService().initialize();
+  // Khởi tạo các service với error handling
+  try {
+    debugPrint('🔧 Initializing services...');
+    await LanguageManager().initialize();
+    debugPrint('✅ LanguageManager initialized');
+    
+    await UserService().initialize();
+    debugPrint('✅ UserService initialized');
+    
+    await AuthService().initialize();
+    debugPrint('✅ AuthService initialized');
+    
+    await AudioPlayerService().initialize();
+    debugPrint('✅ AudioPlayerService initialized');
+    
+    await VocabularyService().initialize();
+    debugPrint('✅ VocabularyService initialized');
+    
+    debugPrint('🎉 All services initialized successfully');
+  } catch (e) {
+    debugPrint('❌ Error initializing services: $e');
+    // Tiếp tục chạy app ngay cả khi có lỗi khởi tạo service
+  }
   
+  debugPrint('🏃‍♂️ Running app...');
   runApp(const BBCLearningApp());
 }
 
