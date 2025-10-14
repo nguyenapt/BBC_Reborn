@@ -169,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
 
         // About Section
-        _buildAboutSection(),
+        //_buildAboutSection(),
       ],
     );
   }

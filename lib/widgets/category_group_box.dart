@@ -31,12 +31,8 @@ class CategoryGroupBox extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: CategoryColors.getCategoryBackgroundColor(category.name),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: CategoryColors.getCategoryBorderColor(category.name),
-          width: 2,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -45,92 +41,60 @@ class CategoryGroupBox extends StatelessWidget {
             offset: const Offset(0, 2),
           ),
         ],
+        border: Border.all(
+          color: Colors.grey,
+          width: 1,
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header của GroupBox
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: CategoryColors.getCategoryColor(category.name),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(10),
-                topRight: Radius.circular(10),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Icon cho category
-                Icon(
-                  _getCategoryIcon(category.name),
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                // Tên category
-                Expanded(
-                  child: Text(
-                    CategoryNames.getDisplayName(category.name),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                // Số lượng episodes (có thể click)
-                GestureDetector(
-                  onTap: () {
-                    if (onViewAllTap != null) {
-                      onViewAllTap!(category.name);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${category.episodes.length} episodes',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Nội dung episodes
-          Padding(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (onViewAllTap != null) {
+              onViewAllTap!(category.name);
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Subtitle
+                // Header của GroupBox
                 Row(
                   children: [
-                    Icon(
-                      Icons.star,
-                      color: CategoryColors.getCategoryColor(category.name),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${languageManager.getText('newEpisodes')} (${latestEpisodes.length})',
-                      style: TextStyle(
+                    // Icon với background
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: CategoryColors.getCategoryColor(category.name).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _getCategoryIcon(category.name),
                         color: CategoryColors.getCategoryColor(category.name),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        size: 20,
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    // Tên category
+                    Expanded(
+                      child: Text(
+                        CategoryNames.getDisplayName(category.name),
+                        style: TextStyle(
+                          color: CategoryColors.getCategoryColor(category.name),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),               
+                
+                
                 // Danh sách episodes
                 ...latestEpisodes.map((episode) => Container(
                   margin: const EdgeInsets.only(bottom: 6),
@@ -140,6 +104,7 @@ class CategoryGroupBox extends StatelessWidget {
                     languageManager: languageManager,
                   ),
                 )),
+                
                 // View All button
                 if (category.episodes.length > 3)
                   Container(
@@ -182,7 +147,7 @@ class CategoryGroupBox extends StatelessWidget {
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
