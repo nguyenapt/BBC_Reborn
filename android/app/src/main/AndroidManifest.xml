@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     
     <application
-        android:label="Learning English - 6 minutes"
+        android:label="ESL Learning English"
         android:name="${applicationName}"
         android:icon="@mipmap/logo">
         <activity
