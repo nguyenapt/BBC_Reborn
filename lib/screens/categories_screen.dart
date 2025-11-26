@@ -33,6 +33,18 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     'TEWS': null,
     'REE': null,
   };
+  // Theo dõi các năm đã load cho mỗi category
+  Map<String, List<int>> _loadedYears = {
+    '6M': [],
+    'TEWS': [],
+    'REE': [],
+  };
+  // Trạng thái loading more cho mỗi category
+  Map<String, bool> _loadingMoreStates = {
+    '6M': false,
+    'TEWS': false,
+    'REE': false,
+  };
 
   @override
   void initState() {
@@ -62,7 +74,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   Future<void> _loadCategoryData(String category) async {
-    if (_episodesData.containsKey(category)) {
+    if (_episodesData.containsKey(category) && _loadedYears[category]!.isNotEmpty) {
       return; // Đã load rồi
     }
 
@@ -73,10 +85,19 @@ class _CategoriesScreenState extends State<CategoriesScreen>
 
     try {
       final currentYear = DateTime.now().year;
-      final episodes = await FirebaseService.getCategoryData(category, currentYear);
+      final previousYear = currentYear - 1;
+      
+      // Lấy dữ liệu từ 2 năm gần nhất
+      final currentYearEpisodes = await FirebaseService.getCategoryData(category, currentYear);
+      final previousYearEpisodes = await FirebaseService.getCategoryData(category, previousYear);
+      
+      // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
+      final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
+      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
       
       setState(() {
-        _episodesData[category] = episodes;
+        _episodesData[category] = allEpisodes;
+        _loadedYears[category] = [currentYear, previousYear];
         _loadingStates[category] = false;
       });
     } catch (e) {
@@ -85,6 +106,66 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         _loadingStates[category] = false;
       });
     }
+  }
+
+  Future<void> _loadMoreYears(String category) async {
+    if (_loadingMoreStates[category] == true) {
+      return; // Đang load rồi
+    }
+
+    setState(() {
+      _loadingMoreStates[category] = true;
+    });
+
+    try {
+      final loadedYears = _loadedYears[category]!;
+      if (loadedYears.isEmpty) {
+        setState(() {
+          _loadingMoreStates[category] = false;
+        });
+        return;
+      }
+
+      // Tìm năm nhỏ nhất đã load
+      final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
+      final nextYear = minLoadedYear - 1;
+
+      // Giới hạn load đến năm 2020
+      if (nextYear < 2020) {
+        setState(() {
+          _loadingMoreStates[category] = false;
+        });
+        return;
+      }
+
+      // Lấy dữ liệu năm tiếp theo
+      final nextYearEpisodes = await FirebaseService.getCategoryData(category, nextYear);
+      
+      // Gộp với episodes hiện có và sắp xếp lại
+      final currentEpisodes = _episodesData[category] ?? [];
+      final allEpisodes = [...currentEpisodes, ...nextYearEpisodes];
+      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      
+      setState(() {
+        _episodesData[category] = allEpisodes;
+        _loadedYears[category] = [...loadedYears, nextYear];
+        _loadingMoreStates[category] = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingMoreStates[category] = false;
+      });
+      // Không hiển thị error khi load more, chỉ im lặng fail
+      print('Error loading more years for $category: $e');
+    }
+  }
+
+  bool _canLoadMore(String category) {
+    final loadedYears = _loadedYears[category] ?? [];
+    if (loadedYears.isEmpty) return false;
+    
+    final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
+    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
   }
 
   void _onTabChanged() {
@@ -102,12 +183,16 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     final currentCategory = categories[currentIndex];
     final categoryEpisodes = _episodesData[currentCategory] ?? [];
 
+    // 50% hiển thị interstitial ads khi vào episode detail
+    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
           categoryEpisodes: categoryEpisodes,
+          shouldShowInterstitialOnEnter: shouldShowInterstitial,
         ),
       ),
     );
@@ -366,13 +451,37 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     }
 
     return RefreshIndicator(
-      onRefresh: () => _loadCategoryData(category),
+      onRefresh: () {
+        // Reset loaded years khi refresh
+        _loadedYears[category] = [];
+        _episodesData.remove(category);
+        return _loadCategoryData(category);
+      },
       child: ListView.builder(
         padding: const EdgeInsets.all(12),
-        itemCount: episodes.length + 1, // +1 for banner ad
+        itemCount: episodes.length + 1 + (_canLoadMore(category) ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
         itemBuilder: (context, index) {
-          if (index == episodes.length) {
-            // Banner ad ở cuối danh sách
+          // Load More button (trước banner ad)
+          if (_canLoadMore(category) && index == episodes.length) {
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: _loadingMoreStates[category] == true
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : ElevatedButton(
+                      onPressed: () => _loadMoreYears(category),
+                      child: Text(_languageManager.getText('loadMore') ?? 'Load More'),
+                    ),
+            );
+          }
+          
+          // Banner ad ở cuối danh sách
+          final bannerAdIndex = _canLoadMore(category) ? episodes.length + 1 : episodes.length;
+          if (index == bannerAdIndex) {
             return const BannerAdWidget();
           }
           

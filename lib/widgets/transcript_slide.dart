@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
+import 'transcript_native_ad_widget.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -23,15 +24,83 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   late List<TranscriptLine> transcriptLines;
   late ScrollController _scrollController;
   int? _currentActiveIndex;
+  List<int> _adPositions = []; // Vị trí chèn native ads
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    transcriptLines = TranscriptLine.parseTranscriptHtml(widget.episode.transcriptHtml);
     
+    // Ưu tiên sử dụng transcriptHtml (có time info)
+    if (widget.episode.transcriptHtml != null && widget.episode.transcriptHtml!.isNotEmpty) {
+      transcriptLines = TranscriptLine.parseTranscriptHtml(widget.episode.transcriptHtml);
+      
+      // Kiểm tra xem transcriptLines có time info không
+      // Nếu tất cả các lines đều không có time info (startTime = 0 và endTime = 0)
+      // nhưng vẫn có giá trị → split transcriptHtml theo newline
+      if (transcriptLines.isNotEmpty && 
+          transcriptLines.every((line) => line.startTime == 0 && line.endTime == 0)) {
+        // Không có time info nhưng vẫn có giá trị, split transcriptHtml theo newline
+        final lines = widget.episode.transcriptHtml!.split('\n').where((line) => line.trim().isNotEmpty).toList();
+        transcriptLines = lines.map((line) {
+          return TranscriptLine(
+            speaker: 'Speaker',
+            text: line.trim(),
+            startTime: 0,
+            endTime: 0,
+          );
+        }).toList().cast<TranscriptLine>();
+      }
+      // Nếu transcriptLines rỗng (parse không ra gì), fallback sang dùng field transcript
+      else if (transcriptLines.isEmpty) {
+        if (widget.episode.transcript.isNotEmpty) {
+          final lines = widget.episode.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
+          transcriptLines = lines.map((line) {
+            return TranscriptLine(
+              speaker: 'Speaker',
+              text: line.trim(),
+              startTime: 0,
+              endTime: 0,
+            );
+          }).toList().cast<TranscriptLine>();
+        }
+      }
+    } else if (widget.episode.transcript.isNotEmpty) {
+      // Không có transcriptHtml, dùng field transcript (split theo newline)
+      final lines = widget.episode.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
+      transcriptLines = lines.map((line) {
+        return TranscriptLine(
+          speaker: 'Speaker',
+          text: line.trim(),
+          startTime: 0,
+          endTime: 0,
+        );
+      }).toList().cast<TranscriptLine>();
+    } else {
+      // Không có cả transcriptHtml và transcript
+      transcriptLines = [];
+    }
+    
+    // Tính toán vị trí chèn native ads
+    _calculateAdPositions();
     
     _updateActiveLine();
+  }
+
+  void _calculateAdPositions() {
+    final totalItems = transcriptLines.length;
+    if (totalItems < 20) {
+      // Nếu ít hơn 20 items: chèn 1 native ad ở giữa
+      if (totalItems > 0) {
+        _adPositions = [totalItems ~/ 2];
+      }
+    } else {
+      // Nếu từ 20 items trở lên: chèn 2 native ads
+      _adPositions = [
+        totalItems ~/ 3,
+        totalItems * 2 ~/ 3,
+      ];
+    }
   }
 
 
@@ -45,6 +114,14 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
 
   void _updateActiveLine() {
     if (widget.currentPositionMs == null) return;
+    
+    // Chỉ update active line nếu transcript lines có time info (từ transcriptHtml)
+    // Nếu transcript lines không có time (từ transcript field), không cần highlight
+    if (transcriptLines.isEmpty) return;
+    if (transcriptLines[0].startTime == 0 && transcriptLines[0].endTime == 0) {
+      // Transcript từ field transcript (không có time info), không cần highlight
+      return;
+    }
     
     int newActiveIndex = -1;
     for (int i = 0; i < transcriptLines.length; i++) {
@@ -106,11 +183,52 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                     : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    itemCount: transcriptLines.length,
+                    itemCount: transcriptLines.length + _adPositions.length,
                     itemBuilder: (context, index) {
-                      final line = transcriptLines[index];
-                      final isActive = _currentActiveIndex == index;
-                      final isPassed = widget.currentPositionMs != null && 
+                      // Kiểm tra xem có cần chèn native ad ở vị trí này không
+                      // Tính số ads đã chèn trước index này
+                      int adsBeforeIndex = 0;
+                      int? matchingAdPosition;
+                      
+                      for (int adPos in _adPositions) {
+                        // Vị trí thực tế của ad trong list = adPos + số ads đã chèn trước nó
+                        int actualAdIndex = adPos + adsBeforeIndex;
+                        if (actualAdIndex == index) {
+                          matchingAdPosition = adPos;
+                          break;
+                        }
+                        if (actualAdIndex < index) {
+                          adsBeforeIndex++;
+                        }
+                      }
+                      
+                      if (matchingAdPosition != null) {
+                        // Chèn native ad với style giống transcript items
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: TranscriptNativeAdWidget(
+                            category: widget.episode.category,
+                          ),
+                        );
+                      }
+                      
+                      // Tính toán index thực tế của transcript line (trừ đi số ads đã chèn trước đó)
+                      int transcriptIndex = index - adsBeforeIndex;
+                      
+                      if (transcriptIndex < 0 || transcriptIndex >= transcriptLines.length) {
+                        return const SizedBox.shrink();
+                      }
+                      
+                      final line = transcriptLines[transcriptIndex];
+                      // Kiểm tra xem line có time info không (nếu cả startTime và endTime đều = 0 thì không có time info)
+                      final hasTimeInfo = !(line.startTime == 0 && line.endTime == 0);
+                      final isActive = hasTimeInfo && _currentActiveIndex == transcriptIndex;
+                      final isPassed = hasTimeInfo && widget.currentPositionMs != null && 
                           line.isPassedAt(widget.currentPositionMs!);
                       
                       return Container(
@@ -133,52 +251,53 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Speaker name, Time info và Play button cùng một dòng
-                            Row(
-                              children: [
-                                // Speaker name
-                                Expanded(
-                                  child: Text(
-                                    line.speaker,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: isActive 
-                                          ? CategoryColors.getCategoryColor(widget.episode.category)
-                                          : Theme.of(context).colorScheme.primary,
+                            // Speaker name, Time info và Play button cùng một dòng (chỉ hiển thị nếu có time info)
+                            if (hasTimeInfo)
+                              Row(
+                                children: [
+                                  // Speaker name
+                                  Expanded(
+                                    child: Text(
+                                      line.speaker,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isActive 
+                                            ? CategoryColors.getCategoryColor(widget.episode.category)
+                                            : Theme.of(context).colorScheme.primary,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                // Time info
-                                Text(
-                                  '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  // Time info
+                                  Text(
+                                    '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Play button
-                                IconButton(
-                                  onPressed: () {
-                                    // Gọi callback để play tại startTime của dòng này
-                                    widget.onPlayAtTime?.call(line.startTime);
-                                  },
-                                  icon: Icon(
-                                    Icons.play_arrow,
-                                    color: CategoryColors.getCategoryColor(widget.episode.category),
-                                    size: 20,
+                                  const SizedBox(width: 8),
+                                  // Play button
+                                  IconButton(
+                                    onPressed: () {
+                                      // Gọi callback để play tại startTime của dòng này
+                                      widget.onPlayAtTime?.call(line.startTime);
+                                    },
+                                    icon: Icon(
+                                      Icons.play_arrow,
+                                      color: CategoryColors.getCategoryColor(widget.episode.category),
+                                      size: 20,
+                                    ),
+                                    tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
                                   ),
-                                  tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                    minWidth: 32,
-                                    minHeight: 32,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
+                                ],
+                              ),
+                            if (hasTimeInfo) const SizedBox(height: 6),
                             // Text content
                             Text(
                               line.text,
