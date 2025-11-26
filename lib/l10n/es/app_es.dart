@@ -146,5 +146,6 @@ class AppEs {
     'loadingFavouritesErrorDesc': 'Ocurrió un error: {error}',
     'loadingVocabulariesErrorDesc': 'Ocurrió un error: {error}',
     'doubleBackExit': 'Presiona el botón de atrás nuevamente para salir',
+    'loadMore': 'Cargar más',
   };
 }

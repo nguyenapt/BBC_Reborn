@@ -175,5 +175,6 @@ class AppVi {
     'loadingFavouritesErrorDesc': 'Có lỗi xảy ra: {error}',
     'loadingVocabulariesErrorDesc': 'Có lỗi xảy ra: {error}',
     'doubleBackExit': 'Nhấn Back lần nữa để thoát',
+    'loadMore': 'Tải thêm',
   };
 }

@@ -113,7 +113,7 @@ class EpisodeInfoSlide extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${languageManager.getText('topEpisodes')} ${topEpisodes.length}',
+              languageManager.getText('topEpisodes'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

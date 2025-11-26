@@ -13,11 +13,13 @@ import '../services/admob_service.dart';
 class EpisodeDetailScreen extends StatefulWidget {
   final Episode episode;
   final List<Episode> categoryEpisodes;
+  final bool shouldShowInterstitialOnEnter;
 
   const EpisodeDetailScreen({
     super.key,
     required this.episode,
     required this.categoryEpisodes,
+    this.shouldShowInterstitialOnEnter = false,
   });
 
   @override
@@ -29,6 +31,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final PageController _pageController;
   late final LanguageManager _languageManager;
   int _currentPageIndex = 1; // Mặc định là slide thứ 1 (Episode Info)
+  bool _hasShownInterstitialAd = false;
 
   @override
   void initState() {
@@ -45,6 +48,16 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     
     // Tạo interstitial ad để sẵn sàng hiển thị
     AdMobService().createInterstitialAd();
+    
+    // Hiển thị interstitial ad ngay nếu flag = true (50% trường hợp)
+    if (widget.shouldShowInterstitialOnEnter) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        AdMobService().showInterstitialAd();
+        setState(() {
+          _hasShownInterstitialAd = true;
+        });
+      });
+    }
   }
 
   // Bật Always Display
@@ -255,6 +268,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   episode: widget.episode,
                   topEpisodes: widget.categoryEpisodes,
                   onEpisodeTap: (episode) {
+                    // 50% hiển thị interstitial ads khi vào episode detail
+                    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+                    
                     // Navigate to new episode detail với cùng category episodes
                     Navigator.pushReplacement(
                       context,
@@ -262,6 +278,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         builder: (context) => EpisodeDetailScreen(
                           episode: episode,
                           categoryEpisodes: widget.categoryEpisodes,
+                          shouldShowInterstitialOnEnter: shouldShowInterstitial,
                         ),
                       ),
                     );
@@ -288,7 +305,20 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ),
           ),
           // Audio Player
-          AudioPlayerWidget(audioService: _audioService),
+          AudioPlayerWidget(
+            audioService: _audioService,
+            onPlayPressed: () async {
+              // Nếu chưa hiển thị interstitial ads, hiển thị trước khi play
+              if (!_hasShownInterstitialAd) {
+                AdMobService().showInterstitialAd();
+                setState(() {
+                  _hasShownInterstitialAd = true;
+                });
+                // Đợi một chút để ad hiển thị
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
+            },
+          ),
         ],
       ),
         );

@@ -146,5 +146,6 @@ class AppZh {
     'loadingFavouritesErrorDesc': '发生错误: {error}',
     'loadingVocabulariesErrorDesc': '发生错误: {error}',
     'doubleBackExit': '点击返回按钮再次退出',
+    'loadMore': '加载更多',
   };
 }

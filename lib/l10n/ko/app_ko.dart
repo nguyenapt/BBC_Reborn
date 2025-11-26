@@ -146,5 +146,6 @@ class AppKo {
     'loadingFavouritesErrorDesc': '오류가 발생했습니다: {error}',
     'loadingVocabulariesErrorDesc': '오류가 발생했습니다: {error}',
     'doubleBackExit': '뒤로 버튼을 다시 눌러 종료',
+    'loadMore': '더 읽기',
   };
 }

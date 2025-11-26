@@ -155,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         child: const Center(
                           child: Text(
-                            'L.E.O',
+                            'E.S.L',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,

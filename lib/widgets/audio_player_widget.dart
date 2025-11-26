@@ -4,10 +4,12 @@ import '../utils/category_colors.dart';
 
 class AudioPlayerWidget extends StatelessWidget {
   final AudioPlayerService audioService;
+  final Future<void> Function()? onPlayPressed;
 
   const AudioPlayerWidget({
     super.key,
     required this.audioService,
+    this.onPlayPressed,
   });
 
   @override
@@ -161,6 +163,8 @@ class AudioPlayerWidget extends StatelessWidget {
                   } else if (audioService.isPaused) {
                     await audioService.resume();
                   } else {
+                    // Gọi callback trước khi play (để hiển thị interstitial ads nếu cần)
+                    await onPlayPressed?.call();
                     await audioService.play();
                   }
                 },
