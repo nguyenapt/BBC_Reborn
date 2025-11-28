@@ -146,5 +146,6 @@ class AppJa {
     'loadingFavouritesErrorDesc': 'エラーが発生しました: {error}',
     'loadingVocabulariesErrorDesc': 'エラーが発生しました: {error}',
     'doubleBackExit': '戻るボタンを再度押して退出',
+    'loadMore': 'さらに読み込む',
   };
 }

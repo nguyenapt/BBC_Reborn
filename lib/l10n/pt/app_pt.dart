@@ -146,5 +146,6 @@ class AppPt {
     'loadingFavouritesErrorDesc': 'Ocorreu um erro: {error}',
     'loadingVocabulariesErrorDesc': 'Ocorreu um erro: {error}',
     'doubleBackExit': 'Pressione o botão de volta novamente para sair',
+    'loadMore': 'Carregar mais',
   };
 }

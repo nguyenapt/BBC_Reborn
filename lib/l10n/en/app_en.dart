@@ -168,5 +168,6 @@ class AppEn {
     'loadingFavouritesErrorDesc': 'An error occurred: {error}',
     'loadingVocabulariesErrorDesc': 'An error occurred: {error}',
     'doubleBackExit': 'Press the back button again to exit',
+    'loadMore': 'Load More',
   };
 }

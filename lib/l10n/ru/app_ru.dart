@@ -146,5 +146,6 @@ class AppRu {
     'loadingFavouritesErrorDesc': 'Произошла ошибка: {error}',
     'loadingVocabulariesErrorDesc': 'Произошла ошибка: {error}',
     'doubleBackExit': 'Нажмите на кнопку назад еще раз, чтобы выйти',
+    'loadMore': 'Загрузить больше',
   };
 }

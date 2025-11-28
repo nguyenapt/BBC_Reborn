@@ -146,5 +146,6 @@ class AppAr {
     'loadingFavouritesErrorDesc': 'حدث خطأ: {error}',
     'loadingVocabulariesErrorDesc': 'حدث خطأ: {error}',
     'doubleBackExit': 'اضغط على زر الخلف مرة أخرى للخروج',
+    'loadMore': 'تحميل المزيد',
   };
 }
