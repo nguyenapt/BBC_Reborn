@@ -133,4 +133,50 @@ class FirebaseService {
       throw Exception('Error fetching category data: $e');
     }
   }
+
+  // Lấy dữ liệu category trực tiếp (không có year) - cho Other Programs
+  static Future<List<Episode>> getCategoryDataWithoutYear(String category) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/$category.json'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic data = json.decode(response.body);
+        final List<Episode> episodes = [];
+
+        if (data is Map<String, dynamic>) {
+          // Trường hợp API trả về Map với nhiều episodes
+          data.forEach((episodeId, episodeData) {
+            if (episodeData is Map<String, dynamic>) {
+              episodes.add(Episode.fromJson(episodeData, episodeId));
+            }
+          });
+        } else if (data is List) {
+          // Trường hợp API trả về List
+          for (int i = 0; i < data.length; i++) {
+            final episodeData = data[i];
+            if (episodeData is Map<String, dynamic>) {
+              final episodeId = episodeData['Id']?.toString() ?? i.toString();
+              episodes.add(Episode.fromJson(episodeData, episodeId));
+            }
+          }
+        } else if (data is Map<String, dynamic> && data.containsKey('Id')) {
+          // Trường hợp API trả về một episode duy nhất
+          final episodeId = data['Id']?.toString() ?? '0';
+          episodes.add(Episode.fromJson(data, episodeId));
+        }
+
+        // Sắp xếp theo PublishedDate (mới nhất trước)
+        episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+
+        return episodes;
+      } else {
+        throw Exception('Failed to load category data: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching category data: $e');
+    }
+  }
 }

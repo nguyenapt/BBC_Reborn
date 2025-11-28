@@ -1,39 +1,87 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
-import '../utils/category_colors.dart';
 import '../services/image_cache_service.dart';
+import '../utils/category_colors.dart';
+import '../utils/category_names.dart';
 import '../services/language_manager.dart';
 
-class EpisodeRow extends StatelessWidget {
-  final Episode episode;
-  final VoidCallback onTap;
+class OtherProgramsCategoryWidget extends StatelessWidget {
+  final String categoryName;
+  final List<Episode> episodes;
+  final Function(Episode) onEpisodeTap;
   final LanguageManager languageManager;
-  final bool isLatest; // Flag để xác định episode mới nhất
-  const EpisodeRow({
+
+  const OtherProgramsCategoryWidget({
     super.key,
-    required this.episode,
-    required this.onTap,
+    required this.categoryName,
+    required this.episodes,
+    required this.onEpisodeTap,
     required this.languageManager,
-    this.isLatest = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (episodes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Category Title
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(
+            CategoryNames.getDisplayName(categoryName),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: CategoryColors.getCategoryColor(categoryName),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Episode đầu tiên - UI giống các tab khác
+        if (episodes.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _buildFirstEpisode(episodes[0], context),
+          ),
+        const SizedBox(height: 12),
+        // Các episode khác - List ngang
+        if (episodes.length > 1)
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: episodes.length - 1, // Bỏ qua episode đầu tiên
+              itemBuilder: (context, index) {
+                final episode = episodes[index + 1]; // Bắt đầu từ index 1
+                return _buildHorizontalEpisodeItem(episode, context);
+              },
+            ),
+          ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildFirstEpisode(Episode episode, BuildContext context) {
     return Card(
-      //margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: InkWell(
-        onTap: onTap,
+        onTap: () => onEpisodeTap(episode),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail bên trái (100x100 hoặc 150x150 nếu là episode mới nhất)
+              // Thumbnail 150x150
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
-                width: isLatest ? 150 : 100,
-                height: isLatest ? 150 : 100,
+                width: 150,
+                height: 150,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -42,23 +90,23 @@ class EpisodeRow extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [                    
+                  children: [
                     const SizedBox(height: 6),
-                    // Episode Name (to hơn 2px nếu là episode mới nhất)
+                    // Episode Name (16px)
                     Text(
                       episode.episodeName,
-                      style: TextStyle(
-                        fontSize: isLatest ? 16 : 14,
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    // Summary (short text) với fallback là shortTranscript
+                    // Summary
                     Text(
-                      episode.summary?.isNotEmpty == true 
-                          ? episode.summary! 
+                      episode.summary?.isNotEmpty == true
+                          ? episode.summary!
                           : episode.shortTranscript,
                       style: TextStyle(
                         fontSize: 12,
@@ -69,8 +117,7 @@ class EpisodeRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    // Duration và Published Date
-                    //Căn phải 2 text này
+                    // Category và Duration (bỏ date)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -108,20 +155,6 @@ class EpisodeRow extends StatelessWidget {
                             color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.calendar_today,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(episode.publishedDate),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -134,18 +167,41 @@ class EpisodeRow extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date).inDays;
-    
-    if (difference == 0) {
-      return languageManager.getText('today');
-    } else if (difference == 1) {
-      return languageManager.getText('yesterday');
-    } else if (difference < 7) {
-      return languageManager.getTextWithParams('daysAgo', {'count': difference});
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+  Widget _buildHorizontalEpisodeItem(Episode episode, BuildContext context) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.only(right: 12),
+      child: InkWell(
+        onTap: () => onEpisodeTap(episode),
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image 100x100
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ImageCacheService().buildCachedImage(
+                imageUrl: episode.thumbImage,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Episode Name
+            Text(
+              episode.episodeName,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
+

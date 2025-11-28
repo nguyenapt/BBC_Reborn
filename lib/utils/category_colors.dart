@@ -5,6 +5,10 @@ class CategoryColors {
     '6M': Colors.red,
     '6MGB': Colors.blue,
     '6MGI': Colors.green,
+    '6MVB': Colors.orange,
+    '6MVI': Colors.deepOrange,
+    'DRM': Colors.brown,
+    'EAW': Colors.teal,
     'NewsReview': Colors.orange,
     'REE': Colors.purple,
     'TEWS': Colors.amber,
@@ -18,6 +22,10 @@ class CategoryColors {
     '6M': Color(0xFFFFEBEE), // Light red
     '6MGB': Color(0xFFE3F2FD), // Light blue
     '6MGI': Color(0xFFE8F5E8), // Light green
+    '6MVB': Color(0xFFFFF3E0), // Light orange
+    '6MVI': Color(0xFFFFE0B2), // Light deep orange
+    'DRM': Color(0xFFEFEBE9), // Light brown
+    'EAW': Color(0xFFE0F2F1), // Light teal
     'NewsReview': Color(0xFFFFF3E0), // Light orange
     'REE': Color(0xFFF3E5F5), // Light purple
     'TEWS': Color(0xFFFFFDE7), // Light amber
@@ -31,6 +39,10 @@ class CategoryColors {
     '6M': Colors.redAccent,
     '6MGB': Colors.blueAccent,
     '6MGI': Colors.greenAccent,
+    '6MVB': Colors.orangeAccent,
+    '6MVI': Colors.deepOrangeAccent,
+    'DRM': Colors.brown,
+    'EAW': Colors.tealAccent,
     'NewsReview': Colors.orangeAccent,
     'REE': Colors.purpleAccent,
     'TEWS': Colors.amberAccent,
