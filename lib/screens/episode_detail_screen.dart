@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
@@ -163,7 +165,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Episode Name
-                Text(
+                SelectableText(
                   widget.episode.episodeName,
                   style: TextStyle(
                     fontSize: 24,
@@ -171,8 +173,40 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     height: 1.3,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                  contextMenuBuilder: (context, editableTextState) {
+                    return AdaptiveTextSelectionToolbar.buttonItems(
+                      anchors: editableTextState.contextMenuAnchors,
+                      buttonItems: <ContextMenuButtonItem>[
+                        ContextMenuButtonItem(
+                          label: 'Copy',
+                          onPressed: () {
+                            final selectedText = editableTextState.textEditingValue.selection.textInside(
+                              editableTextState.textEditingValue.text,
+                            );
+                            if (selectedText.isNotEmpty) {
+                              Clipboard.setData(ClipboardData(text: selectedText));
+                              editableTextState.hideToolbar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Đã sao chép')),
+                              );
+                            }
+                          },
+                        ),
+                        ContextMenuButtonItem(
+                          label: 'Translate',
+                          onPressed: () {
+                            final selectedText = editableTextState.textEditingValue.selection.textInside(
+                              editableTextState.textEditingValue.text,
+                            );
+                            if (selectedText.isNotEmpty) {
+                              _openGoogleTranslate(selectedText);
+                              editableTextState.hideToolbar();
+                            }
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 // Category Badge, Duration and Date - Cùng một dòng
@@ -195,7 +229,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         ),
                       ),
                     ),
-                    // Duration and Date
+                    // Duration and Date (bỏ date nếu là Other Programs category)
                     Row(
                       children: [
                         Icon(
@@ -211,20 +245,23 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(widget.episode.publishedDate),
-                          style: TextStyle(
-                            fontSize: 14,
+                        // Chỉ hiển thị date nếu không phải Other Programs category
+                        if (!_isOtherProgramsCategory(widget.episode.category)) ...[
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
                             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDate(widget.episode.publishedDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -326,6 +363,11 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     );
   }
 
+  bool _isOtherProgramsCategory(String category) {
+    const otherProgramsCategories = ['6MGB', '6MGI', '6MVB', '6MVI', 'DRM', 'EAW'];
+    return otherProgramsCategories.contains(category);
+  }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date).inDays;
@@ -338,6 +380,30 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       return _languageManager.getTextWithParams('daysAgo', {'count': difference});
     } else {
       return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  Future<void> _openGoogleTranslate(String text) async {
+    // URL encode text để truyền vào Google Translate
+    final encodedText = Uri.encodeComponent(text);
+    // URL Google Translate với text đã chọn
+    final translateUrl = 'https://translate.google.com/?sl=auto&tl=vi&text=$encodedText';
+    
+    try {
+      final Uri url = Uri.parse(translateUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Could not launch Google Translate');
+      }
+    } catch (e) {
+      debugPrint('Error opening Google Translate: $e');
+      // Hiển thị thông báo lỗi
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở Google Translate')),
+        );
+      }
     }
   }
 }

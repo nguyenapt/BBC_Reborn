@@ -96,14 +96,19 @@ class CategoryGroupBox extends StatelessWidget {
                 
                 
                 // Danh sách episodes
-                ...latestEpisodes.map((episode) => Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  child: EpisodeRow(
-                    episode: episode,
-                    onTap: () => onEpisodeTap(episode),
-                    languageManager: languageManager,
-                  ),
-                )),
+                ...latestEpisodes.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final episode = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    child: EpisodeRow(
+                      episode: episode,
+                      onTap: () => onEpisodeTap(episode),
+                      languageManager: languageManager,
+                      isLatest: index == 0, // Episode đầu tiên là mới nhất
+                    ),
+                  );
+                }),
                 
                 // View All button
                 if (category.episodes.length > 3)

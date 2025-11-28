@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
@@ -299,7 +301,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                               ),
                             if (hasTimeInfo) const SizedBox(height: 6),
                             // Text content
-                            Text(
+                            SelectableText(
                               line.text,
                               style: TextStyle(
                                 fontSize: 14,
@@ -308,6 +310,40 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     ? Theme.of(context).colorScheme.onSurface
                                     : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                               ),
+                              contextMenuBuilder: (context, editableTextState) {
+                                return AdaptiveTextSelectionToolbar.buttonItems(
+                                  anchors: editableTextState.contextMenuAnchors,
+                                  buttonItems: <ContextMenuButtonItem>[
+                                    ContextMenuButtonItem(
+                                      label: 'Copy',
+                                      onPressed: () {
+                                        final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                          editableTextState.textEditingValue.text,
+                                        );
+                                        if (selectedText.isNotEmpty) {
+                                          Clipboard.setData(ClipboardData(text: selectedText));
+                                          editableTextState.hideToolbar();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Đã sao chép')),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    ContextMenuButtonItem(
+                                      label: 'Translate',
+                                      onPressed: () {
+                                        final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                          editableTextState.textEditingValue.text,
+                                        );
+                                        if (selectedText.isNotEmpty) {
+                                          _openGoogleTranslate(context, selectedText);
+                                          editableTextState.hideToolbar();
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -318,6 +354,30 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
         ],
       ),
     );
+  }
+
+  Future<void> _openGoogleTranslate(BuildContext context, String text) async {
+    // URL encode text để truyền vào Google Translate
+    final encodedText = Uri.encodeComponent(text);
+    // URL Google Translate với text đã chọn
+    final translateUrl = 'https://translate.google.com/?sl=auto&tl=vi&text=$encodedText';
+    
+    try {
+      final Uri url = Uri.parse(translateUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Could not launch Google Translate');
+      }
+    } catch (e) {
+      debugPrint('Error opening Google Translate: $e');
+      // Hiển thị thông báo lỗi
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở Google Translate')),
+        );
+      }
+    }
   }
 
   @override

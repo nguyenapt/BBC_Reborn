@@ -3,10 +3,11 @@ class CategoryNames {
     '6M': '6 Minutes English',
     'TEWS': 'The English We Speak',
     'REE': 'Real Easy English',
-    '6MGB': '6 Minutes English Grammar Basic',
-    '6MGI': '6 Minutes English Grammar Intermediate',
-    '6MVB': '6 Minutes English Vocabulary Basic',
-    '6MVI': '6 Minutes English Vocabulary Intermediate',
+    '6MGB': '6 Minutes Grammar Basic',
+    '6MGI': '6 Minutes Grammar Intermediate',
+    '6MVB': '6 Minutes Vocabulary Basic',
+    '6MVI': '6 Minutes Vocabulary Intermediate',
+    'DRM': 'Drama',
     'EAW': 'English at Work',
   };
 
