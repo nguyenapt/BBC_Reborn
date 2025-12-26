@@ -7,7 +7,9 @@ import '../services/ai_translation_service.dart';
 import '../services/ai_vocabulary_service.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../models/enhanced_vocabulary.dart';
+import '../services/language_manager.dart';
 import 'native_ad_widget.dart';
+import 'translation_language_picker.dart';
 
 class VocabularySlide extends StatefulWidget {
   final Episode episode;
@@ -25,23 +27,40 @@ class _VocabularySlideState extends State<VocabularySlide> {
   late final VocabularyService _vocabularyService;
   final AITranslationService _translationService = AITranslationService();
   final AIVocabularyService _vocabEnhanceService = AIVocabularyService();
+  final LanguageManager _languageManager = LanguageManager();
   final Map<String, String> _vocabTranslations = {};
   final Map<String, EnhancedVocabulary?> _enhancedVocab = {};
+  bool _showTranslation = false;
+  bool _isTranslating = false;
+  List<VocabularyItem> _vocabularyItems = [];
 
   @override
   void initState() {
     super.initState();
     _vocabularyService = VocabularyService();
     _vocabularyService.initialize();
+    
+    // Parse vocabulary items từ episode
+    _vocabularyItems = VocabularyItem.parseFromEpisode(
+      vocabularies: widget.episode.vocabularies,
+      vocabulary: widget.episode.vocabulary,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Parse vocabulary items từ episode
-    final vocabularyItems = VocabularyItem.parseFromEpisode(
-      vocabularies: widget.episode.vocabularies,
-      vocabulary: widget.episode.vocabulary,
+    final vocabularyItems = _vocabularyItems;
+    
+    // Listen to LanguageManager changes to rebuild when language changes
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        return _buildVocabularyContent(vocabularyItems);
+      },
     );
+  }
+
+  Widget _buildVocabularyContent(List<VocabularyItem> vocabularyItems) {
 
     // Nếu không có vocabulary, hiển thị Native AdMob
     if (vocabularyItems.isEmpty) {
@@ -82,6 +101,61 @@ class _VocabularySlideState extends State<VocabularySlide> {
                   fontSize: 14,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
+              ),
+              const SizedBox(width: 8),
+              // Translation button
+              IconButton(
+                icon: _isTranslating
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            CategoryColors.getCategoryColor(widget.episode.category),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        _showTranslation ? Icons.translate : Icons.translate_outlined,
+                        color: _showTranslation
+                            ? CategoryColors.getCategoryColor(widget.episode.category)
+                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                onPressed: _isTranslating
+                    ? null
+                    : () async {
+                        // Check if app language is English (default)
+                        if (_languageManager.isTranslationNeeded()) {
+                          // Show language picker to select translation language
+                          TranslationLanguagePicker.show(
+                            context,
+                            currentLanguageCode: _languageManager.currentLocale.languageCode,
+                            onLanguageSelected: (languageCode) async {
+                              // Save selected language to settings (selected_language key)
+                              await _languageManager.changeLanguage(Locale(languageCode));
+                              // Clear old translations to force reload with new language
+                              setState(() {
+                                _vocabTranslations.clear();
+                                _showTranslation = false;
+                              });
+                              // Load translations with new language
+                              await _loadTranslations();
+                            },
+                          );
+                        } else {
+                          // App language is not English, translate directly
+                          if (!_showTranslation && _vocabTranslations.isEmpty) {
+                            // Load translations
+                            await _loadTranslations();
+                          } else {
+                            setState(() {
+                              _showTranslation = !_showTranslation;
+                            });
+                          }
+                        }
+                      },
+                tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
               ),
             ],
           ),
@@ -208,41 +282,19 @@ class _VocabularySlideState extends State<VocabularySlide> {
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
-                            // Translation (lazy load)
-                            FutureBuilder<String>(
-                              future: _getTranslation(item.vocab, item.mean),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          CategoryColors.getCategoryColor(widget.episode.category),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Text(
-                                      snapshot.data!,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontStyle: FontStyle.italic,
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
+                            // Translation (only show if enabled)
+                            if (_showTranslation && _vocabTranslations.containsKey(item.vocab))
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  _vocabTranslations[item.vocab]!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       );
@@ -257,24 +309,54 @@ class _VocabularySlideState extends State<VocabularySlide> {
     );
   }
 
-  Future<String> _getTranslation(String vocab, String meaning) async {
-    // Check cache first
-    if (_vocabTranslations.containsKey(vocab)) {
-      return _vocabTranslations[vocab]!;
-    }
+  Future<void> _loadTranslations() async {
+    if (_vocabularyItems.isEmpty) return;
+    
+    setState(() {
+      _isTranslating = true;
+    });
 
     try {
-      final translated = await _translationService.translateVocabulary(
-        vocab,
-        meaning,
-        context: widget.episode.transcript,
-      );
-      
-      _vocabTranslations[vocab] = translated;
-      return translated;
+      // Translate all vocabulary items
+      for (final item in _vocabularyItems) {
+        if (!_vocabTranslations.containsKey(item.vocab)) {
+          try {
+            final translated = await _translationService.translateVocabulary(
+              item.vocab,
+              item.mean,
+              context: widget.episode.transcript,
+            );
+            _vocabTranslations[item.vocab] = translated;
+          } catch (e) {
+            debugPrint('Error translating vocabulary ${item.vocab}: $e');
+            // Continue with other items
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _showTranslation = true;
+          _isTranslating = false;
+        });
+      }
     } catch (e) {
-      debugPrint('Error translating vocabulary $vocab: $e');
-      return ''; // Return empty on error
+      debugPrint('Error loading translations: $e');
+      if (mounted) {
+        setState(() {
+          _isTranslating = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AIErrorHandler.getErrorMessage(e)),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _loadTranslations(),
+            ),
+          ),
+        );
+      }
     }
   }
 

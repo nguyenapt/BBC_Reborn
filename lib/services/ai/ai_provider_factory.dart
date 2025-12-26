@@ -45,27 +45,43 @@ class AIProviderFactory {
   /// Create provider with automatic fallback
   /// Tries primary first, falls back to backup if primary fails
   static Future<AIProvider> createProviderWithFallback() async {
+    debugPrint('🔄 AIProviderFactory: Creating provider with fallback...');
+    
     // Try primary provider first
     try {
+      debugPrint('📱 Trying primary provider (Gemini)...');
       final primary = getPrimaryProvider();
-      if (await primary.isAvailable()) {
+      final isAvailable = await primary.isAvailable();
+      debugPrint('📱 Primary provider available: $isAvailable');
+      if (isAvailable) {
+        debugPrint('✅ Using primary provider (Gemini)');
         return primary;
+      } else {
+        debugPrint('⚠️ Primary provider not available');
       }
-    } catch (e) {
-      debugPrint('Primary provider not available: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Primary provider error: $e');
+      debugPrint('   Stack trace: $stackTrace');
     }
     
     // Fallback to backup provider
     try {
+      debugPrint('📱 Trying backup provider (OpenAI)...');
       final backup = getBackupProvider();
-      if (await backup.isAvailable()) {
-        debugPrint('Using backup AI provider (OpenAI)');
+      final isAvailable = await backup.isAvailable();
+      debugPrint('📱 Backup provider available: $isAvailable');
+      if (isAvailable) {
+        debugPrint('✅ Using backup AI provider (OpenAI)');
         return backup;
+      } else {
+        debugPrint('⚠️ Backup provider not available');
       }
-    } catch (e) {
-      debugPrint('Backup provider not available: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Backup provider error: $e');
+      debugPrint('   Stack trace: $stackTrace');
     }
     
+    debugPrint('❌ No AI provider available - both primary and backup failed');
     throw AIException('No AI provider available');
   }
   

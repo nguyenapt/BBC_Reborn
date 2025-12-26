@@ -123,6 +123,11 @@ class LanguageManager extends ChangeNotifier {
     }
   }
 
+  /// Check if translation is needed (if app language is English, translation is needed)
+  bool isTranslationNeeded() {
+    return _currentLocale.languageCode == 'en';
+  }
+
   /// Lấy text theo key và ngôn ngữ hiện tại
   String getText(String key) {
     switch (_currentLocale.languageCode) {

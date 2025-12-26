@@ -27,14 +27,24 @@ class GeminiProvider implements AIProvider {
       }
       
       final apiKey = AIConfig.getGeminiApiKey();
+      debugPrint('🔑 Gemini API Key check: isEmpty=${apiKey.isEmpty}, length=${apiKey.length}');
+      
       if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY') {
-        debugPrint('Warning: Gemini API key not configured');
+        debugPrint('❌ Warning: Gemini API key not configured');
         return;
       }
       
+      debugPrint('✅ Gemini API key found, initializing model...');
       _initializeModel(apiKey);
-    } catch (e) {
-      debugPrint('Error initializing Gemini: $e');
+      
+      if (_initialized) {
+        debugPrint('✅ Gemini provider initialized successfully');
+      } else {
+        debugPrint('❌ Gemini provider initialization failed');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error initializing Gemini: $e');
+      debugPrint('   Stack trace: $stackTrace');
       _initialized = false;
     }
   }
@@ -79,8 +89,24 @@ class GeminiProvider implements AIProvider {
   
   @override
   Future<bool> isAvailable() async {
-    if (!_initialized) return false;
-    return await _rateLimiter.canMakeRequest();
+    debugPrint('🔍 Checking Gemini availability: initialized=$_initialized');
+    if (!_initialized) {
+      // Try to initialize if not already done
+      final apiKey = AIConfig.getGeminiApiKey();
+      if (apiKey.isNotEmpty && apiKey != 'YOUR_GEMINI_API_KEY') {
+        debugPrint('🔄 Attempting late initialization...');
+        _initializeModel(apiKey);
+      }
+    }
+    
+    if (!_initialized) {
+      debugPrint('❌ Gemini not available: not initialized');
+      return false;
+    }
+    
+    final canRequest = await _rateLimiter.canMakeRequest();
+    debugPrint('✅ Gemini available: canMakeRequest=$canRequest');
+    return canRequest;
   }
   
   Future<String> _callGemini(String prompt) async {

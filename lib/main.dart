@@ -15,6 +15,7 @@ import 'services/image_cache_service.dart';
 import 'services/admob_service.dart';
 import 'services/vocabulary_service.dart';
 import 'services/rate_app_service.dart';
+import 'services/heart_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 
@@ -46,6 +47,14 @@ void main() async {
     
     await VocabularyService().initialize();
     debugPrint('✅ VocabularyService initialized');
+    
+    await HeartService().initialize();
+    debugPrint('✅ HeartService initialized');
+    
+    // Preload rewarded ad for hearts
+    if (!kIsWeb) {
+      AdMobService().createRewardedAd();
+    }
     
     debugPrint('🎉 All services initialized successfully');
   } catch (e) {

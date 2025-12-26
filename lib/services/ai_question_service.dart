@@ -4,6 +4,7 @@ import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
+import 'heart_service.dart';
 
 /// Service for AI-powered question generation
 class AIQuestionService {
@@ -37,6 +38,18 @@ class AIQuestionService {
       if (questions.isNotEmpty) {
         return questions;
       }
+    }
+
+    // Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
     }
 
     // Get provider with fallback

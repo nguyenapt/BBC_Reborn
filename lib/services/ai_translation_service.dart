@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import '../models/transcript_line.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
+import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
+import 'heart_service.dart';
 
 /// Service for AI-powered translation
 class AITranslationService {
@@ -35,9 +37,18 @@ class AITranslationService {
         return 'Arabic';
       case 'ru':
         return 'Russian';
+      case 'fr':
+        return 'French';
+      case 'de':
+        return 'German';
       default:
         return 'English';
     }
+  }
+
+  /// Get target language code (for cache keys)
+  String _getTargetLanguageCode() {
+    return _languageManager.currentLocale.languageCode;
   }
 
   /// Translate transcript lines
@@ -46,7 +57,7 @@ class AITranslationService {
     String episodeId,
   ) async {
     final targetLanguage = _getTargetLanguage();
-    final languageCode = _languageManager.currentLocale.languageCode;
+    final languageCode = _getTargetLanguageCode();
 
     // Check cache with priority: Local → Firebase → null
     final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
@@ -55,6 +66,18 @@ class AITranslationService {
       return cached;
     }
 
+    // Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
+    }
+    
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
 
@@ -146,6 +169,18 @@ class AITranslationService {
       return cached;
     }
 
+    // Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
+    }
+
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
 
@@ -186,6 +221,18 @@ class AITranslationService {
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
       return cached;
+    }
+
+    // Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
     }
 
     // Get provider with fallback

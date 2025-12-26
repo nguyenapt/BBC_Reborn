@@ -14,6 +14,8 @@ class AIErrorHandler {
       return 'AI service error. Trying backup...';
     } else if (error is InvalidResponseException) {
       return 'Invalid response from AI service. Please try again.';
+    } else if (error is NoHeartsException) {
+      return 'No hearts available. Watch an ad to earn more hearts.';
     } else if (error is AIException) {
       return error.message;
     }

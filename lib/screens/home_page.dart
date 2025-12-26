@@ -7,6 +7,7 @@ import '../services/image_cache_service.dart';
 import '../widgets/category_group_box.dart';
 import '../widgets/welcome_header.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/heart_widget.dart';
 import 'episode_detail_screen.dart';
 import 'categories_screen.dart';
 
@@ -171,63 +172,57 @@ class _HomePageState extends State<HomePage> {
         right: 16,
         bottom: 16,
       ),
-      child: Row(
-        children: [          
-          // Logo tròn đơn giản
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colorScheme.primaryContainer,
-              border: Border.all(
-                color: colorScheme.outline.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Greeting text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  greeting,
-                  style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.w600,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [          
+              // Logo tròn đơn giản
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colorScheme.primaryContainer,
+                  border: Border.all(
+                    color: colorScheme.outline.withOpacity(0.3),
+                    width: 1,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _languageManager.getText('welcomeMessage'),
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onPrimary.withOpacity(0.8),
+                child: Center(
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 20),
                   ),
                 ),
-              ],
-            ),
-          ),
-          // App icon đơn giản
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colorScheme.primaryContainer.withOpacity(0.3),
-            ),
-            child: Icon(
-              Icons.school,
-              color: colorScheme.onPrimary,
-              size: 20,
-            ),
+              ),
+              const SizedBox(width: 16),
+              // Greeting text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      greeting,
+                      style: theme.textTheme.headlineSmall!.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _languageManager.getText('welcomeMessage'),
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        color: colorScheme.onPrimary.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Heart widget
+              const HeartWidget(),
+            ],
           ),
         ],
       ),

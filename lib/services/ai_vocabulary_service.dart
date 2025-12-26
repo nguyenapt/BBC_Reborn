@@ -3,7 +3,9 @@ import '../models/vocabulary_item.dart';
 import '../models/enhanced_vocabulary.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
+import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
+import 'heart_service.dart';
 
 /// Service for AI-powered vocabulary enhancement
 class AIVocabularyService {
@@ -25,6 +27,18 @@ class AIVocabularyService {
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
       // Convert cached data to EnhancedVocabulary
       return EnhancedVocabulary.fromAIResponse(item, cachedData);
+    }
+
+    // Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
     }
 
     // Get provider with fallback

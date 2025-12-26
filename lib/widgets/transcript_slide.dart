@@ -8,8 +8,10 @@ import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../models/grammar_explanation.dart';
+import '../services/language_manager.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
+import 'translation_language_picker.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -38,6 +40,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   Map<String, String>? _translations;
   bool _isTranslating = false;
   final AITranslationService _translationService = AITranslationService();
+  final LanguageManager _languageManager = LanguageManager();
   
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
@@ -159,6 +162,16 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to LanguageManager changes to rebuild when language changes
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        return _buildTranscriptContent();
+      },
+    );
+  }
+
+  Widget _buildTranscriptContent() {
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -205,13 +218,34 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                   onPressed: _isTranslating
                       ? null
                       : () async {
-                          if (!_showTranslation && _translations == null) {
-                            // Load translations
-                            await _loadTranslations();
+                          // Check if app language is English (default)
+                          if (_languageManager.isTranslationNeeded()) {
+                            // Show language picker to select translation language
+                            TranslationLanguagePicker.show(
+                              context,
+                              currentLanguageCode: _languageManager.currentLocale.languageCode,
+                              onLanguageSelected: (languageCode) async {
+                                // Save selected language to settings (selected_language key)
+                                await _languageManager.changeLanguage(Locale(languageCode));
+                                // Clear old translations to force reload with new language
+                                setState(() {
+                                  _translations = null;
+                                  _showTranslation = false;
+                                });
+                                // Load translations with new language
+                                await _loadTranslations();
+                              },
+                            );
                           } else {
-                            setState(() {
-                              _showTranslation = !_showTranslation;
-                            });
+                            // App language is not English, translate directly
+                            if (!_showTranslation && _translations == null) {
+                              // Load translations
+                              await _loadTranslations();
+                            } else {
+                              setState(() {
+                                _showTranslation = !_showTranslation;
+                              });
+                            }
                           }
                         },
                   tooltip: _showTranslation ? 'Hide translation' : 'Show translation',

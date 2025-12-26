@@ -12,20 +12,29 @@ class OpenAIProvider implements AIProvider {
   final String? _apiKey;
   
   OpenAIProvider() : _apiKey = AIConfig.getOpenAIApiKey() {
+    debugPrint('🔑 OpenAI Provider: API key length=${_apiKey?.length ?? 0}');
     _initialize();
   }
   
   void _initialize() {
-    if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_OPENAI_API_KEY') {
-      debugPrint('Warning: OpenAI API key not configured');
+    try {
+      if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_OPENAI_API_KEY') {
+        debugPrint('❌ Warning: OpenAI API key not configured');
+        _initialized = false;
+        return;
+      }
+      _initialized = true;
+      debugPrint('✅ OpenAI provider initialized successfully');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error initializing OpenAI: $e');
+      debugPrint('   Stack trace: $stackTrace');
       _initialized = false;
-      return;
     }
-    _initialized = true;
   }
   
   @override
   Future<bool> isAvailable() async {
+    debugPrint('🔍 Checking OpenAI availability: initialized=$_initialized');
     return _initialized;
   }
   

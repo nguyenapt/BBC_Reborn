@@ -35,3 +35,9 @@ class InvalidResponseException extends AIException {
       : super(message ?? 'Invalid response from AI service.', originalError);
 }
 
+/// Exception for when user has no hearts available
+class NoHeartsException extends AIException {
+  NoHeartsException([dynamic originalError])
+      : super('No hearts available. Please watch an ad to earn more hearts.', originalError);
+}
+
