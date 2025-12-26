@@ -47,8 +47,7 @@ dependencies:
   google_mobile_ads: ^5.1.0 # For Google AdMob integration
   wakelock_plus: ^1.1.4 # For keeping screen on
   url_launcher: ^6.2.5 # For opening external URLs
-  google_generative_ai: ^0.2.0 # Google Gemini AI (Free tier - Primary)
-  openai_dart: ^2.0.0 # OpenAI API (Backup)
+  google_generative_ai: ^0.4.7 # Google Gemini AI (Free tier - Primary)
 
 dev_dependencies:
   flutter_test:

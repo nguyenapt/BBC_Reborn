@@ -14,6 +14,7 @@ class StorageService {
   static const String _vocabulariesKey = 'saved_vocabularies';
   static const String _vocabularyItemsKey = 'saved_vocabulary_items';
   static const String _favouriteEpisodesDataKey = 'favourite_episodes_data';
+  static const String _aiCachePrefix = 'ai_cache_';
   
   final AuthService _authService = AuthService();
 
@@ -184,11 +185,55 @@ class StorageService {
   }
 
 
+  /// AI Cache Management
+  Future<void> saveCachedData(String key, String data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$_aiCachePrefix$key', data);
+    } catch (e) {
+      debugPrint('Error saving cached data: $e');
+    }
+  }
+
+  Future<String?> getCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('$_aiCachePrefix$key');
+    } catch (e) {
+      debugPrint('Error getting cached data: $e');
+      return null;
+    }
+  }
+
+  Future<void> removeCachedData(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('$_aiCachePrefix$key');
+    } catch (e) {
+      debugPrint('Error removing cached data: $e');
+    }
+  }
+
+  Future<void> clearAICache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith(_aiCachePrefix)) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error clearing AI cache: $e');
+    }
+  }
+
   /// Clear all data
   Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_vocabulariesKey);
     await prefs.remove(_vocabularyItemsKey);
     await prefs.remove(_favouriteEpisodesDataKey);
+    await clearAICache();
   }
 }

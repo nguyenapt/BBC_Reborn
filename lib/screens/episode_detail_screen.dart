@@ -10,6 +10,7 @@ import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
 import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
+import '../widgets/question_slide.dart';
 import '../services/admob_service.dart';
 
 class EpisodeDetailScreen extends StatefulWidget {
@@ -274,7 +275,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) {
+              children: List.generate(4, (index) {
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: _currentPageIndex == index ? 24 : 8,
@@ -338,6 +339,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 ),
                 // Slide 3: Vocabulary
                 VocabularySlide(episode: widget.episode),
+                // Slide 4: Questions
+                QuestionSlide(episode: widget.episode),
               ],
             ),
           ),

@@ -4,6 +4,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
+import '../services/ai_translation_service.dart';
+import '../services/ai_grammar_service.dart';
+import '../services/ai/ai_error_handler.dart';
+import '../models/grammar_explanation.dart';
+import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 
 class TranscriptSlide extends StatefulWidget {
@@ -27,6 +32,16 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   late ScrollController _scrollController;
   int? _currentActiveIndex;
   List<int> _adPositions = []; // Vị trí chèn native ads
+  
+  // Translation state
+  bool _showTranslation = false;
+  Map<String, String>? _translations;
+  bool _isTranslating = false;
+  final AITranslationService _translationService = AITranslationService();
+  
+  // Grammar state
+  final AIGrammarService _grammarService = AIGrammarService();
+  final Map<String, GrammarExplanation> _grammarCache = {};
 
   @override
   void initState() {
@@ -157,6 +172,50 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                 color: CategoryColors.getCategoryColor(widget.episode.category),
                 size: 20,
               ),
+              const SizedBox(width: 8),
+              Text(
+                'Transcript',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: CategoryColors.getCategoryColor(widget.episode.category),
+                ),
+              ),
+              const Spacer(),
+              // Translation toggle button
+              if (transcriptLines.isNotEmpty)
+                IconButton(
+                  icon: _isTranslating
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              CategoryColors.getCategoryColor(widget.episode.category),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          _showTranslation ? Icons.translate : Icons.translate_outlined,
+                          color: _showTranslation
+                              ? CategoryColors.getCategoryColor(widget.episode.category)
+                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                  onPressed: _isTranslating
+                      ? null
+                      : () async {
+                          if (!_showTranslation && _translations == null) {
+                            // Load translations
+                            await _loadTranslations();
+                          } else {
+                            setState(() {
+                              _showTranslation = !_showTranslation;
+                            });
+                          }
+                        },
+                  tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -297,19 +356,38 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                       minHeight: 32,
                                     ),
                                   ),
+                                  const SizedBox(width: 4),
+                                  // Grammar explanation button
+                                  IconButton(
+                                    onPressed: () => _showGrammarExplanation(context, line.text),
+                                    icon: Icon(
+                                      Icons.lightbulb_outline,
+                                      color: CategoryColors.getCategoryColor(widget.episode.category),
+                                      size: 18,
+                                    ),
+                                    tooltip: 'Explain grammar',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
+                                  ),
                                 ],
                               ),
                             if (hasTimeInfo) const SizedBox(height: 6),
                             // Text content
-                            SelectableText(
-                              line.text,
-                              style: TextStyle(
-                                fontSize: 14,
-                                height: 1.5,
-                                color: isActive 
-                                    ? Theme.of(context).colorScheme.onSurface
-                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SelectableText(
+                                  line.text,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: isActive 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                  ),
                               contextMenuBuilder: (context, editableTextState) {
                                 return AdaptiveTextSelectionToolbar.buttonItems(
                                   anchors: editableTextState.contextMenuAnchors,
@@ -345,6 +423,22 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                 );
                               },
                             ),
+                                // Translation (if enabled)
+                                if (_showTranslation && _translations != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: SelectableText(
+                                      _translations![line.text] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.italic,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
                       );
@@ -354,6 +448,47 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadTranslations() async {
+    if (transcriptLines.isEmpty) return;
+    
+    setState(() {
+      _isTranslating = true;
+    });
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      final translations = await _translationService.translateTranscript(
+        transcriptLines,
+        episodeId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _translations = translations;
+          _showTranslation = true;
+          _isTranslating = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading translations: $e');
+      if (mounted) {
+        setState(() {
+          _isTranslating = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AIErrorHandler.getErrorMessage(e)),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _loadTranslations(),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _openGoogleTranslate(BuildContext context, String text) async {
@@ -378,6 +513,75 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
         );
       }
     }
+  }
+
+  Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
+    // Check cache first
+    if (_grammarCache.containsKey(sentence)) {
+      _showGrammarDialog(context, _grammarCache[sentence]!);
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    CategoryColors.getCategoryColor(widget.episode.category),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Analyzing grammar...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      final explanation = await _grammarService.explainSentence(sentence, episodeId);
+      
+      _grammarCache[sentence] = explanation;
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showGrammarDialog(context, explanation);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AIErrorHandler.getErrorMessage(e)),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _showGrammarExplanation(context, sentence),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showGrammarDialog(BuildContext context, GrammarExplanation explanation) {
+    showDialog(
+      context: context,
+      builder: (context) => GrammarExplanationDialog(
+        explanation: explanation,
+        category: widget.episode.category,
+      ),
+    );
   }
 
   @override
