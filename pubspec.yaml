@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: ^3.9.2
@@ -47,6 +47,8 @@ dependencies:
   google_mobile_ads: ^5.1.0 # For Google AdMob integration
   wakelock_plus: ^1.1.4 # For keeping screen on
   url_launcher: ^6.2.5 # For opening external URLs
+  google_generative_ai: ^0.2.0 # Google Gemini AI (Free tier - Primary)
+  openai_dart: ^2.0.0 # OpenAI API (Backup)
 
 dev_dependencies:
   flutter_test:

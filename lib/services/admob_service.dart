@@ -16,11 +16,11 @@ class AdMobService {
   static const String _testAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
 
   // Production Ad Unit IDs (thay thế bằng Ad Unit IDs thật khi publish)
-  static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/3790180625';
+  static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/3489158520';
   static const String _prodBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716';
-  static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9972445596';
+  static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9862995184';
   static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
-  static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/4437828135';
+  static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/8760106002';
   static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
 
   BannerAd? _bannerAd;
