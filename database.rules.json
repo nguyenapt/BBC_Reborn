@@ -1,0 +1,39 @@
+{
+  "rules": {
+    "ai_cache": {
+      ".read": true,
+      ".write": true,
+      "translations": {
+        "$episodeId": {
+          "$languageCode": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
+      "grammar": {
+        "$sentenceHash": {
+          ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+        }
+      },
+      "questions": {
+        "$episodeId": {
+          "$count": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
+      "vocabulary": {
+        "$wordHash": {
+          ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+        }
+      },
+      "access_stats": {
+        "$episodeId": {
+          ".validate": "newData.hasChildren(['episodeId', 'count', 'lastAccessed'])"
+        }
+      }
+    },
+    ".read": true,
+    ".write": "auth !== null"
+  }
+}

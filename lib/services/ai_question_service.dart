@@ -19,22 +19,24 @@ class AIQuestionService {
     String episodeId, {
     int count = 5,
   }) async {
-    final cacheKey = 'questions_${episodeId}_$count';
+    // Check cache with priority: Local → Firebase → null
+    final cachedData = await _cache.getQuestionsFromCache(episodeId, count);
 
-    // Check cache first
-    final cached = await _cache.getCached<List<Question>>(
-      cacheKey,
-      (json) {
-        final List<dynamic> questionsJson = json['questions'] ?? [];
-        return questionsJson
-            .map((q) => Question.fromJson(q as Map<String, dynamic>))
-            .toList();
-      },
-    );
-
-    if (cached != null && cached.isNotEmpty) {
+    if (cachedData != null && cachedData.isNotEmpty) {
       debugPrint('Using cached questions for episode $episodeId');
-      return cached;
+      // Convert cached data to Question objects
+      final questions = <Question>[];
+      for (int i = 0; i < cachedData.length; i++) {
+        try {
+          final question = Question.fromAIResponse(cachedData[i], i);
+          questions.add(question);
+        } catch (e) {
+          debugPrint('Error parsing cached question $i: $e');
+        }
+      }
+      if (questions.isNotEmpty) {
+        return questions;
+      }
     }
 
     // Get provider with fallback
@@ -57,12 +59,11 @@ class AIQuestionService {
         }
       }
 
-      // Cache questions
-      await _cache.cacheData(
-        cacheKey,
-        {'questions': questions.map((q) => q.toJson()).toList()},
-        (data) => data as Map<String, dynamic>,
-      );
+      // Save to both local and Firebase cache
+      if (questions.isNotEmpty) {
+        final questionsData = questions.map((q) => q.toJson()).toList();
+        await _cache.saveQuestionsToCache(episodeId, count, questionsData);
+      }
 
       return questions;
     } catch (e) {

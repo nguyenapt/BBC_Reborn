@@ -48,6 +48,7 @@ dependencies:
   wakelock_plus: ^1.1.4 # For keeping screen on
   url_launcher: ^6.2.5 # For opening external URLs
   google_generative_ai: ^0.4.7 # Google Gemini AI (Free tier - Primary)
+  crypto: ^3.0.6 # For hashing cache keys
 
 dev_dependencies:
   flutter_test:

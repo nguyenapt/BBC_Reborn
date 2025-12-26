@@ -46,11 +46,11 @@ class AITranslationService {
     String episodeId,
   ) async {
     final targetLanguage = _getTargetLanguage();
-    final cacheKey = 'translation_${episodeId}_$targetLanguage';
+    final languageCode = _languageManager.currentLocale.languageCode;
 
-    // Check cache first
-    final cached = await _cache.getCachedMap(cacheKey);
-    if (cached != null) {
+    // Check cache with priority: Local → Firebase → null
+    final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
+    if (cached != null && cached.isNotEmpty) {
       debugPrint('Using cached translations for episode $episodeId');
       return cached;
     }
@@ -101,8 +101,10 @@ class AITranslationService {
         }
       }
 
-      // Cache translations
-      await _cache.cacheMap(cacheKey, translations);
+      // Save to both local and Firebase cache
+      if (translations.isNotEmpty) {
+        await _cache.saveTranslationToCache(episodeId, languageCode, translations);
+      }
       
       return translations;
     } catch (e) {

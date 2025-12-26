@@ -1,0 +1,82 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+
+/// Helper class for generating cache keys and hashing
+class CacheKeyHelper {
+  /// Generate translation cache key
+  static String translationKey(String episodeId, String languageCode) {
+    return 'translation_${episodeId}_$languageCode';
+  }
+
+  /// Generate grammar cache key from sentence hash
+  static String grammarKey(String sentence) {
+    final hash = hashString(sentence);
+    return 'grammar_$hash';
+  }
+
+  /// Generate questions cache key
+  static String questionsKey(String episodeId, int count) {
+    return 'questions_${episodeId}_$count';
+  }
+
+  /// Generate vocabulary cache key from word hash
+  static String vocabularyKey(String word) {
+    final hash = hashString(word.toLowerCase().trim());
+    return 'vocab_$hash';
+  }
+
+  /// Hash a string to create unique identifier
+  static String hashString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString().substring(0, 16); // Use first 16 chars for shorter key
+  }
+
+  /// Sanitize key for Firebase (remove invalid characters)
+  /// Firebase doesn't allow: $ # [ ] / . or empty keys
+  static String sanitizeFirebaseKey(String key) {
+    if (key.isEmpty) {
+      return 'empty';
+    }
+    // Replace invalid characters with underscore
+    return key
+        .replaceAll('\$', '_dollar_')
+        .replaceAll('#', '_hash_')
+        .replaceAll('[', '_lbracket_')
+        .replaceAll(']', '_rbracket_')
+        .replaceAll('/', '_slash_')
+        .replaceAll('.', '_dot_');
+  }
+
+  /// Convert translations map to Firebase-safe format
+  /// Store as array of {original, translated} objects instead of map
+  static List<Map<String, String>> translationsToFirebaseFormat(Map<String, String> translations) {
+    return translations.entries.map((entry) {
+      return {
+        'original': entry.key,
+        'translated': entry.value,
+      };
+    }).toList();
+  }
+
+  /// Convert Firebase format back to translations map
+  static Map<String, String> translationsFromFirebaseFormat(List<dynamic> firebaseData) {
+    final translations = <String, String>{};
+    for (final item in firebaseData) {
+      if (item is Map<String, dynamic>) {
+        final original = item['original']?.toString() ?? '';
+        final translated = item['translated']?.toString() ?? '';
+        if (original.isNotEmpty) {
+          translations[original] = translated;
+        }
+      }
+    }
+    return translations;
+  }
+
+  /// Generate episode-specific cache key
+  static String episodeKey(String episodeId, String suffix) {
+    return '${episodeId}_$suffix';
+  }
+}
+

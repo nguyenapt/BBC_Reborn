@@ -46,18 +46,25 @@ class AIGrammarService {
     String episodeId,
   ) async {
     final targetLanguage = _getTargetLanguage();
-    final sentenceHash = sentence.hashCode.toString();
-    final cacheKey = 'grammar_${episodeId}_$sentenceHash';
 
-    // Check cache first
-    final cached = await _cache.getCached<GrammarExplanation>(
-      cacheKey,
-      (json) => GrammarExplanation.fromJson(json),
-    );
+    // Check cache with priority: Local → Firebase → null
+    final cachedData = await _cache.getGrammarFromCache(sentence);
     
-    if (cached != null) {
+    if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
-      return cached;
+      // Convert cached data to GrammarExplanation
+      final grammarPoint = cachedData['grammarPoint']?.toString() ?? 'Unknown';
+      final explanation = cachedData['explanation']?.toString() ?? '';
+      final highlightedWords = (cachedData['highlightedWords'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ?? [];
+      
+      return GrammarExplanation(
+        sentence: sentence,
+        grammarPoint: grammarPoint,
+        explanation: explanation,
+        highlightedWords: highlightedWords,
+      );
     }
 
     // Get provider with fallback
@@ -82,12 +89,13 @@ class AIGrammarService {
         highlightedWords: highlightedWords,
       );
 
-      // Cache explanation
-      await _cache.cacheData(
-        cacheKey,
-        explanationObj,
-        (obj) => obj.toJson(),
-      );
+      // Save to both local and Firebase cache
+      final grammarData = {
+        'grammarPoint': grammarPoint,
+        'explanation': explanation,
+        'highlightedWords': highlightedWords,
+      };
+      await _cache.saveGrammarToCache(sentence, grammarData);
 
       return explanationObj;
     } catch (e) {

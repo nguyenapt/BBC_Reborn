@@ -18,17 +18,13 @@ class AIVocabularyService {
     VocabularyItem item, {
     String? context,
   }) async {
-    final cacheKey = 'enhanced_vocab_${item.vocab}';
+    // Check cache with priority: Local → Firebase → null
+    final cachedData = await _cache.getVocabularyFromCache(item.vocab);
 
-    // Check cache first
-    final cached = await _cache.getCached<EnhancedVocabulary>(
-      cacheKey,
-      (json) => EnhancedVocabulary.fromJson(json),
-    );
-
-    if (cached != null) {
+    if (cachedData != null) {
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
-      return cached;
+      // Convert cached data to EnhancedVocabulary
+      return EnhancedVocabulary.fromAIResponse(item, cachedData);
     }
 
     // Get provider with fallback
@@ -46,12 +42,8 @@ class AIVocabularyService {
       // Parse response
       final enhanced = EnhancedVocabulary.fromAIResponse(item, response);
 
-      // Cache enhanced vocabulary
-      await _cache.cacheData(
-        cacheKey,
-        enhanced,
-        (obj) => obj.toJson(),
-      );
+      // Save to both local and Firebase cache
+      await _cache.saveVocabularyToCache(item.vocab, response);
 
       return enhanced;
     } catch (e) {
