@@ -9,14 +9,14 @@ class AIConfig {
   // Official guide: https://ai.google.dev/gemini-api/docs/api-key
   // SECURITY: Never commit API keys to source control!
   // Use environment variable GEMINI_API_KEY or GOOGLE_API_KEY instead
-  static const String geminiApiKey = 'AIzaSyDoWuvVHpaHX96VddrLa2n_pWnVdslgcuo';
+  static const String geminiApiKey = 'GEMINI_API_KEY';
   static const int geminiRateLimit = 15; // requests per minute
   static const String geminiModel = 'gemini-2.5-flash'; // Official model name from https://ai.google.dev/gemini-api/docs/api-key
   
   // OpenAI (Backup)
   // TODO: Replace with your actual API key
   // Get API key from: https://platform.openai.com/api-keys
-  static const String openaiApiKey = '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';
+  static const String openaiApiKey = 'OPENAI_API_KEY';
   static const String openaiModel = 'gpt-3.5-turbo'; // Cheaper option
   
   // Feature flags
