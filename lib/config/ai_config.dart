@@ -28,9 +28,10 @@ class AIConfig {
   // Primary provider
   static const AIProviderType primaryProvider = AIProviderType.gemini;
   
-  // Get API key from environment or use default
+  // Get API key from environment variables only
   // According to official guide: https://ai.google.dev/gemini-api/docs/api-key
   // Supports both GEMINI_API_KEY and GOOGLE_API_KEY (GOOGLE_API_KEY takes precedence)
+  // SECURITY: Never hardcode API keys! Always use environment variables.
   static String getGeminiApiKey() {
     // Try GOOGLE_API_KEY first (takes precedence according to Google docs)
     const googleApiKey = String.fromEnvironment('GOOGLE_API_KEY');
@@ -44,17 +45,21 @@ class AIConfig {
       return geminiApiKeyEnv;
     }
     
-    // Fallback to hardcoded key (not recommended for production)
-    return geminiApiKey;
+    // No API key found - return empty string (will cause error in provider)
+    // This ensures developers must set environment variables
+    return '';
   }
   
   static String getOpenAIApiKey() {
-    // Try to get from environment variable first
+    // Try to get from environment variable only
     const envKey = String.fromEnvironment('OPENAI_API_KEY');
     if (envKey.isNotEmpty && envKey != 'YOUR_OPENAI_API_KEY') {
       return envKey;
     }
-    return openaiApiKey;
+    
+    // No API key found - return empty string (will cause error in provider)
+    // This ensures developers must set environment variables
+    return '';
   }
 }
 
