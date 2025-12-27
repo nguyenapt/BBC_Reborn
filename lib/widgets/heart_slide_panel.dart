@@ -43,50 +43,14 @@ class HeartSlidePanel extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
-              // Watch Ad Card (full width, larger size)
-              if (heartService.canEarnMoreHearts && !kIsWeb)
-                _buildActionCard(
-                      context,
-                      icon: Icons.play_circle_outline,
-                      iconColor: Colors.blue.shade400,
-                      backgroundColor: Colors.blue.shade50,
-                      title: 'Watch Ad',
-                      subtitle: 'Earn Heart',
-                      enabled: true,
-                      onTap: admobService.isRewardedAdReady()
-                          ? () {
-                              _close(context);
-                              admobService.showRewardedAd(
-                                onRewarded: () {
-                                  heartService.earnHeart();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('❤️ You earned 1 heart!'),
-                                      backgroundColor: Colors.green,
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                                onAdFailedToShow: (error) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to show ad: $error'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                },
-                              );
-                            }
-                          : () {
-                              admobService.createRewardedAd();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Ad is loading, please try again in a moment'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                    ),
+              // Watch Ad Button (chỉ hiển thị khi heart < 5)
+              if (heartService.hearts < 5 && !kIsWeb)
+                _buildWatchAdButton(
+                  context,
+                  admobService: admobService,
+                  heartService: heartService,
+                  onClose: () => _close(context),
+                ),
             ],
           ),
         );
@@ -94,77 +58,82 @@ class HeartSlidePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(
+  Widget _buildWatchAdButton(
     BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required Color backgroundColor,
-    required String title,
-    required String subtitle,
-    required bool enabled,
-    required VoidCallback? onTap,
+    required AdMobService admobService,
+    required HeartService heartService,
+    required VoidCallback onClose,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
+        onTap: admobService.isRewardedAdReady()
+            ? () {
+                onClose();
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              }
+            : () {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: enabled ? iconColor.withOpacity(0.3) : Colors.grey.shade300,
-              width: 1.5,
-            ),
+            color: Colors.red.shade600, // Bright red như trong hình
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Play icon trắng trong vòng tròn
               Container(
-                width: 56,
-                height: 56,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: enabled ? iconColor : Colors.grey.shade400,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: enabled ? Colors.grey.shade800 : Colors.grey.shade400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: enabled ? Colors.grey.shade600 : Colors.grey.shade400,
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.play_arrow,
+                  color: Colors.white,
+                  size: 16,
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: enabled ? iconColor : Colors.grey.shade400,
-                size: 18,
+              const SizedBox(width: 12),
+              // Text trắng
+              const Text(
+                'Watch ad to recover hearts',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ],
           ),

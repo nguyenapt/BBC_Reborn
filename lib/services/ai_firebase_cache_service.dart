@@ -44,7 +44,7 @@ class AIFirebaseCacheService {
           Map<String, String>? translations;
           
           if (translationsData is List) {
-            // New format: array of {original, translated}
+            // New format: array of {original, translated, lineNumber?}
             translations = CacheKeyHelper.translationsFromFirebaseFormat(translationsData);
           } else if (translationsData is Map) {
             // Old format: map (for backward compatibility)
@@ -68,12 +68,97 @@ class AIFirebaseCacheService {
     }
   }
 
+  /// Get translation for a specific line from Firebase cache
+  /// Checks if lineNumber and original text match
+  Future<String?> getLineTranslation(
+    String episodeId,
+    String languageCode,
+    String originalText,
+    int? lineNumber,
+  ) async {
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+        
+        // Check if cache is still valid
+        if (cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+          final translationsData = cacheEntry.data['translations'];
+          
+          if (translationsData is List) {
+            // Search for matching line
+            final translation = CacheKeyHelper.findLineTranslation(
+              translationsData,
+              originalText,
+              lineNumber,
+            );
+            if (translation != null) {
+              debugPrint('Firebase cache HIT for line translation: $episodeId/$languageCode (lineNumber: $lineNumber)');
+              return translation;
+            }
+          }
+        } else {
+          debugPrint('Firebase cache EXPIRED for line translation: $episodeId/$languageCode');
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error getting line translation from Firebase: $e');
+      return null; // Fail silently, fallback to API
+    }
+  }
+
+  /// Get translations data with lineNumber info from Firebase
+  /// Returns the raw translations array to preserve lineNumber
+  Future<List<Map<String, dynamic>>?> getTranslationsWithLineNumbers(
+    String episodeId,
+    String languageCode,
+  ) async {
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+        
+        if (cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+          final translationsData = cacheEntry.data['translations'];
+          
+          if (translationsData is List) {
+            return translationsData.cast<Map<String, dynamic>>();
+          }
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error getting translations with lineNumbers from Firebase: $e');
+      return null;
+    }
+  }
+
   /// Save translation to Firebase cache
   Future<void> saveTranslation(
     String episodeId,
     String languageCode,
-    Map<String, String> translations,
-  ) async {
+    Map<String, String> translations, {
+    List<String>? originalLines,
+  }) async {
     try {
       // Sanitize episodeId and languageCode for Firebase (remove invalid characters)
       final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
@@ -86,7 +171,11 @@ class AIFirebaseCacheService {
       
       // Convert translations to Firebase-safe format (array instead of map)
       // This avoids issues with special characters in keys
-      final translationsArray = CacheKeyHelper.translationsToFirebaseFormat(translations);
+      // Include originalLines to add lineNumber to each item
+      final translationsArray = CacheKeyHelper.translationsToFirebaseFormat(
+        translations,
+        originalLines: originalLines,
+      );
       
       final cacheEntry = AICacheEntry(
         data: {
@@ -121,11 +210,121 @@ class AIFirebaseCacheService {
     }
   }
 
+  /// Save a single line translation to Firebase cache
+  /// Merges with existing translations if available, preserving lineNumbers
+  Future<void> saveLineTranslation(
+    String episodeId,
+    String languageCode,
+    String originalText,
+    String translatedText,
+    int lineNumber,
+  ) async {
+    try {
+      // First, try to get existing translations with lineNumber info
+      final existingWithLineNumbers = await getTranslationsWithLineNumbers(episodeId, languageCode);
+      
+      if (existingWithLineNumbers != null && existingWithLineNumbers.isNotEmpty) {
+        // Merge with existing translations, preserving lineNumbers
+        bool found = false;
+        for (final item in existingWithLineNumbers) {
+          if (item['original']?.toString() == originalText) {
+            // Update existing translation
+            item['translated'] = translatedText;
+            item['lineNumber'] = lineNumber; // Update lineNumber if changed
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          // Add new translation with correct lineNumber
+          existingWithLineNumbers.add({
+            'original': originalText,
+            'translated': translatedText,
+            'lineNumber': lineNumber,
+          });
+        }
+        
+        // Save merged translations
+        final cacheEntry = AICacheEntry(
+          data: {
+            'translations': existingWithLineNumbers,
+            'originalEpisodeId': episodeId,
+            'originalLanguageCode': languageCode,
+          },
+          createdAt: DateTime.now(),
+          version: _cacheVersion,
+          ttlDays: _defaultTtlDays,
+        );
+        
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+        final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+        final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
+        
+        final response = await http.put(
+          Uri.parse(url),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(cacheEntry.toJson()),
+        ).timeout(const Duration(seconds: 10));
+        
+        if (response.statusCode == 200) {
+          debugPrint('✅ Successfully merged line translation to existing Firebase cache: $episodeId/$languageCode (lineNumber: $lineNumber)');
+        } else {
+          debugPrint('⚠️ Firebase merge returned status ${response.statusCode}');
+        }
+      } else {
+        // Create new translation entry with this single line and correct lineNumber
+        final translations = {originalText: translatedText};
+        // Create a list with proper lineNumber structure
+        final translationsArray = [
+          {
+            'original': originalText,
+            'translated': translatedText,
+            'lineNumber': lineNumber,
+          }
+        ];
+        
+        final cacheEntry = AICacheEntry(
+          data: {
+            'translations': translationsArray,
+            'originalEpisodeId': episodeId,
+            'originalLanguageCode': languageCode,
+          },
+          createdAt: DateTime.now(),
+          version: _cacheVersion,
+          ttlDays: _defaultTtlDays,
+        );
+        
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+        final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+        final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
+        
+        final response = await http.put(
+          Uri.parse(url),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(cacheEntry.toJson()),
+        ).timeout(const Duration(seconds: 10));
+        
+        if (response.statusCode == 200) {
+          debugPrint('✅ Successfully saved new line translation to Firebase: $episodeId/$languageCode (lineNumber: $lineNumber)');
+        } else {
+          debugPrint('⚠️ Firebase save returned status ${response.statusCode}');
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error saving line translation to Firebase: $e');
+      debugPrint('   EpisodeId: $episodeId, LanguageCode: $languageCode, LineNumber: $lineNumber');
+      debugPrint('   Stack trace: $stackTrace');
+      // Don't rethrow - line translation is not critical, but log the error
+    }
+  }
+
   /// Get grammar explanation from Firebase cache
-  Future<Map<String, dynamic>?> getGrammar(String sentence) async {
+  Future<Map<String, dynamic>?> getGrammar(String sentence, String languageCode) async {
     try {
       final sentenceHash = CacheKeyHelper.hashString(sentence);
-      final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash.json';
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
       
       final response = await http.get(
         Uri.parse(url),
@@ -153,11 +352,13 @@ class AIFirebaseCacheService {
   /// Save grammar explanation to Firebase cache
   Future<void> saveGrammar(
     String sentence,
+    String languageCode,
     Map<String, dynamic> grammarData,
   ) async {
     try {
       final sentenceHash = CacheKeyHelper.hashString(sentence);
-      final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash.json';
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
       
       final cacheEntry = AICacheEntry(
         data: grammarData,
@@ -244,10 +445,11 @@ class AIFirebaseCacheService {
   }
 
   /// Get vocabulary enhancement from Firebase cache
-  Future<Map<String, dynamic>?> getVocabulary(String word) async {
+  Future<Map<String, dynamic>?> getVocabulary(String word, String languageCode) async {
     try {
       final wordHash = CacheKeyHelper.hashString(word.toLowerCase().trim());
-      final url = '$_baseUrl/$_cachePath/vocabulary/$wordHash.json';
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/vocabulary/$wordHash/$safeLanguageCode.json';
       
       final response = await http.get(
         Uri.parse(url),
@@ -275,11 +477,13 @@ class AIFirebaseCacheService {
   /// Save vocabulary enhancement to Firebase cache
   Future<void> saveVocabulary(
     String word,
+    String languageCode,
     Map<String, dynamic> vocabularyData,
   ) async {
     try {
       final wordHash = CacheKeyHelper.hashString(word.toLowerCase().trim());
-      final url = '$_baseUrl/$_cachePath/vocabulary/$wordHash.json';
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url = '$_baseUrl/$_cachePath/vocabulary/$wordHash/$safeLanguageCode.json';
       
       final cacheEntry = AICacheEntry(
         data: vocabularyData,

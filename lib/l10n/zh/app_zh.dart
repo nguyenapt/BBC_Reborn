@@ -46,6 +46,7 @@ class AppZh {
     'episodeInfo': '课程信息',
     'transcript': '文本',
     'vocabulary': '词汇',
+    'practiceQuestions': '练习题',
     'topEpisodes': '同类别前10课程',
     'noSummary': '此课程暂无摘要。',
     'actor': '演员',

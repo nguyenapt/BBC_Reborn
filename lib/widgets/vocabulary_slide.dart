@@ -6,8 +6,11 @@ import '../services/vocabulary_service.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_vocabulary_service.dart';
 import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
 import '../models/enhanced_vocabulary.dart';
 import '../services/language_manager.dart';
+import '../services/admob_service.dart';
+import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
 import 'translation_language_picker.dart';
 
@@ -87,7 +90,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Vocabulary',
+                LanguageManager().getText('vocabulary'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -347,15 +350,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
           _isTranslating = false;
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AIErrorHandler.getErrorMessage(e)),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => _loadTranslations(),
-            ),
-          ),
-        );
+        _showErrorSnackBar(context, e, onRetry: () => _loadTranslations());
       }
     }
   }
@@ -408,14 +403,10 @@ class _VocabularySlideState extends State<VocabularySlide> {
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AIErrorHandler.getErrorMessage(e)),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => _showEnhancedInfo(context, item),
-            ),
-          ),
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _showEnhancedInfo(context, item),
         );
       }
     }
@@ -616,5 +607,74 @@ class _VocabularySlideState extends State<VocabularySlide> {
             )),
       ],
     );
+  }
+
+  /// Show error SnackBar with appropriate action button
+  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
+  void _showErrorSnackBar(
+    BuildContext context,
+    dynamic error, {
+    required VoidCallback onRetry,
+  }) {
+    final heartService = HeartService();
+    final admobService = AdMobService();
+    
+    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
+      // Show "Watch Ads" button for NoHeartsException
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Watch Ads',
+            textColor: Colors.white,
+            onPressed: () {
+              if (admobService.isRewardedAdReady()) {
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    // Retry the action after earning heart
+                    Future.delayed(const Duration(milliseconds: 500), onRetry);
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              } else {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show "Retry" button for other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: onRetry,
+          ),
+        ),
+      );
+    }
   }
 }

@@ -46,6 +46,7 @@ class AppAr {
     'episodeInfo': 'معلومات الحلقة',
     'transcript': 'النص',
     'vocabulary': 'المفردات',
+    'practiceQuestions': 'أسئلة التدريب',
     'topEpisodes': 'أفضل 10 حلقات في نفس الفئة',
     'noSummary': 'لا يوجد ملخص متاح لهذه الحلقة.',
     'actor': 'الممثل',

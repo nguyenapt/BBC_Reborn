@@ -53,6 +53,7 @@ class AppVi {
     'episodeInfo': 'Thông tin Episode',
     'transcript': 'Bản ghi',
     'vocabulary': 'Từ vựng',
+    'practiceQuestions': 'Câu hỏi luyện tập',
     'topEpisodes': 'Top 10 Episodes cùng Category',
     'noSummary': 'Không có tóm tắt cho episode này.',
     'actor': 'Diễn viên',

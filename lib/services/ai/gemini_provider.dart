@@ -141,13 +141,33 @@ class GeminiProvider implements AIProvider {
     } catch (e) {
       if (e is AIException) rethrow;
       
-      // Check for rate limit
-      if (e.toString().contains('429') || e.toString().contains('rate limit')) {
+      final errorString = e.toString();
+      
+      // Check for quota exceeded with retry time
+      if (errorString.contains('Quota exceeded') || errorString.contains('quota')) {
+        // Try to extract retry time from error message
+        // Format: "Please retry in 33.127665466s"
+        Duration? retryAfter;
+        final retryMatch = RegExp(r'retry in ([\d.]+)s', caseSensitive: false).firstMatch(errorString);
+        if (retryMatch != null) {
+          try {
+            final seconds = double.parse(retryMatch.group(1)!);
+            retryAfter = Duration(milliseconds: (seconds * 1000).round());
+            debugPrint('⚠️ Gemini quota exceeded. Retry after: ${retryAfter.inSeconds}s');
+          } catch (parseError) {
+            debugPrint('Could not parse retry time: $parseError');
+          }
+        }
+        throw RateLimitException('Gemini quota exceeded. Please wait a moment.', e, retryAfter);
+      }
+      
+      // Check for rate limit (429)
+      if (errorString.contains('429') || errorString.contains('rate limit')) {
         throw RateLimitException('Gemini rate limit exceeded', e);
       }
       
       // Check for network errors
-      if (e.toString().contains('network') || e.toString().contains('connection')) {
+      if (errorString.contains('network') || errorString.contains('connection')) {
         throw NetworkException('Network error connecting to Gemini', e);
       }
       
@@ -164,14 +184,29 @@ class GeminiProvider implements AIProvider {
     final contextPart = context != null ? '\n\nContext: $context' : '';
     final prompt = '''
 Translate the following English text to $targetLanguage. 
-Provide only the translation, no explanations.
+Provide only the translation, no explanations, no original text.
 
 Text: $text$contextPart
 
 Translation:''';
     
+    debugPrint('🔤 Gemini translate prompt:');
+    debugPrint('   Source: English');
+    debugPrint('   Target: $targetLanguage');
+    debugPrint('   Text: "$text"');
+    
     final response = await _callGemini(prompt);
-    return response.trim();
+    final trimmed = response.trim();
+    
+    debugPrint('📥 Gemini translation response: "$trimmed"');
+    
+    // Check if response is same as original (AI might have returned original text)
+    if (trimmed.toLowerCase() == text.toLowerCase()) {
+      debugPrint('⚠️ WARNING: AI returned original text instead of translation!');
+      debugPrint('   This might indicate the AI did not translate properly.');
+    }
+    
+    return trimmed;
   }
   
   @override

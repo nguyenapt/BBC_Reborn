@@ -109,14 +109,29 @@ class OpenAIProvider implements AIProvider {
     final contextPart = context != null ? '\n\nContext: $context' : '';
     final prompt = '''
 Translate the following English text to $targetLanguage. 
-Provide only the translation, no explanations.
+Provide only the translation, no explanations, no original text.
 
 Text: $text$contextPart
 
 Translation:''';
     
+    debugPrint('🔤 OpenAI translate prompt:');
+    debugPrint('   Source: English');
+    debugPrint('   Target: $targetLanguage');
+    debugPrint('   Text: "$text"');
+    
     final response = await _callOpenAI(prompt);
-    return response.trim();
+    final trimmed = response.trim();
+    
+    debugPrint('📥 OpenAI translation response: "$trimmed"');
+    
+    // Check if response is same as original (AI might have returned original text)
+    if (trimmed.toLowerCase() == text.toLowerCase()) {
+      debugPrint('⚠️ WARNING: AI returned original text instead of translation!');
+      debugPrint('   This might indicate the AI did not translate properly.');
+    }
+    
+    return trimmed;
   }
   
   @override

@@ -52,13 +52,58 @@ class AIQuestionService {
       throw NoHeartsException();
     }
 
-    // Get provider with fallback
-    final provider = await AIProviderFactory.createProviderWithFallback();
+    // Get providers (primary and backup)
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
 
     try {
-      final response = await AIErrorHandler.withRetry(
-        () => provider.generateQuestions(transcript, count: count),
-      );
+      // Try primary provider first with retry
+      List<Map<String, dynamic>>? response;
+      try {
+        response = await AIErrorHandler.withRetry(
+          () => primaryProvider.generateQuestions(transcript, count: count),
+          maxRetries: 1, // Only 1 retry, then fallback
+        );
+        debugPrint('✅ Primary provider (Gemini) question generation successful');
+      } catch (e) {
+        debugPrint('⚠️ Primary provider failed: $e');
+        
+        // If rate limit with long retry time (>30s), try backup provider immediately
+        if (e is RateLimitException && e.retryAfter != null && e.retryAfter!.inSeconds > 30) {
+          debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
+          try {
+            if (await backupProvider.isAvailable()) {
+              response = await backupProvider.generateQuestions(transcript, count: count);
+              debugPrint('✅ Backup provider (OpenAI) question generation successful');
+            } else {
+              rethrow;
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow;
+          }
+        } else if (e is APIException || e is RateLimitException) {
+          // For other API errors or short retry times, try backup
+          debugPrint('⚠️ Trying backup provider due to API error...');
+          try {
+            if (await backupProvider.isAvailable()) {
+              response = await backupProvider.generateQuestions(transcript, count: count);
+              debugPrint('✅ Backup provider (OpenAI) question generation successful');
+            } else {
+              rethrow;
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
+      }
+
+      if (response == null) {
+        throw Exception('Question generation failed: no result');
+      }
 
       // Parse questions from response
       final questions = <Question>[];

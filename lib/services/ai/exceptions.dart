@@ -11,7 +11,9 @@ class AIException implements Exception {
 
 /// Rate limit exception
 class RateLimitException extends AIException {
-  RateLimitException([String? message, dynamic originalError])
+  final Duration? retryAfter;
+  
+  RateLimitException([String? message, dynamic originalError, this.retryAfter])
       : super(message ?? 'Rate limit exceeded. Please wait a moment.', originalError);
 }
 

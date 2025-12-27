@@ -3,6 +3,10 @@ import '../models/episode.dart';
 import '../models/question.dart';
 import '../services/ai_question_service.dart';
 import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
+import '../services/admob_service.dart';
+import '../services/heart_service.dart';
+import '../services/language_manager.dart';
 import '../utils/category_colors.dart';
 
 class QuestionSlide extends StatefulWidget {
@@ -23,6 +27,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
   bool _isLoading = false;
   bool _hasError = false;
   String? _errorMessage;
+  dynamic _lastError; // Store error object to check if it's NoHeartsException
   final Map<int, String?> _selectedAnswers = {}; // question index -> selected answer
   bool _showResults = false;
 
@@ -72,6 +77,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
           _isLoading = false;
           _hasError = true;
           _errorMessage = AIErrorHandler.getErrorMessage(e);
+          _lastError = e; // Store error to check if it's NoHeartsException
         });
       }
     }
@@ -126,7 +132,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Practice Questions',
+                LanguageManager().getText('practiceQuestions'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -190,15 +196,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadQuestions,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: categoryColor,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
+                            _buildErrorActionButton(context, categoryColor),
                           ],
                         ),
                       )
@@ -435,6 +433,84 @@ class _QuestionSlideState extends State<QuestionSlide> {
         ],
       ),
     );
+  }
+
+  /// Build error action button - "Watch Ads Now" and "Retry" for NoHeartsException, "Retry" only for others
+  Widget _buildErrorActionButton(BuildContext context, Color categoryColor) {
+    final heartService = HeartService();
+    final admobService = AdMobService();
+    
+    if (_lastError is NoHeartsException && heartService.canEarnMoreHearts) {
+      // Show both "Watch Ads Now" and "Retry" buttons for NoHeartsException
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton.icon(
+            onPressed: () {
+              if (admobService.isRewardedAdReady()) {
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    // Retry after earning heart
+                    Future.delayed(const Duration(milliseconds: 500), _loadQuestions);
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              } else {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.play_circle_outline),
+            label: const Text('Watch Ads Now'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: _loadQuestions,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: categoryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Show "Retry" button only for other errors
+      return ElevatedButton.icon(
+        onPressed: _loadQuestions,
+        icon: const Icon(Icons.refresh),
+        label: const Text('Retry'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: categoryColor,
+          foregroundColor: Colors.white,
+        ),
+      );
+    }
   }
 }
 

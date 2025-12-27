@@ -46,6 +46,7 @@ class AppRu {
     'episodeInfo': 'Информация об эпизоде',
     'transcript': 'Транскрипт',
     'vocabulary': 'Словарь',
+    'practiceQuestions': 'Практические вопросы',
     'topEpisodes': 'Топ 10 эпизодов в той же категории',
     'noSummary': 'Для этого эпизода нет резюме.',
     'actor': 'Актер',

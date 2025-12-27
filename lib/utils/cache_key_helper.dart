@@ -8,10 +8,10 @@ class CacheKeyHelper {
     return 'translation_${episodeId}_$languageCode';
   }
 
-  /// Generate grammar cache key from sentence hash
-  static String grammarKey(String sentence) {
+  /// Generate grammar cache key from sentence hash and language code
+  static String grammarKey(String sentence, String languageCode) {
     final hash = hashString(sentence);
-    return 'grammar_$hash';
+    return 'grammar_${hash}_$languageCode';
   }
 
   /// Generate questions cache key
@@ -19,10 +19,10 @@ class CacheKeyHelper {
     return 'questions_${episodeId}_$count';
   }
 
-  /// Generate vocabulary cache key from word hash
-  static String vocabularyKey(String word) {
+  /// Generate vocabulary cache key from word hash and language code
+  static String vocabularyKey(String word, String languageCode) {
     final hash = hashString(word.toLowerCase().trim());
-    return 'vocab_$hash';
+    return 'vocab_${hash}_$languageCode';
   }
 
   /// Hash a string to create unique identifier
@@ -49,13 +49,29 @@ class CacheKeyHelper {
   }
 
   /// Convert translations map to Firebase-safe format
-  /// Store as array of {original, translated} objects instead of map
-  static List<Map<String, String>> translationsToFirebaseFormat(Map<String, String> translations) {
-    return translations.entries.map((entry) {
-      return {
-        'original': entry.key,
-        'translated': entry.value,
+  /// Store as array of {original, translated, lineNumber} objects instead of map
+  static List<Map<String, dynamic>> translationsToFirebaseFormat(
+    Map<String, String> translations, {
+    List<String>? originalLines,
+  }) {
+    return translations.entries.toList().asMap().entries.map((entry) {
+      final index = entry.key;
+      final mapEntry = entry.value;
+      final result = <String, dynamic>{
+        'original': mapEntry.key,
+        'translated': mapEntry.value,
       };
+      // Add lineNumber if originalLines is provided
+      if (originalLines != null && index < originalLines.length) {
+        // Find the index of this line in originalLines
+        final lineIndex = originalLines.indexOf(mapEntry.key);
+        if (lineIndex >= 0) {
+          result['lineNumber'] = lineIndex;
+        } else {
+          result['lineNumber'] = index; // Fallback to map index
+        }
+      }
+      return result;
     }).toList();
   }
 
@@ -72,6 +88,31 @@ class CacheKeyHelper {
       }
     }
     return translations;
+  }
+
+  /// Find translation for a specific line from Firebase format
+  /// Returns translation if lineNumber and original text match
+  static String? findLineTranslation(
+    List<dynamic> firebaseData,
+    String originalText,
+    int? lineNumber,
+  ) {
+    for (final item in firebaseData) {
+      if (item is Map<String, dynamic>) {
+        final original = item['original']?.toString() ?? '';
+        final translated = item['translated']?.toString() ?? '';
+        final itemLineNumber = item['lineNumber'] as int?;
+        
+        // Match by original text first (most reliable)
+        if (original == originalText && translated.isNotEmpty) {
+          // If lineNumber is provided, also check it matches
+          if (lineNumber == null || itemLineNumber == null || itemLineNumber == lineNumber) {
+            return translated;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   /// Generate episode-specific cache key

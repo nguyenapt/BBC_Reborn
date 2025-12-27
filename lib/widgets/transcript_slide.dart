@@ -7,8 +7,11 @@ import '../utils/category_colors.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
 import '../models/grammar_explanation.dart';
 import '../services/language_manager.dart';
+import '../services/admob_service.dart';
+import '../services/heart_service.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 import 'translation_language_picker.dart';
@@ -45,6 +48,10 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
   final Map<String, GrammarExplanation> _grammarCache = {};
+  
+  // Line translation state (cache translations for each line)
+  final Map<String, String> _lineTranslations = {};
+  final Map<String, bool> _lineTranslating = {};
 
   @override
   void initState() {
@@ -187,7 +194,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Transcript',
+                LanguageManager().getText('transcript'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -391,6 +398,37 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     ),
                                   ),
                                   const SizedBox(width: 4),
+                                  // Translate line button
+                                  IconButton(
+                                    onPressed: () => _translateLine(context, line.text, transcriptIndex),
+                                    icon: _lineTranslating[line.text] == true
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                CategoryColors.getCategoryColor(widget.episode.category),
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            _lineTranslations.containsKey(line.text)
+                                                ? Icons.translate
+                                                : Icons.translate_outlined,
+                                            color: CategoryColors.getCategoryColor(widget.episode.category),
+                                            size: 18,
+                                          ),
+                                    tooltip: _lineTranslations.containsKey(line.text)
+                                        ? 'Show translation'
+                                        : 'Translate line',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
                                   // Grammar explanation button
                                   IconButton(
                                     onPressed: () => _showGrammarExplanation(context, line.text),
@@ -457,8 +495,22 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                 );
                               },
                             ),
-                                // Translation (if enabled)
-                                if (_showTranslation && _translations != null)
+                                // Line translation (if translated)
+                                if (_lineTranslations.containsKey(line.text))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: SelectableText(
+                                      _lineTranslations[line.text]!,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.italic,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ),
+                                // Full transcript translation (if enabled)
+                                if (_showTranslation && _translations != null && !_lineTranslations.containsKey(line.text))
                                   Padding(
                                     padding: const EdgeInsets.only(top: 6),
                                     child: SelectableText(
@@ -512,15 +564,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
           _isTranslating = false;
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AIErrorHandler.getErrorMessage(e)),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => _loadTranslations(),
-            ),
-          ),
-        );
+        _showErrorSnackBar(context, e, onRetry: () => _loadTranslations());
       }
     }
   }
@@ -595,14 +639,10 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AIErrorHandler.getErrorMessage(e)),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => _showGrammarExplanation(context, sentence),
-            ),
-          ),
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _showGrammarExplanation(context, sentence),
         );
       }
     }
@@ -616,6 +656,122 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
         category: widget.episode.category,
       ),
     );
+  }
+
+  Future<void> _translateLine(BuildContext context, String lineText, int lineIndex) async {
+    // If already translated, toggle visibility (for now just show it)
+    if (_lineTranslations.containsKey(lineText)) {
+      // Already translated, do nothing (translation is always shown)
+      return;
+    }
+
+    // If currently translating, ignore
+    if (_lineTranslating[lineText] == true) {
+      return;
+    }
+
+    setState(() {
+      _lineTranslating[lineText] = true;
+    });
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      // Pass lineIndex as lineNumber for Firebase cache matching
+      final translated = await _translationService.translateTranscriptLine(
+        lineText,
+        episodeId,
+        lineIndex, // lineNumber for Firebase cache
+      );
+
+      if (mounted) {
+        setState(() {
+          _lineTranslations[lineText] = translated;
+          _lineTranslating[lineText] = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error translating line: $e');
+      if (mounted) {
+        setState(() {
+          _lineTranslating[lineText] = false;
+        });
+        
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _translateLine(context, lineText, lineIndex),
+        );
+      }
+    }
+  }
+
+  /// Show error SnackBar with appropriate action button
+  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
+  void _showErrorSnackBar(
+    BuildContext context,
+    dynamic error, {
+    required VoidCallback onRetry,
+  }) {
+    final heartService = HeartService();
+    final admobService = AdMobService();
+    
+    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
+      // Show "Watch Ads" button for NoHeartsException
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Watch Ads',
+            textColor: Colors.white,
+            onPressed: () {
+              if (admobService.isRewardedAdReady()) {
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    // Retry the action after earning heart
+                    Future.delayed(const Duration(milliseconds: 500), onRetry);
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              } else {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show "Retry" button for other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: onRetry,
+          ),
+        ),
+      );
+    }
   }
 
   @override

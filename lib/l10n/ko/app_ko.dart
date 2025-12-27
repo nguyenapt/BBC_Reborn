@@ -46,6 +46,7 @@ class AppKo {
     'episodeInfo': '에피소드 정보',
     'transcript': '대본',
     'vocabulary': '어휘',
+    'practiceQuestions': '연습 문제',
     'topEpisodes': '같은 카테고리 상위 10개 에피소드',
     'noSummary': '이 에피소드에 대한 요약이 없습니다.',
     'actor': '배우',

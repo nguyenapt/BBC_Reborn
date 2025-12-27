@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'exceptions.dart';
 import 'ai_provider.dart';
 
@@ -40,8 +41,21 @@ class AIErrorHandler {
           rethrow;
         }
         
+        // If it's a RateLimitException with retryAfter, use that duration
+        Duration retryDelay = delay;
+        if (e is RateLimitException && e.retryAfter != null) {
+          retryDelay = e.retryAfter!;
+          // Add a small buffer (1 second) to the retry time
+          retryDelay = Duration(seconds: retryDelay.inSeconds + 1);
+          debugPrint('⏳ Waiting ${retryDelay.inSeconds}s before retry due to quota limit...');
+        } else if (e is RateLimitException) {
+          // Exponential backoff for rate limits without specific retry time
+          retryDelay = Duration(seconds: delay.inSeconds * attempts);
+          debugPrint('⏳ Waiting ${retryDelay.inSeconds}s before retry (attempt $attempts)...');
+        }
+        
         // Wait before retry
-        await Future.delayed(delay);
+        await Future.delayed(retryDelay);
       }
     }
     
@@ -58,8 +72,24 @@ class AIErrorHandler {
     try {
       return await action(primaryProvider);
     } catch (e) {
-      // If rate limit or API error, try backup
-      if (e is RateLimitException || e is APIException) {
+      // If rate limit with long retry time (>30s) or quota exceeded, try backup immediately
+      if (e is RateLimitException) {
+        final shouldFallback = e.retryAfter != null && e.retryAfter!.inSeconds > 30;
+        if (shouldFallback) {
+          debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to backup provider');
+          try {
+            return await action(backupProvider);
+          } catch (backupError) {
+            // If backup also fails, throw original error
+            throw e;
+          }
+        }
+        // For shorter retry times, rethrow to let retry logic handle it
+        rethrow;
+      }
+      
+      // If API error, try backup
+      if (e is APIException) {
         try {
           return await action(backupProvider);
         } catch (backupError) {
@@ -67,6 +97,7 @@ class AIErrorHandler {
           throw e;
         }
       }
+      
       // For other errors, rethrow
       rethrow;
     }

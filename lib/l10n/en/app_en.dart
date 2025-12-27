@@ -53,6 +53,7 @@ class AppEn {
     'episodeInfo': 'Episode Info',
     'transcript': 'Transcript',
     'vocabulary': 'Vocabulary',
+    'practiceQuestions': 'Practice Questions',
     'topEpisodes': 'Top 10 Episodes in Same Category',
     'noSummary': 'No summary available for this episode.',
     'actor': 'Actor',

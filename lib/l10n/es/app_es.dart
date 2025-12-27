@@ -46,6 +46,7 @@ class AppEs {
     'episodeInfo': 'Información del Episodio',
     'transcript': 'Transcripción',
     'vocabulary': 'Vocabulario',
+    'practiceQuestions': 'Preguntas de Práctica',
     'topEpisodes': 'Top 10 Episodios en la Misma Categoría',
     'noSummary': 'No hay resumen disponible para este episodio.',
     'actor': 'Actor',

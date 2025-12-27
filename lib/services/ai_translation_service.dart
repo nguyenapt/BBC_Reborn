@@ -6,6 +6,7 @@ import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
 import 'heart_service.dart';
+import '../utils/cache_key_helper.dart';
 
 /// Service for AI-powered translation
 class AITranslationService {
@@ -125,8 +126,10 @@ class AITranslationService {
       }
 
       // Save to both local and Firebase cache
+      // Include original lines to add lineNumber to each translation item
       if (translations.isNotEmpty) {
-        await _cache.saveTranslationToCache(episodeId, languageCode, translations);
+        final originalLines = lines.map((line) => line.text).toList();
+        await _cache.saveTranslationToCache(episodeId, languageCode, translations, originalLines: originalLines);
       }
       
       return translations;
@@ -254,6 +257,156 @@ class AITranslationService {
     } catch (e) {
       debugPrint('Error translating text: $e');
       return text; // Fallback to original
+    }
+  }
+
+  /// Translate a single transcript line with caching
+  /// Checks Firebase cache first (with lineNumber matching), then local cache, then AI API
+  Future<String> translateTranscriptLine(
+    String lineText,
+    String episodeId,
+    int? lineNumber,
+  ) async {
+    final targetLanguage = _getTargetLanguage();
+    final languageCode = _getTargetLanguageCode();
+    
+    debugPrint('🔄 translateTranscriptLine called:');
+    debugPrint('   Line text: $lineText');
+    debugPrint('   EpisodeId: $episodeId');
+    debugPrint('   LineNumber: $lineNumber');
+    debugPrint('   Target language: $targetLanguage');
+    debugPrint('   Language code: $languageCode');
+    debugPrint('   Current locale: ${_languageManager.currentLocale.languageCode}');
+    
+    // Skip translation if target language is English (source is already English)
+    if (languageCode == 'en') {
+      debugPrint('⚠️ Target language is English, skipping translation');
+      return lineText;
+    }
+    
+    // 1. Check cache first (Firebase with lineNumber, then local)
+    final cached = await _cache.getLineTranslationFromCache(
+      episodeId,
+      languageCode,
+      lineText,
+      lineNumber,
+    );
+    if (cached != null) {
+      debugPrint('✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)');
+      return cached;
+    }
+
+    // 2. Check hearts before calling AI (only if not cached)
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+
+    // 3. Use a heart
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
+    }
+
+    // 4. Get providers (primary and backup)
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
+
+    try {
+      debugPrint('🌐 Calling AI to translate: "$lineText" -> $targetLanguage');
+      
+      // Try primary provider first with retry
+      String? translated;
+      try {
+        translated = await AIErrorHandler.withRetry(
+          () => primaryProvider.translate(
+            lineText,
+            targetLanguage,
+          ),
+          maxRetries: 1, // Only 1 retry, then fallback
+        );
+        debugPrint('✅ Primary provider (Gemini) translation successful');
+      } catch (e) {
+        debugPrint('⚠️ Primary provider failed: $e');
+        
+        // If rate limit with long retry time (>30s), try backup provider immediately
+        if (e is RateLimitException && e.retryAfter != null && e.retryAfter!.inSeconds > 30) {
+          debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
+          try {
+            // Check if backup provider is available
+            if (await backupProvider.isAvailable()) {
+              translated = await backupProvider.translate(
+                lineText,
+                targetLanguage,
+              );
+              debugPrint('✅ Backup provider (OpenAI) translation successful');
+            } else {
+              debugPrint('❌ Backup provider not available');
+              rethrow; // Rethrow original error
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow; // Rethrow original error
+          }
+        } else if (e is APIException || e is RateLimitException) {
+          // For other API errors or short retry times, try backup
+          debugPrint('⚠️ Trying backup provider due to API error...');
+          try {
+            if (await backupProvider.isAvailable()) {
+              translated = await backupProvider.translate(
+                lineText,
+                targetLanguage,
+              );
+              debugPrint('✅ Backup provider (OpenAI) translation successful');
+            } else {
+              rethrow;
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow; // Rethrow original error
+          }
+        } else {
+          rethrow; // Rethrow other errors
+        }
+      }
+      
+      if (translated == null) {
+        throw Exception('Translation failed: no result');
+      }
+      
+      // Check if translation is same as original (AI might have failed to translate)
+      if (translated.trim().toLowerCase() == lineText.trim().toLowerCase()) {
+        debugPrint('⚠️ WARNING: Translation result is same as original text!');
+        debugPrint('   Original: "$lineText"');
+        debugPrint('   Translated: "$translated"');
+        debugPrint('   This might indicate the AI did not translate properly.');
+        
+        // If target language is not English, this is an error
+        if (targetLanguage.toLowerCase() != 'english') {
+          throw InvalidResponseException('AI returned original text instead of translation to $targetLanguage');
+        }
+      }
+      
+      debugPrint('✅ AI translation result: "$translated"');
+
+      // 5. Save to cache (with lineNumber for Firebase)
+      // Always save to Firebase, even if lineNumber is null (will use -1 as fallback)
+      final effectiveLineNumber = lineNumber ?? -1;
+      debugPrint('💾 Saving translation to cache: episodeId=$episodeId, languageCode=$languageCode, lineNumber=$effectiveLineNumber');
+      await _cache.saveLineTranslationToCache(
+        episodeId,
+        languageCode,
+        lineText,
+        translated,
+        effectiveLineNumber,
+      );
+      debugPrint('✅ Translation saved to cache successfully');
+
+      return translated;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error translating transcript line: $e');
+      debugPrint('   Stack trace: $stackTrace');
+      return lineText; // Fallback to original
     }
   }
 }

@@ -46,6 +46,7 @@ class AppJa {
     'episodeInfo': 'エピソード情報',
     'transcript': '台本',
     'vocabulary': '語彙',
+    'practiceQuestions': '練習問題',
     'topEpisodes': '同じカテゴリのトップ10エピソード',
     'noSummary': 'このエピソードの要約はありません。',
     'actor': '俳優',

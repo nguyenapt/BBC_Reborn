@@ -48,9 +48,10 @@ class AIGrammarService {
     String episodeId,
   ) async {
     final targetLanguage = _getTargetLanguage();
+    final languageCode = _languageManager.currentLocale.languageCode;
 
     // Check cache with priority: Local → Firebase → null
-    final cachedData = await _cache.getGrammarFromCache(sentence);
+    final cachedData = await _cache.getGrammarFromCache(sentence, languageCode);
     
     if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
@@ -81,13 +82,58 @@ class AIGrammarService {
       throw NoHeartsException();
     }
 
-    // Get provider with fallback
-    final provider = await AIProviderFactory.createProviderWithFallback();
+    // Get providers (primary and backup)
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
 
     try {
-      final response = await AIErrorHandler.withRetry(
-        () => provider.explainGrammar(sentence, targetLanguage),
-      );
+      // Try primary provider first with retry
+      Map<String, dynamic>? response;
+      try {
+        response = await AIErrorHandler.withRetry(
+          () => primaryProvider.explainGrammar(sentence, targetLanguage),
+          maxRetries: 1, // Only 1 retry, then fallback
+        );
+        debugPrint('✅ Primary provider (Gemini) grammar explanation successful');
+      } catch (e) {
+        debugPrint('⚠️ Primary provider failed: $e');
+        
+        // If rate limit with long retry time (>30s), try backup provider immediately
+        if (e is RateLimitException && e.retryAfter != null && e.retryAfter!.inSeconds > 30) {
+          debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
+          try {
+            if (await backupProvider.isAvailable()) {
+              response = await backupProvider.explainGrammar(sentence, targetLanguage);
+              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+            } else {
+              rethrow;
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow;
+          }
+        } else if (e is APIException || e is RateLimitException) {
+          // For other API errors or short retry times, try backup
+          debugPrint('⚠️ Trying backup provider due to API error...');
+          try {
+            if (await backupProvider.isAvailable()) {
+              response = await backupProvider.explainGrammar(sentence, targetLanguage);
+              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+            } else {
+              rethrow;
+            }
+          } catch (backupError) {
+            debugPrint('❌ Backup provider also failed: $backupError');
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
+      }
+
+      if (response == null) {
+        throw Exception('Grammar explanation failed: no result');
+      }
 
       // Parse response
       final grammarPoint = response['grammarPoint']?.toString() ?? 'Unknown';
@@ -109,7 +155,7 @@ class AIGrammarService {
         'explanation': explanation,
         'highlightedWords': highlightedWords,
       };
-      await _cache.saveGrammarToCache(sentence, grammarData);
+      await _cache.saveGrammarToCache(sentence, languageCode, grammarData);
 
       return explanationObj;
     } catch (e) {
