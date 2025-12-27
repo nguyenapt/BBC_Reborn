@@ -54,6 +54,11 @@ class AppEn {
     'transcript': 'Transcript',
     'vocabulary': 'Vocabulary',
     'practiceQuestions': 'Practice Questions',
+    'checkAnswers': 'Check Answers',
+    'reset': 'Reset',
+    'generatingQuestions': 'Generating questions...',
+    'noQuestionsAvailable': 'No questions available',
+    'score': 'Score',
     'topEpisodes': 'Top 10 Episodes in Same Category',
     'noSummary': 'No summary available for this episode.',
     'actor': 'Actor',
@@ -71,6 +76,7 @@ class AppEn {
     'saveToVocabulary': 'Save to Personal Vocabulary',
     'noVocabulary': 'No vocabulary available for this episode.',
     'vocabularyList': 'Vocabulary List',
+    'words': 'words',
     
     // Settings
     'language': 'Language',

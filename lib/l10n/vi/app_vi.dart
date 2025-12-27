@@ -54,6 +54,11 @@ class AppVi {
     'transcript': 'Bản ghi',
     'vocabulary': 'Từ vựng',
     'practiceQuestions': 'Câu hỏi luyện tập',
+    'checkAnswers': 'Kiểm tra đáp án',
+    'reset': 'Làm lại',
+    'generatingQuestions': 'Đang tạo câu hỏi...',
+    'noQuestionsAvailable': 'Không có câu hỏi',
+    'score': 'Điểm',
     'topEpisodes': 'Top 10 Episodes cùng Category',
     'noSummary': 'Không có tóm tắt cho episode này.',
     'actor': 'Diễn viên',
@@ -71,6 +76,7 @@ class AppVi {
     'saveToVocabulary': 'Lưu vào từ vựng cá nhân',
     'noVocabulary': 'Không có từ vựng cho episode này.',
     'vocabularyList': 'Danh sách từ vựng',
+    'words': 'từ',
     
     // Settings
     'language': 'Ngôn ngữ',

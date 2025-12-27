@@ -47,6 +47,11 @@ class AppAr {
     'transcript': 'النص',
     'vocabulary': 'المفردات',
     'practiceQuestions': 'أسئلة التدريب',
+    'checkAnswers': 'التحقق من الإجابات',
+    'reset': 'إعادة تعيين',
+    'generatingQuestions': 'جارٍ إنشاء الأسئلة...',
+    'noQuestionsAvailable': 'لا توجد أسئلة متاحة',
+    'score': 'النتيجة',
     'topEpisodes': 'أفضل 10 حلقات في نفس الفئة',
     'noSummary': 'لا يوجد ملخص متاح لهذه الحلقة.',
     'actor': 'الممثل',
@@ -64,6 +69,7 @@ class AppAr {
     'saveToVocabulary': 'حفظ في المفردات الشخصية',
     'noVocabulary': 'لا توجد مفردات متاحة لهذه الحلقة.',
     'vocabularyList': 'قائمة المفردات',
+    'words': 'كلمات',
     
     // Settings
     'language': 'اللغة',

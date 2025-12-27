@@ -203,6 +203,9 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
               ),
               const Spacer(),
               // Translation toggle button
+              // TODO: Temporarily commented out - affects performance when translating long transcripts
+              // Will be re-enabled after VIP feature implementation
+              /*
               if (transcriptLines.isNotEmpty)
                 IconButton(
                   icon: _isTranslating
@@ -257,6 +260,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                         },
                   tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
                 ),
+              */
             ],
           ),
           const SizedBox(height: 16),
@@ -378,7 +382,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   // Play button
                                   IconButton(
                                     onPressed: () {
@@ -393,11 +397,10 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
+                                      minWidth: 24,
+                                      minHeight: 24,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
                                   // Translate line button
                                   IconButton(
                                     onPressed: () => _translateLine(context, line.text, transcriptIndex),
@@ -408,7 +411,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
                                               valueColor: AlwaysStoppedAnimation<Color>(
-                                                CategoryColors.getCategoryColor(widget.episode.category),
+                                                Colors.blue.shade600,
                                               ),
                                             ),
                                           )
@@ -416,7 +419,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                             _lineTranslations.containsKey(line.text)
                                                 ? Icons.translate
                                                 : Icons.translate_outlined,
-                                            color: CategoryColors.getCategoryColor(widget.episode.category),
+                                            color: Colors.blue.shade600,
                                             size: 18,
                                           ),
                                     tooltip: _lineTranslations.containsKey(line.text)
@@ -424,24 +427,23 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                         : 'Translate line',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
+                                      minWidth: 24,
+                                      minHeight: 24,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
                                   // Grammar explanation button
                                   IconButton(
                                     onPressed: () => _showGrammarExplanation(context, line.text),
                                     icon: Icon(
                                       Icons.lightbulb_outline,
-                                      color: CategoryColors.getCategoryColor(widget.episode.category),
+                                      color: Colors.green.shade600,
                                       size: 18,
                                     ),
                                     tooltip: 'Explain grammar',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
+                                      minWidth: 24,
+                                      minHeight: 24,
                                     ),
                                   ),
                                 ],

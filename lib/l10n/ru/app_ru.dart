@@ -47,6 +47,11 @@ class AppRu {
     'transcript': 'Транскрипт',
     'vocabulary': 'Словарь',
     'practiceQuestions': 'Практические вопросы',
+    'checkAnswers': 'Проверить ответы',
+    'reset': 'Сбросить',
+    'generatingQuestions': 'Генерация вопросов...',
+    'noQuestionsAvailable': 'Нет доступных вопросов',
+    'score': 'Оценка',
     'topEpisodes': 'Топ 10 эпизодов в той же категории',
     'noSummary': 'Для этого эпизода нет резюме.',
     'actor': 'Актер',
@@ -64,6 +69,7 @@ class AppRu {
     'saveToVocabulary': 'Сохранить в личный словарь',
     'noVocabulary': 'Для этого эпизода нет словаря.',
     'vocabularyList': 'Список словаря',
+    'words': 'слов',
     
     // Settings
     'language': 'Язык',

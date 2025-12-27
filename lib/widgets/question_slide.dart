@@ -144,7 +144,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                 TextButton.icon(
                   onPressed: _checkAnswers,
                   icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Check Answers'),
+                  label: Text(LanguageManager().getText('checkAnswers')),
                   style: TextButton.styleFrom(
                     foregroundColor: categoryColor,
                   ),
@@ -153,7 +153,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                 TextButton.icon(
                   onPressed: _resetQuiz,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Reset'),
+                  label: Text(LanguageManager().getText('reset')),
                   style: TextButton.styleFrom(
                     foregroundColor: categoryColor,
                   ),
@@ -173,7 +173,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                           valueColor: AlwaysStoppedAnimation<Color>(categoryColor),
                         ),
                         const SizedBox(height: 16),
-                        const Text('Generating questions...'),
+                        Text(LanguageManager().getText('generatingQuestions')),
                       ],
                     ),
                   )
@@ -212,7 +212,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No questions available',
+                                  LanguageManager().getText('noQuestionsAvailable'),
                                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
@@ -250,7 +250,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Score: ${_getScore()} / ${_questions.length}',
+                    '${LanguageManager().getText('score')}: ${_getScore()} / ${_questions.length}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

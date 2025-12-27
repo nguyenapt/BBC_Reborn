@@ -99,7 +99,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
               const Spacer(),
               Text(
-                '${vocabularyItems.length} words',
+                '${vocabularyItems.length} ${LanguageManager().getText('words')}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
