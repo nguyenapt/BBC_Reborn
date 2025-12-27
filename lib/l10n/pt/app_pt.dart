@@ -46,6 +46,12 @@ class AppPt {
     'episodeInfo': 'Informações do Episódio',
     'transcript': 'Transcrição',
     'vocabulary': 'Vocabulário',
+    'practiceQuestions': 'Questões de Prática',
+    'checkAnswers': 'Verificar Respostas',
+    'reset': 'Reiniciar',
+    'generatingQuestions': 'Gerando questões...',
+    'noQuestionsAvailable': 'Nenhuma questão disponível',
+    'score': 'Pontuação',
     'topEpisodes': 'Top 10 Episódios na Mesma Categoria',
     'noSummary': 'Nenhum resumo disponível para este episódio.',
     'actor': 'Ator',
@@ -63,6 +69,7 @@ class AppPt {
     'saveToVocabulary': 'Salvar no Vocabulário Pessoal',
     'noVocabulary': 'Nenhum vocabulário disponível para este episódio.',
     'vocabularyList': 'Lista de Vocabulário',
+    'words': 'palavras',
     
     // Settings
     'language': 'Idioma',

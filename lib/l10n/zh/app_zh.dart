@@ -46,6 +46,12 @@ class AppZh {
     'episodeInfo': '课程信息',
     'transcript': '文本',
     'vocabulary': '词汇',
+    'practiceQuestions': '练习题',
+    'checkAnswers': '检查答案',
+    'reset': '重置',
+    'generatingQuestions': '正在生成问题...',
+    'noQuestionsAvailable': '暂无问题',
+    'score': '得分',
     'topEpisodes': '同类别前10课程',
     'noSummary': '此课程暂无摘要。',
     'actor': '演员',
@@ -63,6 +69,7 @@ class AppZh {
     'saveToVocabulary': '保存到个人词汇',
     'noVocabulary': '此课程暂无词汇。',
     'vocabularyList': '词汇列表',
+    'words': '个词',
     
     // Settings
     'language': '语言',

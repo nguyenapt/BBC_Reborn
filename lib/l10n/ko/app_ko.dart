@@ -46,6 +46,12 @@ class AppKo {
     'episodeInfo': '에피소드 정보',
     'transcript': '대본',
     'vocabulary': '어휘',
+    'practiceQuestions': '연습 문제',
+    'checkAnswers': '답 확인',
+    'reset': '다시 시작',
+    'generatingQuestions': '문제 생성 중...',
+    'noQuestionsAvailable': '사용 가능한 문제 없음',
+    'score': '점수',
     'topEpisodes': '같은 카테고리 상위 10개 에피소드',
     'noSummary': '이 에피소드에 대한 요약이 없습니다.',
     'actor': '배우',
@@ -63,6 +69,7 @@ class AppKo {
     'saveToVocabulary': '개인 어휘에 저장',
     'noVocabulary': '이 에피소드에 대한 어휘가 없습니다.',
     'vocabularyList': '어휘 목록',
+    'words': '단어',
     
     // Settings
     'language': '언어',

@@ -78,23 +78,46 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   }
 
   Future<void> _completeSetup() async {
-    // Lưu ngôn ngữ đã chọn trực tiếp vào SharedPreferences
-    if (_selectedLocale != null) {
+    if (_selectedLocale == null) return;
+    
+    try {
+      // 1. Lưu trạng thái onboarding completed trước
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('selected_language', _selectedLocale!.languageCode);
-    }
-    
-    // Lưu trạng thái onboarding completed
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
-    
-    if (mounted) {
-      // Delay một chút để đảm bảo SharedPreferences được lưu
-      await Future.delayed(const Duration(milliseconds: 100));
+      await prefs.setBool('onboarding_completed', true);
+      debugPrint('✅ Onboarding completed flag saved');
       
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
-      );
+      // 2. Update LanguageManager để apply locale ngay lập tức
+      // Điều này sẽ trigger notifyListeners() và rebuild MaterialApp
+      await _languageManager.changeLanguage(_selectedLocale!);
+      debugPrint('✅ Language changed to: ${_selectedLocale!.languageCode}');
+      debugPrint('   Current locale after change: ${_languageManager.currentLocale.languageCode}');
+      
+      if (mounted) {
+        // 3. Đợi đủ lâu để MaterialApp rebuild với locale mới
+        // ListenableBuilder sẽ rebuild MaterialApp khi LanguageManager notify
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // 4. Pop về root và push lại để đảm bảo MaterialApp được rebuild hoàn toàn
+        // Sử dụng pushAndRemoveUntil để clear toàn bộ stack
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const BBCLearningAppStateful(),
+          ),
+          (route) => false, // Remove all previous routes
+        );
+        debugPrint('✅ Navigated to main app with new locale: ${_languageManager.currentLocale.languageCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error completing setup: $e');
+      debugPrint('   Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

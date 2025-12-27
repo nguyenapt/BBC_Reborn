@@ -46,6 +46,12 @@ class AppJa {
     'episodeInfo': 'エピソード情報',
     'transcript': '台本',
     'vocabulary': '語彙',
+    'practiceQuestions': '練習問題',
+    'checkAnswers': '答えを確認',
+    'reset': 'リセット',
+    'generatingQuestions': '問題を生成中...',
+    'noQuestionsAvailable': '問題がありません',
+    'score': 'スコア',
     'topEpisodes': '同じカテゴリのトップ10エピソード',
     'noSummary': 'このエピソードの要約はありません。',
     'actor': '俳優',
@@ -63,6 +69,7 @@ class AppJa {
     'saveToVocabulary': '個人語彙に保存',
     'noVocabulary': 'このエピソードの語彙はありません。',
     'vocabularyList': '語彙リスト',
+    'words': '語',
     
     // Settings
     'language': '言語',

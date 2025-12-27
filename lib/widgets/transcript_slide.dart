@@ -4,7 +4,17 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
+import '../services/ai_translation_service.dart';
+import '../services/ai_grammar_service.dart';
+import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
+import '../models/grammar_explanation.dart';
+import '../services/language_manager.dart';
+import '../services/admob_service.dart';
+import '../services/heart_service.dart';
+import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
+import 'translation_language_picker.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -27,6 +37,21 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   late ScrollController _scrollController;
   int? _currentActiveIndex;
   List<int> _adPositions = []; // Vị trí chèn native ads
+  
+  // Translation state
+  bool _showTranslation = false;
+  Map<String, String>? _translations;
+  bool _isTranslating = false;
+  final AITranslationService _translationService = AITranslationService();
+  final LanguageManager _languageManager = LanguageManager();
+  
+  // Grammar state
+  final AIGrammarService _grammarService = AIGrammarService();
+  final Map<String, GrammarExplanation> _grammarCache = {};
+  
+  // Line translation state (cache translations for each line)
+  final Map<String, String> _lineTranslations = {};
+  final Map<String, bool> _lineTranslating = {};
 
   @override
   void initState() {
@@ -144,6 +169,16 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to LanguageManager changes to rebuild when language changes
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        return _buildTranscriptContent();
+      },
+    );
+  }
+
+  Widget _buildTranscriptContent() {
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -157,6 +192,75 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                 color: CategoryColors.getCategoryColor(widget.episode.category),
                 size: 20,
               ),
+              const SizedBox(width: 8),
+              Text(
+                LanguageManager().getText('transcript'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: CategoryColors.getCategoryColor(widget.episode.category),
+                ),
+              ),
+              const Spacer(),
+              // Translation toggle button
+              // TODO: Temporarily commented out - affects performance when translating long transcripts
+              // Will be re-enabled after VIP feature implementation
+              /*
+              if (transcriptLines.isNotEmpty)
+                IconButton(
+                  icon: _isTranslating
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              CategoryColors.getCategoryColor(widget.episode.category),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          _showTranslation ? Icons.translate : Icons.translate_outlined,
+                          color: _showTranslation
+                              ? CategoryColors.getCategoryColor(widget.episode.category)
+                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                  onPressed: _isTranslating
+                      ? null
+                      : () async {
+                          // Check if app language is English (default)
+                          if (_languageManager.isTranslationNeeded()) {
+                            // Show language picker to select translation language
+                            TranslationLanguagePicker.show(
+                              context,
+                              currentLanguageCode: _languageManager.currentLocale.languageCode,
+                              onLanguageSelected: (languageCode) async {
+                                // Save selected language to settings (selected_language key)
+                                await _languageManager.changeLanguage(Locale(languageCode));
+                                // Clear old translations to force reload with new language
+                                setState(() {
+                                  _translations = null;
+                                  _showTranslation = false;
+                                });
+                                // Load translations with new language
+                                await _loadTranslations();
+                              },
+                            );
+                          } else {
+                            // App language is not English, translate directly
+                            if (!_showTranslation && _translations == null) {
+                              // Load translations
+                              await _loadTranslations();
+                            } else {
+                              setState(() {
+                                _showTranslation = !_showTranslation;
+                              });
+                            }
+                          }
+                        },
+                  tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
+                ),
+              */
             ],
           ),
           const SizedBox(height: 16),
@@ -278,7 +382,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   // Play button
                                   IconButton(
                                     onPressed: () {
@@ -293,23 +397,71 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
+                                      minWidth: 24,
+                                      minHeight: 24,
+                                    ),
+                                  ),
+                                  // Translate line button
+                                  IconButton(
+                                    onPressed: () => _translateLine(context, line.text, transcriptIndex),
+                                    icon: _lineTranslating[line.text] == true
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Colors.blue.shade600,
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            _lineTranslations.containsKey(line.text)
+                                                ? Icons.translate
+                                                : Icons.translate_outlined,
+                                            color: Colors.blue.shade600,
+                                            size: 18,
+                                          ),
+                                    tooltip: _lineTranslations.containsKey(line.text)
+                                        ? 'Show translation'
+                                        : 'Translate line',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 24,
+                                      minHeight: 24,
+                                    ),
+                                  ),
+                                  // Grammar explanation button
+                                  IconButton(
+                                    onPressed: () => _showGrammarExplanation(context, line.text),
+                                    icon: Icon(
+                                      Icons.lightbulb_outline,
+                                      color: Colors.green.shade600,
+                                      size: 18,
+                                    ),
+                                    tooltip: 'Explain grammar',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 24,
+                                      minHeight: 24,
                                     ),
                                   ),
                                 ],
                               ),
                             if (hasTimeInfo) const SizedBox(height: 6),
                             // Text content
-                            SelectableText(
-                              line.text,
-                              style: TextStyle(
-                                fontSize: 14,
-                                height: 1.5,
-                                color: isActive 
-                                    ? Theme.of(context).colorScheme.onSurface
-                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SelectableText(
+                                  line.text,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: isActive 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                  ),
                               contextMenuBuilder: (context, editableTextState) {
                                 return AdaptiveTextSelectionToolbar.buttonItems(
                                   anchors: editableTextState.contextMenuAnchors,
@@ -345,6 +497,36 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                 );
                               },
                             ),
+                                // Line translation (if translated)
+                                if (_lineTranslations.containsKey(line.text))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: SelectableText(
+                                      _lineTranslations[line.text]!,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.italic,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ),
+                                // Full transcript translation (if enabled)
+                                if (_showTranslation && _translations != null && !_lineTranslations.containsKey(line.text))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: SelectableText(
+                                      _translations![line.text] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.italic,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
                       );
@@ -354,6 +536,39 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadTranslations() async {
+    if (transcriptLines.isEmpty) return;
+    
+    setState(() {
+      _isTranslating = true;
+    });
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      final translations = await _translationService.translateTranscript(
+        transcriptLines,
+        episodeId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _translations = translations;
+          _showTranslation = true;
+          _isTranslating = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading translations: $e');
+      if (mounted) {
+        setState(() {
+          _isTranslating = false;
+        });
+        
+        _showErrorSnackBar(context, e, onRetry: () => _loadTranslations());
+      }
+    }
   }
 
   Future<void> _openGoogleTranslate(BuildContext context, String text) async {
@@ -377,6 +592,187 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
           const SnackBar(content: Text('Không thể mở Google Translate')),
         );
       }
+    }
+  }
+
+  Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
+    // Check cache first
+    if (_grammarCache.containsKey(sentence)) {
+      _showGrammarDialog(context, _grammarCache[sentence]!);
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    CategoryColors.getCategoryColor(widget.episode.category),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Analyzing grammar...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      final explanation = await _grammarService.explainSentence(sentence, episodeId);
+      
+      _grammarCache[sentence] = explanation;
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showGrammarDialog(context, explanation);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _showGrammarExplanation(context, sentence),
+        );
+      }
+    }
+  }
+
+  void _showGrammarDialog(BuildContext context, GrammarExplanation explanation) {
+    showDialog(
+      context: context,
+      builder: (context) => GrammarExplanationDialog(
+        explanation: explanation,
+        category: widget.episode.category,
+      ),
+    );
+  }
+
+  Future<void> _translateLine(BuildContext context, String lineText, int lineIndex) async {
+    // If already translated, toggle visibility (for now just show it)
+    if (_lineTranslations.containsKey(lineText)) {
+      // Already translated, do nothing (translation is always shown)
+      return;
+    }
+
+    // If currently translating, ignore
+    if (_lineTranslating[lineText] == true) {
+      return;
+    }
+
+    setState(() {
+      _lineTranslating[lineText] = true;
+    });
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      // Pass lineIndex as lineNumber for Firebase cache matching
+      final translated = await _translationService.translateTranscriptLine(
+        lineText,
+        episodeId,
+        lineIndex, // lineNumber for Firebase cache
+      );
+
+      if (mounted) {
+        setState(() {
+          _lineTranslations[lineText] = translated;
+          _lineTranslating[lineText] = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error translating line: $e');
+      if (mounted) {
+        setState(() {
+          _lineTranslating[lineText] = false;
+        });
+        
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _translateLine(context, lineText, lineIndex),
+        );
+      }
+    }
+  }
+
+  /// Show error SnackBar with appropriate action button
+  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
+  void _showErrorSnackBar(
+    BuildContext context,
+    dynamic error, {
+    required VoidCallback onRetry,
+  }) {
+    final heartService = HeartService();
+    final admobService = AdMobService();
+    
+    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
+      // Show "Watch Ads" button for NoHeartsException
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Watch Ads',
+            textColor: Colors.white,
+            onPressed: () {
+              if (admobService.isRewardedAdReady()) {
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    // Retry the action after earning heart
+                    Future.delayed(const Duration(milliseconds: 500), onRetry);
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              } else {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show "Retry" button for other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: onRetry,
+          ),
+        ),
+      );
     }
   }
 

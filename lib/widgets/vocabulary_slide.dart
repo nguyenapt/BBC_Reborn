@@ -3,7 +3,16 @@ import '../models/episode.dart';
 import '../models/vocabulary_item.dart';
 import '../utils/category_colors.dart';
 import '../services/vocabulary_service.dart';
+import '../services/ai_translation_service.dart';
+import '../services/ai_vocabulary_service.dart';
+import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
+import '../models/enhanced_vocabulary.dart';
+import '../services/language_manager.dart';
+import '../services/admob_service.dart';
+import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
+import 'translation_language_picker.dart';
 
 class VocabularySlide extends StatefulWidget {
   final Episode episode;
@@ -19,21 +28,42 @@ class VocabularySlide extends StatefulWidget {
 
 class _VocabularySlideState extends State<VocabularySlide> {
   late final VocabularyService _vocabularyService;
+  final AITranslationService _translationService = AITranslationService();
+  final AIVocabularyService _vocabEnhanceService = AIVocabularyService();
+  final LanguageManager _languageManager = LanguageManager();
+  final Map<String, String> _vocabTranslations = {};
+  final Map<String, EnhancedVocabulary?> _enhancedVocab = {};
+  bool _showTranslation = false;
+  bool _isTranslating = false;
+  List<VocabularyItem> _vocabularyItems = [];
 
   @override
   void initState() {
     super.initState();
     _vocabularyService = VocabularyService();
     _vocabularyService.initialize();
+    
+    // Parse vocabulary items từ episode
+    _vocabularyItems = VocabularyItem.parseFromEpisode(
+      vocabularies: widget.episode.vocabularies,
+      vocabulary: widget.episode.vocabulary,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Parse vocabulary items từ episode
-    final vocabularyItems = VocabularyItem.parseFromEpisode(
-      vocabularies: widget.episode.vocabularies,
-      vocabulary: widget.episode.vocabulary,
+    final vocabularyItems = _vocabularyItems;
+    
+    // Listen to LanguageManager changes to rebuild when language changes
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        return _buildVocabularyContent(vocabularyItems);
+      },
     );
+  }
+
+  Widget _buildVocabularyContent(List<VocabularyItem> vocabularyItems) {
 
     // Nếu không có vocabulary, hiển thị Native AdMob
     if (vocabularyItems.isEmpty) {
@@ -60,7 +90,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Vocabulary',
+                LanguageManager().getText('vocabulary'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -69,11 +99,66 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
               const Spacer(),
               Text(
-                '${vocabularyItems.length} words',
+                '${vocabularyItems.length} ${LanguageManager().getText('words')}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
+              ),
+              const SizedBox(width: 8),
+              // Translation button
+              IconButton(
+                icon: _isTranslating
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            CategoryColors.getCategoryColor(widget.episode.category),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        _showTranslation ? Icons.translate : Icons.translate_outlined,
+                        color: _showTranslation
+                            ? CategoryColors.getCategoryColor(widget.episode.category)
+                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                onPressed: _isTranslating
+                    ? null
+                    : () async {
+                        // Check if app language is English (default)
+                        if (_languageManager.isTranslationNeeded()) {
+                          // Show language picker to select translation language
+                          TranslationLanguagePicker.show(
+                            context,
+                            currentLanguageCode: _languageManager.currentLocale.languageCode,
+                            onLanguageSelected: (languageCode) async {
+                              // Save selected language to settings (selected_language key)
+                              await _languageManager.changeLanguage(Locale(languageCode));
+                              // Clear old translations to force reload with new language
+                              setState(() {
+                                _vocabTranslations.clear();
+                                _showTranslation = false;
+                              });
+                              // Load translations with new language
+                              await _loadTranslations();
+                            },
+                          );
+                        } else {
+                          // App language is not English, translate directly
+                          if (!_showTranslation && _vocabTranslations.isEmpty) {
+                            // Load translations
+                            await _loadTranslations();
+                          } else {
+                            setState(() {
+                              _showTranslation = !_showTranslation;
+                            });
+                          }
+                        }
+                      },
+                tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
               ),
             ],
           ),
@@ -143,6 +228,16 @@ class _VocabularySlideState extends State<VocabularySlide> {
                                     ),
                                   ),
                                 ),
+                                // Enhance button
+                                IconButton(
+                                  onPressed: () => _showEnhancedInfo(context, item),
+                                  icon: Icon(
+                                    Icons.auto_awesome,
+                                    color: CategoryColors.getCategoryColor(widget.episode.category),
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Enhance vocabulary',
+                                ),
                                 // Save button
                                 IconButton(
                                   onPressed: () async {
@@ -190,6 +285,19 @@ class _VocabularySlideState extends State<VocabularySlide> {
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
+                            // Translation (only show if enabled)
+                            if (_showTranslation && _vocabTranslations.containsKey(item.vocab))
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  _vocabTranslations[item.vocab]!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       );
@@ -202,5 +310,371 @@ class _VocabularySlideState extends State<VocabularySlide> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadTranslations() async {
+    if (_vocabularyItems.isEmpty) return;
+    
+    setState(() {
+      _isTranslating = true;
+    });
+
+    try {
+      // Translate all vocabulary items
+      for (final item in _vocabularyItems) {
+        if (!_vocabTranslations.containsKey(item.vocab)) {
+          try {
+            final translated = await _translationService.translateVocabulary(
+              item.vocab,
+              item.mean,
+              context: widget.episode.transcript,
+            );
+            _vocabTranslations[item.vocab] = translated;
+          } catch (e) {
+            debugPrint('Error translating vocabulary ${item.vocab}: $e');
+            // Continue with other items
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _showTranslation = true;
+          _isTranslating = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading translations: $e');
+      if (mounted) {
+        setState(() {
+          _isTranslating = false;
+        });
+        
+        _showErrorSnackBar(context, e, onRetry: () => _loadTranslations());
+      }
+    }
+  }
+
+  Future<void> _showEnhancedInfo(BuildContext context, VocabularyItem item) async {
+    // Check cache first
+    if (_enhancedVocab.containsKey(item.vocab) && _enhancedVocab[item.vocab] != null) {
+      _showEnhancedDialog(context, _enhancedVocab[item.vocab]!);
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    CategoryColors.getCategoryColor(widget.episode.category),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Enhancing vocabulary...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final enhanced = await _vocabEnhanceService.enhanceVocabulary(
+        item,
+        context: widget.episode.transcript,
+      );
+
+      _enhancedVocab[item.vocab] = enhanced;
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showEnhancedDialog(context, enhanced);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _showEnhancedInfo(context, item),
+        );
+      }
+    }
+  }
+
+  void _showEnhancedDialog(BuildContext context, EnhancedVocabulary enhanced) {
+    final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    color: categoryColor,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      enhanced.original.vocab,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: categoryColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 16),
+              
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Word form and pronunciation
+                      if (enhanced.wordForm != null || enhanced.pronunciation != null)
+                        Row(
+                          children: [
+                            if (enhanced.wordForm != null) ...[
+                              Chip(
+                                label: Text(enhanced.wordForm!),
+                                backgroundColor: categoryColor.withOpacity(0.1),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (enhanced.pronunciation != null)
+                              Text(
+                                enhanced.pronunciation!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ),
+                          ],
+                        ),
+                      if (enhanced.wordForm != null || enhanced.pronunciation != null)
+                        const SizedBox(height: 16),
+                      
+                      // Synonyms
+                      if (enhanced.synonyms.isNotEmpty) ...[
+                        _buildSection(
+                          context,
+                          'Synonyms',
+                          enhanced.synonyms,
+                          categoryColor,
+                          Icons.sync_alt,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      // Antonyms
+                      if (enhanced.antonyms.isNotEmpty) ...[
+                        _buildSection(
+                          context,
+                          'Antonyms',
+                          enhanced.antonyms,
+                          categoryColor,
+                          Icons.swap_horiz,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      // Example sentences
+                      if (enhanced.exampleSentences.isNotEmpty) ...[
+                        _buildSection(
+                          context,
+                          'Examples',
+                          enhanced.exampleSentences,
+                          categoryColor,
+                          Icons.format_quote,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      // Collocations
+                      if (enhanced.collocations.isNotEmpty) ...[
+                        _buildSection(
+                          context,
+                          'Collocations',
+                          enhanced.collocations,
+                          categoryColor,
+                          Icons.link,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: categoryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<String> items,
+    Color categoryColor,
+    IconData icon,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: categoryColor, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: categoryColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...items.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: categoryColor.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            )),
+      ],
+    );
+  }
+
+  /// Show error SnackBar with appropriate action button
+  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
+  void _showErrorSnackBar(
+    BuildContext context,
+    dynamic error, {
+    required VoidCallback onRetry,
+  }) {
+    final heartService = HeartService();
+    final admobService = AdMobService();
+    
+    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
+      // Show "Watch Ads" button for NoHeartsException
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Watch Ads',
+            textColor: Colors.white,
+            onPressed: () {
+              if (admobService.isRewardedAdReady()) {
+                admobService.showRewardedAd(
+                  onRewarded: () {
+                    heartService.earnHeart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('❤️ You earned 1 heart!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    // Retry the action after earning heart
+                    Future.delayed(const Duration(milliseconds: 500), onRetry);
+                  },
+                  onAdFailedToShow: (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to show ad: $error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              } else {
+                admobService.createRewardedAd();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ad is loading, please try again in a moment'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show "Retry" button for other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AIErrorHandler.getErrorMessage(error)),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: onRetry,
+          ),
+        ),
+      );
+    }
   }
 }

@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# API Keys - DO NOT COMMIT!
+# Uncomment the line below to ignore ai_config.dart (if you want to hardcode keys for dev)
+# lib/config/ai_config.dart
+*.md

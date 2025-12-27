@@ -14,6 +14,8 @@ class AdMobService {
   static const String _testInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
   static const String _testAppOpenAdUnitIdAndroid = 'ca-app-pub-3940256099942544/3419835294';
   static const String _testAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
+  static const String _testRewardedAdUnitIdAndroid = 'ca-app-pub-3940256099942544/5224354917';
+  static const String _testRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
 
   // Production Ad Unit IDs (thay thế bằng Ad Unit IDs thật khi publish)
   static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/4800679695';
@@ -22,10 +24,13 @@ class AdMobService {
   static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
   static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9861434685';
   static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
+  static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-2189112136936277/2424979553'; // TODO: Replace with real ID
+  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313'; // TODO: Replace with real ID
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
   AppOpenAd? _appOpenAd;
+  RewardedAd? _rewardedAd;
   
   // Thời gian lần cuối hiển thị App Open Ad (để tránh spam)
   DateTime? _lastAppOpenAdTime;
@@ -59,6 +64,16 @@ class AdMobService {
     } else {
       print('🚀 PRODUCTION MODE: Using PRODUCTION App Open Ad Unit ID');
       return Platform.isAndroid ? _prodAppOpenAdUnitIdAndroid : _prodAppOpenAdUnitIdIOS;
+    }
+  }
+
+  String _getRewardedAdUnitId() {
+    if (kDebugMode) {
+      print('🔧 DEBUG MODE: Using TEST Rewarded Ad Unit ID');
+      return Platform.isAndroid ? _testRewardedAdUnitIdAndroid : _testRewardedAdUnitIdIOS;
+    } else {
+      print('🚀 PRODUCTION MODE: Using PRODUCTION Rewarded Ad Unit ID');
+      return Platform.isAndroid ? _prodRewardedAdUnitIdAndroid : _prodRewardedAdUnitIdIOS;
     }
   }
 
@@ -237,10 +252,91 @@ class AdMobService {
     _appOpenAd = null;
   }
 
+  // Tạo Rewarded Ad
+  void createRewardedAd() {
+    if (kIsWeb) {
+      print('Rewarded ads không được hỗ trợ trên web');
+      return;
+    }
+    final adUnitId = _getRewardedAdUnitId();
+    
+    RewardedAd.load(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+          print('Rewarded ad loaded');
+        },
+        onAdFailedToLoad: (error) {
+          print('Rewarded ad failed to load: $error');
+          _rewardedAd = null;
+        },
+      ),
+    );
+  }
+
+  // Hiển thị Rewarded Ad với callback
+  void showRewardedAd({
+    required Function() onRewarded,
+    Function(String)? onAdFailedToShow,
+  }) {
+    if (_rewardedAd != null) {
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          print('Rewarded ad showed full screen content');
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          print('Rewarded ad dismissed');
+          ad.dispose();
+          _rewardedAd = null;
+          // Tạo ad mới cho lần tiếp theo
+          createRewardedAd();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          print('Rewarded ad failed to show: $error');
+          ad.dispose();
+          _rewardedAd = null;
+          if (onAdFailedToShow != null) {
+            onAdFailedToShow(error.message);
+          }
+          // Tạo ad mới cho lần tiếp theo
+          createRewardedAd();
+        },
+      );
+
+      _rewardedAd!.show(
+        onUserEarnedReward: (ad, reward) {
+          print('User earned reward: ${reward.amount} ${reward.type}');
+          onRewarded();
+        },
+      );
+    } else {
+      print('Rewarded ad not ready');
+      if (onAdFailedToShow != null) {
+        onAdFailedToShow('Rewarded ad not ready');
+      }
+      // Try to load a new ad
+      createRewardedAd();
+    }
+  }
+
+  // Kiểm tra xem Rewarded Ad có sẵn không
+  bool isRewardedAdReady() {
+    return _rewardedAd != null;
+  }
+
+  // Dispose Rewarded ad
+  void disposeRewardedAd() {
+    _rewardedAd?.dispose();
+    _rewardedAd = null;
+  }
+
   // Dispose tất cả ads
   void disposeAll() {
     disposeBannerAd();
     disposeInterstitialAd();
     disposeAppOpenAd();
+    disposeRewardedAd();
   }
 }
