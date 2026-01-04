@@ -181,14 +181,36 @@ class GeminiProvider implements AIProvider {
     String targetLanguage, {
     String? context,
   }) async {
-    final contextPart = context != null ? '\n\nContext: $context' : '';
-    final prompt = '''
+    // Check if this is a vocabulary translation (context contains "Meaning:")
+    final isVocabulary = context != null && context.contains('Meaning:');
+    
+    String contextPart;
+    String instruction;
+    
+    if (isVocabulary) {
+      // For vocabulary: only translate the word, ignore context examples
+      contextPart = context != null ? '\n\n$context' : '';
+      instruction = '''
+Translate ONLY the English word below to $targetLanguage.
+The word is: "$text"
+$contextPart
+
+IMPORTANT: Return ONLY the translation of the word "$text" in $targetLanguage. 
+Do NOT translate the context or meaning. Do NOT include explanations.
+Return only the translated word.''';
+    } else {
+      // For regular text translation
+      contextPart = context != null ? '\n\nContext: $context' : '';
+      instruction = '''
 Translate the following English text to $targetLanguage. 
 Provide only the translation, no explanations, no original text.
 
 Text: $text$contextPart
 
 Translation:''';
+    }
+    
+    final prompt = instruction;
     
     debugPrint('🔤 Gemini translate prompt:');
     debugPrint('   Source: English');
@@ -207,6 +229,84 @@ Translation:''';
     }
     
     return trimmed;
+  }
+  
+  @override
+  Future<Map<String, String>> translateVocabularyBatch(
+    List<Map<String, String>> vocabularyList,
+    String targetLanguage,
+  ) async {
+    // Build vocabulary list for prompt
+    final vocabItems = vocabularyList.asMap().entries.map((entry) {
+      final index = entry.key + 1;
+      final vocab = entry.value;
+      final word = vocab['word'] ?? '';
+      final meaning = vocab['meaning'] ?? '';
+      final context = vocab['context'];
+      
+      String itemText = '$index. Word: "$word"\n   Meaning: $meaning';
+      if (context != null && context.isNotEmpty) {
+        itemText += '\n   Context: $context';
+      }
+      return itemText;
+    }).join('\n\n');
+    
+    final prompt = '''
+Translate the following English vocabulary words to $targetLanguage.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Vocabulary list:
+$vocabItems
+
+Return format (JSON object only):
+{
+  "word1": "translation1",
+  "word2": "translation2",
+  ...
+}
+
+IMPORTANT: 
+- Return ONLY the JSON object with word as key and translation as value
+- Do NOT translate the context or meaning
+- Do NOT include explanations
+- Return only the translated words in $targetLanguage''';
+    
+    debugPrint('🔤 Gemini batch translate vocabulary: ${vocabularyList.length} words');
+    
+    final response = await _callGemini(prompt);
+    
+    try {
+      final jsonResponse = JsonParserHelper.parseJsonObject(response);
+      final translations = <String, String>{};
+      
+      // Extract translations from JSON
+      for (final vocab in vocabularyList) {
+        final word = vocab['word'] ?? '';
+        if (jsonResponse.containsKey(word)) {
+          translations[word] = jsonResponse[word].toString();
+        } else {
+          // Fallback: try lowercase
+          final wordLower = word.toLowerCase();
+          for (final key in jsonResponse.keys) {
+            if (key.toString().toLowerCase() == wordLower) {
+              translations[word] = jsonResponse[key].toString();
+              break;
+            }
+          }
+          // If still not found, use original word
+          if (!translations.containsKey(word)) {
+            debugPrint('⚠️ Translation not found for word: $word');
+            translations[word] = word;
+          }
+        }
+      }
+      
+      debugPrint('✅ Gemini batch translation completed: ${translations.length} words');
+      return translations;
+    } catch (e) {
+      debugPrint('❌ Error parsing batch translation JSON: $e');
+      throw InvalidResponseException('Failed to parse batch translation JSON: $e');
+    }
   }
   
   @override

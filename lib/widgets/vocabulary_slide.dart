@@ -36,6 +36,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
   bool _showTranslation = false;
   bool _isTranslating = false;
   List<VocabularyItem> _vocabularyItems = [];
+  String? _currentTranslationLanguageCode; // Track current translation language
 
   @override
   void initState() {
@@ -48,6 +49,29 @@ class _VocabularySlideState extends State<VocabularySlide> {
       vocabularies: widget.episode.vocabularies,
       vocabulary: widget.episode.vocabulary,
     );
+    
+    // Listen to language changes to clear translations if needed
+    _languageManager.addListener(_onLanguageChanged);
+  }
+  
+  @override
+  void dispose() {
+    _languageManager.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+  
+  void _onLanguageChanged() {
+    // If language changed and we're showing translations, clear them
+    final newLanguageCode = _languageManager.currentLocale.languageCode;
+    if (_currentTranslationLanguageCode != null && 
+        _currentTranslationLanguageCode != newLanguageCode &&
+        _showTranslation) {
+      setState(() {
+        _vocabTranslations.clear();
+        _showTranslation = false;
+        _currentTranslationLanguageCode = null;
+      });
+    }
   }
 
   @override
@@ -130,10 +154,18 @@ class _VocabularySlideState extends State<VocabularySlide> {
                     : () async {
                         // Check if app language is English (default)
                         if (_languageManager.isTranslationNeeded()) {
+                          // If already showing translations, just toggle visibility
+                          if (_showTranslation && _vocabTranslations.isNotEmpty) {
+                            setState(() {
+                              _showTranslation = !_showTranslation;
+                            });
+                            return;
+                          }
+                          
                           // Show language picker to select translation language
                           TranslationLanguagePicker.show(
                             context,
-                            currentLanguageCode: _languageManager.currentLocale.languageCode,
+                            currentLanguageCode: _currentTranslationLanguageCode ?? _languageManager.currentLocale.languageCode,
                             onLanguageSelected: (languageCode) async {
                               // Save selected language to settings (selected_language key)
                               await _languageManager.changeLanguage(Locale(languageCode));
@@ -141,6 +173,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                               setState(() {
                                 _vocabTranslations.clear();
                                 _showTranslation = false;
+                                _currentTranslationLanguageCode = languageCode;
                               });
                               // Load translations with new language
                               await _loadTranslations();
@@ -148,10 +181,18 @@ class _VocabularySlideState extends State<VocabularySlide> {
                           );
                         } else {
                           // App language is not English, translate directly
-                          if (!_showTranslation && _vocabTranslations.isEmpty) {
+                          final currentLanguageCode = _languageManager.currentLocale.languageCode;
+                          
+                          // If language changed or translations are empty, reload
+                          if (_currentTranslationLanguageCode != currentLanguageCode || 
+                              (!_showTranslation && _vocabTranslations.isEmpty)) {
+                            setState(() {
+                              _currentTranslationLanguageCode = currentLanguageCode;
+                            });
                             // Load translations
                             await _loadTranslations();
                           } else {
+                            // Just toggle visibility
                             setState(() {
                               _showTranslation = !_showTranslation;
                             });
@@ -320,27 +361,43 @@ class _VocabularySlideState extends State<VocabularySlide> {
     });
 
     try {
-      // Translate all vocabulary items
+      // Prepare vocabulary list for batch translation
+      final vocabularyList = <Map<String, String>>[];
+      
       for (final item in _vocabularyItems) {
         if (!_vocabTranslations.containsKey(item.vocab)) {
-          try {
-            final translated = await _translationService.translateVocabulary(
-              item.vocab,
-              item.mean,
-              context: widget.episode.transcript,
-            );
-            _vocabTranslations[item.vocab] = translated;
-          } catch (e) {
-            debugPrint('Error translating vocabulary ${item.vocab}: $e');
-            // Continue with other items
-          }
+          vocabularyList.add({
+            'word': item.vocab,
+            'meaning': item.mean,
+            'context': widget.episode.transcript,
+          });
         }
       }
+      
+      // If no words to translate, just show existing translations
+      if (vocabularyList.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _showTranslation = true;
+            _isTranslating = false;
+            _currentTranslationLanguageCode = _languageManager.currentLocale.languageCode;
+          });
+        }
+        return;
+      }
+      
+      // Batch translate all words in one request
+      final translations = await _translationService.translateVocabularyBatch(vocabularyList);
+      
+      // Update translations map
+      _vocabTranslations.addAll(translations);
 
       if (mounted) {
         setState(() {
           _showTranslation = true;
           _isTranslating = false;
+          // Update current translation language code
+          _currentTranslationLanguageCode = _languageManager.currentLocale.languageCode;
         });
       }
     } catch (e) {
