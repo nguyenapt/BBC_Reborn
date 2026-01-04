@@ -7,6 +7,13 @@ abstract class AIProvider {
     String? context,
   });
   
+  /// Translate multiple vocabulary words in one request
+  /// Returns a map of word -> translation
+  Future<Map<String, String>> translateVocabularyBatch(
+    List<Map<String, String>> vocabularyList, // List of {word, meaning, context?}
+    String targetLanguage,
+  );
+  
   /// Explain grammar in a sentence
   Future<Map<String, dynamic>> explainGrammar(
     String sentence,
