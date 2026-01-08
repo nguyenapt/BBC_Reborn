@@ -9,7 +9,7 @@ class CategoryColors {
     '6MVI': Colors.deepOrange,
     'DRM': Colors.brown,
     'EAW': Colors.teal,
-    'NewsReview': Colors.orange,
+    'EG': Colors.orange,
     'REE': Colors.purple,
     'TEWS': Colors.amber,
     '6Minute': Colors.teal,
@@ -26,7 +26,7 @@ class CategoryColors {
     '6MVI': Color(0xFFFFE0B2), // Light deep orange
     'DRM': Color(0xFFEFEBE9), // Light brown
     'EAW': Color(0xFFE0F2F1), // Light teal
-    'NewsReview': Color(0xFFFFF3E0), // Light orange
+    'EG': Color(0xFFFFF3E0), // Light orange
     'REE': Color(0xFFF3E5F5), // Light purple
     'TEWS': Color(0xFFFFFDE7), // Light amber
     '6Minute': Color(0xFFE0F2F1), // Light teal
@@ -43,7 +43,7 @@ class CategoryColors {
     '6MVI': Colors.deepOrangeAccent,
     'DRM': Colors.brown,
     'EAW': Colors.tealAccent,
-    'NewsReview': Colors.orangeAccent,
+    'EG': Colors.orangeAccent,
     'REE': Colors.purpleAccent,
     'TEWS': Colors.amberAccent,
     '6Minute': Colors.tealAccent,

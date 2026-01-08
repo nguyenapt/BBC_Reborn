@@ -1,48 +1,202 @@
 import 'package:flutter/material.dart';
 import '../models/grammar.dart';
+import '../models/episode.dart';
 import '../services/grammar_service.dart';
+import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
+import '../widgets/episode_row.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'grammar_detail_screen.dart';
+import 'episode_detail_screen.dart';
 
 class GrammarScreen extends StatefulWidget {
-  const GrammarScreen({super.key});
+  final String? initialTab;
+  
+  const GrammarScreen({super.key, this.initialTab});
 
   @override
   State<GrammarScreen> createState() => _GrammarScreenState();
 }
 
-class _GrammarScreenState extends State<GrammarScreen> {
+class _GrammarScreenState extends State<GrammarScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final GrammarService _grammarService = GrammarService();
   final LanguageManager _languageManager = LanguageManager();
+  
+  // Basic Grammar state
   List<Grammar> _grammars = [];
-  bool _isLoading = true;
-  String? _error;
+  bool _isLoadingGrammar = true;
+  String? _errorGrammar;
+  
+  // English Grammar state
+  List<Episode> _egEpisodes = [];
+  bool _isLoadingEG = false;
+  String? _errorEG;
+  List<int> _loadedYears = [];
+  bool _loadingMoreEG = false;
 
   @override
   void initState() {
     super.initState();
-    _loadGrammars();
+    _tabController = TabController(length: 2, vsync: this);
+    
+    // Xác định tab ban đầu
+    String initialTabName = 'Basic Grammar'; // Default
+    if (widget.initialTab != null && widget.initialTab == 'English Grammar') {
+      _tabController.index = 0; // English Grammar là tab đầu tiên
+      initialTabName = 'English Grammar';
+    } else {
+      _tabController.index = 1; // Basic Grammar là tab thứ hai
+    }
+    
+    // Load data cho tab được chọn
+    if (initialTabName == 'English Grammar') {
+      _loadEGData();
+    } else {
+      _loadGrammars();
+    }
+    
+    // Listen to tab changes
+    _tabController.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      final currentIndex = _tabController.index;
+      
+      if (currentIndex == 0) {
+        // English Grammar tab
+        if (_egEpisodes.isEmpty && !_isLoadingEG) {
+          _loadEGData();
+        }
+      } else {
+        // Basic Grammar tab
+        if (_grammars.isEmpty && !_isLoadingGrammar) {
+          _loadGrammars();
+        }
+      }
+    }
   }
 
   Future<void> _loadGrammars() async {
     try {
       setState(() {
-        _isLoading = true;
-        _error = null;
+        _isLoadingGrammar = true;
+        _errorGrammar = null;
       });
 
       final grammars = await _grammarService.getAllGrammars();
       
       setState(() {
         _grammars = grammars;
-        _isLoading = false;
+        _isLoadingGrammar = false;
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
-        _isLoading = false;
+        _errorGrammar = e.toString();
+        _isLoadingGrammar = false;
       });
     }
+  }
+
+  Future<void> _loadEGData() async {
+    if (_egEpisodes.isNotEmpty && _loadedYears.isNotEmpty) {
+      return; // Đã load rồi
+    }
+
+    setState(() {
+      _isLoadingEG = true;
+      _errorEG = null;
+    });
+
+    try {
+      final currentYear = DateTime.now().year;
+      final previousYear = currentYear - 1;
+      
+      // Lấy dữ liệu từ 2 năm gần nhất
+      final currentYearEpisodes = await FirebaseService.getCategoryData('EG', currentYear);
+      final previousYearEpisodes = await FirebaseService.getCategoryData('EG', previousYear);
+      
+      // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
+      final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
+      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      
+      setState(() {
+        _egEpisodes = allEpisodes;
+        _loadedYears = [currentYear, previousYear];
+        _isLoadingEG = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorEG = e.toString();
+        _isLoadingEG = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreEGYears() async {
+    if (_loadingMoreEG) {
+      return; // Đang load rồi
+    }
+
+    setState(() {
+      _loadingMoreEG = true;
+    });
+
+    try {
+      if (_loadedYears.isEmpty) {
+        setState(() {
+          _loadingMoreEG = false;
+        });
+        return;
+      }
+
+      // Tìm năm nhỏ nhất đã load
+      final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
+      final nextYear = minLoadedYear - 1;
+
+      // Giới hạn load đến năm 2020
+      if (nextYear < 2020) {
+        setState(() {
+          _loadingMoreEG = false;
+        });
+        return;
+      }
+
+      // Lấy dữ liệu năm tiếp theo
+      final nextYearEpisodes = await FirebaseService.getCategoryData('EG', nextYear);
+      
+      // Gộp với episodes hiện có và sắp xếp lại
+      final allEpisodes = [..._egEpisodes, ...nextYearEpisodes];
+      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      
+      setState(() {
+        _egEpisodes = allEpisodes;
+        _loadedYears = [..._loadedYears, nextYear];
+        _loadingMoreEG = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingMoreEG = false;
+      });
+      // Không hiển thị error khi load more, chỉ im lặng fail
+      print('Error loading more years for EG: $e');
+    }
+  }
+
+  bool _canLoadMoreEG() {
+    if (_loadedYears.isEmpty) return false;
+    
+    final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
+    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
   }
 
   void _navigateToGrammarDetail(Grammar grammar) {
@@ -50,6 +204,22 @@ class _GrammarScreenState extends State<GrammarScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => GrammarDetailScreen(grammar: grammar),
+      ),
+    );
+  }
+
+  void _navigateToEpisodeDetail(Episode episode) {
+    // 50% hiển thị interstitial ads khi vào episode detail
+    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EpisodeDetailScreen(
+          episode: episode,
+          categoryEpisodes: _egEpisodes,
+          shouldShowInterstitialOnEnter: shouldShowInterstitial,
+        ),
       ),
     );
   }
@@ -65,8 +235,21 @@ class _GrammarScreenState extends State<GrammarScreen> {
             children: [
               // Custom Header
               _buildHeader(),
-              // Body content
-              Expanded(child: _buildBody()),
+
+              const SizedBox(height: 16),
+              
+              // TabBar với shadow
+              _buildTabBar(),
+              // TabBarView content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildEnglishGrammarContent(),
+                    _buildBasicGrammarContent(),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -155,8 +338,241 @@ class _GrammarScreenState extends State<GrammarScreen> {
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 3,
+          ),
+          insets: const EdgeInsets.symmetric(horizontal: 4),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: Theme.of(context).colorScheme.primary,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        labelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        dividerColor: Colors.transparent,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
+        tabs: [
+          _buildTabLabel(0, 'English', 'Grammar'),
+          _buildTabLabel(1, 'Basic', 'Grammar'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabLabel(int index, String firstLine, String secondLine) {
+    return Tab(
+      child: ListenableBuilder(
+        listenable: _tabController,
+        builder: (context, child) {
+          final isSelected = _tabController.index == index;
+          final color = isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+          
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  firstLine,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  secondLine,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w400,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEnglishGrammarContent() {
+    if (_isLoadingEG) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('loading'),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorEG != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('errorOccurred'),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorEG!,
+              style: TextStyle(
+                fontSize: 14, 
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadEGData,
+              child: Text(_languageManager.getText('tryAgain')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_egEpisodes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.library_music_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('noData'),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No episodes available for English Grammar',
+              style: TextStyle(
+                fontSize: 14, 
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () {
+        // Reset loaded years khi refresh
+        _loadedYears = [];
+        _egEpisodes = [];
+        return _loadEGData();
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _egEpisodes.length + 1 + (_canLoadMoreEG() ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
+        itemBuilder: (context, index) {
+          // Load More button (trước banner ad)
+          if (_canLoadMoreEG() && index == _egEpisodes.length) {
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: _loadingMoreEG
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : ElevatedButton(
+                      onPressed: _loadMoreEGYears,
+                      child: Text(_languageManager.getText('loadMore') ?? 'Load More'),
+                    ),
+            );
+          }
+
+          // Banner Ad (sau load more button hoặc sau episodes)
+          final bannerAdIndex = _canLoadMoreEG() ? _egEpisodes.length + 1 : _egEpisodes.length;
+          if (index == bannerAdIndex) {
+            return const BannerAdWidget();
+          }
+
+          // Episode row - chỉ xử lý nếu index trong phạm vi episodes
+          if (index >= 0 && index < _egEpisodes.length) {
+            final episode = _egEpisodes[index];
+            final isLatest = index == 0; // Episode đầu tiên là mới nhất
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: EpisodeRow(
+                episode: episode,
+                onTap: () => _navigateToEpisodeDetail(episode),
+                languageManager: _languageManager,
+                isLatest: isLatest,
+              ),
+            );
+          }
+
+          // Fallback - không nên xảy ra
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  Widget _buildBasicGrammarContent() {
+    if (_isLoadingGrammar) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -169,7 +585,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
       );
     }
 
-    if (_error != null) {
+    if (_errorGrammar != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -186,7 +602,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _error!,
+              _errorGrammar!,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
