@@ -9,6 +9,7 @@ class CategoryNames {
     '6MVI': '6 Minutes Vocabulary Intermediate',
     'DRM': 'Drama',
     'EAW': 'English at Work',
+    'EG': 'English Grammar',
   };
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category

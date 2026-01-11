@@ -139,11 +139,19 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     with WidgetsBindingObserver, DoubleBackExitMixin {
   int currentPageIndex = 0;
   String? categoriesInitialTab;
+  String? grammarInitialTab;
 
   void navigateToCategoriesWithTab(String tabName) {
     setState(() {
       categoriesInitialTab = tabName;
       currentPageIndex = 1; // Categories tab index
+    });
+  }
+
+  void navigateToGrammarWithTab(String tabName) {
+    setState(() {
+      grammarInitialTab = tabName;
+      currentPageIndex = 3; // Grammar tab index
     });
   }
 
@@ -256,7 +264,10 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       ),
       body: <Widget>[
         /// Home page
-        HomePage(onNavigateToCategory: navigateToCategoriesWithTab),
+        HomePage(
+          onNavigateToCategory: navigateToCategoriesWithTab,
+          onNavigateToGrammar: navigateToGrammarWithTab,
+        ),
 
         /// Categories page
         Builder(
@@ -279,7 +290,21 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
         const SavedScreen(),
 
         /// Grammar page
-        const GrammarScreen(),
+        Builder(
+          builder: (context) {
+            // Reset grammarInitialTab sau khi GrammarScreen được tạo
+            if (grammarInitialTab != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    grammarInitialTab = null;
+                  });
+                }
+              });
+            }
+            return GrammarScreen(initialTab: grammarInitialTab);
+          },
+        ),
 
         /// Settings page
         const SettingsScreen(),

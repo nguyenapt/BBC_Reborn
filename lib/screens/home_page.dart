@@ -10,11 +10,13 @@ import '../widgets/banner_ad_widget.dart';
 import '../widgets/heart_widget.dart';
 import 'episode_detail_screen.dart';
 import 'categories_screen.dart';
+import 'grammar_screen.dart';
 
 class HomePage extends StatefulWidget {
   final Function(String)? onNavigateToCategory;
+  final Function(String)? onNavigateToGrammar;
   
-  const HomePage({super.key, this.onNavigateToCategory});
+  const HomePage({super.key, this.onNavigateToCategory, this.onNavigateToGrammar});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -120,6 +122,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToCategory(String categoryName) {
+    // Kiểm tra nếu là category EG (English Grammar) thì navigate đến Grammar screen
+    if (categoryName == 'EG') {
+      if (widget.onNavigateToGrammar != null) {
+        widget.onNavigateToGrammar!('English Grammar');
+      } else {
+        // Fallback: sử dụng Navigator.push
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const GrammarScreen(initialTab: 'English Grammar'),
+          ),
+        );
+      }
+      return;
+    }
+    
     // Sử dụng callback từ main.dart nếu có, ngược lại sử dụng Navigator.push
     if (widget.onNavigateToCategory != null) {
       widget.onNavigateToCategory!(categoryName);
