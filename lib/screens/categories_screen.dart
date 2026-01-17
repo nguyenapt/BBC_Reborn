@@ -214,8 +214,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       categoryEpisodes = _episodesData[currentCategory] ?? [];
     }
 
-    // 50% hiển thị interstitial ads khi vào episode detail
-    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+    // Luôn hiển thị interstitial ads khi vào episode detail
+    const shouldShowInterstitial = true;
 
     Navigator.push(
       context,

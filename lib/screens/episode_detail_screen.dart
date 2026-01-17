@@ -94,13 +94,10 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Tắt Always Display khi rời khỏi màn hình
     _disableAlwaysDisplay();
     
-    // Giảm tần suất interstitial ad khi rời khỏi màn hình
-    // Chỉ hiển thị 50% thời gian để giảm quảng cáo
-    if (DateTime.now().millisecondsSinceEpoch % 2 == 0) {
-      Future.delayed(const Duration(seconds: 2), () {
-        AdMobService().showInterstitialAd();
-      });
-    }
+    // Luôn hiển thị interstitial ad khi rời khỏi màn hình
+    Future.delayed(const Duration(seconds: 2), () {
+      AdMobService().showInterstitialAd();
+    });
     
     super.dispose();
   }
@@ -322,8 +319,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   episode: widget.episode,
                   topEpisodes: widget.categoryEpisodes,
                   onEpisodeTap: (episode) {
-                    // 50% hiển thị interstitial ads khi vào episode detail
-                    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+                    // Luôn hiển thị interstitial ads khi vào episode detail
+                    const shouldShowInterstitial = true;
                     
                     // Navigate to new episode detail với cùng category episodes
                     Navigator.pushReplacement(

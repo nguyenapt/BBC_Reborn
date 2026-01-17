@@ -16,55 +16,55 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
   final List<LanguageOption> _languages = [
     LanguageOption(
-      locale: const Locale('vi', 'VN'),
+      locale: const Locale('vi'),
       name: 'Tiếng Việt',
       nativeName: 'Tiếng Việt',
       flag: '🇻🇳',
     ),
     LanguageOption(
-      locale: const Locale('en', 'US'),
+      locale: const Locale('en'),
       name: 'English',
       nativeName: 'English',
       flag: '🇺🇸',
     ),
     LanguageOption(
-      locale: const Locale('zh', 'CN'),
+      locale: const Locale('zh'),
       name: '中文',
       nativeName: '中文',
       flag: '🇨🇳',
     ),
     LanguageOption(
-      locale: const Locale('ja', 'JP'),
+      locale: const Locale('ja'),
       name: '日本語',
       nativeName: '日本語',
       flag: '🇯🇵',
     ),
     LanguageOption(
-      locale: const Locale('ko', 'KR'),
+      locale: const Locale('ko'),
       name: '한국어',
       nativeName: '한국어',
       flag: '🇰🇷',
     ),
     LanguageOption(
-      locale: const Locale('es', 'ES'),
+      locale: const Locale('es'),
       name: 'Español',
       nativeName: 'Español',
       flag: '🇪🇸',
     ),
     LanguageOption(
-      locale: const Locale('pt', 'BR'),
+      locale: const Locale('pt'),
       name: 'Português',
       nativeName: 'Português',
       flag: '🇧🇷',
     ),
     LanguageOption(
-      locale: const Locale('ar', 'SA'),
+      locale: const Locale('ar'),
       name: 'العربية',
       nativeName: 'العربية',
       flag: '🇸🇦',
     ),
     LanguageOption(
-      locale: const Locale('ru', 'RU'),
+      locale: const Locale('ru'),
       name: 'Русский',
       nativeName: 'Русский',
       flag: '🇷🇺',
@@ -160,7 +160,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   itemCount: _languages.length,
                   itemBuilder: (context, index) {
                     final language = _languages[index];
-                    final isSelected = _selectedLocale == language.locale;
+                    final isSelected = _selectedLocale?.languageCode == language.locale.languageCode;
                     
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),

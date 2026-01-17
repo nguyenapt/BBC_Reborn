@@ -42,12 +42,12 @@ class _GrammarScreenState extends State<GrammarScreen>
     _tabController = TabController(length: 2, vsync: this);
     
     // Xác định tab ban đầu
-    String initialTabName = 'Basic Grammar'; // Default
-    if (widget.initialTab != null && widget.initialTab == 'English Grammar') {
-      _tabController.index = 0; // English Grammar là tab đầu tiên
-      initialTabName = 'English Grammar';
-    } else {
+    String initialTabName = 'English Grammar'; // Default
+    if (widget.initialTab != null && widget.initialTab == 'Basic Grammar') {
       _tabController.index = 1; // Basic Grammar là tab thứ hai
+      initialTabName = 'Basic Grammar';
+    } else {
+      _tabController.index = 0; // English Grammar là tab đầu tiên
     }
     
     // Load data cho tab được chọn
@@ -209,8 +209,8 @@ class _GrammarScreenState extends State<GrammarScreen>
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
-    // 50% hiển thị interstitial ads khi vào episode detail
-    final shouldShowInterstitial = DateTime.now().millisecondsSinceEpoch % 2 == 0;
+    // Luôn hiển thị interstitial ads khi vào episode detail
+    const shouldShowInterstitial = true;
 
     Navigator.push(
       context,
