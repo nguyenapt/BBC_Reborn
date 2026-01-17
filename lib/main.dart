@@ -18,6 +18,7 @@ import 'services/rate_app_service.dart';
 import 'services/heart_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
+import 'services/back_navigation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -170,6 +171,11 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Set callback để reset back timer (cho double back exit)
+    BackNavigationService().setResetBackTimerCallback(() {
+      resetBackTimer();
+    });
     
     // Khởi tạo dữ liệu cho rate app service
     RateAppService.initializeForNewUser();

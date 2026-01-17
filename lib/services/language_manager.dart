@@ -86,8 +86,12 @@ class LanguageManager extends ChangeNotifier {
 
   /// Thay đổi ngôn ngữ
   Future<void> changeLanguage(Locale locale) async {
-    if (supportedLocales.contains(locale)) {
-      _currentLocale = locale;
+    final isSupported = supportedLocales.any(
+      (supported) => supported.languageCode == locale.languageCode,
+    );
+    if (isSupported) {
+      // Chuẩn hóa locale về languageCode để tránh lệch countryCode
+      _currentLocale = Locale(locale.languageCode, '');
       
       // Lưu ngôn ngữ đã chọn
       final prefs = await SharedPreferences.getInstance();

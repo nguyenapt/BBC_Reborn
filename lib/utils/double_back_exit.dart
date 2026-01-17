@@ -29,5 +29,11 @@ mixin DoubleBackExitMixin<T extends StatefulWidget> on State<T> {
     
     return true; // Thoát app
   }
+
+  /// Reset back timer - cho phép double back ngay lập tức
+  /// Được gọi khi user quay lại từ EpisodeDetailScreen mà không hiển thị interstitial ad
+  void resetBackTimer() {
+    _lastBackPressed = null;
+  }
 }
 
