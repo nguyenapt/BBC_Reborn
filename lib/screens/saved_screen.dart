@@ -219,7 +219,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.1),
@@ -245,7 +245,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                 Text(
                   _languageManager.getText('saved'),
                   style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onPrimary,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -253,7 +253,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                 Text(
                   _languageManager.getText('savedDesc'),
                   style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onPrimary.withOpacity(0.8),
+                    color: colorScheme.onSurface.withOpacity(0.8),
                   ),
                 ),
               ],
@@ -264,11 +264,11 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.primaryContainer.withOpacity(0.3),
+              color: colorScheme.surfaceVariant,
             ),
             child: Icon(
               Icons.favorite,
-              color: colorScheme.onPrimary,
+              color: colorScheme.onSurface,
               size: 20,
             ),
           ),

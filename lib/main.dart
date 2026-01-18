@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'screens/home_page.dart';
@@ -77,7 +78,7 @@ class BBCLearningApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: NavigationService.navigatorKey,
-          title: 'Learning English - 6 minutes',
+          title: 'Learning English 6 minutes',
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -232,7 +233,10 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          onWillPop();
+          final shouldExit = onWillPop();
+          if (shouldExit) {
+            SystemNavigator.pop();
+          }
         }
       },
       child: Scaffold(

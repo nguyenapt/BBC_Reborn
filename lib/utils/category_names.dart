@@ -1,6 +1,6 @@
 class CategoryNames {
   static const Map<String, String> _categoryMapping = {
-    '6M': '6 Minutes English',
+    '6M': '6 Minutes Conversation',
     'TEWS': 'The English We Speak',
     'REE': 'Real Easy English',
     '6MGB': '6 Minutes Grammar Basic',

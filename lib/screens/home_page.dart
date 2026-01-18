@@ -5,12 +5,12 @@ import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../widgets/category_group_box.dart';
-import '../widgets/welcome_header.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/heart_widget.dart';
 import 'episode_detail_screen.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
+import 'episode_search_screen.dart';
 
 class HomePage extends StatefulWidget {
   final Function(String)? onNavigateToCategory;
@@ -156,26 +156,10 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPinnedHeader() {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final now = DateTime.now();
-    final hour = now.hour;
-    
-    String greeting;
-    String emoji;
-    
-    if (hour < 12) {
-      greeting = _languageManager.getText('goodMorning');
-      emoji = '🌅';
-    } else if (hour < 17) {
-      greeting = _languageManager.getText('goodAfternoon');
-      emoji = '☀️';
-    } else {
-      greeting = _languageManager.getText('goodEvening');
-      emoji = '🌙';
-    }
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.1),
@@ -195,54 +179,289 @@ class _HomePageState extends State<HomePage> {
         children: [
           Row(
             children: [          
-              // Logo tròn đơn giản
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colorScheme.primaryContainer,
-                  border: Border.all(
-                    color: colorScheme.outline.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    emoji,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Greeting text
+              // App title
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      greeting,
+                      _languageManager.getText('homeTitleMain'),
                       style: theme.textTheme.headlineSmall!.copyWith(
-                        color: colorScheme.onPrimary,
+                        color: colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      _languageManager.getText('welcomeMessage'),
-                      style: theme.textTheme.bodyMedium!.copyWith(
-                        color: colorScheme.onPrimary.withOpacity(0.8),
+                      _languageManager.getText('homeTitleSub'),
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.8),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Heart widget
+              IconButton(
+                onPressed: _openSearch,
+                icon: Icon(
+                  Icons.search,
+                  color: colorScheme.onSurface,
+                ),
+                tooltip: _languageManager.getText('searchEpisodes'),
+              ),
+              const SizedBox(width: 8),
               const HeartWidget(),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _openSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const EpisodeSearchScreen(),
+      ),
+    );
+  }
+
+  Episode? _getLatestEpisode() {
+    Episode? latest;
+    for (final category in _categories) {
+      for (final episode in category.episodes) {
+        if (latest == null || episode.publishedDate.isAfter(latest.publishedDate)) {
+          latest = episode;
+        }
+      }
+    }
+    return latest;
+  }
+
+  void _openLatestEpisode() {
+    final latest = _getLatestEpisode();
+    if (latest == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('noData')),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    _navigateToEpisodeDetail(latest);
+  }
+
+  Widget _buildHeroSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _languageManager.getText('homeHeroTitle'),
+                  style: theme.textTheme.titleMedium!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _languageManager.getText('homeHeroSubtitle'),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _openLatestEpisode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E88E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(_languageManager.getText('startPracticingListening')),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/images/cta_modern.png',
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _languageManager.getText('chooseListeningCategory'),
+            style: theme.textTheme.titleMedium!.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: '6',
+                    title: _languageManager.getText('categorySixMinutes'),
+                    subtitle: _languageManager.getText('categoryConversation'),
+                    color: const Color(0xFFE3F2FD),
+                    badgeColor: const Color(0xFF1E88E5),
+                    onTap: () => _navigateToCategory('6M'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: 'T',
+                    title: _languageManager.getText('categoryTheEnglish'),
+                    subtitle: _languageManager.getText('categoryWeSpeak'),
+                    color: const Color(0xFFFFF3E0),
+                    badgeColor: const Color(0xFFFF9800),
+                    onTap: () => _navigateToCategory('TEWS'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: 'R',
+                    title: _languageManager.getText('categoryRealEasy'),
+                    subtitle: _languageManager.getText('categoryEnglish'),
+                    color: const Color(0xFFE8F5E9),
+                    badgeColor: const Color(0xFF43A047),
+                    onTap: () => _navigateToCategory('REE'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: 'E',
+                    title: _languageManager.getText('categoryEnglish'),
+                    subtitle: _languageManager.getText('categoryGrammar'),
+                    color: const Color(0xFFEDE7F6),
+                    badgeColor: const Color(0xFF7E57C2),
+                    onTap: () => _navigateToCategory('EG'),
+                  ),
+                  _buildCategoryCard(
+                    width: constraints.maxWidth,
+                    letter: 'O',
+                    title: _languageManager.getText('categoryOther'),
+                    subtitle: _languageManager.getText('categoryPrograms'),
+                    color: const Color(0xFFFFF9C4),
+                    badgeColor: const Color(0xFFFFB300),
+                    onTap: () => _navigateToCategory('OTHER'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard({
+    required double width,
+    required String letter,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required Color badgeColor,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: badgeColor,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    letter,
+                    style: theme.textTheme.labelLarge!.copyWith(
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.bodyMedium!.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall!.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -325,7 +544,17 @@ class _HomePageState extends State<HomePage> {
             child: _buildPinnedHeader(),
           ),
           
-          // Banner Ad
+          // CTA Hero
+          SliverToBoxAdapter(
+            child: _buildHeroSection(),
+          ),
+
+          // Category cards
+          SliverToBoxAdapter(
+            child: _buildCategorySection(),
+          ),
+
+          // Banner Ad (below Other Programs)
           SliverToBoxAdapter(
             child: const BannerAdWidget(),
           ),
@@ -343,7 +572,7 @@ class _HomePageState extends State<HomePage> {
               },
               childCount: _categories.length,
             ),
-          ),
+          ),          
           
           // Bottom padding
           const SliverToBoxAdapter(

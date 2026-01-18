@@ -1,8 +1,28 @@
 class AppEn {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Learning English',
-    'welcomeMessage': 'Welcome to Learning English - 6 minutes!',
+    'appTitle': 'Learning English 6 minutes',
+    'welcomeMessage': 'Welcome to Learning English 6 minutes!',
+    'homeTitleMain': 'Learning English',
+    'homeTitleSub': '6 minutes',
+    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
+    'startPracticingListening': 'Start practicing listening',
+    'chooseListeningCategory': 'Choose a listening category',
+    'categorySixMinutes': '6 Minutes',
+    'categoryConversation': 'Conversation',
+    'categoryTheEnglish': 'The English',
+    'categoryWeSpeak': 'We Speak',
+    'categoryRealEasy': 'Real Easy',
+    'categoryEnglish': 'English',
+    'categoryGrammar': 'Grammar',
+    'categoryOther': 'Other',
+    'categoryPrograms': 'Programs',
+    'searchEpisodes': 'Search episodes',
+    'searchHint': 'Search by name, summary, or transcript',
+    'searching': 'Searching...',
+    'searchEmptyHint': 'Type to start searching episodes',
+    'noSearchResults': 'No episodes found',
     
     // Greetings
     'goodMorning': 'Good morning!',

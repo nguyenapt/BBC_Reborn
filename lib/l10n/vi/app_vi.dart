@@ -1,8 +1,28 @@
 class AppVi {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Học Tiếng Anh',
-    'welcomeMessage': 'Chào mừng đến với Learning English - 6 phút!',
+    'appTitle': 'Learning English 6 minutes',
+    'welcomeMessage': 'Chào mừng đến với Learning English 6 minutes!',
+    'homeTitleMain': 'Learning English',
+    'homeTitleSub': '6 minutes',
+    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroSubtitle': 'Luyện nghe hằng ngày với bài học ngắn, hiện đại.',
+    'startPracticingListening': 'Bắt đầu luyện nghe',
+    'chooseListeningCategory': 'Chọn danh mục luyện nghe',
+    'categorySixMinutes': '6 Minutes',
+    'categoryConversation': 'Conversation',
+    'categoryTheEnglish': 'The English',
+    'categoryWeSpeak': 'We Speak',
+    'categoryRealEasy': 'Real Easy',
+    'categoryEnglish': 'English',
+    'categoryGrammar': 'Grammar',
+    'categoryOther': 'Other',
+    'categoryPrograms': 'Programs',
+    'searchEpisodes': 'Tìm kiếm episode',
+    'searchHint': 'Tìm theo tên, tóm tắt, hoặc transcript',
+    'searching': 'Đang tìm kiếm...',
+    'searchEmptyHint': 'Nhập từ khóa để bắt đầu tìm',
+    'noSearchResults': 'Không tìm thấy episode',
     
     // Greetings
     'goodMorning': 'Chào buổi sáng!',

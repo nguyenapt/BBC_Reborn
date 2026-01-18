@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.1),
@@ -108,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   _languageManager.getText('settings'),
                   style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onPrimary,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -116,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   _languageManager.getText('settingsDesc'),
                   style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onPrimary.withOpacity(0.8),
+                    color: colorScheme.onSurface.withOpacity(0.8),
                   ),
                 ),
               ],
@@ -127,11 +127,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.primaryContainer.withOpacity(0.3),
+              color: colorScheme.surfaceVariant,
             ),
             child: Icon(
               Icons.settings,
-              color: colorScheme.onPrimary,
+              color: colorScheme.onSurface,
               size: 20,
             ),
           ),
