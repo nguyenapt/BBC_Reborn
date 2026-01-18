@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
-import '../services/firebase_service.dart';
+import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../utils/category_names.dart';
 import '../widgets/episode_row.dart';
@@ -21,6 +21,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final LanguageManager _languageManager = LanguageManager();
+  final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   
   // Data cho từng tab
   Map<String, List<Episode>> _episodesData = {};
@@ -100,13 +101,18 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       final currentYear = DateTime.now().year;
       final previousYear = currentYear - 1;
       
-      // Lấy dữ liệu từ 2 năm gần nhất
-      final currentYearEpisodes = await FirebaseService.getCategoryData(category, currentYear);
-      final previousYearEpisodes = await FirebaseService.getCategoryData(category, previousYear);
+      // Lấy dữ liệu từ cache trước, API chỉ gọi nếu chưa fetch hôm nay
+      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, currentYear);
+      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, previousYear);
       
-      // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
-      final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
-      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      // Gộp episodes và loại trùng theo id
+      final Map<String, Episode> uniqueEpisodes = {};
+      for (final episode in [...currentYearEpisodes, ...previousYearEpisodes]) {
+        final key = episode.id ?? '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
+        uniqueEpisodes[key] = episode;
+      }
+      final allEpisodes = uniqueEpisodes.values.toList()
+        ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
       
       setState(() {
         _episodesData[category] = allEpisodes;
@@ -152,12 +158,17 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       }
 
       // Lấy dữ liệu năm tiếp theo
-      final nextYearEpisodes = await FirebaseService.getCategoryData(category, nextYear);
+      final nextYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, nextYear);
       
       // Gộp với episodes hiện có và sắp xếp lại
       final currentEpisodes = _episodesData[category] ?? [];
-      final allEpisodes = [...currentEpisodes, ...nextYearEpisodes];
-      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+      final Map<String, Episode> uniqueEpisodes = {};
+      for (final episode in [...currentEpisodes, ...nextYearEpisodes]) {
+        final key = episode.id ?? '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
+        uniqueEpisodes[key] = episode;
+      }
+      final allEpisodes = uniqueEpisodes.values.toList()
+        ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
       
       setState(() {
         _episodesData[category] = allEpisodes;
@@ -259,7 +270,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       for (final category in categories) {
         try {
           print('Loading $category...');
-          final episodes = await FirebaseService.getCategoryDataWithoutYear(category);
+          final episodes = await _episodeCacheService.getCategoryEpisodesWithoutYear(category);
           
           print('$category - Total: ${episodes.length} episodes');
           
@@ -343,7 +354,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.1),
@@ -369,7 +380,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                 Text(
                   _languageManager.getText('categories'),
                   style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onPrimary,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -377,7 +388,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                 Text(
                   _languageManager.getText('selectCategoryToExploreEpisodes'),
                   style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onPrimary.withOpacity(0.8),
+                    color: colorScheme.onSurface.withOpacity(0.8),
                   ),
                 ),
               ],
@@ -388,11 +399,11 @@ class _CategoriesScreenState extends State<CategoriesScreen>
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.primaryContainer.withOpacity(0.3),
+              color: colorScheme.surfaceVariant,
             ),
             child: Icon(
               Icons.list_outlined,
-              color: colorScheme.onPrimary,
+              color: colorScheme.onSurface,
               size: 20,
             ),
           ),

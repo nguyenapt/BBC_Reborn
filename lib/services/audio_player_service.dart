@@ -7,6 +7,8 @@ import '../services/storage_service.dart';
 import '../services/firebase_storage_service.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
+import '../services/local_database_service.dart';
+import '../services/episode_download_service.dart';
 import 'notification_service.dart';
 
 enum AudioPlayerState { stopped, playing, paused, loading }
@@ -23,6 +25,8 @@ class AudioPlayerService extends ChangeNotifier {
   final FirebaseStorageService _firebaseStorageService = FirebaseStorageService();
   final UserService _userService = UserService();
   final AuthService _authService = AuthService();
+  final LocalDatabaseService _localDatabaseService = LocalDatabaseService();
+  final EpisodeDownloadService _downloadService = EpisodeDownloadService();
   
   AudioPlayerState _playerState = AudioPlayerState.stopped;
   Duration _currentPosition = Duration.zero;
@@ -178,8 +182,9 @@ class AudioPlayerService extends ChangeNotifier {
       // Set up audio player listeners
       _setupAudioPlayerListeners();
       
-      // Play audio from URL
-      await _audioPlayer.play(UrlSource(_currentAudioUrl!));
+      // Play audio from URL or local file
+      final source = _buildAudioSource(_currentAudioUrl!);
+      await _audioPlayer.play(source);
       
       _playerState = AudioPlayerState.playing;
       notifyListeners();
@@ -356,10 +361,25 @@ class AudioPlayerService extends ChangeNotifier {
     if (_currentEpisode == null) return;
     
     try {
-      // TODO: Implement actual download
-      await Future.delayed(const Duration(seconds: 2));
+      final episode = _currentEpisode!;
+      final episodeId = episode.id;
+      if (episodeId == null || episodeId.isEmpty) return;
+
+      final remoteUrl = _getRemoteAudioUrl(episode);
+      if (remoteUrl == null) return;
+
+      final fileName = '$episodeId.mp3';
+      final localPath = await _downloadService.downloadAudio(
+        url: remoteUrl,
+        fileName: fileName,
+      );
+      if (localPath == null) return;
+
+      final updatedEpisode = _copyEpisodeWithFileUrl(episode, localPath);
+      await _localDatabaseService.upsertEpisode(updatedEpisode);
+      _updateCurrentEpisode(updatedEpisode);
+      _currentAudioUrl = localPath;
       _isDownloaded = true;
-      await _saveDownloadStatus(_currentEpisode!.id ?? '', true);
       notifyListeners();
     } catch (e) {
       debugPrint('Error downloading episode: $e');
@@ -408,13 +428,76 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Check download status
   Future<bool> _checkDownloadStatus(String episodeId) async {
-    // TODO: Implement actual storage check
-    return false;
+    final fileUrl = await _localDatabaseService.getEpisodeFileUrl(episodeId);
+    if (fileUrl == null || fileUrl.isEmpty) return false;
+    final exists = await _downloadService.fileExists(fileUrl);
+    if (!exists) return false;
+    if (_currentEpisode != null && _currentEpisode!.id == episodeId) {
+      final updatedEpisode = _copyEpisodeWithFileUrl(_currentEpisode!, fileUrl);
+      _updateCurrentEpisode(updatedEpisode);
+      _currentAudioUrl = fileUrl;
+    }
+    return true;
   }
 
   /// Save download status
   Future<void> _saveDownloadStatus(String episodeId, bool isDownloaded) async {
-    // TODO: Implement actual storage save
+    // Download status is derived from local file presence
+  }
+
+  Source _buildAudioSource(String url) {
+    if (_isRemoteUrl(url)) {
+      return UrlSource(url);
+    }
+    final uri = Uri.tryParse(url);
+    if (uri != null && uri.scheme == 'file') {
+      return DeviceFileSource(uri.toFilePath());
+    }
+    return DeviceFileSource(url);
+  }
+
+  bool _isRemoteUrl(String url) {
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  String? _getRemoteAudioUrl(Episode episode) {
+    final primary = episode.fileUrl ?? '';
+    if (primary.isNotEmpty && _isRemoteUrl(primary)) {
+      return primary;
+    }
+    final fallback = episode.secondFileUrl ?? '';
+    if (fallback.isNotEmpty) {
+      return fallback;
+    }
+    return null;
+  }
+
+  Episode _copyEpisodeWithFileUrl(Episode episode, String fileUrl) {
+    return Episode(
+      id: episode.id,
+      actor: episode.actor,
+      category: episode.category,
+      duration: episode.duration,
+      publishedDate: episode.publishedDate,
+      episodeName: episode.episodeName,
+      transcript: episode.transcript,
+      thumbImage: episode.thumbImage,
+      fileUrl: fileUrl,
+      secondFileUrl: episode.secondFileUrl,
+      summary: episode.summary,
+      year: episode.year,
+      transcriptHtml: episode.transcriptHtml,
+      vocabulary: episode.vocabulary,
+      vocabularies: episode.vocabularies,
+    );
+  }
+
+  void _updateCurrentEpisode(Episode updatedEpisode) {
+    _currentEpisode = updatedEpisode;
+    final index = _currentCategoryEpisodes.indexWhere((e) => e.id == updatedEpisode.id);
+    if (index != -1) {
+      _currentCategoryEpisodes[index] = updatedEpisode;
+    }
   }
 
   /// Xử lý khi có cuộc gọi điện thoại đến (app bị gián đoạn)
