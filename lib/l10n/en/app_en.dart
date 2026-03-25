@@ -72,6 +72,8 @@ class AppEn {
     'downloaded': 'Downloaded',
     'episodeInfo': 'Episode Info',
     'transcript': 'Transcript',
+    'reference': 'Reference',
+    'questionsTab': 'Questions',
     'vocabulary': 'Vocabulary',
     'practiceQuestions': 'Practice Questions',
     'checkAnswers': 'Check Answers',
@@ -195,6 +197,57 @@ class AppEn {
     'loadingFavouritesErrorDesc': 'An error occurred: {error}',
     'loadingVocabulariesErrorDesc': 'An error occurred: {error}',
     'doubleBackExit': 'Press the back button again to exit',
+
+    // Speaking practice
+    'speakingPracticeTitle': 'Speaking practice',
+    'speakingTabRepeat': 'Repeat',
+    'speakingTabRoleplay': 'Roleplay',
+    'speakingRepeatBadge': 'REPEAT PRACTICE',
+    'speakingRoleplayBadge': 'ROLEPLAY PRACTICE',
+    'speakingRepeatSubtitleDefault':
+        'Listen to the sample, then repeat each line. Focus on intonation and keywords.',
+    'speakingRoleplaySubtitleDefault':
+        'Choose your role and follow the dialogue. Focus on intonation and vocabulary in context.',
+    'speakingNoTranscript': 'No transcript available for speaking practice.',
+    'speakingNoSpeakersRoleplay': 'This transcript has no speakers for roleplay.',
+    'speakingYou': 'You',
+    'speakingCurrentSentenceBadge': 'PRACTICING NOW',
+    'speakingListenSampleTooltip': 'Listen to sample',
+    'speakingStartRecording': 'Start recording',
+    'speakingStopAndScore': 'Stop & analyze',
+    'speakingHintPracticeSentence': 'Tap to practice this sentence.',
+    'speakingHintFinishForAi': 'Tap to finish and view AI analysis.',
+    'speakingRoleplayPickHint': 'Choose a character below to get started.',
+    'speakingYourTurn': 'YOUR TURN',
+    'speakingRoleplayComplete': 'You have completed all lines for this role.',
+    'speakingHintPracticeLineRoleplay': 'Tap to practice this line.',
+    // Speaking AI analysis
+    'speakingAiAnalysisTitle': 'AI analysis',
+    'speakingAiRealtimeBadge': 'REAL-TIME',
+    'speakingAiPronunciation': 'Pronunciation',
+    'speakingAiYouSaidLine': 'You said: {line}',
+    'speakingAiFluencyExcellent': 'Excellent',
+    'speakingAiFluencyGood': 'Good',
+    'speakingAiFluencyFair': 'Fair',
+    'speakingAiFluencyNeedsWork': 'Needs improvement',
+    'speakingAiFluencyWithLevel': 'Fluency: {level}',
+    'speakingAiFluencyFallback':
+        'Fluency score {percent}%. Keep practicing for a natural pace.',
+    'speakingAiFocusArea': 'PRACTICE FOCUS',
+    'speakingAiFocusFallbackTag': 'Keep practicing this line',
+    'speakingAiOverallAccuracy': 'Overall: {overall} · Accuracy: {accuracy}%',
+
+    // Speaking history
+    'speakingHistoryTitle': 'Speaking history',
+    'speakingHistoryStatAttempts': 'Total attempts: {count}',
+    'speakingHistoryStatAverage': 'Average score: {score}',
+    'speakingHistoryStatSessions': 'Sessions: {count}',
+    'speakingHistoryLastPracticed': 'Last practice: {date}',
+    'speakingHistoryEmpty': 'No speaking practice history yet.',
+    'speakingHistorySessionSubtitle':
+        '{attempts} attempts · Avg {avg}',
+    'speakingHistoryModeLabel': 'Mode',
+
     'loadMore': 'Load More',
   };
 }

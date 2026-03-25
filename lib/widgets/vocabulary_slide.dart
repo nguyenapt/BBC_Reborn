@@ -104,24 +104,8 @@ class _VocabularySlideState extends State<VocabularySlide> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
-              Icon(
-                Icons.book,
-                color: CategoryColors.getCategoryColor(widget.episode.category),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                LanguageManager().getText('vocabulary'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: CategoryColors.getCategoryColor(widget.episode.category),
-                ),
-              ),
-              const Spacer(),
               Text(
                 '${vocabularyItems.length} ${LanguageManager().getText('words')}',
                 style: TextStyle(
@@ -129,8 +113,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Translation button
+              const Spacer(),
               IconButton(
                 icon: _isTranslating
                     ? SizedBox(
@@ -203,8 +186,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Vocabulary Content
+          const SizedBox(height: 12),
           Expanded(
             child: Container(
               width: double.infinity,

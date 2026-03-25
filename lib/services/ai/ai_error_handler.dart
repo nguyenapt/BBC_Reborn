@@ -12,7 +12,7 @@ class AIErrorHandler {
     } else if (error is NetworkException) {
       return 'Network error. Please check your connection.';
     } else if (error is APIException) {
-      return 'AI service error. Trying backup...';
+      return error.message;
     } else if (error is InvalidResponseException) {
       return 'Invalid response from AI service. Please try again.';
     } else if (error is NoHeartsException) {
@@ -93,11 +93,26 @@ class AIErrorHandler {
         try {
           return await action(backupProvider);
         } catch (backupError) {
-          // If backup also fails, throw original error
-          throw e;
+          final backupMsg = backupError is AIException
+              ? backupError.message
+              : backupError.toString();
+          throw AIException(
+            '${e.message} · Backup: $backupMsg',
+            backupError,
+          );
         }
       }
-      
+
+      // Primary returned unusable JSON/text — backup model may still succeed
+      if (e is InvalidResponseException) {
+        debugPrint('⚠️ Invalid response from primary AI, trying backup provider...');
+        try {
+          return await action(backupProvider);
+        } catch (backupError) {
+          rethrow;
+        }
+      }
+
       // For other errors, rethrow
       rethrow;
     }

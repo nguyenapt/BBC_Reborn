@@ -14,6 +14,8 @@ import '../widgets/episode_info_slide.dart';
 import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
 import '../widgets/question_slide.dart';
+import 'speaking_practice_screen.dart';
+import 'speaking_history_screen.dart';
 
 class EpisodeDetailScreen extends StatefulWidget {
   final Episode episode;
@@ -35,7 +37,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
-  int _currentPageIndex = 1; // Mặc định là slide thứ 1 (Episode Info)
+  int _currentPageIndex = 0; // Transcript
   bool _hasShownInterstitialAd = false;
 
   @override
@@ -43,7 +45,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     super.initState();
     _audioService = AudioPlayerService();
     _languageManager = LanguageManager();
-    _pageController = PageController(initialPage: 1); // Khởi tạo ở slide thứ 1 (Episode Info)
+    _pageController = PageController(initialPage: 0);
 
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(widget.episode, widget.categoryEpisodes);
@@ -116,6 +118,31 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SpeakingPracticeScreen(
+                    episode: widget.episode,
+                    audioService: _audioService,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.mic),
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SpeakingHistoryScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history),
+          ),
           // Favourite button
           ListenableBuilder(
             listenable: _audioService,
@@ -283,27 +310,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               ],
             ),
           ),
-          // Carousel Indicators
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPageIndex == index ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _currentPageIndex == index 
-                        ? categoryColor 
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                );
-              }),
-            ),
-          ),
-          // Carousel Content
+          _buildDetailTabs(context, categoryColor),
           Expanded(
             child: PageView(
               controller: _pageController,
@@ -313,16 +320,25 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 });
               },
               children: [
-                // Slide 1: Episode Info
+                ListenableBuilder(
+                  listenable: _audioService,
+                  builder: (context, child) {
+                    return TranscriptSlide(
+                      episode: widget.episode,
+                      currentPositionMs: _audioService.currentPositionMs,
+                      onPlayAtTime: (startTimeMs) {
+                        _audioService.seekTo(Duration(milliseconds: startTimeMs));
+                        _audioService.play();
+                      },
+                    );
+                  },
+                ),
                 EpisodeInfoSlide(
                   languageManager: _languageManager,
                   episode: widget.episode,
                   topEpisodes: widget.categoryEpisodes,
                   onEpisodeTap: (episode) {
-                    // Luôn hiển thị interstitial ads khi vào episode detail
                     const shouldShowInterstitial = true;
-                    
-                    // Navigate to new episode detail với cùng category episodes
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -335,24 +351,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     );
                   },
                 ),
-                // Slide 2: Transcript
-                ListenableBuilder(
-                  listenable: _audioService,
-                  builder: (context, child) {
-                    return TranscriptSlide(
-                      episode: widget.episode,
-                      currentPositionMs: _audioService.currentPositionMs,
-                      onPlayAtTime: (startTimeMs) {
-                        // Seek audio đến thời điểm cụ thể và play
-                        _audioService.seekTo(Duration(milliseconds: startTimeMs));
-                        _audioService.play();
-                      },
-                    );
-                  },
-                ),
-                // Slide 3: Vocabulary
                 VocabularySlide(episode: widget.episode),
-                // Slide 4: Questions
                 QuestionSlide(episode: widget.episode),
               ],
             ),
@@ -376,6 +375,75 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       ),
         );
       },
+    );
+  }
+
+  Widget _buildDetailTabs(BuildContext context, Color categoryColor) {
+    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.55);
+    final tabs = <({IconData icon, String label})>[
+      (icon: Icons.description_rounded, label: _languageManager.getText('transcript')),
+      (icon: Icons.menu_book_rounded, label: _languageManager.getText('reference')),
+      (icon: Icons.translate_rounded, label: _languageManager.getText('vocabulary')),
+      (icon: Icons.quiz_outlined, label: _languageManager.getText('questionsTab')),
+    ];
+
+    const tabRadius = 10.0;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(4, 6, 10, 2),
+      child: Row(
+        children: [
+          ...List.generate(tabs.length, (i) {
+          final selected = _currentPageIndex == i;
+          final t = tabs[i];
+          return Padding(
+            padding: EdgeInsets.only(left: i == 0 ? 0 : 2, right: 2),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(tabRadius),
+                onTap: () {
+                  _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: selected ? categoryColor.withOpacity(0.22) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(tabRadius),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        t.icon,
+                        size: 18,
+                        color: selected ? categoryColor : muted,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        t.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? categoryColor : muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+        const SizedBox(width: 4),
+      ],
+      ),
     );
   }
 
