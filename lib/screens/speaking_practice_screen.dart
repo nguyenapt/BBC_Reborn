@@ -25,6 +25,10 @@ class SpeakingPracticeScreen extends StatefulWidget {
 
 class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     with SingleTickerProviderStateMixin {
+  static const double _headerTitleScale = 0.86;
+  static const double _headerSubtitleScale = 0.9;
+  static const double _transcriptTextScale = 0.88;
+
   late final TabController _tabController;
   final SpeakingPracticeService _practiceService = SpeakingPracticeService();
 
@@ -259,6 +263,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     return Color.lerp(categoryColor, const Color(0xFF1E6B5A), 0.4)!;
   }
 
+  TextStyle _scaledTextStyle(TextStyle? base, double factor, {double fallbackSize = 14}) {
+    final s = base ?? TextStyle(fontSize: fallbackSize);
+    final fs = s.fontSize ?? fallbackSize;
+    return s.copyWith(fontSize: fs * factor);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -303,38 +313,46 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
   Widget _buildPracticeHeader({
     required BuildContext context,
-    required String badge,
-    required Color badgeBg,
-    required Color badgeFg,
+    String? badge,
+    Color? badgeBg,
+    Color? badgeFg,
     required String title,
     required String subtitle,
     required Color titleColor,
   }) {
     final theme = Theme.of(context);
+    final showBadge =
+        badge != null && badge.isNotEmpty && badgeBg != null && badgeFg != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: badgeBg,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              badge,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: badgeFg,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
+          if (showBadge) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: badgeBg,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                badge,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: badgeFg,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           Text(
             title,
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: _scaledTextStyle(
+              theme.textTheme.headlineSmall,
+              _headerTitleScale,
+              fallbackSize: 24,
+            ).copyWith(
               fontWeight: FontWeight.bold,
               color: titleColor,
               height: 1.2,
@@ -343,7 +361,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: _scaledTextStyle(
+              theme.textTheme.bodyMedium,
+              _headerSubtitleScale,
+              fallbackSize: 14,
+            ).copyWith(
               color: titleColor.withValues(alpha: 0.75),
               height: 1.35,
               fontWeight: FontWeight.w500,
@@ -380,8 +402,6 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       return Center(child: Text(lm.getText('speakingNoTranscript')));
     }
 
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final heading = _headingColor(categoryColor);
     final summary = (widget.episode.summary?.trim().isNotEmpty ?? false)
         ? widget.episode.summary!.trim()
@@ -392,14 +412,6 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       children: [
         _buildPracticeHeader(
           context: context,
-          badge: lm.getText('speakingRepeatBadge'),
-          badgeBg: Color.lerp(
-                CategoryColors.getCategoryBackgroundColor(widget.episode.category),
-                cs.secondaryContainer,
-                0.35,
-              ) ??
-              cs.secondaryContainer,
-          badgeFg: cs.onSecondaryContainer,
           title: widget.episode.episodeName,
           subtitle: summary,
           titleColor: heading,
@@ -439,6 +451,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     style: TextStyle(
                       color: heading.withValues(alpha: selected ? 1 : 0.88),
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize:
+                          (Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16) *
+                              _transcriptTextScale,
                     ),
                   ),
                   subtitle: line.speaker.isNotEmpty
@@ -446,7 +461,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                           line.speaker,
                           style: TextStyle(
                             color: heading.withValues(alpha: 0.55),
-                            fontSize: 12,
+                            fontSize:
+                                (Theme.of(context).textTheme.labelSmall?.fontSize ?? 12) *
+                                    _transcriptTextScale,
                           ),
                         )
                       : null,
@@ -501,7 +518,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     children: [
                       Text(
                         lm.getText('speakingYou'),
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: _scaledTextStyle(
+                          theme.textTheme.titleSmall,
+                          _transcriptTextScale,
+                          fallbackSize: 14,
+                        ).copyWith(
                           fontWeight: FontWeight.bold,
                           color: categoryColor,
                         ),
@@ -538,7 +559,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                   const SizedBox(height: 8),
                   Text(
                     line.text,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: _scaledTextStyle(
+                      theme.textTheme.titleMedium,
+                      _transcriptTextScale,
+                      fallbackSize: 16,
+                    ).copyWith(
                       color: heading,
                       height: 1.35,
                       fontWeight: FontWeight.w600,
@@ -560,7 +585,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                           _isRecording
                               ? lm.getText('speakingHintFinishForAi')
                               : lm.getText('speakingHintPracticeSentence'),
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: _scaledTextStyle(
+                            theme.textTheme.bodySmall,
+                            _transcriptTextScale,
+                            fallbackSize: 12,
+                          ).copyWith(
                             color: heading.withValues(alpha: 0.55),
                           ),
                         ),
@@ -626,6 +655,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                             style: TextStyle(
                               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                               color: heading.withValues(alpha: selected ? 1 : 0.65),
+                              fontSize:
+                                  (Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14) *
+                                      _transcriptTextScale,
                             ),
                           ),
                         ],
@@ -652,7 +684,6 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
 
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final heading = _headingColor(categoryColor);
     final summary = (widget.episode.summary?.trim().isNotEmpty ?? false)
         ? widget.episode.summary!.trim()
@@ -664,14 +695,6 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         children: [
           _buildPracticeHeader(
             context: context,
-            badge: lm.getText('speakingRoleplayBadge'),
-            badgeBg: Color.lerp(
-                  CategoryColors.getCategoryBackgroundColor(widget.episode.category),
-                  cs.secondaryContainer,
-                  0.35,
-                ) ??
-                cs.secondaryContainer,
-            badgeFg: cs.onSecondaryContainer,
             title: widget.episode.episodeName,
             subtitle: summary,
             titleColor: heading,
@@ -683,7 +706,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                 child: Text(
                   lm.getText('speakingRoleplayPickHint'),
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  style: _scaledTextStyle(
+                    theme.textTheme.bodyLarge,
+                    _transcriptTextScale,
+                    fallbackSize: 16,
+                  ).copyWith(
                     color: heading.withValues(alpha: 0.65),
                   ),
                 ),
@@ -699,17 +726,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       children: [
         _buildPracticeHeader(
           context: context,
-          badge: lm.getText('speakingRoleplayBadge'),
           title: widget.episode.episodeName,
           subtitle: summary,
           titleColor: heading,
-          badgeBg: Color.lerp(
-                CategoryColors.getCategoryBackgroundColor(widget.episode.category),
-                cs.secondaryContainer,
-                0.35,
-              ) ??
-              cs.secondaryContainer,
-          badgeFg: cs.onSecondaryContainer,
         ),
         _buildRoleplayPersonaBar(context, softBg, categoryColor, heading),
         Expanded(
@@ -760,7 +779,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           Expanded(
             child: Text(
               lm.getText('speakingRoleplayComplete'),
-              style: theme.textTheme.titleSmall?.copyWith(
+              style: _scaledTextStyle(
+                theme.textTheme.titleSmall,
+                _transcriptTextScale,
+                fallbackSize: 14,
+              ).copyWith(
                 color: heading,
                 fontWeight: FontWeight.w600,
               ),
@@ -854,7 +877,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                   children: [
                     Text(
                       line.speaker,
-                      style: theme.textTheme.titleSmall?.copyWith(
+                      style: _scaledTextStyle(
+                        theme.textTheme.titleSmall,
+                        _transcriptTextScale,
+                        fallbackSize: 14,
+                      ).copyWith(
                         fontWeight: FontWeight.w700,
                         color: categoryColor,
                       ),
@@ -865,7 +892,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                         line.speaker.toUpperCase(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
+                        style: _scaledTextStyle(
+                          theme.textTheme.labelSmall,
+                          _transcriptTextScale,
+                          fallbackSize: 11,
+                        ).copyWith(
                           color: heading.withValues(alpha: 0.45),
                           letterSpacing: 0.8,
                           fontWeight: FontWeight.w600,
@@ -877,7 +908,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                 const SizedBox(height: 4),
                 Text(
                   line.text,
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  style: _scaledTextStyle(
+                    theme.textTheme.bodyLarge,
+                    _transcriptTextScale,
+                    fallbackSize: 16,
+                  ).copyWith(
                     color: heading,
                     height: 1.35,
                   ),
@@ -910,7 +945,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               children: [
                 Text(
                   line.speaker,
-                  style: theme.textTheme.labelMedium?.copyWith(
+                  style: _scaledTextStyle(
+                    theme.textTheme.labelMedium,
+                    _transcriptTextScale,
+                    fallbackSize: 12,
+                  ).copyWith(
                     color: categoryColor,
                     fontWeight: FontWeight.w700,
                   ),
@@ -919,7 +958,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                   line.text,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: heading),
+                  style: _scaledTextStyle(
+                    theme.textTheme.bodyMedium,
+                    _transcriptTextScale,
+                    fallbackSize: 14,
+                  ).copyWith(color: heading),
                 ),
               ],
             ),
@@ -966,7 +1009,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     children: [
                       Text(
                         line.speaker,
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: _scaledTextStyle(
+                          theme.textTheme.titleSmall,
+                          _transcriptTextScale,
+                          fallbackSize: 14,
+                        ).copyWith(
                           fontWeight: FontWeight.bold,
                           color: categoryColor,
                         ),
@@ -1003,7 +1050,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                   const SizedBox(height: 6),
                   Text(
                     line.text,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: _scaledTextStyle(
+                      theme.textTheme.titleMedium,
+                      _transcriptTextScale,
+                      fallbackSize: 16,
+                    ).copyWith(
                       color: heading,
                       height: 1.35,
                       fontWeight: FontWeight.w600,
@@ -1025,7 +1076,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                           _isRecording
                               ? lm.getText('speakingHintFinishForAi')
                               : lm.getText('speakingHintPracticeLineRoleplay'),
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: _scaledTextStyle(
+                            theme.textTheme.bodySmall,
+                            _transcriptTextScale,
+                            fallbackSize: 12,
+                          ).copyWith(
                             color: heading.withValues(alpha: 0.55),
                           ),
                         ),

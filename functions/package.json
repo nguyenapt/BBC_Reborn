@@ -1,0 +1,13 @@
+{
+  "name": "bbc-listening-english-functions",
+  "description": "FCM khi có episode mới trong Realtime Database",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "private": true
+}
