@@ -30,6 +30,17 @@ class SpeakingFeedback {
           const [],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'overallScore': overallScore,
+      'pronunciationScore': pronunciationScore,
+      'fluencyScore': fluencyScore,
+      'accuracyScore': accuracyScore,
+      'feedback': feedback,
+      'mistakes': mistakes.map((m) => m.toMap()).toList(),
+    };
+  }
 }
 
 class SpeakingMistake {
@@ -50,4 +61,10 @@ class SpeakingMistake {
       note: map['note']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'expected': expected,
+        'spoken': spoken,
+        'note': note,
+      };
 }

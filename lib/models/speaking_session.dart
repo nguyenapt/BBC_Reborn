@@ -1,6 +1,8 @@
 class SpeakingSession {
   final String id;
   final String episodeId;
+  /// Snapshot tên hiển thị (không phụ thuộc bảng episodes).
+  final String episodeTitle;
   final String mode; // repeat | roleplay
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -10,6 +12,7 @@ class SpeakingSession {
   SpeakingSession({
     required this.id,
     required this.episodeId,
+    this.episodeTitle = '',
     required this.mode,
     required this.createdAt,
     required this.updatedAt,
@@ -25,6 +28,7 @@ class SpeakingSession {
     return SpeakingSession(
       id: id,
       episodeId: episodeId,
+      episodeTitle: episodeTitle,
       mode: mode,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -37,6 +41,7 @@ class SpeakingSession {
     return {
       'id': id,
       'episode_id': episodeId,
+      'episode_title': episodeTitle,
       'mode': mode,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -49,6 +54,7 @@ class SpeakingSession {
     return SpeakingSession(
       id: map['id']?.toString() ?? '',
       episodeId: map['episode_id']?.toString() ?? '',
+      episodeTitle: map['episode_title']?.toString() ?? '',
       mode: map['mode']?.toString() ?? 'repeat',
       createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),

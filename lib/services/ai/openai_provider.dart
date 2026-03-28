@@ -351,11 +351,16 @@ JSON:''';
   }) async {
     final languagePart = language != null ? '\nLanguage: $language' : '';
     final prompt = '''
-You are a speaking coach. Compare the reference and spoken transcripts.
+You are a speaking coach focused on pronunciation and clarity. Compare the reference and spoken transcripts.
 Return ONLY a valid JSON object with scoring and feedback. No markdown.
 
 Reference: "$referenceText"
 Spoken: "$spokenText"$languagePart
+
+Rules for "mistakes":
+- Each "expected" MUST be copied exactly as a substring from Reference (same spelling; you may use a single word or short phrase).
+- "spoken" is what the user actually said (from Spoken) for that slip.
+- "note" is a concise pronunciation fix: how to shape the sound, stress, or mouth position (optional IPA in slashes if helpful).
 
 Return format:
 {
@@ -366,9 +371,9 @@ Return format:
   "feedback": "short actionable feedback",
   "mistakes": [
     {
-      "expected": "word or phrase",
+      "expected": "word or phrase from Reference",
       "spoken": "what user said",
-      "note": "short hint"
+      "note": "how to fix pronunciation"
     }
   ]
 }

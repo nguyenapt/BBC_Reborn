@@ -16,7 +16,7 @@ class LocalDatabaseService {
   LocalDatabaseService._internal();
 
   static const String _dbName = 'learning_english_cache.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
   static const int noYear = -1;
 
   Database? _db;
@@ -100,6 +100,32 @@ class LocalDatabaseService {
     if (oldVersion < 2) {
       await _createSpeakingTables(db);
     }
+    if (oldVersion < 3) {
+      await _upgradeSpeakingToV3(db);
+    }
+  }
+
+  Future<void> _upgradeSpeakingToV3(Database db) async {
+    try {
+      await db.execute(
+        'ALTER TABLE speaking_sessions ADD COLUMN episode_title TEXT NOT NULL DEFAULT ""',
+      );
+    } catch (_) {}
+    try {
+      await db.execute('ALTER TABLE speaking_attempts ADD COLUMN feedback_json TEXT');
+    } catch (_) {}
+    try {
+      await db.execute('ALTER TABLE speaking_attempts ADD COLUMN user_recording_path TEXT');
+    } catch (_) {}
+    try {
+      await db.execute('ALTER TABLE speaking_attempts ADD COLUMN line_start_ms INTEGER');
+    } catch (_) {}
+    try {
+      await db.execute('ALTER TABLE speaking_attempts ADD COLUMN line_end_ms INTEGER');
+    } catch (_) {}
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_speaking_attempts_line ON speaking_attempts(episode_id, mode, line_index)',
+    );
   }
 
   Future<void> _createSpeakingTables(Database db) async {
@@ -107,6 +133,7 @@ class LocalDatabaseService {
       CREATE TABLE IF NOT EXISTS speaking_sessions (
         id TEXT PRIMARY KEY,
         episode_id TEXT NOT NULL,
+        episode_title TEXT NOT NULL DEFAULT '',
         mode TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -127,6 +154,10 @@ class LocalDatabaseService {
         recognized_text TEXT NOT NULL,
         score REAL NOT NULL,
         feedback TEXT NOT NULL,
+        feedback_json TEXT,
+        user_recording_path TEXT,
+        line_start_ms INTEGER,
+        line_end_ms INTEGER,
         duration_ms INTEGER NOT NULL,
         created_at TEXT NOT NULL
       )
@@ -135,6 +166,9 @@ class LocalDatabaseService {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_speaking_session_episode ON speaking_sessions(episode_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_speaking_attempts_session ON speaking_attempts(session_id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_speaking_attempts_episode ON speaking_attempts(episode_id)');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_speaking_attempts_line ON speaking_attempts(episode_id, mode, line_index)',
+    );
   }
 
   Future<DateTime?> getCategoryLastFetched(String category, int year) async {
@@ -315,6 +349,29 @@ class LocalDatabaseService {
     return rows.map(SpeakingSession.fromMap).toList();
   }
 
+  /// Map `episode_id` → `episode_name` cho màn history (một truy vấn).
+  Future<Map<String, String>> getEpisodeDisplayNamesByIds(
+    Set<String> episodeIds,
+  ) async {
+    final ids = episodeIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return {};
+    final db = await database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT id, episode_name FROM episodes WHERE id IN ($placeholders)',
+      ids,
+    );
+    final map = <String, String>{};
+    for (final row in rows) {
+      final id = row['id']?.toString();
+      final name = row['episode_name']?.toString() ?? '';
+      if (id != null && id.isNotEmpty && name.isNotEmpty) {
+        map[id] = name;
+      }
+    }
+    return map;
+  }
+
   Future<List<SpeakingAttempt>> getSpeakingAttempts(String sessionId) async {
     final db = await database;
     final rows = await db.query(
@@ -374,7 +431,7 @@ class LocalDatabaseService {
     final resolvedYear = year == noYear
         ? (int.tryParse(episode.year ?? '') ?? noYear)
         : year;
-    final id = episode.id ?? _fallbackId(category, episode);
+    final id = episode.resolvedStorageId;
 
     return {
       'id': id,
@@ -435,9 +492,58 @@ class LocalDatabaseService {
     );
   }
 
-  String _fallbackId(String category, Episode episode) {
+  /// Episode không có Firebase id — cùng quy tắc với [Episode.resolvedStorageId].
+  String fallbackEpisodeId(String category, Episode episode) {
     final safeName = episode.episodeName.replaceAll(RegExp(r'\s+'), '_');
     final date = episode.publishedDate.toIso8601String();
     return '$category-$date-$safeName';
+  }
+
+  Future<Episode?> getEpisodeById(String episodeId) async {
+    if (episodeId.isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'episodes',
+      where: 'id = ?',
+      whereArgs: [episodeId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return _episodeFromRow(rows.first);
+  }
+
+  /// Lịch sử attempt theo dòng (repeat/roleplay), speaker khớp khi có.
+  Future<List<SpeakingAttempt>> getSpeakingAttemptsForLine({
+    required String episodeId,
+    required String mode,
+    required int lineIndex,
+    String? speaker,
+    int limit = 30,
+  }) async {
+    if (episodeId.isEmpty) return [];
+    final db = await database;
+    final sp = speaker ?? '';
+    final rows = await db.query(
+      'speaking_attempts',
+      where:
+          'episode_id = ? AND mode = ? AND line_index = ? AND ifnull(speaker, \'\') = ?',
+      whereArgs: [episodeId, mode, lineIndex, sp],
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return rows.map(SpeakingAttempt.fromMap).toList();
+  }
+
+  Future<SpeakingAttempt?> getSpeakingAttemptById(String attemptId) async {
+    if (attemptId.isEmpty) return null;
+    final db = await database;
+    final rows = await db.query(
+      'speaking_attempts',
+      where: 'id = ?',
+      whereArgs: [attemptId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return SpeakingAttempt.fromMap(rows.first);
   }
 }

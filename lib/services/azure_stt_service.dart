@@ -99,17 +99,29 @@ class AzureSttService {
       throw APIException('Azure Speech key not configured');
     }
 
-    final endpoint = _buildEndpoint(language);
     final file = File(filePath);
     if (!await file.exists()) {
       throw APIException('Audio file not found');
     }
 
     final audioBytes = await file.readAsBytes();
+    return transcribeWavBytes(audioBytes, language: language);
+  }
+
+  Future<String> transcribeWavBytes(
+    Uint8List audioBytes, {
+    String language = 'en-US',
+  }) async {
+    final key = AIConfig.getAzureSpeechKey();
+    if (key.isEmpty) {
+      throw APIException('Azure Speech key not configured');
+    }
+
     if (audioBytes.isEmpty) {
       throw APIException('Audio file is empty');
     }
 
+    final endpoint = _buildEndpoint(language);
     final sampleRate = _effectiveSampleRate(Uint8List.sublistView(audioBytes));
     final headersBase = {
       'Ocp-Apim-Subscription-Key': key,

@@ -1,12 +1,22 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:record/record.dart';
 import '../models/episode.dart';
+import '../models/speaking_attempt.dart';
+import '../models/speaking_feedback.dart';
 import '../models/speaking_session.dart';
 import '../models/transcript_line.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../services/audio_player_service.dart';
 import '../services/language_manager.dart';
+import '../services/local_database_service.dart';
 import '../services/speaking_practice_service.dart';
 import '../utils/category_colors.dart';
+import '../widgets/transcript_native_ad_widget.dart';
 import 'speaking_ai_analysis_screen.dart';
 
 class SpeakingPracticeScreen extends StatefulWidget {
@@ -24,16 +34,29 @@ class SpeakingPracticeScreen extends StatefulWidget {
 }
 
 class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _headerTitleScale = 0.86;
   static const double _headerSubtitleScale = 0.9;
   static const double _transcriptTextScale = 0.88;
 
+  /// dBFS: giá trị [current] lớn hơn ngưỡng = có tiếng nói (theo package record).
+  static const double _repeatSoundThresholdDb = -38;
+  static const int _repeatMinRecordingMs = 700;
+  static const int _repeatSilenceAfterSpeechMs = 1400;
+  static const int _repeatMaxRecordingMs = 60000;
+
   late final TabController _tabController;
+  late final AnimationController _repeatPulseController;
   final SpeakingPracticeService _practiceService = SpeakingPracticeService();
+  final LocalDatabaseService _db = LocalDatabaseService();
+
+  /// Đổi khi có attempt mới — refresh FutureBuilder lịch sử dòng.
+  int _lineHistoryGeneration = 0;
 
   List<TranscriptLine> _lines = [];
   List<String> _speakers = [];
+  /// Vị trí chèn native ad trong transcript (cùng logic [TranscriptSlide]).
+  List<int> _transcriptAdPositions = [];
 
   TranscriptLine? _repeatSelectedLine;
 
@@ -46,15 +69,80 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
   bool _isRecording = false;
   bool _isProcessing = false;
 
+  StreamSubscription<Amplitude>? _repeatAmpSub;
+  DateTime? _repeatRecordingStartedAt;
+  DateTime _repeatLastSoundAt = DateTime.now();
+  bool _repeatHasDetectedSpeech = false;
+  bool _repeatAutoStopScheduled = false;
+
+  String? _repeatPendingPath;
+  int? _repeatPendingDurationMs;
+  bool _repeatAwaitingSend = false;
+  bool _repeatAnalysisInProgress = false;
+
+  StreamSubscription<Amplitude>? _roleplayAmpSub;
+  DateTime? _roleplayRecordingStartedAt;
+  DateTime _roleplayLastSoundAt = DateTime.now();
+  bool _roleplayHasDetectedSpeech = false;
+  bool _roleplayAutoStopScheduled = false;
+  String? _roleplayPendingPath;
+  int? _roleplayPendingDurationMs;
+  bool _roleplayAwaitingSend = false;
+  bool _roleplayAnalysisInProgress = false;
+
+  /// Tránh song song stop/ghi giữa Repeat và Roleplay hoặc auto vs thủ công.
+  bool _micStopInProgress = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _repeatPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
     _prepareTranscriptLines();
+  }
+
+  void _disposeRecordingSync() {
+    _repeatAmpSub?.cancel();
+    _repeatAmpSub = null;
+    _roleplayAmpSub?.cancel();
+    _roleplayAmpSub = null;
+    if (_isRecording) {
+      unawaited(_practiceService.cancelRecording());
+    }
+    _isRecording = false;
+    _repeatAutoStopScheduled = false;
+    _repeatRecordingStartedAt = null;
+    _repeatHasDetectedSpeech = false;
+    _roleplayAutoStopScheduled = false;
+    _roleplayRecordingStartedAt = null;
+    _roleplayHasDetectedSpeech = false;
+    _repeatPulseController.stop();
+    _repeatPulseController.reset();
+    final pr = _repeatPendingPath;
+    if (pr != null) {
+      _practiceService.discardRecordingFile(pr);
+    }
+    _repeatPendingPath = null;
+    _repeatPendingDurationMs = null;
+    _repeatAwaitingSend = false;
+    _repeatAnalysisInProgress = false;
+    final pp = _roleplayPendingPath;
+    if (pp != null) {
+      _practiceService.discardRecordingFile(pp);
+    }
+    _roleplayPendingPath = null;
+    _roleplayPendingDurationMs = null;
+    _roleplayAwaitingSend = false;
+    _roleplayAnalysisInProgress = false;
   }
 
   @override
   void dispose() {
+    _disposeRecordingSync();
+    _repeatPulseController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -74,6 +162,42 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     if (_lines.isNotEmpty) {
       _repeatSelectedLine = _lines.first;
     }
+    _calculateTranscriptAdPositions();
+  }
+
+  void _calculateTranscriptAdPositions() {
+    if (kIsWeb) {
+      _transcriptAdPositions = [];
+      return;
+    }
+    final totalItems = _lines.length;
+    if (totalItems < 20) {
+      if (totalItems > 0) {
+        _transcriptAdPositions = [totalItems ~/ 2];
+      } else {
+        _transcriptAdPositions = [];
+      }
+    } else {
+      _transcriptAdPositions = [
+        totalItems ~/ 3,
+        totalItems * 2 ~/ 3,
+      ];
+    }
+  }
+
+  Widget _speakingTranscriptNativeAdSlot() {
+    if (kIsWeb) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: TranscriptNativeAdWidget(
+        category: widget.episode.category,
+      ),
+    );
   }
 
   List<TranscriptLine> _fallbackParseTranscript(String transcript) {
@@ -105,94 +229,484 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  Future<void> _startRecording() async {
+  Future<void> _stopRepeatMicAndResetUi() async {
+    await _repeatAmpSub?.cancel();
+    _repeatAmpSub = null;
+    final wasRepeat = _repeatRecordingStartedAt != null;
+    if (wasRepeat && _isRecording) {
+      await _practiceService.cancelRecording();
+    }
+    _repeatPulseController.stop();
+    _repeatPulseController.reset();
+    if (mounted) {
+      setState(() {
+        if (wasRepeat) _isRecording = false;
+        _repeatAutoStopScheduled = false;
+        _repeatRecordingStartedAt = null;
+        _repeatHasDetectedSpeech = false;
+      });
+    }
+  }
+
+  Future<void> _stopRoleplayMicAndResetUi() async {
+    await _roleplayAmpSub?.cancel();
+    _roleplayAmpSub = null;
+    final wasRoleplay = _roleplayRecordingStartedAt != null;
+    if (wasRoleplay && _isRecording) {
+      await _practiceService.cancelRecording();
+    }
+    _repeatPulseController.stop();
+    _repeatPulseController.reset();
+    if (mounted) {
+      setState(() {
+        if (wasRoleplay) _isRecording = false;
+        _roleplayAutoStopScheduled = false;
+        _roleplayRecordingStartedAt = null;
+        _roleplayHasDetectedSpeech = false;
+      });
+    }
+  }
+
+  void _discardRoleplaySavedClip() {
+    final p = _roleplayPendingPath;
+    if (p != null) {
+      _practiceService.discardRecordingFile(p);
+    }
+    _roleplayPendingPath = null;
+    _roleplayPendingDurationMs = null;
+    _roleplayAwaitingSend = false;
+  }
+
+  void _discardRepeatSavedClip() {
+    final p = _repeatPendingPath;
+    if (p != null) {
+      _practiceService.discardRecordingFile(p);
+    }
+    _repeatPendingPath = null;
+    _repeatPendingDurationMs = null;
+    _repeatAwaitingSend = false;
+  }
+
+  Future<void> _startRepeatRecording() async {
+    await _stopRepeatMicAndResetUi();
+    await _stopRoleplayMicAndResetUi();
+    _discardRepeatSavedClip();
+    _discardRoleplaySavedClip();
+
+    final started = DateTime.now();
+    _repeatRecordingStartedAt = started;
+    _repeatLastSoundAt = started;
+    _repeatHasDetectedSpeech = false;
     setState(() {
       _isRecording = true;
       _isProcessing = false;
     });
-    await _practiceService.startRecording();
-  }
-
-  Future<void> _stopAndEvaluateRepeat() async {
-    if (_repeatSelectedLine == null) return;
-    await _ensureSession('repeat');
-
-    setState(() {
-      _isProcessing = true;
-      _isRecording = false;
-    });
+    _repeatPulseController.repeat(reverse: true);
 
     try {
-      final result = await _practiceService.stopRecordingAndEvaluate(
+      await _practiceService.startRecording();
+    } catch (e) {
+      await _stopRepeatMicAndResetUi();
+      if (mounted) _showError(e);
+      return;
+    }
+
+    _repeatAmpSub = _practiceService.onRecordingAmplitudeChanged().listen(
+      _onRepeatAmplitude,
+      onError: (_) {},
+    );
+  }
+
+  void _onRepeatAmplitude(Amplitude amplitude) {
+    if (!mounted || !_isRecording || _repeatRecordingStartedAt == null) return;
+
+    final now = DateTime.now();
+    if (amplitude.current > _repeatSoundThresholdDb) {
+      _repeatHasDetectedSpeech = true;
+      _repeatLastSoundAt = now;
+    }
+
+    final recMs = now.difference(_repeatRecordingStartedAt!).inMilliseconds;
+    final silentMs = now.difference(_repeatLastSoundAt).inMilliseconds;
+
+    final silenceEnded = _repeatHasDetectedSpeech &&
+        recMs >= _repeatMinRecordingMs &&
+        silentMs >= _repeatSilenceAfterSpeechMs;
+    final maxLenEnded = recMs >= _repeatMaxRecordingMs;
+
+    if ((silenceEnded || maxLenEnded) &&
+        !_repeatAutoStopScheduled &&
+        !_micStopInProgress) {
+      _repeatAutoStopScheduled = true;
+      unawaited(_autoStopRepeatRecording());
+    }
+  }
+
+  void _onRoleplayAmplitude(Amplitude amplitude) {
+    if (!mounted || !_isRecording || _roleplayRecordingStartedAt == null) return;
+
+    final now = DateTime.now();
+    if (amplitude.current > _repeatSoundThresholdDb) {
+      _roleplayHasDetectedSpeech = true;
+      _roleplayLastSoundAt = now;
+    }
+
+    final recMs = now.difference(_roleplayRecordingStartedAt!).inMilliseconds;
+    final silentMs = now.difference(_roleplayLastSoundAt).inMilliseconds;
+
+    final silenceEnded = _roleplayHasDetectedSpeech &&
+        recMs >= _repeatMinRecordingMs &&
+        silentMs >= _repeatSilenceAfterSpeechMs;
+    final maxLenEnded = recMs >= _repeatMaxRecordingMs;
+
+    if ((silenceEnded || maxLenEnded) &&
+        !_roleplayAutoStopScheduled &&
+        !_micStopInProgress) {
+      _roleplayAutoStopScheduled = true;
+      unawaited(_autoStopRoleplayRecording());
+    }
+  }
+
+  Future<void> _autoStopRoleplayRecording() async {
+    if (_micStopInProgress) return;
+    _micStopInProgress = true;
+    await _roleplayAmpSub?.cancel();
+    _roleplayAmpSub = null;
+
+    if (!mounted) {
+      _micStopInProgress = false;
+      return;
+    }
+
+    try {
+      final kept = await _practiceService.stopRecordingKeepFile();
+      if (!mounted) return;
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
+      setState(() {
+        _isRecording = false;
+        _roleplayAwaitingSend = true;
+        _roleplayPendingPath = kept.path;
+        _roleplayPendingDurationMs = kept.durationMs;
+        _roleplayAutoStopScheduled = false;
+        _roleplayRecordingStartedAt = null;
+      });
+    } catch (e) {
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _roleplayAutoStopScheduled = false;
+          _roleplayRecordingStartedAt = null;
+        });
+      }
+      _showError(e);
+    } finally {
+      _micStopInProgress = false;
+    }
+  }
+
+  Future<void> _autoStopRepeatRecording() async {
+    if (_micStopInProgress) return;
+    _micStopInProgress = true;
+    await _repeatAmpSub?.cancel();
+    _repeatAmpSub = null;
+
+    if (!mounted) {
+      _micStopInProgress = false;
+      return;
+    }
+
+    try {
+      final kept = await _practiceService.stopRecordingKeepFile();
+      if (!mounted) return;
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
+      setState(() {
+        _isRecording = false;
+        _repeatAwaitingSend = true;
+        _repeatPendingPath = kept.path;
+        _repeatPendingDurationMs = kept.durationMs;
+        _repeatAutoStopScheduled = false;
+        _repeatRecordingStartedAt = null;
+      });
+    } catch (e) {
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          _repeatAutoStopScheduled = false;
+          _repeatRecordingStartedAt = null;
+        });
+      }
+      _showError(e);
+    } finally {
+      _micStopInProgress = false;
+    }
+  }
+
+  /// Dừng ghi thủ công và gửi phân tích ngay (nút Recording).
+  Future<void> _forceStopRepeatAndSendAnalysis() async {
+    if (!_isRecording || _isProcessing || _repeatSelectedLine == null) return;
+    if (_micStopInProgress) return;
+
+    _micStopInProgress = true;
+    await _repeatAmpSub?.cancel();
+    _repeatAmpSub = null;
+
+    if (!mounted) {
+      _micStopInProgress = false;
+      return;
+    }
+
+    setState(() {
+      _isRecording = false;
+      _isProcessing = true;
+      _repeatAnalysisInProgress = true;
+      _repeatAutoStopScheduled = false;
+      _repeatRecordingStartedAt = null;
+      _repeatAwaitingSend = false;
+      _repeatPendingPath = null;
+      _repeatPendingDurationMs = null;
+    });
+    _repeatPulseController.stop();
+    _repeatPulseController.reset();
+
+    try {
+      final kept = await _practiceService.stopRecordingKeepFile();
+      await _ensureSession('repeat');
+
+      final result = await _practiceService.evaluateRecordingFile(
+        recordingPath: kept.path,
+        durationMs: kept.durationMs,
         session: _repeatSession!,
         episode: widget.episode,
         mode: 'repeat',
         lineText: _repeatSelectedLine!.text,
         lineIndex: _lines.indexOf(_repeatSelectedLine!),
         speaker: _repeatSelectedLine!.speaker,
+        lineStartMs: _repeatSelectedLine!.startTime,
+        lineEndMs: _repeatSelectedLine!.endTime,
       );
       _repeatSession = result.updatedSession;
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
+        _repeatAnalysisInProgress = false;
       });
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          fullscreenDialog: true,
-          builder: (ctx) => SpeakingAiAnalysisScreen(
-            episode: widget.episode,
-            feedback: result.feedback,
-            recognizedText: result.attempt.recognizedText,
-          ),
-        ),
-      );
+      await _navigateToAnalysis(result, _repeatSelectedLine!);
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _repeatAnalysisInProgress = false;
+        });
+      }
       _showError(e);
+    } finally {
+      _micStopInProgress = false;
     }
   }
 
-  Future<void> _stopAndEvaluateRoleplay() async {
+  Future<void> _startRoleplayRecording() async {
     final line = _currentRoleplayLine();
     if (line == null) return;
-    await _ensureSession('roleplay');
 
+    await _stopRoleplayMicAndResetUi();
+    await _stopRepeatMicAndResetUi();
+    _discardRoleplaySavedClip();
+    _discardRepeatSavedClip();
+
+    final started = DateTime.now();
+    _roleplayRecordingStartedAt = started;
+    _roleplayLastSoundAt = started;
+    _roleplayHasDetectedSpeech = false;
     setState(() {
-      _isProcessing = true;
-      _isRecording = false;
+      _isRecording = true;
+      _isProcessing = false;
     });
+    _repeatPulseController.repeat(reverse: true);
 
     try {
-      final result = await _practiceService.stopRecordingAndEvaluate(
+      await _practiceService.startRecording();
+    } catch (e) {
+      await _stopRoleplayMicAndResetUi();
+      if (mounted) _showError(e);
+      return;
+    }
+
+    _roleplayAmpSub = _practiceService.onRecordingAmplitudeChanged().listen(
+      _onRoleplayAmplitude,
+      onError: (_) {},
+    );
+  }
+
+  Future<void> _forceStopRoleplayAndSendAnalysis() async {
+    final line = _currentRoleplayLine();
+    if (!_isRecording || _isProcessing || line == null) return;
+    if (_micStopInProgress) return;
+
+    _micStopInProgress = true;
+    await _roleplayAmpSub?.cancel();
+    _roleplayAmpSub = null;
+
+    if (!mounted) {
+      _micStopInProgress = false;
+      return;
+    }
+
+    setState(() {
+      _isRecording = false;
+      _isProcessing = true;
+      _roleplayAnalysisInProgress = true;
+      _roleplayAutoStopScheduled = false;
+      _roleplayRecordingStartedAt = null;
+      _roleplayAwaitingSend = false;
+      _roleplayPendingPath = null;
+      _roleplayPendingDurationMs = null;
+    });
+    _repeatPulseController.stop();
+    _repeatPulseController.reset();
+
+    try {
+      final kept = await _practiceService.stopRecordingKeepFile();
+      await _ensureSession('roleplay');
+
+      final result = await _practiceService.evaluateRecordingFile(
+        recordingPath: kept.path,
+        durationMs: kept.durationMs,
         session: _roleplaySession!,
         episode: widget.episode,
         mode: 'roleplay',
         lineText: line.text,
         lineIndex: _lines.indexOf(line),
         speaker: line.speaker,
+        lineStartMs: line.startTime,
+        lineEndMs: line.endTime,
       );
       _roleplaySession = result.updatedSession;
       if (!mounted) return;
       setState(() {
-        _roleplayIndex = _roleplayIndex + 1;
         _isProcessing = false;
+        _roleplayAnalysisInProgress = false;
+        _roleplayIndex = _roleplayIndex + 1;
       });
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          fullscreenDialog: true,
-          builder: (ctx) => SpeakingAiAnalysisScreen(
-            episode: widget.episode,
-            feedback: result.feedback,
-            recognizedText: result.attempt.recognizedText,
-          ),
-        ),
-      );
+      await _navigateToAnalysis(result, line);
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _roleplayAnalysisInProgress = false;
+        });
+      }
+      _showError(e);
+    } finally {
+      _micStopInProgress = false;
+    }
+  }
+
+  Future<void> _sendRepeatAnalysis() async {
+    if (_repeatSelectedLine == null) return;
+    final path = _repeatPendingPath;
+    final dur = _repeatPendingDurationMs;
+    if (path == null || dur == null) return;
+
+    await _ensureSession('repeat');
+
+    setState(() {
+      _isProcessing = true;
+      _repeatAnalysisInProgress = true;
+    });
+
+    try {
+      final result = await _practiceService.evaluateRecordingFile(
+        recordingPath: path,
+        durationMs: dur,
+        session: _repeatSession!,
+        episode: widget.episode,
+        mode: 'repeat',
+        lineText: _repeatSelectedLine!.text,
+        lineIndex: _lines.indexOf(_repeatSelectedLine!),
+        speaker: _repeatSelectedLine!.speaker,
+        lineStartMs: _repeatSelectedLine!.startTime,
+        lineEndMs: _repeatSelectedLine!.endTime,
+      );
+      _repeatSession = result.updatedSession;
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
+        _repeatAnalysisInProgress = false;
+        _repeatPendingPath = null;
+        _repeatPendingDurationMs = null;
+        _repeatAwaitingSend = false;
       });
+      await _navigateToAnalysis(result, _repeatSelectedLine!);
+    } catch (e) {
+      _practiceService.discardRecordingFile(path);
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _repeatAnalysisInProgress = false;
+          _repeatPendingPath = null;
+          _repeatPendingDurationMs = null;
+          _repeatAwaitingSend = false;
+        });
+      }
+      _showError(e);
+    }
+  }
+
+  Future<void> _sendRoleplayAnalysis() async {
+    final line = _currentRoleplayLine();
+    if (line == null) return;
+    final path = _roleplayPendingPath;
+    final dur = _roleplayPendingDurationMs;
+    if (path == null || dur == null) return;
+
+    await _ensureSession('roleplay');
+
+    setState(() {
+      _isProcessing = true;
+      _roleplayAnalysisInProgress = true;
+    });
+
+    try {
+      final result = await _practiceService.evaluateRecordingFile(
+        recordingPath: path,
+        durationMs: dur,
+        session: _roleplaySession!,
+        episode: widget.episode,
+        mode: 'roleplay',
+        lineText: line.text,
+        lineIndex: _lines.indexOf(line),
+        speaker: line.speaker,
+        lineStartMs: line.startTime,
+        lineEndMs: line.endTime,
+      );
+      _roleplaySession = result.updatedSession;
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _roleplayAnalysisInProgress = false;
+        _roleplayPendingPath = null;
+        _roleplayPendingDurationMs = null;
+        _roleplayAwaitingSend = false;
+        _roleplayIndex = _roleplayIndex + 1;
+      });
+      await _navigateToAnalysis(result, line);
+    } catch (e) {
+      _practiceService.discardRecordingFile(path);
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _roleplayAnalysisInProgress = false;
+          _roleplayPendingPath = null;
+          _roleplayPendingDurationMs = null;
+          _roleplayAwaitingSend = false;
+        });
+      }
       _showError(e);
     }
   }
@@ -247,6 +761,191 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
+    }
+  }
+
+  Future<void> _openAnalysisFromAttempt(SpeakingAttempt attempt) async {
+    var ep = widget.episode;
+    if (attempt.episodeId != widget.episode.resolvedStorageId) {
+      final loaded = await LocalDatabaseService().getEpisodeById(attempt.episodeId);
+      if (loaded != null) ep = loaded;
+    }
+    SpeakingFeedback feedback;
+    if (attempt.feedbackJson != null && attempt.feedbackJson!.trim().isNotEmpty) {
+      try {
+        feedback = SpeakingFeedback.fromMap(
+          jsonDecode(attempt.feedbackJson!) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        feedback = SpeakingFeedback(
+          overallScore: attempt.score,
+          pronunciationScore: attempt.score,
+          fluencyScore: attempt.score,
+          accuracyScore: attempt.score,
+          feedback: attempt.feedback,
+          mistakes: const [],
+        );
+      }
+    } else {
+      feedback = SpeakingFeedback(
+        overallScore: attempt.score,
+        pronunciationScore: attempt.score,
+        fluencyScore: attempt.score,
+        accuracyScore: attempt.score,
+        feedback: attempt.feedback,
+        mistakes: const [],
+      );
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (ctx) => SpeakingAiAnalysisScreen(
+          episode: ep,
+          feedback: feedback,
+          recognizedText: attempt.recognizedText,
+          referenceLineText: attempt.lineText,
+          lineStartMs: attempt.lineStartMs,
+          lineEndMs: attempt.lineEndMs,
+          userRecordingPath: attempt.userRecordingPath,
+          enableExitInterstitial: false,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLineHistorySheet(String mode, TranscriptLine line) async {
+    final idx = _lines.indexOf(line);
+    if (idx < 0) return;
+    final list = await _db.getSpeakingAttemptsForLine(
+      episodeId: widget.episode.resolvedStorageId,
+      mode: mode,
+      lineIndex: idx,
+      speaker: line.speaker,
+    );
+    if (!mounted) return;
+    final lm = LanguageManager();
+    final loc = lm.currentLocale.toString();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final maxH = MediaQuery.of(context).size.height * 0.5;
+        if (list.isEmpty) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                lm.getText('speakingLineHistoryEmpty'),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Text(
+                  lm.getText('speakingLineHistoryTitle'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              SizedBox(
+                height: maxH,
+                child: ListView.builder(
+                  itemCount: list.length,
+                  itemBuilder: (context, i) {
+                    final a = list[i];
+                    String dateStr;
+                    try {
+                      dateStr = DateFormat.yMMMd(loc).add_Hm().format(a.createdAt.toLocal());
+                    } catch (_) {
+                      dateStr = DateFormat.yMMMd().add_Hm().format(a.createdAt.toLocal());
+                    }
+                    return ListTile(
+                      leading: const Icon(Icons.analytics_outlined),
+                      title: Text(
+                        lm.getTextWithParams('speakingHistoryAttemptScore', {
+                          'score': a.score.toStringAsFixed(0),
+                        }),
+                      ),
+                      subtitle: Text(dateStr),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        unawaited(_openAnalysisFromAttempt(a));
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _trailingHintOrLineHistory({
+    required String mode,
+    required TranscriptLine? line,
+    required Widget expandedHint,
+  }) {
+    if (line == null) return expandedHint;
+    final idx = _lines.indexOf(line);
+    if (idx < 0) return expandedHint;
+    return FutureBuilder<List<SpeakingAttempt>>(
+      key: ValueKey(
+        'lh-$mode-${widget.episode.resolvedStorageId}-$_lineHistoryGeneration-$idx',
+      ),
+      future: _db.getSpeakingAttemptsForLine(
+        episodeId: widget.episode.resolvedStorageId,
+        mode: mode,
+        lineIndex: idx,
+        speaker: line.speaker,
+        limit: 1,
+      ),
+      builder: (context, snap) {
+        final has = snap.data?.isNotEmpty ?? false;
+        if (!has) return expandedHint;
+        return Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: const Icon(Icons.history_rounded),
+              tooltip: LanguageManager().getText('speakingLineHistoryTooltip'),
+              onPressed: () => unawaited(_showLineHistorySheet(mode, line)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _navigateToAnalysis(
+    SpeakingAttemptResult result,
+    TranscriptLine line,
+  ) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (ctx) => SpeakingAiAnalysisScreen(
+          episode: widget.episode,
+          feedback: result.feedback,
+          recognizedText: result.attempt.recognizedText,
+          referenceLineText: line.text,
+          lineStartMs: line.startTime,
+          lineEndMs: line.endTime,
+          userRecordingPath: result.attempt.userRecordingPath,
+        ),
+      ),
+    );
+    if (mounted) {
+      setState(() => _lineHistoryGeneration++);
     }
   }
 
@@ -427,12 +1126,30 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             ),
           ),
         Expanded(
-          child: ListView.separated(
+          child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-            itemCount: _lines.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 4),
+            itemCount: _lines.length + _transcriptAdPositions.length,
             itemBuilder: (context, index) {
-              final line = _lines[index];
+              int adsBeforeIndex = 0;
+              int? matchingAdPosition;
+              for (final adPos in _transcriptAdPositions) {
+                final actualAdIndex = adPos + adsBeforeIndex;
+                if (actualAdIndex == index) {
+                  matchingAdPosition = adPos;
+                  break;
+                }
+                if (actualAdIndex < index) {
+                  adsBeforeIndex++;
+                }
+              }
+              if (matchingAdPosition != null) {
+                return _speakingTranscriptNativeAdSlot();
+              }
+              final transcriptIndex = index - adsBeforeIndex;
+              if (transcriptIndex < 0 || transcriptIndex >= _lines.length) {
+                return const SizedBox.shrink();
+              }
+              final line = _lines[transcriptIndex];
               final selected = _repeatSelectedLine == line;
               return Material(
                 color: selected
@@ -467,7 +1184,17 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                           ),
                         )
                       : null,
-                  onTap: () {
+                  onTap: () async {
+                    if (_repeatSelectedLine != line) {
+                      if (_repeatRecordingStartedAt != null) {
+                        await _stopRepeatMicAndResetUi();
+                      }
+                      if (_roleplayRecordingStartedAt != null) {
+                        await _stopRoleplayMicAndResetUi();
+                      }
+                      if (_repeatAwaitingSend) _discardRepeatSavedClip();
+                      if (_roleplayAwaitingSend) _discardRoleplaySavedClip();
+                    }
                     setState(() {
                       _repeatSelectedLine = line;
                     });
@@ -570,38 +1297,409 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     ),
                   ),
                   const SizedBox(height: 18),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _pillRecordButton(
-                        context: context,
-                        onStop: _stopAndEvaluateRepeat,
-                        categoryColor: categoryColor,
-                        lm: lm,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _isRecording
-                              ? lm.getText('speakingHintFinishForAi')
-                              : lm.getText('speakingHintPracticeSentence'),
-                          style: _scaledTextStyle(
-                            theme.textTheme.bodySmall,
-                            _transcriptTextScale,
-                            fallbackSize: 12,
-                          ).copyWith(
-                            color: heading.withValues(alpha: 0.55),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildRepeatRecordingControls(context, categoryColor, heading, lm),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRepeatRecordingControls(
+    BuildContext context,
+    Color categoryColor,
+    Color heading,
+    LanguageManager lm,
+  ) {
+    final theme = Theme.of(context);
+    final cta = _ctaGreen(categoryColor);
+    final hintStyle = _scaledTextStyle(
+      theme.textTheme.bodySmall,
+      _transcriptTextScale,
+      fallbackSize: 12,
+    ).copyWith(
+      color: heading.withValues(alpha: 0.55),
+    );
+
+    if (_repeatAwaitingSend) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: cta,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            onPressed: _isProcessing ? null : _sendRepeatAnalysis,
+            child: _isProcessing
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(lm.getText('speakingSendAnalysis')),
+          ),
+          const SizedBox(width: 12),
+          _trailingHintOrLineHistory(
+            mode: 'repeat',
+            line: _repeatSelectedLine,
+            expandedHint: Expanded(
+              child: Text(
+                lm.getText('speakingHintSendAnalysis'),
+                style: hintStyle,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_repeatAnalysisInProgress && !_isRecording && !_repeatAwaitingSend) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: categoryColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              lm.getText('speakingRepeatAnalyzing'),
+              style: hintStyle,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_isRecording) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: heading,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              side: BorderSide(
+                color: categoryColor.withValues(alpha: 0.55),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+              backgroundColor: Colors.white,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: (_isProcessing || _micStopInProgress)
+                ? null
+                : () {
+                    unawaited(_forceStopRepeatAndSendAnalysis());
+                  },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: _repeatPulseController,
+                  builder: (context, child) {
+                    final t = _repeatPulseController.value;
+                    return Opacity(
+                      opacity: 0.35 + 0.65 * t,
+                      child: Transform.scale(
+                        scale: 0.88 + 0.12 * t,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  lm.getText('speakingRecording'),
+                  style: _scaledTextStyle(
+                    theme.textTheme.titleSmall,
+                    _transcriptTextScale,
+                    fallbackSize: 14,
+                  ).copyWith(
+                    color: heading,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _trailingHintOrLineHistory(
+            mode: 'repeat',
+            line: _repeatSelectedLine,
+            expandedHint: Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    lm.getText('speakingRepeatAutoStopHint'),
+                    style: hintStyle,
+                  ),
+                  Text(
+                    lm.getText('speakingRepeatTapToStopHint'),
+                    style: hintStyle,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: cta,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          onPressed: _isProcessing ? null : _startRepeatRecording,
+          icon: const Icon(Icons.mic_rounded, size: 22),
+          label: Text(lm.getText('speakingStartRecording')),
+        ),
+        const SizedBox(width: 12),
+        _trailingHintOrLineHistory(
+          mode: 'repeat',
+          line: _repeatSelectedLine,
+          expandedHint: Expanded(
+            child: Text(
+              lm.getText('speakingHintPracticeSentence'),
+              style: hintStyle,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleplayRecordingControls(
+    BuildContext context,
+    Color categoryColor,
+    Color heading,
+    LanguageManager lm,
+  ) {
+    final theme = Theme.of(context);
+    final cta = _ctaGreen(categoryColor);
+    final hintStyle = _scaledTextStyle(
+      theme.textTheme.bodySmall,
+      _transcriptTextScale,
+      fallbackSize: 12,
+    ).copyWith(
+      color: heading.withValues(alpha: 0.55),
+    );
+
+    final roleplayLine = _currentRoleplayLine();
+
+    if (_roleplayAwaitingSend) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: cta,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            onPressed: _isProcessing ? null : _sendRoleplayAnalysis,
+            child: _isProcessing
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(lm.getText('speakingSendAnalysis')),
+          ),
+          const SizedBox(width: 12),
+          _trailingHintOrLineHistory(
+            mode: 'roleplay',
+            line: roleplayLine,
+            expandedHint: Expanded(
+              child: Text(
+                lm.getText('speakingHintSendAnalysis'),
+                style: hintStyle,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_roleplayAnalysisInProgress && !_isRecording && !_roleplayAwaitingSend) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: categoryColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              lm.getText('speakingRepeatAnalyzing'),
+              style: hintStyle,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_isRecording) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: heading,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              side: BorderSide(
+                color: categoryColor.withValues(alpha: 0.55),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+              backgroundColor: Colors.white,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: (_isProcessing || _micStopInProgress)
+                ? null
+                : () {
+                    unawaited(_forceStopRoleplayAndSendAnalysis());
+                  },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: _repeatPulseController,
+                  builder: (context, child) {
+                    final t = _repeatPulseController.value;
+                    return Opacity(
+                      opacity: 0.35 + 0.65 * t,
+                      child: Transform.scale(
+                        scale: 0.88 + 0.12 * t,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  lm.getText('speakingRecording'),
+                  style: _scaledTextStyle(
+                    theme.textTheme.titleSmall,
+                    _transcriptTextScale,
+                    fallbackSize: 14,
+                  ).copyWith(
+                    color: heading,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _trailingHintOrLineHistory(
+            mode: 'roleplay',
+            line: roleplayLine,
+            expandedHint: Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    lm.getText('speakingRepeatAutoStopHint'),
+                    style: hintStyle,
+                  ),
+                  Text(
+                    lm.getText('speakingRepeatTapToStopHint'),
+                    style: hintStyle,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: cta,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          onPressed: _isProcessing ? null : _startRoleplayRecording,
+          icon: const Icon(Icons.mic_rounded, size: 22),
+          label: Text(lm.getText('speakingStartRecording')),
+        ),
+        const SizedBox(width: 12),
+        _trailingHintOrLineHistory(
+          mode: 'roleplay',
+          line: roleplayLine,
+          expandedHint: Expanded(
+            child: Text(
+              lm.getText('speakingHintPracticeLineRoleplay'),
+              style: hintStyle,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -633,7 +1731,21 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(999),
-                    onTap: () {
+                    onTap: () async {
+                      if (_roleplaySpeaker != speaker) {
+                        if (_roleplayRecordingStartedAt != null) {
+                          await _stopRoleplayMicAndResetUi();
+                        }
+                        if (_repeatRecordingStartedAt != null) {
+                          await _stopRepeatMicAndResetUi();
+                        }
+                        if (_roleplayAwaitingSend) {
+                          _discardRoleplaySavedClip();
+                        }
+                        if (_repeatAwaitingSend) {
+                          _discardRepeatSavedClip();
+                        }
+                      }
                       setState(() {
                         _roleplaySpeaker = speaker;
                         _roleplayIndex = 0;
@@ -734,16 +1846,41 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-            itemCount: _lines.length + (_roleplayIsComplete() ? 1 : 0),
+            itemCount: _lines.length +
+                _transcriptAdPositions.length +
+                (_roleplayIsComplete() ? 1 : 0),
             itemBuilder: (context, index) {
-              if (_roleplayIsComplete() && index == _lines.length) {
+              final lineSlots = _lines.length + _transcriptAdPositions.length;
+              if (_roleplayIsComplete() && index == lineSlots) {
                 return _roleplayCompleteBanner(context, categoryColor, heading, lm);
+              }
+              int adsBeforeIndex = 0;
+              int? matchingAdPosition;
+              for (final adPos in _transcriptAdPositions) {
+                final actualAdIndex = adPos + adsBeforeIndex;
+                if (actualAdIndex == index) {
+                  matchingAdPosition = adPos;
+                  break;
+                }
+                if (actualAdIndex < index) {
+                  adsBeforeIndex++;
+                }
+              }
+              if (matchingAdPosition != null) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _speakingTranscriptNativeAdSlot(),
+                );
+              }
+              final transcriptIndex = index - adsBeforeIndex;
+              if (transcriptIndex < 0 || transcriptIndex >= _lines.length) {
+                return const SizedBox.shrink();
               }
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: _buildRoleplayScriptLine(
                   context,
-                  index,
+                  transcriptIndex,
                   softBg,
                   categoryColor,
                   heading,
@@ -812,13 +1949,14 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
     if (roleplayDone) {
       if (isUser) {
-        return _roleplayPastUserLine(context, line, categoryColor, heading);
+        return _roleplayPastUserLine(context, line, categoryColor, heading, lm);
       }
       return _roleplayNpcBubble(
         context,
         line,
         categoryColor,
         heading,
+        lm,
         dimmed: false,
       );
     }
@@ -830,7 +1968,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       return _roleplayYourTurnCard(context, line, categoryColor, heading, lm);
     }
     if (isUser && currGlobal != null && i < currGlobal) {
-      return _roleplayPastUserLine(context, line, categoryColor, heading);
+      return _roleplayPastUserLine(context, line, categoryColor, heading, lm);
     }
     if (!isUser) {
       return _roleplayNpcBubble(
@@ -838,6 +1976,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         line,
         categoryColor,
         heading,
+        lm,
         dimmed: showAsUpcoming,
       );
     }
@@ -847,6 +1986,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         line,
         categoryColor,
         heading,
+        lm,
         dimmed: true,
       );
     }
@@ -857,11 +1997,13 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     BuildContext context,
     TranscriptLine line,
     Color categoryColor,
-    Color heading, {
+    Color heading,
+    LanguageManager lm, {
     required bool dimmed,
   }) {
     final theme = Theme.of(context);
     final opacity = dimmed ? 0.38 : 1.0;
+    final canListen = line.startTime > 0 && line.endTime > 0;
     return Opacity(
       opacity: opacity,
       child: Row(
@@ -903,6 +2045,15 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                         ),
                       ),
                     ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: lm.getText('speakingListenSampleTooltip'),
+                      onPressed: canListen ? () => _playSample(line) : null,
+                      icon: Icon(
+                        Icons.volume_up_rounded,
+                        color: canListen ? heading : heading.withValues(alpha: 0.25),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -930,8 +2081,10 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     TranscriptLine line,
     Color categoryColor,
     Color heading,
+    LanguageManager lm,
   ) {
     final theme = Theme.of(context);
+    final canListen = line.startTime > 0 && line.endTime > 0;
     return Opacity(
       opacity: 0.52,
       child: Row(
@@ -943,16 +2096,31 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  line.speaker,
-                  style: _scaledTextStyle(
-                    theme.textTheme.labelMedium,
-                    _transcriptTextScale,
-                    fallbackSize: 12,
-                  ).copyWith(
-                    color: categoryColor,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        line.speaker,
+                        style: _scaledTextStyle(
+                          theme.textTheme.labelMedium,
+                          _transcriptTextScale,
+                          fallbackSize: 12,
+                        ).copyWith(
+                          color: categoryColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: lm.getText('speakingListenSampleTooltip'),
+                      onPressed: canListen ? () => _playSample(line) : null,
+                      icon: Icon(
+                        Icons.volume_up_rounded,
+                        color: canListen ? heading : heading.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   line.text,
@@ -1061,32 +2229,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _pillRecordButton(
-                        context: context,
-                        onStop: _stopAndEvaluateRoleplay,
-                        categoryColor: categoryColor,
-                        lm: lm,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _isRecording
-                              ? lm.getText('speakingHintFinishForAi')
-                              : lm.getText('speakingHintPracticeLineRoleplay'),
-                          style: _scaledTextStyle(
-                            theme.textTheme.bodySmall,
-                            _transcriptTextScale,
-                            fallbackSize: 12,
-                          ).copyWith(
-                            color: heading.withValues(alpha: 0.55),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildRoleplayRecordingControls(context, categoryColor, heading, lm),
                 ],
               ),
             ),
@@ -1096,43 +2239,4 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     );
   }
 
-  Widget _pillRecordButton({
-    required BuildContext context,
-    required Future<void> Function() onStop,
-    required Color categoryColor,
-    required LanguageManager lm,
-  }) {
-    final cta = _ctaGreen(categoryColor);
-    final isDisabled = _isProcessing;
-
-    if (_isRecording) {
-      return FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: cta,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-        onPressed: isDisabled ? null : onStop,
-        icon: const Icon(Icons.stop_rounded, size: 22),
-        label: Text(lm.getText('speakingStopAndScore')),
-      );
-    }
-
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(
-        backgroundColor: cta,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
-      onPressed: isDisabled ? null : _startRecording,
-      icon: const Icon(Icons.mic_rounded, size: 22),
-      label: Text(lm.getText('speakingStartRecording')),
-    );
-  }
 }

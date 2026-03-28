@@ -4,6 +4,7 @@ import '../models/speaking_session.dart';
 import '../models/speaking_stats.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
+import 'speaking_session_attempts_screen.dart';
 
 class SpeakingHistoryScreen extends StatefulWidget {
   const SpeakingHistoryScreen({super.key});
@@ -16,8 +17,22 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
   final LocalDatabaseService _db = LocalDatabaseService();
 
   Future<SpeakingStats> _loadStats() => _db.getSpeakingStats();
-  Future<List<SpeakingSession>> _loadSessions() =>
-      _db.getSpeakingSessions(limit: 50);
+
+  Future<({List<SpeakingSession> sessions, Map<String, String> episodeNames})>
+      _loadSessionsWithNames() async {
+    final sessions = await _db.getSpeakingSessions(limit: 50);
+    final names = await _db.getEpisodeDisplayNamesByIds(
+      sessions.map((s) => s.episodeId).toSet(),
+    );
+    return (sessions: sessions, episodeNames: names);
+  }
+
+  String _episodeTitle(SpeakingSession session, Map<String, String> names) {
+    if (session.episodeTitle.isNotEmpty) return session.episodeTitle;
+    final n = names[session.episodeId];
+    if (n != null && n.isNotEmpty) return n;
+    return '—';
+  }
 
   String _modeLabel(SpeakingSession session, LanguageManager lm) {
     switch (session.mode) {
@@ -130,8 +145,12 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                 },
               ),
               Expanded(
-                child: FutureBuilder<List<SpeakingSession>>(
-                  future: _loadSessions(),
+                child: FutureBuilder<
+                    ({
+                      List<SpeakingSession> sessions,
+                      Map<String, String> episodeNames
+                    })>(
+                  future: _loadSessionsWithNames(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(
@@ -140,7 +159,9 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                         ),
                       );
                     }
-                    final sessions = snapshot.data ?? [];
+                    final data = snapshot.data;
+                    final sessions = data?.sessions ?? [];
+                    final episodeNames = data?.episodeNames ?? {};
                     if (sessions.isEmpty) {
                       return Center(
                         child: Padding(
@@ -182,9 +203,7 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                               ),
                             ),
                             title: Text(
-                              session.episodeId.isNotEmpty
-                                  ? session.episodeId
-                                  : '—',
+                              _episodeTitle(session, episodeNames),
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: heading,
@@ -222,6 +241,15 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                               textAlign: TextAlign.end,
                             ),
                             isThreeLine: true,
+                            onTap: () {
+                              Navigator.of(context).push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (ctx) => SpeakingSessionAttemptsScreen(
+                                    session: session,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
