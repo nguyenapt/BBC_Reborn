@@ -32,6 +32,13 @@ abstract class AIProvider {
     String meaning, {
     String? context,
   });
+
+  /// Evaluate speaking performance based on reference and spoken transcript
+  Future<Map<String, dynamic>> evaluateSpeech({
+    required String referenceText,
+    required String spokenText,
+    String? language,
+  });
   
   /// Check if provider is available
   Future<bool> isAvailable();

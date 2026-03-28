@@ -110,6 +110,14 @@ class Episode {
     };
   }
 
+  /// Id khi lưu SQLite — khớp [LocalDatabaseService] (`id` Firebase hoặc fallback theo category + ngày + tên).
+  String get resolvedStorageId {
+    if (id != null && id!.isNotEmpty) return id!;
+    final safeName = episodeName.replaceAll(RegExp(r'\s+'), '_');
+    final date = publishedDate.toIso8601String();
+    return '$category-$date-$safeName';
+  }
+
   // Lấy transcript ngắn (200 ký tự)
   String get shortTranscript {
     if (transcript.length <= 200) {

@@ -122,47 +122,33 @@ class _QuestionSlideState extends State<QuestionSlide> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Icon(
-                Icons.quiz,
-                color: categoryColor,
-                size: 20,
+          if ((_questions.isNotEmpty && !_showResults) || _showResults)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  if (_questions.isNotEmpty && !_showResults)
+                    TextButton.icon(
+                      onPressed: _checkAnswers,
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: Text(LanguageManager().getText('checkAnswers')),
+                      style: TextButton.styleFrom(
+                        foregroundColor: categoryColor,
+                      ),
+                    ),
+                  if (_showResults)
+                    TextButton.icon(
+                      onPressed: _resetQuiz,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(LanguageManager().getText('reset')),
+                      style: TextButton.styleFrom(
+                        foregroundColor: categoryColor,
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                LanguageManager().getText('practiceQuestions'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: categoryColor,
-                ),
-              ),
-              const Spacer(),
-              if (_questions.isNotEmpty && !_showResults)
-                TextButton.icon(
-                  onPressed: _checkAnswers,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: Text(LanguageManager().getText('checkAnswers')),
-                  style: TextButton.styleFrom(
-                    foregroundColor: categoryColor,
-                  ),
-                ),
-              if (_showResults)
-                TextButton.icon(
-                  onPressed: _resetQuiz,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(LanguageManager().getText('reset')),
-                  style: TextButton.styleFrom(
-                    foregroundColor: categoryColor,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Content
+            ),
           Expanded(
             child: _isLoading
                 ? Center(

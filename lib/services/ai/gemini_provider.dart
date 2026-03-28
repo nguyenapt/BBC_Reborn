@@ -405,5 +405,49 @@ Important: Return ONLY the JSON object, nothing else.''';
       throw InvalidResponseException('Failed to parse vocabulary enhancement JSON: $e');
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> evaluateSpeech({
+    required String referenceText,
+    required String spokenText,
+    String? language,
+  }) async {
+    final languagePart = language != null ? '\nLanguage: $language' : '';
+    final prompt = '''
+You are a speaking coach focused on pronunciation and clarity. Compare the reference and spoken transcripts.
+Return ONLY a valid JSON object with scoring and feedback. No markdown.
+
+Reference: "$referenceText"
+Spoken: "$spokenText"$languagePart
+
+Rules for "mistakes":
+- Each "expected" MUST be copied exactly as a substring from Reference (same spelling; you may use a single word or short phrase).
+- "spoken" is what the user actually said (from Spoken) for that slip.
+- "note" is a concise pronunciation fix: how to shape the sound, stress, or mouth position (optional IPA in slashes if helpful).
+
+Return format:
+{
+  "overallScore": 0-100,
+  "pronunciationScore": 0-100,
+  "fluencyScore": 0-100,
+  "accuracyScore": 0-100,
+  "feedback": "short actionable feedback",
+  "mistakes": [
+    {
+      "expected": "word or phrase from Reference",
+      "spoken": "what user said",
+      "note": "how to fix pronunciation"
+    }
+  ]
+}
+''';
+
+    final response = await _callGemini(prompt);
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse speaking feedback JSON: $e');
+    }
+  }
 }
 

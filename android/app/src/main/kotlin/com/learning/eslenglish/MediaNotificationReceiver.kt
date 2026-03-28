@@ -36,21 +36,3 @@ class MediaNotificationReceiver : BroadcastReceiver() {
         methodChannel?.invokeMethod("onMediaAction", data)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

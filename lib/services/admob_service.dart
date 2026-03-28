@@ -141,8 +141,12 @@ class AdMobService {
     );
   }
 
-  // Hiển thị Interstitial Ad
-  void showInterstitialAd() {
+  /// [onDismissedOrUnavailable] gọi sau khi ad đóng, lỗi hiển thị, hoặc không có ad sẵn (để điều hướng sau quảng cáo).
+  void showInterstitialAd({VoidCallback? onDismissedOrUnavailable}) {
+    if (kIsWeb) {
+      onDismissedOrUnavailable?.call();
+      return;
+    }
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdShowedFullScreenContent: (ad) {
@@ -152,18 +156,20 @@ class AdMobService {
           print('Interstitial ad dismissed');
           ad.dispose();
           _interstitialAd = null;
-          // Tạo ad mới cho lần tiếp theo
+          onDismissedOrUnavailable?.call();
           createInterstitialAd();
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
           print('Interstitial ad failed to show: $error');
           ad.dispose();
           _interstitialAd = null;
+          onDismissedOrUnavailable?.call();
         },
       );
       _interstitialAd!.show();
     } else {
       print('Interstitial ad not ready');
+      onDismissedOrUnavailable?.call();
     }
   }
 

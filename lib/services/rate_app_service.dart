@@ -105,7 +105,7 @@ class RateAppService {
 
   /// Mở Google Play Store để rate app
   static Future<void> openPlayStore() async {
-    const String packageName = 'com.learning.eslenglish'; // Thay bằng package name thực tế
+    const String packageName = 'com.learning.eslenglish';
     const String playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
     
     try {

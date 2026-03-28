@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -20,10 +24,18 @@ import 'services/heart_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
+import 'services/push_notification_service.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('🚀 App starting...');
+
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await PushNotificationService.instance.initialize();
+  }
   
   // Khởi tạo Google Mobile Ads (chỉ trên mobile, không phải web)
   if (!kIsWeb) {

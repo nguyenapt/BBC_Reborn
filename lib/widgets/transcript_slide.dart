@@ -110,8 +110,29 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
     
     // Tính toán vị trí chèn native ads
     _calculateAdPositions();
-    
+
     _updateActiveLine();
+  }
+
+  Color _speakerAccentColor(String speaker) {
+    const palette = <Color>[
+      Color(0xFF047857),
+      Color(0xFF1D4ED8),
+      Color(0xFF7C3AED),
+      Color(0xFFB45309),
+      Color(0xFF0F766E),
+      Color(0xFFBE185D),
+      Color(0xFF4D7C0F),
+      Color(0xFF4338CA),
+    ];
+    if (speaker.isEmpty) return palette[0];
+    return palette[speaker.hashCode.abs() % palette.length];
+  }
+
+  String _speakerInitial(String speaker) {
+    final t = speaker.trim();
+    if (t.isEmpty) return '?';
+    return t[0].toUpperCase();
   }
 
   void _calculateAdPositions() {
@@ -162,7 +183,6 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
       setState(() {
         _currentActiveIndex = newActiveIndex;
       });
-      
     }
   }
 
@@ -179,116 +199,35 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   }
 
   Widget _buildTranscriptContent() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
+    final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+    final panelBg = categoryColor.withOpacity(0.12);
+
+    Widget emptyOrList() {
+      if (transcriptLines.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.description,
-                color: CategoryColors.getCategoryColor(widget.episode.category),
-                size: 20,
+                Icons.description_outlined,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 16),
               Text(
-                LanguageManager().getText('transcript'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: CategoryColors.getCategoryColor(widget.episode.category),
+                'No transcript available',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
-              const Spacer(),
-              // Translation toggle button
-              // TODO: Temporarily commented out - affects performance when translating long transcripts
-              // Will be re-enabled after VIP feature implementation
-              /*
-              if (transcriptLines.isNotEmpty)
-                IconButton(
-                  icon: _isTranslating
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              CategoryColors.getCategoryColor(widget.episode.category),
-                            ),
-                          ),
-                        )
-                      : Icon(
-                          _showTranslation ? Icons.translate : Icons.translate_outlined,
-                          color: _showTranslation
-                              ? CategoryColors.getCategoryColor(widget.episode.category)
-                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                  onPressed: _isTranslating
-                      ? null
-                      : () async {
-                          // Check if app language is English (default)
-                          if (_languageManager.isTranslationNeeded()) {
-                            // Show language picker to select translation language
-                            TranslationLanguagePicker.show(
-                              context,
-                              currentLanguageCode: _languageManager.currentLocale.languageCode,
-                              onLanguageSelected: (languageCode) async {
-                                // Save selected language to settings (selected_language key)
-                                await _languageManager.changeLanguage(Locale(languageCode));
-                                // Clear old translations to force reload with new language
-                                setState(() {
-                                  _translations = null;
-                                  _showTranslation = false;
-                                });
-                                // Load translations with new language
-                                await _loadTranslations();
-                              },
-                            );
-                          } else {
-                            // App language is not English, translate directly
-                            if (!_showTranslation && _translations == null) {
-                              // Load translations
-                              await _loadTranslations();
-                            } else {
-                              setState(() {
-                                _showTranslation = !_showTranslation;
-                              });
-                            }
-                          }
-                        },
-                  tooltip: _showTranslation ? 'Hide translation' : 'Show translation',
-                ),
-              */
             ],
           ),
-          const SizedBox(height: 16),
-              // Transcript Content
-              Expanded(
-                child: transcriptLines.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.description_outlined,
-                              size: 64,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No transcript available',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
+        );
+      }
+
+      return ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
                     itemCount: transcriptLines.length + _adPositions.length,
                     itemBuilder: (context, index) {
                       // Kiểm tra xem có cần chèn native ad ở vị trí này không
@@ -315,7 +254,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: TranscriptNativeAdWidget(
                             category: widget.episode.category,
@@ -336,74 +275,99 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                       final isActive = hasTimeInfo && _currentActiveIndex == transcriptIndex;
                       final isPassed = hasTimeInfo && widget.currentPositionMs != null && 
                           line.isPassedAt(widget.currentPositionMs!);
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isActive 
-                              ? CategoryColors.getCategoryColor(widget.episode.category).withOpacity(0.1)
-                              : isPassed
-                                  ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3)
-                                  : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: isActive 
-                              ? Border.all(
-                                  color: CategoryColors.getCategoryColor(widget.episode.category),
-                                  width: 2,
-                                )
-                              : null,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Speaker name, Time info và Play button cùng một dòng (chỉ hiển thị nếu có time info)
-                            if (hasTimeInfo)
+                      final speakerColor = _speakerAccentColor(line.speaker);
+                      final quoted = '"${line.text}"';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? Theme.of(context).colorScheme.surface
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.06),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                            border: isPassed && !isActive
+                                ? Border.all(
+                                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                  )
+                                : null,
+                          ),
+                          padding: EdgeInsets.all(isActive ? 12 : 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  // Speaker name
-                                  Expanded(
+                                  CircleAvatar(
+                                    radius: 17,
+                                    backgroundColor: speakerColor.withOpacity(0.22),
                                     child: Text(
-                                      line.speaker,
+                                      _speakerInitial(line.speaker),
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: isActive 
-                                            ? CategoryColors.getCategoryColor(widget.episode.category)
-                                            : Theme.of(context).colorScheme.primary,
+                                        color: speakerColor,
                                       ),
                                     ),
                                   ),
-                                  // Time info
-                                  Text(
-                                    '${(line.startTime / 1000).toStringAsFixed(1)}s - ${(line.endTime / 1000).toStringAsFixed(1)}s',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      line.speaker.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.65,
+                                        color: isActive ? categoryColor : speakerColor,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  // Play button
-                                  IconButton(
-                                    onPressed: () {
-                                      // Gọi callback để play tại startTime của dòng này
-                                      widget.onPlayAtTime?.call(line.startTime);
-                                    },
-                                    icon: Icon(
-                                      Icons.play_arrow,
-                                      color: CategoryColors.getCategoryColor(widget.episode.category),
-                                      size: 20,
+                                  if (hasTimeInfo) ...[
+                                    Text(
+                                      '${(line.startTime / 1000).toStringAsFixed(1)}s · ${(line.endTime / 1000).toStringAsFixed(1)}s',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
+                                      ),
                                     ),
-                                    tooltip: 'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 24,
-                                      minHeight: 24,
+                                    const SizedBox(width: 8),
+                                    Tooltip(
+                                      message:
+                                          'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
+                                      child: Material(
+                                        color: categoryColor,
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: InkWell(
+                                          onTap: () =>
+                                              widget.onPlayAtTime?.call(line.startTime),
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(7),
+                                            child: Icon(
+                                              Icons.volume_up_rounded,
+                                              color: Colors.white,
+                                              size: 19,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  // Translate line button
+                                  ],
                                   IconButton(
-                                    onPressed: () => _translateLine(context, line.text, transcriptIndex),
+                                    onPressed: () =>
+                                        _translateLine(context, line.text, transcriptIndex),
                                     icon: _lineTranslating[line.text] == true
                                         ? SizedBox(
                                             width: 18,
@@ -427,13 +391,13 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                         : 'Translate line',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 24,
-                                      minHeight: 24,
+                                      minWidth: 32,
+                                      minHeight: 32,
                                     ),
                                   ),
-                                  // Grammar explanation button
                                   IconButton(
-                                    onPressed: () => _showGrammarExplanation(context, line.text),
+                                    onPressed: () =>
+                                        _showGrammarExplanation(context, line.text),
                                     icon: Icon(
                                       Icons.lightbulb_outline,
                                       color: Colors.green.shade600,
@@ -442,98 +406,119 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     tooltip: 'Explain grammar',
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(
-                                      minWidth: 24,
-                                      minHeight: 24,
+                                      minWidth: 32,
+                                      minHeight: 32,
                                     ),
                                   ),
                                 ],
                               ),
-                            if (hasTimeInfo) const SizedBox(height: 6),
-                            // Text content
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SelectableText(
-                                  line.text,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    height: 1.5,
-                                    color: isActive 
-                                        ? Theme.of(context).colorScheme.onSurface
-                                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                                  ),
-                              contextMenuBuilder: (context, editableTextState) {
-                                return AdaptiveTextSelectionToolbar.buttonItems(
-                                  anchors: editableTextState.contextMenuAnchors,
-                                  buttonItems: <ContextMenuButtonItem>[
-                                    ContextMenuButtonItem(
-                                      label: 'Copy',
-                                      onPressed: () {
-                                        final selectedText = editableTextState.textEditingValue.selection.textInside(
-                                          editableTextState.textEditingValue.text,
-                                        );
-                                        if (selectedText.isNotEmpty) {
-                                          Clipboard.setData(ClipboardData(text: selectedText));
-                                          editableTextState.hideToolbar();
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Đã sao chép')),
+                              const SizedBox(height: 8),
+                              SelectableText(
+                                quoted,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.55,
+                                  fontStyle:
+                                      isActive ? FontStyle.italic : FontStyle.normal,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(
+                                        isPassed && !isActive ? 0.55 : 0.9,
+                                      ),
+                                ),
+                                contextMenuBuilder: (context, editableTextState) {
+                                  return AdaptiveTextSelectionToolbar.buttonItems(
+                                    anchors: editableTextState.contextMenuAnchors,
+                                    buttonItems: <ContextMenuButtonItem>[
+                                      ContextMenuButtonItem(
+                                        label: 'Copy',
+                                        onPressed: () {
+                                          final selectedText = editableTextState
+                                              .textEditingValue.selection
+                                              .textInside(
+                                            editableTextState.textEditingValue.text,
                                           );
-                                        }
-                                      },
-                                    ),
-                                    ContextMenuButtonItem(
-                                      label: 'Translate',
-                                      onPressed: () {
-                                        final selectedText = editableTextState.textEditingValue.selection.textInside(
-                                          editableTextState.textEditingValue.text,
-                                        );
-                                        if (selectedText.isNotEmpty) {
-                                          _openGoogleTranslate(context, selectedText);
-                                          editableTextState.hideToolbar();
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                                // Line translation (if translated)
-                                if (_lineTranslations.containsKey(line.text))
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: SelectableText(
-                                      _lineTranslations[line.text]!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        height: 1.4,
-                                        fontStyle: FontStyle.italic,
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          if (selectedText.isNotEmpty) {
+                                            Clipboard.setData(
+                                                ClipboardData(text: selectedText));
+                                            editableTextState.hideToolbar();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                  content: Text('Đã sao chép')),
+                                            );
+                                          }
+                                        },
                                       ),
+                                      ContextMenuButtonItem(
+                                        label: 'Translate',
+                                        onPressed: () {
+                                          final selectedText = editableTextState
+                                              .textEditingValue.selection
+                                              .textInside(
+                                            editableTextState.textEditingValue.text,
+                                          );
+                                          if (selectedText.isNotEmpty) {
+                                            _openGoogleTranslate(context, selectedText);
+                                            editableTextState.hideToolbar();
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                              if (_lineTranslations.containsKey(line.text))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: SelectableText(
+                                    _lineTranslations[line.text]!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.4,
+                                      fontStyle: FontStyle.italic,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.6),
                                     ),
                                   ),
-                                // Full transcript translation (if enabled)
-                                if (_showTranslation && _translations != null && !_lineTranslations.containsKey(line.text))
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: SelectableText(
-                                      _translations![line.text] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        height: 1.4,
-                                        fontStyle: FontStyle.italic,
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                      ),
+                                ),
+                              if (_showTranslation &&
+                                  _translations != null &&
+                                  !_lineTranslations.containsKey(line.text))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: SelectableText(
+                                    _translations![line.text] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.4,
+                                      fontStyle: FontStyle.italic,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.6),
                                     ),
                                   ),
-                              ],
-                            ),
-                          ],
+                                ),
+                            ],
+                          ),
                         ),
                       );
                     },
-                  ),
+                  );
+    }
+
+    // TranscriptSlide nằm trong PageView — không dùng Expanded (chỉ hợp lệ trong Row/Column).
+    // SizedBox.expand để nhận đủ chiều cao viewport; Android sẽ không còn vùng trống.
+    return SizedBox.expand(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 0, 6, 4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: ColoredBox(
+            color: panelBg,
+            child: emptyOrList(),
           ),
-        ],
+        ),
       ),
     );
   }
