@@ -1,28 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../services/heart_service.dart';
 import 'heart_slide_panel.dart';
 
-/// Widget hiển thị hearts trên home page
+/// Widget hiển thị hearts trên home page (hoặc AppBar khác khi truyền [panelTop]).
 class HeartWidget extends StatelessWidget {
-  const HeartWidget({super.key});
+  const HeartWidget({super.key, this.panelTop});
+
+  /// Offset từ đỉnh màn hình tới điểm bắt đầu vùng dim + panel (giống bottom của header chứa nút heart).
+  /// Nếu null, dùng layout header home (padding 16 + row 48 + padding 16).
+  final double? panelTop;
 
   void _showSlidePanelFromTop(BuildContext context) {
     // Calculate header height to position panel right below the heart button
-    // Header structure:
-    // - Safe area top
-    // - Top padding: 16
-    // - Row content (logo 48px + heart button ~40px height): max is 48px
-    // - Bottom padding: 16
-    // We want panel to start right after the row (where heart button ends)
-    // Include bottom padding to ensure panel doesn't overlap with heart button
     final safeAreaTop = MediaQuery.of(context).padding.top;
     final headerTopPadding = 16.0;
-    final rowHeight = 48.0; // Logo height, heart button is in same row
+    final rowHeight = 48.0;
     final headerBottomPadding = 16.0;
-    // Panel should start after the entire header (including bottom padding)
-    // So: safeAreaTop + headerTopPadding + rowHeight + headerBottomPadding
-    final panelTop = safeAreaTop + headerTopPadding + rowHeight + headerBottomPadding;
+    final resolvedPanelTop = panelTop ??
+        (safeAreaTop + headerTopPadding + rowHeight + headerBottomPadding);
     
     showGeneralDialog(
       context: context,
@@ -53,14 +48,14 @@ class HeartWidget extends StatelessWidget {
                   onTap: () => Navigator.of(context).pop(),
                   child: Container(
                     color: Colors.black.withOpacity(0.3),
-                    margin: EdgeInsets.only(top: panelTop),
+                    margin: EdgeInsets.only(top: resolvedPanelTop),
                   ),
                 ),
               ),
             ),
             // Panel mở rộng từ ngay dưới heart button xuống
             Positioned(
-              top: panelTop + 4, // Thêm 4px margin để không che nút heart
+              top: resolvedPanelTop + 4, // Thêm 4px margin để không che nút heart
               left: 0,
               right: 0,
               child: SizedBox(

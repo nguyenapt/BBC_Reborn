@@ -10,12 +10,16 @@ import '../models/speaking_attempt.dart';
 import '../models/speaking_feedback.dart';
 import '../models/speaking_session.dart';
 import '../models/transcript_line.dart';
+import '../services/admob_service.dart';
 import '../services/ai/ai_error_handler.dart';
+import '../services/ai/exceptions.dart';
 import '../services/audio_player_service.dart';
+import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import '../services/speaking_practice_service.dart';
 import '../utils/category_colors.dart';
+import '../widgets/heart_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'speaking_ai_analysis_screen.dart';
 
@@ -756,12 +760,63 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
   }
 
   void _showError(dynamic error) {
+    if (!mounted) return;
     final message = AIErrorHandler.getErrorMessage(error);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+
+    if (error is NoHeartsException) {
+      final heartService = HeartService();
+      final admobService = AdMobService();
+      if (heartService.canEarnMoreHearts && !kIsWeb) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No hearts available.'),
+            action: SnackBarAction(
+              label: 'Watch Ads',
+              textColor: Colors.white,
+              onPressed: () {
+                if (admobService.isRewardedAdReady()) {
+                  admobService.showRewardedAd(
+                    onRewarded: () {
+                      heartService.earnHeart();
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('❤️ You earned 1 heart!'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    onAdFailedToShow: (adError) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to show ad: $adError'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  admobService.createRewardedAd();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ad is loading, please try again in a moment'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+        return;
+      }
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _openAnalysisFromAttempt(SpeakingAttempt attempt) async {
@@ -987,6 +1042,19 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             foregroundColor: Colors.white,
             elevation: 0,
             title: Text(lm.getText('speakingPracticeTitle')),
+            actions: [
+              Builder(
+                builder: (context) {
+                  final safe = MediaQuery.of(context).padding.top;
+                  const tabBarHeight = 48.0;
+                  final panelTop = safe + kToolbarHeight + tabBarHeight;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: HeartWidget(panelTop: panelTop),
+                  );
+                },
+              ),
+            ],
             bottom: TabBar(
               controller: _tabController,
               labelColor: Colors.white,
