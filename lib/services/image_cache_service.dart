@@ -1,7 +1,9 @@
+// CachedNetworkImage + disk cache giảm số lần tải ảnh từ Firebase Storage (egress).
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:path_provider/path_provider.dart';
+import 'navigation_service.dart';
 
 class ImageCacheService {
   static final ImageCacheService _instance = ImageCacheService._internal();
@@ -172,9 +174,4 @@ class ImageCacheService {
       debugPrint('Error clearing old cache: $e');
     }
   }
-}
-
-/// Navigation service để lấy context
-class NavigationService {
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }

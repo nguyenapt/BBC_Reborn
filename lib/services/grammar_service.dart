@@ -1,77 +1,88 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/grammar.dart';
+import '../utils/debug_source_log.dart';
+import 'api_daily_cache_keys.dart';
+import 'local_database_service.dart';
 
 class GrammarService {
   static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
   static const String _grammarPath = 'HomePage/Grammar';
 
-  /// Lấy danh sách tất cả grammars
+  final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
+
+  bool _isFetchedToday(DateTime? lastFetched) {
+    if (lastFetched == null) return false;
+    final now = DateTime.now();
+    return now.year == lastFetched.year &&
+        now.month == lastFetched.month &&
+        now.day == lastFetched.day;
+  }
+
+  /// Lấy danh sách tất cả grammars (tối đa một lần tải [HomePage/Grammar.json] mỗi ngày).
   Future<List<Grammar>> getAllGrammars() async {
     try {
+      final key = ApiDailyCacheKeys.grammarList;
+      final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
+      final cached = await _apiCacheDb.getApiDailyCachePayload(key);
+      if (_isFetchedToday(lastFetched) && cached != null && cached.isNotEmpty) {
+        debugLogDataSource(
+          'GrammarList',
+          'SQLite api_daily_cache (key=$key, đã fetch trong ngày) — không gọi RTDB',
+        );
+        return parseGrammarsFromJsonString(cached);
+      }
+
+      debugLogDataSource('GrammarList', 'RTDB REST GET .../HomePage/Grammar.json');
       final response = await http.get(
         Uri.parse('$_baseUrl/$_grammarPath.json'),
         headers: {'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        final dynamic data = json.decode(response.body);
-        print('API Response type: ${data.runtimeType}');
-        print('API Response data: $data');
-        
-        final List<Grammar> grammars = [];
-
-        if (data is List) {
-          // Nếu API trả về List
-          print('Processing List with ${data.length} items');
-          for (var item in data) {
-            if (item is Map<String, dynamic>) {
-              try {
-                grammars.add(Grammar.fromJson(item));
-              } catch (e) {
-                print('Error parsing grammar item: $e');
-                print('Item data: $item');
-              }
-            }
-          }
-        } else if (data is Map<String, dynamic>) {
-          // Nếu API trả về Map
-          print('Processing Map with ${data.length} keys');
-          data.forEach((key, value) {
-            if (value is Map<String, dynamic>) {
-              try {
-                grammars.add(Grammar.fromJson(value));
-              } catch (e) {
-                print('Error parsing grammar item: $e');
-                print('Item data: $value');
-              }
-            }
-          });
-        } else {
-          print('Unexpected data type: ${data.runtimeType}');
-          // Trả về danh sách rỗng nếu không thể parse
-          return [];
-        }
-
-        // Sắp xếp theo SortOrder
-        grammars.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-        print('Successfully parsed ${grammars.length} grammars');
-        
-        // Log thông tin chi tiết
-        for (var grammar in grammars) {
-          print('Grammar: ${grammar.name} (SortOrder: ${grammar.sortOrder}, ${grammar.parts.length} parts)');
-          for (var part in grammar.parts) {
-            print('  - ${part.name} (Order: ${part.sortOrder})');
-          }
-        }
-        
-        return grammars;
-      } else {
-        throw Exception('Failed to load grammars: ${response.statusCode}');
+        await _apiCacheDb.upsertApiDailyCache(key, response.body, DateTime.now());
+        return parseGrammarsFromJsonString(response.body);
       }
+      throw Exception('Failed to load grammars: ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching grammars: $e');
     }
+  }
+
+  static List<Grammar> parseGrammarsFromJsonString(String responseBody) {
+    final dynamic data = json.decode(responseBody);
+    return parseGrammarsFromDecoded(data);
+  }
+
+  static List<Grammar> parseGrammarsFromDecoded(dynamic data) {
+    final List<Grammar> grammars = [];
+
+    if (data is List) {
+      for (var item in data) {
+        if (item is Map<String, dynamic>) {
+          try {
+            grammars.add(Grammar.fromJson(item));
+          } catch (e) {
+            print('Error parsing grammar item: $e');
+          }
+        }
+      }
+    } else if (data is Map<String, dynamic>) {
+      data.forEach((key, value) {
+        if (value is Map<String, dynamic>) {
+          try {
+            grammars.add(Grammar.fromJson(value));
+          } catch (e) {
+            print('Error parsing grammar item: $e');
+          }
+        }
+      });
+    } else {
+      return [];
+    }
+
+    grammars.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return grammars;
   }
 
   /// Mock data để test UI (backup)

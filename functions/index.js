@@ -16,7 +16,47 @@ const FCM_TOPIC = "episodes";
  * Các category có cấu trúc {cat}/{year}/{index} (như 6M/2026/0) — khớp getCategoryData trong app.
  * Không dùng HomePage/* vì thường là cập nhật nguyên list → ít khi chỉ onCreate từng tập.
  */
-const EPISODE_CATEGORIES = new Set(["6M", "TEWS", "REE"]);
+const EPISODE_CATEGORIES = new Set(["6M", "TEWS", "REE","EG"]);
+
+/**
+ * Ghi log lỗi an toàn — tránh truyền Error thẳng vào logger (có thể gây TypeError trong firebase-functions/logger).
+ * @param {unknown} err
+ * @returns {{ message: string, code?: string, stack?: string }}
+ */
+function serializeErrorForLog(err) {
+  if (err == null) {
+    return {message: "unknown_error"};
+  }
+  if (typeof err === "string") {
+    return {message: err};
+  }
+  if (err instanceof Error) {
+    return {
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+    };
+  }
+  if (typeof err !== "object") {
+    return {message: String(err)};
+  }
+  const msg = typeof err.message === "string" ? err.message : String(err);
+  const code = err.code || err.errorInfo?.code || err.status;
+  return {
+    message: msg,
+    ...(code != null ? {code: String(code)} : {}),
+    ...(typeof err.stack === "string" ? {stack: err.stack} : {}),
+  };
+}
+
+/** Tránh throw khi err là object lạ / vòng tham chiếu. */
+function safeSerializeErrorForLog(err) {
+  try {
+    return serializeErrorForLog(err);
+  } catch {
+    return {message: String(err)};
+  }
+}
 
 /**
  * Khi thêm node mới tại <category>/<year>/<episodeKey> (vd: 6M/2026/8), gửi FCM tới topic "episodes".
@@ -82,10 +122,24 @@ exports.onEpisodeCreated = onValueCreated(
 
     try {
       ensureAdmin();
-      await admin.messaging().send(payload);
-      logger.info("FCM sent for new episode", {category, year, episodeKey});
+      const messageId = await admin.messaging().send(payload);
+      logger.info("FCM sent for new episode", {
+        category,
+        year,
+        episodeKey,
+        messageId,
+      });
     } catch (e) {
-      logger.error("FCM send failed", e);
+      // Chỉ truyền 1 string — logger.error(msg, meta) có thể gây TypeError (đọc .error trên undefined).
+      const details = safeSerializeErrorForLog(e);
+      let line;
+      try {
+        line = `FCM send failed: ${JSON.stringify(details)}`;
+      } catch {
+        line = `FCM send failed: ${details.message || "unknown"}`;
+      }
+      logger.error(line);
+      console.error(line);
     }
     return null;
   },

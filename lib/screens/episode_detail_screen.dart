@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../services/audio_player_service.dart';
 import '../services/language_manager.dart';
-import '../services/heart_service.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
 import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
+import '../widgets/heart_widget.dart';
 import '../widgets/question_slide.dart';
 import 'speaking_practice_screen.dart';
 import 'speaking_history_screen.dart';
@@ -171,6 +170,18 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               );
             },
           ),
+          Builder(
+            builder: (context) {
+              final safe = MediaQuery.of(context).padding.top;
+              final panelTop = safe + kToolbarHeight;
+              return Padding(
+                padding: const EdgeInsets.only(left: 4, right: 10),
+                child: Center(
+                  child: HeartWidget(panelTop: panelTop, compact: true),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: Column(
@@ -304,9 +315,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     ),
                   ],
                 ),
-                // Hearts info and Watch Ads button
-                const SizedBox(height: 12),
-                _buildHeartsInfo(context),
               ],
             ),
           ),
@@ -450,159 +458,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   bool _isOtherProgramsCategory(String category) {
     const otherProgramsCategories = ['6MGB', '6MGI', '6MVB', '6MVI', 'DRM', 'EAW'];
     return otherProgramsCategories.contains(category);
-  }
-
-  /// Build hearts info widget with Watch Ads button
-  Widget _buildHeartsInfo(BuildContext context) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
-    
-    return ListenableBuilder(
-      listenable: heartService,
-      builder: (context, child) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50, // Light blue background
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.blue.shade200,
-                width: 1,
-              ),
-            ),
-          child: Row(
-            children: [
-              // Left side: Checkmark icon, hearts count, and text
-              Expanded(
-                child: Row(
-                  children: [
-                    // Blue checkmark icon in circle
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade400,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Hearts count and text
-                    Text(
-                      '${heartService.hearts}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.favorite,
-                      color: Colors.red.shade400,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'hearts remaining',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Right side: Watch Ads button (always show, but only enable if hearts < 5)
-              if (!kIsWeb)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: heartService.hearts < 5
-                        ? (admobService.isRewardedAdReady()
-                            ? () {
-                                admobService.showRewardedAd(
-                                  onRewarded: () {
-                                    heartService.earnHeart();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('❤️ You earned 1 heart!'),
-                                        backgroundColor: Colors.green,
-                                        duration: Duration(seconds: 2),
-                                      ),
-                                    );
-                                  },
-                                  onAdFailedToShow: (error) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to show ad: $error'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  },
-                                );
-                              }
-                            : () {
-                                admobService.createRewardedAd();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Ad is loading, please try again in a moment'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              })
-                        : null, // Disable when hearts >= 5
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: heartService.hearts < 5
-                            ? Colors.red.shade600
-                            : Colors.grey.shade400, // Gray when disabled
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // White play icon in circle
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.play_arrow,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // White text
-                          const Text(
-                            'Watch Ads',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   String _formatDate(DateTime date) {

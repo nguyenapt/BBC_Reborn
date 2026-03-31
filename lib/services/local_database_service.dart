@@ -16,7 +16,7 @@ class LocalDatabaseService {
   LocalDatabaseService._internal();
 
   static const String _dbName = 'learning_english_cache.db';
-  static const int _dbVersion = 3;
+  static const int _dbVersion = 4;
   static const int noYear = -1;
 
   Database? _db;
@@ -93,6 +93,14 @@ class LocalDatabaseService {
     await db.execute('CREATE INDEX idx_episodes_category_year ON episodes(category, year)');
     await db.execute('CREATE INDEX idx_episodes_name ON episodes(episode_name)');
 
+    await db.execute('''
+      CREATE TABLE api_daily_cache (
+        cache_key TEXT PRIMARY KEY,
+        last_fetched TEXT NOT NULL,
+        payload_json TEXT NOT NULL
+      )
+    ''');
+
     await _createSpeakingTables(db);
   }
 
@@ -102,6 +110,15 @@ class LocalDatabaseService {
     }
     if (oldVersion < 3) {
       await _upgradeSpeakingToV3(db);
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS api_daily_cache (
+          cache_key TEXT PRIMARY KEY,
+          last_fetched TEXT NOT NULL,
+          payload_json TEXT NOT NULL
+        )
+      ''');
     }
   }
 
@@ -194,6 +211,47 @@ class LocalDatabaseService {
         'category': category,
         'year': year,
         'last_fetched': fetchedAt.toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Cache JSON theo key, tối đa một lần fetch mỗi ngày (dùng cho HomePage, Grammar list, …).
+  Future<String?> getApiDailyCachePayload(String cacheKey) async {
+    final db = await database;
+    final rows = await db.query(
+      'api_daily_cache',
+      where: 'cache_key = ?',
+      whereArgs: [cacheKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['payload_json']?.toString();
+  }
+
+  Future<DateTime?> getApiDailyLastFetched(String cacheKey) async {
+    final db = await database;
+    final rows = await db.query(
+      'api_daily_cache',
+      columns: ['last_fetched'],
+      where: 'cache_key = ?',
+      whereArgs: [cacheKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final value = rows.first['last_fetched']?.toString();
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  Future<void> upsertApiDailyCache(String cacheKey, String payloadJson, DateTime fetchedAt) async {
+    final db = await database;
+    await db.insert(
+      'api_daily_cache',
+      {
+        'cache_key': cacheKey,
+        'last_fetched': fetchedAt.toIso8601String(),
+        'payload_json': payloadJson,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );

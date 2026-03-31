@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/episode.dart';
@@ -9,6 +10,7 @@ import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../services/local_database_service.dart';
 import '../services/episode_download_service.dart';
+import '../utils/debug_source_log.dart';
 import 'notification_service.dart';
 
 enum AudioPlayerState { stopped, playing, paused, loading }
@@ -59,10 +61,22 @@ class AudioPlayerService extends ChangeNotifier {
   // Timer để cập nhật position
   Timer? _positionTimer;
 
+  /// Lần phát gần nhất dùng URL remote (để tải nền vào stream cache khi dừng / phát xong).
+  bool _playedFromRemote = false;
+
+  /// Đã lên lịch hoặc hoàn tất tải stream cache cho episodeId (tránh trùng).
+  final Set<String> _streamCacheScheduledOrDone = {};
+
+  StreamSubscription<void>? _onPlayerCompleteSub;
+
   /// Initialize service
   Future<void> initialize() async {
     await _userService.initialize();
-    
+
+    _onPlayerCompleteSub ??= _audioPlayer.onPlayerComplete.listen((_) {
+      _scheduleBackgroundStreamCacheIfNeeded();
+    });
+
     // Cấu hình AudioContext cho background playback
     await _audioPlayer.setAudioContext(AudioContext(
       iOS: AudioContextIOS(
@@ -86,13 +100,14 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Load episode và category episodes
   Future<void> loadEpisode(Episode episode) async {
+    _scheduleBackgroundStreamCacheIfNeeded();
+    _playedFromRemote = false;
     _currentEpisode = episode;
     _playerState = AudioPlayerState.stopped;
     _currentPosition = Duration.zero;
     _totalDuration = Duration.zero;
-    
-    // Determine audio URL với fallback
-    _currentAudioUrl = _getAudioUrl(episode);
+
+    _currentAudioUrl = await _resolvePlaybackUrl(episode);
     
     // Load episodes cùng category
     try {
@@ -119,24 +134,23 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Load episode với category episodes được truyền vào
   Future<void> loadEpisodeWithCategory(Episode episode, List<Episode> categoryEpisodes) async {
-    _currentEpisode = episode;
+    _scheduleBackgroundStreamCacheIfNeeded();
+    _playedFromRemote = false;
     _playerState = AudioPlayerState.stopped;
     _currentPosition = Duration.zero;
     _totalDuration = Duration.zero;
-    
-    // Stop current audio nếu đang play
+
     await _audioPlayer.stop();
-    
-    // Set category episodes và index
+
+    _currentEpisode = episode;
     _currentCategoryEpisodes = categoryEpisodes;
     _currentEpisodeIndex = categoryEpisodes.indexWhere((e) => e.id == episode.id);
-    
+
     if (_currentEpisodeIndex == -1) {
       _currentEpisodeIndex = 0;
     }
-    
-    // Determine audio URL với fallback
-    _currentAudioUrl = _getAudioUrl(episode);
+
+    _currentAudioUrl = await _resolvePlaybackUrl(episode);
     
     // Check favourite status
     _isFavourite = await _checkFavouriteStatus(episode.id ?? '');
@@ -168,20 +182,115 @@ class AudioPlayerService extends ChangeNotifier {
     return null;
   }
 
+  /// Thứ tự: file local trong episode → downloads/ → audio_stream_cache/ → remote.
+  Future<String?> _resolvePlaybackUrl(Episode episode) async {
+    final id = episode.id ?? '';
+    final direct = _getAudioUrl(episode);
+    if (direct != null && !_isRemoteUrl(direct)) {
+      if (await _downloadService.fileExists(direct)) {
+        debugLogDataSource(
+          'Audio',
+          'episodeId=$id | Nguồn: đường dẫn local trong Episode (fileUrl) | $direct',
+        );
+        return direct;
+      }
+    }
+    if (id.isNotEmpty) {
+      final manual = await _downloadService.downloadedEpisodePathIfExists(id);
+      if (manual != null) {
+        debugLogDataSource(
+          'Audio',
+          'episodeId=$id | Nguồn: thư mục downloads (đã tải thủ công) | $manual',
+        );
+        return manual;
+      }
+      final stream = await _downloadService.streamCachedEpisodePathIfExists(id);
+      if (stream != null) {
+        debugLogDataSource(
+          'Audio',
+          'episodeId=$id | Nguồn: audio_stream_cache (sau khi stream) | $stream',
+        );
+        return stream;
+      }
+    }
+    final remote = _getRemoteAudioUrl(episode);
+    debugLogDataSource(
+      'Audio',
+      'episodeId=$id | Nguồn: remote HTTP (Storage/API URL) | ${_truncateForLog(remote)}',
+    );
+    return remote;
+  }
+
+  String _truncateForLog(String? s, [int max = 96]) {
+    if (s == null || s.isEmpty) return '(null)';
+    return s.length <= max ? s : '${s.substring(0, max)}…';
+  }
+
+  void _scheduleBackgroundStreamCacheIfNeeded() {
+    if (kIsWeb) return;
+    if (!_playedFromRemote) return;
+    final ep = _currentEpisode;
+    final id = ep?.id;
+    if (id == null || id.isEmpty) return;
+    if (_streamCacheScheduledOrDone.contains(id)) return;
+    final remote = _getRemoteAudioUrl(ep!);
+    if (remote == null) return;
+    _streamCacheScheduledOrDone.add(id);
+    unawaited(_runBackgroundStreamCache(episodeId: id, remoteUrl: remote));
+  }
+
+  Future<void> _runBackgroundStreamCache({
+    required String episodeId,
+    required String remoteUrl,
+  }) async {
+    try {
+      if (await _downloadService.downloadedEpisodePathIfExists(episodeId) != null) {
+        return;
+      }
+      if (await _downloadService.streamCachedEpisodePathIfExists(episodeId) != null) {
+        return;
+      }
+      debugLogDataSource(
+        'Audio',
+        'episodeId=$episodeId | Tải nền → audio_stream_cache (sau stream) | ${_truncateForLog(remoteUrl)}',
+      );
+      final path = await _downloadService.downloadToStreamCache(
+        url: remoteUrl,
+        episodeId: episodeId,
+      );
+      if (path == null) {
+        _streamCacheScheduledOrDone.remove(episodeId);
+      } else {
+        debugLogDataSource('Audio', 'episodeId=$episodeId | Đã lưu stream cache | $path');
+      }
+    } catch (_) {
+      _streamCacheScheduledOrDone.remove(episodeId);
+    }
+  }
+
   /// Play audio
   Future<void> play() async {
-    if (_currentEpisode == null || _currentAudioUrl == null) {
+    if (_currentEpisode == null) {
       debugPrint('No episode or audio URL available');
       return;
     }
-    
+
     _playerState = AudioPlayerState.loading;
     notifyListeners();
-    
+
     try {
+      final resolved = await _resolvePlaybackUrl(_currentEpisode!);
+      if (resolved == null) {
+        _playerState = AudioPlayerState.stopped;
+        notifyListeners();
+        return;
+      }
+      _currentAudioUrl = resolved;
+      _playedFromRemote = _isRemoteUrl(resolved);
+
       // Set up audio player listeners
       _setupAudioPlayerListeners();
-      
+
       // Play audio from URL or local file
       final source = _buildAudioSource(_currentAudioUrl!);
       await _audioPlayer.play(source);
@@ -293,6 +402,7 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Stop audio
   Future<void> stop() async {
+    _scheduleBackgroundStreamCacheIfNeeded();
     await _audioPlayer.stop();
     _playerState = AudioPlayerState.stopped;
     _currentPosition = Duration.zero;
@@ -365,9 +475,43 @@ class AudioPlayerService extends ChangeNotifier {
       final episodeId = episode.id;
       if (episodeId == null || episodeId.isEmpty) return;
 
+      final existingDownload = await _downloadService.downloadedEpisodePathIfExists(episodeId);
+      if (existingDownload != null) {
+        debugLogDataSource(
+          'Download',
+          'episodeId=$episodeId | Đã có file downloads — chỉ cập nhật DB | $existingDownload',
+        );
+        final updatedEpisode = _copyEpisodeWithFileUrl(episode, existingDownload);
+        await _localDatabaseService.upsertEpisode(updatedEpisode);
+        _updateCurrentEpisode(updatedEpisode);
+        _currentAudioUrl = await _resolvePlaybackUrl(updatedEpisode);
+        _isDownloaded = true;
+        notifyListeners();
+        return;
+      }
+
+      final promoted = await _downloadService.promoteStreamCacheToDownload(episodeId);
+      if (promoted != null) {
+        debugLogDataSource(
+          'Download',
+          'episodeId=$episodeId | Chuyển từ audio_stream_cache → downloads (không tải lại URL) | $promoted',
+        );
+        final updatedEpisode = _copyEpisodeWithFileUrl(episode, promoted);
+        await _localDatabaseService.upsertEpisode(updatedEpisode);
+        _updateCurrentEpisode(updatedEpisode);
+        _currentAudioUrl = await _resolvePlaybackUrl(updatedEpisode);
+        _isDownloaded = true;
+        notifyListeners();
+        return;
+      }
+
       final remoteUrl = _getRemoteAudioUrl(episode);
       if (remoteUrl == null) return;
 
+      debugLogDataSource(
+        'Download',
+        'episodeId=$episodeId | Tải từ mạng → downloads | ${_truncateForLog(remoteUrl)}',
+      );
       final fileName = '$episodeId.mp3';
       final localPath = await _downloadService.downloadAudio(
         url: remoteUrl,
@@ -435,7 +579,7 @@ class AudioPlayerService extends ChangeNotifier {
     if (_currentEpisode != null && _currentEpisode!.id == episodeId) {
       final updatedEpisode = _copyEpisodeWithFileUrl(_currentEpisode!, fileUrl);
       _updateCurrentEpisode(updatedEpisode);
-      _currentAudioUrl = fileUrl;
+      _currentAudioUrl = await _resolvePlaybackUrl(updatedEpisode);
     }
     return true;
   }
@@ -562,6 +706,7 @@ class AudioPlayerService extends ChangeNotifier {
   @override
   void dispose() {
     _positionTimer?.cancel();
+    _onPlayerCompleteSub?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
