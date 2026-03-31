@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/episode.dart';
+import '../utils/debug_source_log.dart';
 import 'firebase_service.dart';
 import 'local_database_service.dart';
 
@@ -16,11 +17,19 @@ class EpisodeCacheService {
     final fetchedToday = _isFetchedToday(lastFetched);
 
     if (cached.isNotEmpty && fetchedToday) {
+      debugLogDataSource(
+        'Category',
+        '$category/$year | SQLite episodes (đã fetch trong ngày) — không gọi RTDB',
+      );
       return cached;
     }
 
     if (!fetchedToday) {
       try {
+        debugLogDataSource(
+          'Category',
+          '$category/$year | RTDB REST GET .../$category/$year.json',
+        );
         final apiEpisodes = await FirebaseService.getCategoryData(category, year);
         await _db.insertEpisodesIfMissing(category, year, apiEpisodes);
         await _db.upsertCategoryFetch(category, year, DateTime.now());
@@ -40,11 +49,19 @@ class EpisodeCacheService {
     final fetchedToday = _isFetchedToday(lastFetched);
 
     if (cached.isNotEmpty && fetchedToday) {
+      debugLogDataSource(
+        'Category',
+        '$category (no year) | SQLite episodes (đã fetch trong ngày) — không gọi RTDB',
+      );
       return cached;
     }
 
     if (!fetchedToday) {
       try {
+        debugLogDataSource(
+          'Category',
+          '$category (no year) | RTDB REST GET .../$category.json',
+        );
         final apiEpisodes = await FirebaseService.getCategoryDataWithoutYear(category);
         await _db.insertEpisodesIfMissing(category, year, apiEpisodes);
         await _db.upsertCategoryFetch(category, year, DateTime.now());

@@ -11,6 +11,88 @@ class TranscriptLine {
     required this.text,
   });
 
+  /// Heuristic cho roleplay: label có vẻ là tên người / host, không phải chú thích (Note, Example…).
+  /// Parser chỉ lấy [từ đầu] làm speaker nên các dòng kiểu "Note: ..." / "Example ..." bị nhầm thành speaker.
+  static bool isLikelyPersonSpeakerLabel(String speaker) {
+    var s = speaker.trim();
+    if (s.isEmpty) return false;
+    if (s.startsWith('(') || s.startsWith('[')) return false;
+    s = s.replaceAll(RegExp(r'[:;,.]+$'), '').trim();
+    if (s.isEmpty) return false;
+    final lower = s.toLowerCase();
+    if (RegExp(r'^\d+$').hasMatch(lower)) return false;
+    const block = <String>{
+      'note',
+      'notes',
+      'example',
+      'examples',
+      'eg',
+      'eg.',
+      'e.g',
+      'e.g.',
+      'ex',
+      'ex.',
+      'see',
+      'cf',
+      'cf.',
+      'audio',
+      'sound',
+      'sfx',
+      'music',
+      'pause',
+      'break',
+      'intro',
+      'outro',
+      'host',
+      'narrator',
+      'voice',
+      'voiceover',
+      'vo',
+      'read',
+      'reading',
+      'quote',
+      'quotation',
+      'caption',
+      'translation',
+      'transcript',
+      'section',
+      'part',
+      'chapter',
+      'scene',
+      'footnote',
+      'reference',
+      'source',
+      'credits',
+      'advertisement',
+      'advert',
+      'ad',
+      'speaker',
+      'speakers',
+      'presenter',
+      'reporter',
+      'interviewer',
+      'interviewee',
+      'guest',
+      'studio',
+      'field',
+      'live',
+      'recording',
+      'clip',
+      'extract',
+      '-',
+      '--',
+      '---',
+      '----',
+      '-----',
+    };
+    if (block.contains(lower)) return false;
+    if (lower.startsWith('note') && lower.length <= 6) {
+      return false;
+    }
+    if (lower.startsWith('example')) return false;
+    return true;
+  }
+
   // Parse transcriptHtml thành danh sách TranscriptLine
   static List<TranscriptLine> parseTranscriptHtml(String? transcriptHtml) {
     if (transcriptHtml == null || transcriptHtml.isEmpty) {

@@ -2,63 +2,89 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/category.dart';
 import '../models/episode.dart';
+import '../utils/debug_source_log.dart';
+import 'api_daily_cache_keys.dart';
+import 'local_database_service.dart';
 
 class FirebaseService {
   static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
-  
-  // Lấy dữ liệu HomePage từ Firebase
+
+  final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
+
+  bool _isFetchedToday(DateTime? lastFetched) {
+    if (lastFetched == null) return false;
+    final now = DateTime.now();
+    return now.year == lastFetched.year &&
+        now.month == lastFetched.month &&
+        now.day == lastFetched.day;
+  }
+
+  /// Tối đa một lần tải [HomePage.json] mỗi ngày (SQLite); dùng chung cho Home, player, favourites.
   Future<List<Category>> getHomePageData() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/HomePage.json'),
-        headers: {'Accept': 'application/json'},
+    final key = ApiDailyCacheKeys.homePage;
+    final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
+    final cached = await _apiCacheDb.getApiDailyCachePayload(key);
+
+    if (_isFetchedToday(lastFetched) && cached != null && cached.isNotEmpty) {
+      debugLogDataSource(
+        'HomePage',
+        'SQLite api_daily_cache (key=$key, đã fetch trong ngày) — không gọi RTDB',
       );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<Category> categories = [];
-
-        // Parse từng category và episodes của nó
-        data.forEach((categoryName, categoryData) {
-          if (categoryName == 'Grammar') {
-            return;
-          }
-          if (categoryData is List) {
-            final List<Episode> episodes = [];
-            
-            for (final episodeData in categoryData) {
-              if (episodeData is Map<String, dynamic>) {
-                try {
-                  final episodeId = episodeData['Id']?.toString() ?? '';
-                  if (episodeId.isNotEmpty) {
-                    episodes.add(Episode.fromJson(episodeData, episodeId));
-                  }
-                } catch (e) {
-                  print('Error parsing episode: $e');
-                  // Skip episode này và tiếp tục
-                }
-              }
-            }
-            
-            if (episodes.isNotEmpty) {
-              categories.add(Category(
-                name: categoryName,
-                episodes: episodes,
-              ));
-            }
-          }
-        });
-
-        // Sắp xếp categories theo tên
-        categories.sort((a, b) => a.name.compareTo(b.name));
-        
-        return categories;
-      } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching data: $e');
+      return parseHomePageFromJsonBody(cached);
     }
+
+    debugLogDataSource('HomePage', 'RTDB REST GET .../HomePage.json');
+    final body = await fetchHomePageJsonBody();
+    await _apiCacheDb.upsertApiDailyCache(key, body, DateTime.now());
+    return parseHomePageFromJsonBody(body);
+  }
+
+  static Future<String> fetchHomePageJsonBody() async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/HomePage.json'),
+      headers: {'Accept': 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      return response.body;
+    }
+    throw Exception('Failed to load data: ${response.statusCode}');
+  }
+
+  static List<Category> parseHomePageFromJsonBody(String responseBody) {
+    final Map<String, dynamic> data = json.decode(responseBody);
+    final List<Category> categories = [];
+
+    data.forEach((categoryName, categoryData) {
+      if (categoryName == 'Grammar') {
+        return;
+      }
+      if (categoryData is List) {
+        final List<Episode> episodes = [];
+
+        for (final episodeData in categoryData) {
+          if (episodeData is Map<String, dynamic>) {
+            try {
+              final episodeId = episodeData['Id']?.toString() ?? '';
+              if (episodeId.isNotEmpty) {
+                episodes.add(Episode.fromJson(episodeData, episodeId));
+              }
+            } catch (e) {
+              print('Error parsing episode: $e');
+            }
+          }
+        }
+
+        if (episodes.isNotEmpty) {
+          categories.add(Category(
+            name: categoryName,
+            episodes: episodes,
+          ));
+        }
+      }
+    });
+
+    categories.sort((a, b) => a.name.compareTo(b.name));
+    return categories;
   }
 
   // Lấy tất cả episodes từ một category cụ thể
@@ -101,14 +127,12 @@ class FirebaseService {
         final List<Episode> episodes = [];
 
         if (data is Map<String, dynamic>) {
-          // Trường hợp API trả về Map với nhiều episodes
           data.forEach((episodeId, episodeData) {
             if (episodeData is Map<String, dynamic>) {
               episodes.add(Episode.fromJson(episodeData, episodeId));
             }
           });
         } else if (data is List) {
-          // Trường hợp API trả về List
           for (int i = 0; i < data.length; i++) {
             final episodeData = data[i];
             if (episodeData is Map<String, dynamic>) {
@@ -117,12 +141,10 @@ class FirebaseService {
             }
           }
         } else if (data is Map<String, dynamic> && data.containsKey('Id')) {
-          // Trường hợp API trả về một episode duy nhất (như REE/2025/0.json)
           final episodeId = data['Id']?.toString() ?? '0';
           episodes.add(Episode.fromJson(data, episodeId));
         }
 
-        // Sắp xếp theo PublishedDate (mới nhất trước)
         episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
 
         return episodes;
@@ -147,14 +169,12 @@ class FirebaseService {
         final List<Episode> episodes = [];
 
         if (data is Map<String, dynamic>) {
-          // Trường hợp API trả về Map với nhiều episodes
           data.forEach((episodeId, episodeData) {
             if (episodeData is Map<String, dynamic>) {
               episodes.add(Episode.fromJson(episodeData, episodeId));
             }
           });
         } else if (data is List) {
-          // Trường hợp API trả về List
           for (int i = 0; i < data.length; i++) {
             final episodeData = data[i];
             if (episodeData is Map<String, dynamic>) {
@@ -163,12 +183,10 @@ class FirebaseService {
             }
           }
         } else if (data is Map<String, dynamic> && data.containsKey('Id')) {
-          // Trường hợp API trả về một episode duy nhất
           final episodeId = data['Id']?.toString() ?? '0';
           episodes.add(Episode.fromJson(data, episodeId));
         }
 
-        // Sắp xếp theo PublishedDate (mới nhất trước)
         episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
 
         return episodes;

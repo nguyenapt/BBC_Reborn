@@ -179,7 +179,8 @@ class AppEn {
     'enablePushNotifications': 'Enable push notifications',
     'notificationsEnabled': 'Push notifications enabled',
     'notificationsDisabled': 'Push notifications disabled',
-    'notificationFeatureNote': 'This feature will be developed in the next version',
+    'notificationFeatureNote':
+        'When off, you will not receive push alerts for new episodes on this device.',
     
     // Advertisement
     'advertisementNotice': 'Advertisement Notice',

@@ -179,7 +179,8 @@ class AppVi {
     'enablePushNotifications': 'Bật thông báo đẩy',
     'notificationsEnabled': 'Đã bật thông báo đẩy',
     'notificationsDisabled': 'Đã tắt thông báo đẩy',
-    'notificationFeatureNote': 'Tính năng này sẽ được phát triển trong phiên bản tiếp theo',
+    'notificationFeatureNote':
+        'Khi tắt, bạn sẽ không nhận thông báo đẩy khi có tập mới trên thiết bị này.',
     
     // Grammar
     'grammarLessons': 'Bài học ngữ pháp',

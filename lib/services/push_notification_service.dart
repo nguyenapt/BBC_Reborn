@@ -5,11 +5,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../firebase_options.dart';
 
 /// FCM topic nhận push khi có episode mới (broadcast — phải trùng topic trong Cloud Function).
 const String fcmTopicNewEpisodes = 'episodes';
+
+/// SharedPreferences key — đồng bộ với [setEpisodePushEnabled] / [getEpisodePushEnabled].
+const String prefKeyEpisodePushEnabled = 'push_episodes_enabled';
 
 const String _androidChannelId = 'bbc_episode_push';
 const String _androidChannelName = 'Tập mới';
@@ -66,9 +70,48 @@ class PushNotificationService {
 
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
-    await messaging.subscribeToTopic(fcmTopicNewEpisodes);
-    debugPrint('PushNotificationService: subscribed to topic "$fcmTopicNewEpisodes"');
+    final prefs = await SharedPreferences.getInstance();
+    final episodePushEnabled = prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
+    if (episodePushEnabled) {
+      await messaging.subscribeToTopic(fcmTopicNewEpisodes);
+      debugPrint('PushNotificationService: subscribed to topic "$fcmTopicNewEpisodes"');
+    } else {
+      await messaging.unsubscribeFromTopic(fcmTopicNewEpisodes);
+      debugPrint(
+        'PushNotificationService: unsubscribed from topic "$fcmTopicNewEpisodes" (saved preference)',
+      );
+    }
     _initialized = true;
+  }
+
+  /// Bật/tắt nhận push tập mới (topic [fcmTopicNewEpisodes]). Lưu [prefKeyEpisodePushEnabled].
+  Future<void> setEpisodePushEnabled(bool enabled) async {
+    if (kIsWeb) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(prefKeyEpisodePushEnabled, enabled);
+
+    try {
+      final messaging = FirebaseMessaging.instance;
+      if (enabled) {
+        await messaging.subscribeToTopic(fcmTopicNewEpisodes);
+      } else {
+        await messaging.unsubscribeFromTopic(fcmTopicNewEpisodes);
+      }
+      debugPrint(
+        'PushNotificationService: topic "$fcmTopicNewEpisodes" '
+        '${enabled ? "subscribed" : "unsubscribed"}',
+      );
+    } catch (e) {
+      debugPrint('PushNotificationService: setEpisodePushEnabled failed: $e');
+    }
+  }
+
+  Future<bool> getEpisodePushEnabled() async {
+    if (kIsWeb) return false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
   }
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {

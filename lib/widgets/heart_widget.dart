@@ -4,11 +4,14 @@ import 'heart_slide_panel.dart';
 
 /// Widget hiển thị hearts trên home page (hoặc AppBar khác khi truyền [panelTop]).
 class HeartWidget extends StatelessWidget {
-  const HeartWidget({super.key, this.panelTop});
+  const HeartWidget({super.key, this.panelTop, this.compact = false});
 
   /// Offset từ đỉnh màn hình tới điểm bắt đầu vùng dim + panel (giống bottom của header chứa nút heart).
   /// Nếu null, dùng layout header home (padding 16 + row 48 + padding 16).
   final double? panelTop;
+
+  /// Gọn hơn (icon nhỏ hơn) — dùng cạnh [IconButton] trên AppBar cho đồng bộ với icon ~24.
+  final bool compact;
 
   void _showSlidePanelFromTop(BuildContext context) {
     // Calculate header height to position panel right below the heart button
@@ -99,26 +102,31 @@ class HeartWidget extends StatelessWidget {
     return ListenableBuilder(
       listenable: heartService,
       builder: (context, child) {
+        final size = compact ? 30.0 : 36.0;
+        final iconSize = compact ? 16.0 : 18.0;
+        final innerPad = compact ? 5.0 : 6.0;
+        final badgeRight = compact ? -3.0 : -4.0;
+        final badgeTop = compact ? -3.0 : -4.0;
         return GestureDetector(
           onTap: () => _showSlidePanelFromTop(context),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 36,
-                height: 36,
-                padding: const EdgeInsets.all(6),
+                width: size,
+                height: size,
+                padding: EdgeInsets.all(innerPad),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.red.shade300,
-                    width: 1.5,
+                    width: compact ? 1.25 : 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.red.shade100,
-                      blurRadius: 4,
+                      blurRadius: compact ? 3 : 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -127,15 +135,18 @@ class HeartWidget extends StatelessWidget {
                   child: Icon(
                     Icons.favorite,
                     color: Colors.red.shade400,
-                    size: 18,
+                    size: iconSize,
                   ),
                 ),
               ),
               Positioned(
-                right: -4,
-                top: -4,
+                right: badgeRight,
+                top: badgeTop,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 3 : 4,
+                    vertical: compact ? 1 : 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade400,
                     borderRadius: BorderRadius.circular(10),
@@ -143,9 +154,9 @@ class HeartWidget extends StatelessWidget {
                   ),
                   child: Text(
                     '${heartService.hearts}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: compact ? 9 : 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

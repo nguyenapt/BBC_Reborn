@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/grammar.dart';
 import '../models/episode.dart';
 import '../services/grammar_service.dart';
-import '../services/firebase_service.dart';
+import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -22,6 +22,7 @@ class _GrammarScreenState extends State<GrammarScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final GrammarService _grammarService = GrammarService();
+  final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LanguageManager _languageManager = LanguageManager();
   
   // Basic Grammar state
@@ -122,8 +123,8 @@ class _GrammarScreenState extends State<GrammarScreen>
       final previousYear = currentYear - 1;
       
       // Lấy dữ liệu từ 2 năm gần nhất
-      final currentYearEpisodes = await FirebaseService.getCategoryData('EG', currentYear);
-      final previousYearEpisodes = await FirebaseService.getCategoryData('EG', previousYear);
+      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', currentYear);
+      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', previousYear);
       
       // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
       final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
@@ -172,7 +173,7 @@ class _GrammarScreenState extends State<GrammarScreen>
       }
 
       // Lấy dữ liệu năm tiếp theo
-      final nextYearEpisodes = await FirebaseService.getCategoryData('EG', nextYear);
+      final nextYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', nextYear);
       
       // Gộp với episodes hiện có và sắp xếp lại
       final allEpisodes = [..._egEpisodes, ...nextYearEpisodes];

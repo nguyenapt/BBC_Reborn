@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
 import '../services/rate_app_service.dart';
 import '../widgets/auth_dialog.dart';
+import '../services/push_notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,13 +20,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
   
-  // Notification settings - tạm thời để đó, sẽ phát triển sau
   bool _pushNotificationsEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _loadCacheSize();
+    _loadPushPreference();
+  }
+
+  Future<void> _loadPushPreference() async {
+    final enabled = await PushNotificationService.instance.getEpisodePushEnabled();
+    if (mounted) {
+      setState(() {
+        _pushNotificationsEnabled = enabled;
+      });
+    }
   }
 
   Future<void> _loadCacheSize() async {
@@ -588,17 +598,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 Switch(
                   value: _pushNotificationsEnabled,
-                  onChanged: (bool value) {
+                  onChanged: (bool value) async {
                     setState(() {
                       _pushNotificationsEnabled = value;
                     });
-                    // TODO: Implement notification settings logic
+                    await PushNotificationService.instance.setEpisodePushEnabled(value);
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          value 
-                            ? _languageManager.getText('notificationsEnabled')
-                            : _languageManager.getText('notificationsDisabled')
+                          value
+                              ? _languageManager.getText('notificationsEnabled')
+                              : _languageManager.getText('notificationsDisabled'),
                         ),
                         duration: const Duration(seconds: 2),
                       ),

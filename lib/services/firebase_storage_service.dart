@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/episode.dart';
+import 'api_daily_cache_service.dart';
 
 class FirebaseStorageService {
   static final FirebaseStorageService _instance = FirebaseStorageService._internal();
@@ -35,33 +36,9 @@ class FirebaseStorageService {
   Future<List<Episode>> getFavouriteEpisodes(String userId) async {
     try {
       final favouriteIds = await getFavouriteEpisodeIds(userId);
-      final List<Episode> favouriteEpisodes = [];
-
-      // Load episodes from HomePage data
-      final response = await http.get(
-        Uri.parse('$_baseUrl/HomePage.json'),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        
-        // Search through all categories for favourite episodes
-        data.forEach((categoryName, categoryData) {
-          if (categoryData is List) {
-            for (final episodeData in categoryData) {
-              if (episodeData is Map<String, dynamic>) {
-                final episodeId = episodeData['Id']?.toString() ?? '';
-                if (favouriteIds.contains(episodeId)) {
-                  favouriteEpisodes.add(Episode.fromJson(episodeData, episodeId));
-                }
-              }
-            }
-          }
-        });
-      }
-
-      return favouriteEpisodes;
+      // Dùng cùng cache HomePage (tối đa 1 GET HomePage.json/ngày) thay vì tải lại RTDB.
+      // Dài hạn: có thể denormalize metadata favourite trên RTDB để bỏ phụ thuộc HomePage.
+      return ApiDailyCacheService().episodesMatchingFavouriteIds(favouriteIds);
     } catch (e) {
       print('Error fetching favourite episodes: $e');
       return [];

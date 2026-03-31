@@ -16,7 +16,7 @@ import 'services/language_manager.dart';
 import 'services/audio_player_service.dart';
 import 'services/user_service.dart';
 import 'services/auth_service.dart';
-import 'services/image_cache_service.dart';
+import 'services/navigation_service.dart';
 import 'services/admob_service.dart';
 import 'services/vocabulary_service.dart';
 import 'services/rate_app_service.dart';

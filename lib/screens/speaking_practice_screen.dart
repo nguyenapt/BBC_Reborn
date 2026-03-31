@@ -159,7 +159,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       _lines = _fallbackParseTranscript(widget.episode.transcript);
     }
 
-    final speakers = _lines.map((e) => e.speaker).where((e) => e.isNotEmpty).toSet().toList();
+    final speakers = _lines
+        .map((e) => e.speaker)
+        .where((e) => e.isNotEmpty)
+        .where(TranscriptLine.isLikelyPersonSpeakerLabel)
+        .toSet()
+        .toList();
     speakers.sort();
     _speakers = speakers;
 
