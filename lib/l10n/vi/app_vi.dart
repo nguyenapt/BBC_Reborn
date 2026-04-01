@@ -280,5 +280,14 @@ class AppVi {
     'speakingHistoryModeLabel': 'Chế độ',
 
     'loadMore': 'Tải thêm',
+
+    // App update prompt
+    'appUpdateTitle': 'Có bản cập nhật',
+    'appUpdateMessageSoft':
+        'Đã có phiên bản mới. Cập nhật để có trải nghiệm tốt nhất.',
+    'appUpdateMessageForced':
+        'Phiên bản này không còn được hỗ trợ. Vui lòng cập nhật để tiếp tục.',
+    'appUpdateButtonUpdate': 'Cập nhật ngay',
+    'appUpdateButtonLater': 'Để sau',
   };
 }

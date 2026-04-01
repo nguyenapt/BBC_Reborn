@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/language_manager.dart';
 import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
@@ -19,7 +21,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final ImageCacheService _imageCacheService = ImageCacheService();
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
-  
+  String _appVersionLabel = '—';
+
   bool _pushNotificationsEnabled = true;
 
   @override
@@ -27,6 +30,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadCacheSize();
     _loadPushPreference();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    if (kIsWeb) return;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersionLabel = '${info.version} (${info.buildNumber})';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _appVersionLabel = '—');
+      }
+    }
   }
 
   Future<void> _loadPushPreference() async {
@@ -797,7 +817,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '1.0.0',
+                  _appVersionLabel,
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],

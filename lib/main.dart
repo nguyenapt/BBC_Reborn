@@ -26,6 +26,7 @@ import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
 import 'services/push_notification_service.dart';
 import 'firebase_options.dart';
+import 'widgets/app_update_prompt.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -218,6 +219,13 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
           _checkAndShowRateDialog();
         }
       });
+
+      // Kiểm tra bản cập nhật (RTDB AppUpdate) sau khi shell ổn định
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (!kIsWeb && mounted) {
+          AppUpdateCoordinator.checkAndPrompt(context);
+        }
+      });
     });
   }
 
@@ -230,10 +238,18 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     // Xử lý audio player khi có cuộc gọi điện thoại
     AudioPlayerService().handleAppLifecycleChange(state);
-    
+
+    if (state == AppLifecycleState.resumed && !kIsWeb && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppUpdateCoordinator.checkAndPrompt(context, fromResume: true);
+        }
+      });
+    }
+
     // Bỏ App Open Ad khi resume từ background để giảm quảng cáo
     // Chỉ giữ lại App Open Ad khi app khởi động lần đầu
   }
