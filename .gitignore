@@ -51,3 +51,10 @@ functions/node_modules/
 # Uncomment the line below to ignore ai_config.dart (if you want to hardcode keys for dev)
 # lib/config/ai_config.dart
 *.md
+
+# C# Firestore migration tool
+tools/FirestoreMigration/bin/
+tools/FirestoreMigration/obj/
+tools/FirestoreMigration/**/service-account*.json
+tools/FirestoreMigration/**/*export*.json
+tools/FirestoreMigration/appsettings.Local.json
