@@ -165,6 +165,13 @@ class AppEs {
     'manageImageCache': 'Gestionar Cache de Imágenes',
     'cacheSize': 'Tamaño de Cache',
     'clearCache': 'Limpiar Cache',
+    'clearImageCacheDialogTitle': 'Borrar caché de imágenes',
+    'clearImageCacheDialogBody':
+        '¿Seguro que quieres borrar todas las imágenes en caché?',
+    'clearImageCacheSuccess': 'Caché de imágenes borrado correctamente',
+    'copiedToClipboard': 'Copiado',
+    'googleTranslateOpenFailed': 'No se pudo abrir Google Translate',
+    'transcriptPlayFromSeconds': 'Reproducir desde {seconds} s',
     'grammarDesc': 'Lecciones de gramática y teoría',
     'settingsDesc': 'Configuraciones para la aplicación',
     'addToFavouritesDesc': 'Toca el ícono del corazón para agregar episodios a favoritos',

@@ -12,6 +12,14 @@ class EpisodeCacheService {
   final LocalDatabaseService _db = LocalDatabaseService();
 
   Future<List<Episode>> getCategoryEpisodes(String category, int year) async {
+    if (kIsWeb) {
+      debugLogDataSource(
+        'Category',
+        '$category/$year | Web — RTDB (no SQLite)',
+      );
+      return FirebaseService.getCategoryData(category, year);
+    }
+
     final cached = await _db.getEpisodesByCategoryYear(category, year);
     final lastFetched = await _db.getCategoryLastFetched(category, year);
     final fetchedToday = _isFetchedToday(lastFetched);
@@ -19,7 +27,7 @@ class EpisodeCacheService {
     if (cached.isNotEmpty && fetchedToday) {
       debugLogDataSource(
         'Category',
-        '$category/$year | SQLite episodes (đã fetch trong ngày) — không gọi RTDB',
+        '$category/$year | SQLite episodes (fetched today) — skip RTDB',
       );
       return cached;
     }
@@ -43,6 +51,14 @@ class EpisodeCacheService {
   }
 
   Future<List<Episode>> getCategoryEpisodesWithoutYear(String category) async {
+    if (kIsWeb) {
+      debugLogDataSource(
+        'Category',
+        '$category (no year) | Web — RTDB (no SQLite)',
+      );
+      return FirebaseService.getCategoryDataWithoutYear(category);
+    }
+
     final year = LocalDatabaseService.noYear;
     final cached = await _db.getEpisodesByCategoryYear(category, year);
     final lastFetched = await _db.getCategoryLastFetched(category, year);
@@ -51,7 +67,7 @@ class EpisodeCacheService {
     if (cached.isNotEmpty && fetchedToday) {
       debugLogDataSource(
         'Category',
-        '$category (no year) | SQLite episodes (đã fetch trong ngày) — không gọi RTDB',
+        '$category (no year) | SQLite episodes (fetched today) — skip RTDB',
       );
       return cached;
     }

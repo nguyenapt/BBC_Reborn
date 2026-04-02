@@ -190,7 +190,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (await _downloadService.fileExists(direct)) {
         debugLogDataSource(
           'Audio',
-          'episodeId=$id | Nguồn: đường dẫn local trong Episode (fileUrl) | $direct',
+          'episodeId=$id | Source: local path in Episode (fileUrl) | $direct',
         );
         return direct;
       }
@@ -200,7 +200,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (manual != null) {
         debugLogDataSource(
           'Audio',
-          'episodeId=$id | Nguồn: thư mục downloads (đã tải thủ công) | $manual',
+          'episodeId=$id | Source: downloads folder (manual download) | $manual',
         );
         return manual;
       }
@@ -208,7 +208,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (stream != null) {
         debugLogDataSource(
           'Audio',
-          'episodeId=$id | Nguồn: audio_stream_cache (sau khi stream) | $stream',
+          'episodeId=$id | Source: audio_stream_cache (after stream) | $stream',
         );
         return stream;
       }
@@ -216,7 +216,7 @@ class AudioPlayerService extends ChangeNotifier {
     final remote = _getRemoteAudioUrl(episode);
     debugLogDataSource(
       'Audio',
-      'episodeId=$id | Nguồn: remote HTTP (Storage/API URL) | ${_truncateForLog(remote)}',
+      'episodeId=$id | Source: remote HTTP (Storage/API URL) | ${_truncateForLog(remote)}',
     );
     return remote;
   }
@@ -252,7 +252,7 @@ class AudioPlayerService extends ChangeNotifier {
       }
       debugLogDataSource(
         'Audio',
-        'episodeId=$episodeId | Tải nền → audio_stream_cache (sau stream) | ${_truncateForLog(remoteUrl)}',
+        'episodeId=$episodeId | Background download → audio_stream_cache (after stream) | ${_truncateForLog(remoteUrl)}',
       );
       final path = await _downloadService.downloadToStreamCache(
         url: remoteUrl,
@@ -261,7 +261,10 @@ class AudioPlayerService extends ChangeNotifier {
       if (path == null) {
         _streamCacheScheduledOrDone.remove(episodeId);
       } else {
-        debugLogDataSource('Audio', 'episodeId=$episodeId | Đã lưu stream cache | $path');
+        debugLogDataSource(
+          'Audio',
+          'episodeId=$episodeId | Stream cache saved | $path',
+        );
       }
     } catch (_) {
       _streamCacheScheduledOrDone.remove(episodeId);
@@ -479,7 +482,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (existingDownload != null) {
         debugLogDataSource(
           'Download',
-          'episodeId=$episodeId | Đã có file downloads — chỉ cập nhật DB | $existingDownload',
+          'episodeId=$episodeId | File already in downloads — DB update only | $existingDownload',
         );
         final updatedEpisode = _copyEpisodeWithFileUrl(episode, existingDownload);
         await _localDatabaseService.upsertEpisode(updatedEpisode);
@@ -494,7 +497,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (promoted != null) {
         debugLogDataSource(
           'Download',
-          'episodeId=$episodeId | Chuyển từ audio_stream_cache → downloads (không tải lại URL) | $promoted',
+          'episodeId=$episodeId | Promote audio_stream_cache → downloads (no re-download) | $promoted',
         );
         final updatedEpisode = _copyEpisodeWithFileUrl(episode, promoted);
         await _localDatabaseService.upsertEpisode(updatedEpisode);
@@ -510,7 +513,7 @@ class AudioPlayerService extends ChangeNotifier {
 
       debugLogDataSource(
         'Download',
-        'episodeId=$episodeId | Tải từ mạng → downloads | ${_truncateForLog(remoteUrl)}',
+        'episodeId=$episodeId | Download from network → downloads | ${_truncateForLog(remoteUrl)}',
       );
       final fileName = '$episodeId.mp3';
       final localPath = await _downloadService.downloadAudio(

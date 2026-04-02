@@ -344,8 +344,14 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     ),
                                     const SizedBox(width: 8),
                                     Tooltip(
-                                      message:
-                                          'Play từ ${(line.startTime / 1000).toStringAsFixed(1)}s',
+                                      message: _languageManager
+                                          .getTextWithParams(
+                                        'transcriptPlayFromSeconds',
+                                        {
+                                          'seconds': (line.startTime / 1000)
+                                              .toStringAsFixed(1),
+                                        },
+                                      ),
                                       child: Material(
                                         color: categoryColor,
                                         borderRadius: BorderRadius.circular(6),
@@ -441,8 +447,13 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                                 ClipboardData(text: selectedText));
                                             editableTextState.hideToolbar();
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                  content: Text('Đã sao chép')),
+                                              SnackBar(
+                                                content: Text(
+                                                  _languageManager.getText(
+                                                    'copiedToClipboard',
+                                                  ),
+                                                ),
+                                              ),
                                             );
                                           }
                                         },
@@ -574,7 +585,11 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
       // Hiển thị thông báo lỗi
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể mở Google Translate')),
+          SnackBar(
+            content: Text(
+              _languageManager.getText('googleTranslateOpenFailed'),
+            ),
+          ),
         );
       }
     }

@@ -172,6 +172,13 @@ class AppVi {
     'manageImageCache': 'Quản lý cache ảnh',
     'cacheSize': 'Kích thước cache',
     'clearCache': 'Xóa cache',
+    'clearImageCacheDialogTitle': 'Xóa cache ảnh',
+    'clearImageCacheDialogBody':
+        'Bạn có chắc chắn muốn xóa tất cả cache hình ảnh?',
+    'clearImageCacheSuccess': 'Đã xóa cache thành công',
+    'copiedToClipboard': 'Đã sao chép',
+    'googleTranslateOpenFailed': 'Không thể mở Google Translate',
+    'transcriptPlayFromSeconds': 'Phát từ {seconds}s',
     
     // Notification Settings
     'pushNotifications': 'Thông báo đẩy',

@@ -165,6 +165,13 @@ class AppAr {
     'manageImageCache': 'إدارة غرفة الصور',
     'cacheSize': 'حجم الغرفة',
     'clearCache': 'مسح الغرفة',
+    'clearImageCacheDialogTitle': 'مسح ذاكرة التخزين المؤقت للصور',
+    'clearImageCacheDialogBody':
+        'هل أنت متأكد أنك تريد مسح جميع الصور المخزنة مؤقتاً؟',
+    'clearImageCacheSuccess': 'تم مسح ذاكرة التخزين المؤقت للصور بنجاح',
+    'copiedToClipboard': 'تم النسخ',
+    'googleTranslateOpenFailed': 'تعذر فتح Google Translate',
+    'transcriptPlayFromSeconds': 'التشغيل من {seconds} ث',
     'grammarDesc': 'دروس القواعد والنظرية',
     'settingsDesc': 'الإعدادات للتطبيق',
     'addToFavouritesDesc': 'اضغط على أيقونة القلب لإضافة الحلقات إلى المفضلة',

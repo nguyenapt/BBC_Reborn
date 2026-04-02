@@ -523,17 +523,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa Cache'),
-        content: const Text('Bạn có chắc chắn muốn xóa tất cả cache hình ảnh?'),
+        title: Text(_languageManager.getText('clearImageCacheDialogTitle')),
+        content: Text(_languageManager.getText('clearImageCacheDialogBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: Text(_languageManager.getText('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Xóa'),
+            child: Text(_languageManager.getText('delete')),
           ),
         ],
       ),
@@ -545,8 +545,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã xóa cache thành công'),
+          SnackBar(
+            content: Text(_languageManager.getText('clearImageCacheSuccess')),
             backgroundColor: Colors.green,
           ),
         );

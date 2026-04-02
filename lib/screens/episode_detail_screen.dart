@@ -249,7 +249,11 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                                     Clipboard.setData(ClipboardData(text: selectedText));
                                     editableTextState.hideToolbar();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Đã sao chép')),
+                                      SnackBar(
+                                        content: Text(
+                                          _languageManager.getText('copiedToClipboard'),
+                                        ),
+                                      ),
                                     );
                                   }
                                 },
@@ -493,7 +497,11 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       // Hiển thị thông báo lỗi
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể mở Google Translate')),
+          SnackBar(
+            content: Text(
+              _languageManager.getText('googleTranslateOpenFailed'),
+            ),
+          ),
         );
       }
     }

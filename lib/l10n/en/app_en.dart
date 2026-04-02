@@ -172,6 +172,13 @@ class AppEn {
     'manageImageCache': 'Manage Image Cache',
     'cacheSize': 'Cache Size',
     'clearCache': 'Clear Cache',
+    'clearImageCacheDialogTitle': 'Clear image cache',
+    'clearImageCacheDialogBody':
+        'Are you sure you want to clear all cached images?',
+    'clearImageCacheSuccess': 'Image cache cleared successfully',
+    'copiedToClipboard': 'Copied',
+    'googleTranslateOpenFailed': 'Could not open Google Translate',
+    'transcriptPlayFromSeconds': 'Play from {seconds}s',
     
     // Notification Settings
     'pushNotifications': 'Push Notifications',

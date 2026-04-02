@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../models/grammar.dart';
 import '../utils/debug_source_log.dart';
@@ -22,13 +23,28 @@ class GrammarService {
   /// Lấy danh sách tất cả grammars (tối đa một lần tải [HomePage/Grammar.json] mỗi ngày).
   Future<List<Grammar>> getAllGrammars() async {
     try {
+      if (kIsWeb) {
+        debugLogDataSource(
+          'GrammarList',
+          'Web: skip SQLite cache — RTDB REST',
+        );
+        final response = await http.get(
+          Uri.parse('$_baseUrl/$_grammarPath.json'),
+          headers: {'Accept': 'application/json'},
+        );
+        if (response.statusCode == 200) {
+          return parseGrammarsFromJsonString(response.body);
+        }
+        throw Exception('Failed to load grammars: ${response.statusCode}');
+      }
+
       final key = ApiDailyCacheKeys.grammarList;
       final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
       final cached = await _apiCacheDb.getApiDailyCachePayload(key);
       if (_isFetchedToday(lastFetched) && cached != null && cached.isNotEmpty) {
         debugLogDataSource(
           'GrammarList',
-          'SQLite api_daily_cache (key=$key, đã fetch trong ngày) — không gọi RTDB',
+          'SQLite api_daily_cache (key=$key, fetched today) — skip RTDB',
         );
         return parseGrammarsFromJsonString(cached);
       }
@@ -85,7 +101,7 @@ class GrammarService {
     return grammars;
   }
 
-  /// Mock data để test UI (backup)
+  /// Mock data for UI tests (unused; English fallback).
   List<Grammar> _getMockGrammars() {
     return [
       Grammar(
@@ -95,16 +111,20 @@ class GrammarService {
         parts: [
           GrammarPart(
             id: 'mock-part-1',
-            name: 'Cách sử dụng',
-            theory: '<h3>Present Simple được sử dụng để:</h3><ul><li>Diễn tả thói quen hàng ngày</li><li>Diễn tả sự thật hiển nhiên</li><li>Diễn tả lịch trình cố định</li></ul>',
-            description: '<p>Present Simple là thì đơn giản nhất trong tiếng Anh, thường được sử dụng với các trạng từ chỉ tần suất như <strong>always, usually, often, sometimes, never</strong>.</p>',
+            name: 'Usage',
+            theory:
+                '<h3>Present Simple is used for:</h3><ul><li>Daily habits</li><li>General truths</li><li>Fixed schedules</li></ul>',
+            description:
+                '<p>Present Simple is the most basic English tense; it is often used with frequency adverbs such as <strong>always, usually, often, sometimes, never</strong>.</p>',
             sortOrder: 0,
           ),
           GrammarPart(
             id: 'mock-part-2',
-            name: 'Cấu trúc',
-            theory: '<h3>Công thức:</h3><ul><li><strong>Khẳng định:</strong> S + V(s/es) + O</li><li><strong>Phủ định:</strong> S + do/does + not + V + O</li><li><strong>Nghi vấn:</strong> Do/Does + S + V + O?</li></ul>',
-            description: '<p>Với chủ ngữ số ít (he, she, it), động từ thêm <strong>-s</strong> hoặc <strong>-es</strong>. Với chủ ngữ số nhiều, giữ nguyên động từ.</p>',
+            name: 'Structure',
+            theory:
+                '<h3>Patterns:</h3><ul><li><strong>Affirmative:</strong> S + V(s/es) + O</li><li><strong>Negative:</strong> S + do/does + not + V + O</li><li><strong>Question:</strong> Do/Does + S + V + O?</li></ul>',
+            description:
+                '<p>With third-person singular subjects (he, she, it), add <strong>-s</strong> or <strong>-es</strong> to the verb; with plural subjects, use the base verb.</p>',
             sortOrder: 1,
           ),
         ],
