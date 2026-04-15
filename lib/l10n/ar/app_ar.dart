@@ -165,6 +165,13 @@ class AppAr {
     'manageImageCache': 'إدارة غرفة الصور',
     'cacheSize': 'حجم الغرفة',
     'clearCache': 'مسح الغرفة',
+    'clearImageCacheDialogTitle': 'مسح ذاكرة التخزين المؤقت للصور',
+    'clearImageCacheDialogBody':
+        'هل أنت متأكد أنك تريد مسح جميع الصور المخزنة مؤقتاً؟',
+    'clearImageCacheSuccess': 'تم مسح ذاكرة التخزين المؤقت للصور بنجاح',
+    'copiedToClipboard': 'تم النسخ',
+    'googleTranslateOpenFailed': 'تعذر فتح Google Translate',
+    'transcriptPlayFromSeconds': 'التشغيل من {seconds} ث',
     'grammarDesc': 'دروس القواعد والنظرية',
     'settingsDesc': 'الإعدادات للتطبيق',
     'addToFavouritesDesc': 'اضغط على أيقونة القلب لإضافة الحلقات إلى المفضلة',
@@ -249,5 +256,13 @@ class AppAr {
     'speakingHistoryModeLabel': 'الوضع',
 
     'loadMore': 'تحميل المزيد',
+
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update',
+    'appUpdateButtonLater': 'Later',
   };
 }

@@ -70,5 +70,12 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
+    // Khớp google_mobile_ads plugin (play-services-ads 23.6.0)
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    // AdMob mediation — tương thích GMA 23.6.0 (googleads-mobile-android-mediation CHANGELOG)
+    implementation("com.google.ads.mediation:facebook:6.19.0.0")
+    implementation("com.unity3d.ads:unity-ads:4.13.1")
+    implementation("com.google.ads.mediation:unity:4.13.1.0")
+    // AppLovin (AdMob mediation) — 13.1.0.0 tested với GMA 23.6.0; hoạt động khi bạn bật nguồn trên Console
+    implementation("com.google.ads.mediation:applovin:13.1.0.0")
 }

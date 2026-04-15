@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../models/category.dart';
 import '../models/episode.dart';
@@ -21,6 +22,17 @@ class FirebaseService {
 
   /// Tối đa một lần tải [HomePage.json] mỗi ngày (SQLite); dùng chung cho Home, player, favourites.
   Future<List<Category>> getHomePageData() async {
+    // Web: SQLite (sqflite_common_ffi_web) cần sqlite3.wasm trong web/; nếu thiếu, open DB trả null
+    // → lỗi "unsupported result null (null)". Tránh SQLite cho luồng Home trên web.
+    if (kIsWeb) {
+      debugLogDataSource(
+        'HomePage',
+        'Web: skip SQLite cache — RTDB REST direct',
+      );
+      final body = await fetchHomePageJsonBody();
+      return parseHomePageFromJsonBody(body);
+    }
+
     final key = ApiDailyCacheKeys.homePage;
     final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
     final cached = await _apiCacheDb.getApiDailyCachePayload(key);
@@ -28,7 +40,7 @@ class FirebaseService {
     if (_isFetchedToday(lastFetched) && cached != null && cached.isNotEmpty) {
       debugLogDataSource(
         'HomePage',
-        'SQLite api_daily_cache (key=$key, đã fetch trong ngày) — không gọi RTDB',
+        'SQLite api_daily_cache (key=$key, fetched today) — skip RTDB',
       );
       return parseHomePageFromJsonBody(cached);
     }

@@ -165,6 +165,12 @@ class AppKo {
     'manageImageCache': '이미지 캐시 관리',
     'cacheSize': '캐시 크기',
     'clearCache': '캐시 지우기',
+    'clearImageCacheDialogTitle': '이미지 캐시 삭제',
+    'clearImageCacheDialogBody': '캐시된 이미지를 모두 삭제하시겠습니까?',
+    'clearImageCacheSuccess': '이미지 캐시가 삭제되었습니다',
+    'copiedToClipboard': '복사됨',
+    'googleTranslateOpenFailed': 'Google 번역을 열 수 없습니다',
+    'transcriptPlayFromSeconds': '{seconds}초부터 재생',
     'grammarDesc': '문법 수업과 이론',
     'settingsDesc': '앱 설정',
     'addToFavouritesDesc': '하트 아이콘을 눌러 에피소드를 즐겨찾기에 추가하세요',
@@ -249,5 +255,13 @@ class AppKo {
     'speakingHistoryModeLabel': '모드',
 
     'loadMore': '더 읽기',
+
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update',
+    'appUpdateButtonLater': 'Later',
   };
 }

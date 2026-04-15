@@ -172,6 +172,13 @@ class AppVi {
     'manageImageCache': 'Quản lý cache ảnh',
     'cacheSize': 'Kích thước cache',
     'clearCache': 'Xóa cache',
+    'clearImageCacheDialogTitle': 'Xóa cache ảnh',
+    'clearImageCacheDialogBody':
+        'Bạn có chắc chắn muốn xóa tất cả cache hình ảnh?',
+    'clearImageCacheSuccess': 'Đã xóa cache thành công',
+    'copiedToClipboard': 'Đã sao chép',
+    'googleTranslateOpenFailed': 'Không thể mở Google Translate',
+    'transcriptPlayFromSeconds': 'Phát từ {seconds}s',
     
     // Notification Settings
     'pushNotifications': 'Thông báo đẩy',
@@ -280,5 +287,14 @@ class AppVi {
     'speakingHistoryModeLabel': 'Chế độ',
 
     'loadMore': 'Tải thêm',
+
+    // App update prompt
+    'appUpdateTitle': 'Có bản cập nhật',
+    'appUpdateMessageSoft':
+        'Đã có phiên bản mới. Cập nhật để có trải nghiệm tốt nhất.',
+    'appUpdateMessageForced':
+        'Phiên bản này không còn được hỗ trợ. Vui lòng cập nhật để tiếp tục.',
+    'appUpdateButtonUpdate': 'Cập nhật ngay',
+    'appUpdateButtonLater': 'Để sau',
   };
 }

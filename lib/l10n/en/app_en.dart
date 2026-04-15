@@ -172,6 +172,13 @@ class AppEn {
     'manageImageCache': 'Manage Image Cache',
     'cacheSize': 'Cache Size',
     'clearCache': 'Clear Cache',
+    'clearImageCacheDialogTitle': 'Clear image cache',
+    'clearImageCacheDialogBody':
+        'Are you sure you want to clear all cached images?',
+    'clearImageCacheSuccess': 'Image cache cleared successfully',
+    'copiedToClipboard': 'Copied',
+    'googleTranslateOpenFailed': 'Could not open Google Translate',
+    'transcriptPlayFromSeconds': 'Play from {seconds}s',
     
     // Notification Settings
     'pushNotifications': 'Push Notifications',
@@ -275,5 +282,14 @@ class AppEn {
     'speakingHistoryModeLabel': 'Mode',
 
     'loadMore': 'Load More',
+
+    // App update prompt
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update Now',
+    'appUpdateButtonLater': 'Later',
   };
 }

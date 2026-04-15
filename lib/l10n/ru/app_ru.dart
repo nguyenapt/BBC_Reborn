@@ -165,6 +165,13 @@ class AppRu {
     'manageImageCache': 'Управление кэшем изображений',
     'cacheSize': 'Размер кэша',
     'clearCache': 'Очистить кэш',
+    'clearImageCacheDialogTitle': 'Очистить кэш изображений',
+    'clearImageCacheDialogBody':
+        'Вы уверены, что хотите удалить все закэшированные изображения?',
+    'clearImageCacheSuccess': 'Кэш изображений очищен',
+    'copiedToClipboard': 'Скопировано',
+    'googleTranslateOpenFailed': 'Не удалось открыть Google Переводчик',
+    'transcriptPlayFromSeconds': 'Воспроизведение с {seconds} с',
     'grammarDesc': 'Уроки грамматики и теории',
     'settingsDesc': 'Настройки для приложения',
     'addToFavouritesDesc': 'Нажмите на иконку сердца, чтобы добавить эпизоды в избранное',
@@ -249,5 +256,13 @@ class AppRu {
     'speakingHistoryModeLabel': 'Режим',
 
     'loadMore': 'Загрузить больше',
+
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update',
+    'appUpdateButtonLater': 'Later',
   };
 }

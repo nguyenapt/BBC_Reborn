@@ -18,7 +18,7 @@ class ApiDailyCacheService {
     if (favouriteIds.isEmpty) return [];
     debugLogDataSource(
       'Favourites',
-      'Lọc favourite qua getHomePageData() (cùng cache HomePage — không GET HomePage.json riêng)',
+      'Resolve favourites via getHomePageData() (shared HomePage cache — no extra GET)',
     );
     final categories = await _firebase.getHomePageData();
     final out = <Episode>[];

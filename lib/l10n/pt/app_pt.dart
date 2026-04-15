@@ -165,6 +165,13 @@ class AppPt {
     'manageImageCache': 'Gerenciar Cache de Imagens',
     'cacheSize': 'Tamanho do Cache',
     'clearCache': 'Limpar Cache',
+    'clearImageCacheDialogTitle': 'Limpar cache de imagens',
+    'clearImageCacheDialogBody':
+        'Tem certeza de que deseja limpar todas as imagens em cache?',
+    'clearImageCacheSuccess': 'Cache de imagens limpo com sucesso',
+    'copiedToClipboard': 'Copiado',
+    'googleTranslateOpenFailed': 'Não foi possível abrir o Google Tradutor',
+    'transcriptPlayFromSeconds': 'Reproduzir a partir de {seconds}s',
     'grammarDesc': 'Leções de gramática e teoria',
     'settingsDesc': 'Configurações para a aplicação',
     'addToFavouritesDesc': 'Toque no ícone do coração para adicionar episódios aos favoritos',
@@ -249,5 +256,13 @@ class AppPt {
     'speakingHistoryModeLabel': 'Modo',
 
     'loadMore': 'Carregar mais',
+
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update',
+    'appUpdateButtonLater': 'Later',
   };
 }

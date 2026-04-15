@@ -165,6 +165,12 @@ class AppJa {
     'manageImageCache': '画像キャッシュの管理',
     'cacheSize': 'キャッシュサイズ',
     'clearCache': 'キャッシュをクリア',
+    'clearImageCacheDialogTitle': '画像キャッシュを削除',
+    'clearImageCacheDialogBody': 'キャッシュされた画像をすべて削除しますか？',
+    'clearImageCacheSuccess': '画像キャッシュを削除しました',
+    'copiedToClipboard': 'コピーしました',
+    'googleTranslateOpenFailed': 'Google翻訳を開けませんでした',
+    'transcriptPlayFromSeconds': '{seconds}秒から再生',
     'grammarDesc': '文法のレッスンと理論',
     'settingsDesc': 'アプリの設定',
     'addToFavouritesDesc': 'エピソードをお気に入りに追加',
@@ -248,5 +254,13 @@ class AppJa {
     'speakingHistorySessionSubtitle': '{attempts} 回 · 平均 {avg}',
     'speakingHistoryModeLabel': 'モード',
 
+
+    'appUpdateTitle': 'Update available',
+    'appUpdateMessageSoft':
+        'A newer version of the app is available. Update for the best experience.',
+    'appUpdateMessageForced':
+        'This version is no longer supported. Please update to continue.',
+    'appUpdateButtonUpdate': 'Update',
+    'appUpdateButtonLater': 'Later',
   };
 }

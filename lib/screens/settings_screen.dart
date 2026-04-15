@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/language_manager.dart';
 import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
@@ -19,7 +21,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final ImageCacheService _imageCacheService = ImageCacheService();
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
-  
+  String _appVersionLabel = '—';
+
   bool _pushNotificationsEnabled = true;
 
   @override
@@ -27,6 +30,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadCacheSize();
     _loadPushPreference();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    if (kIsWeb) return;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersionLabel = '${info.version} (${info.buildNumber})';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _appVersionLabel = '—');
+      }
+    }
   }
 
   Future<void> _loadPushPreference() async {
@@ -503,17 +523,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa Cache'),
-        content: const Text('Bạn có chắc chắn muốn xóa tất cả cache hình ảnh?'),
+        title: Text(_languageManager.getText('clearImageCacheDialogTitle')),
+        content: Text(_languageManager.getText('clearImageCacheDialogBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: Text(_languageManager.getText('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Xóa'),
+            child: Text(_languageManager.getText('delete')),
           ),
         ],
       ),
@@ -525,8 +545,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã xóa cache thành công'),
+          SnackBar(
+            content: Text(_languageManager.getText('clearImageCacheSuccess')),
             backgroundColor: Colors.green,
           ),
         );
@@ -797,7 +817,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '1.0.0',
+                  _appVersionLabel,
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
