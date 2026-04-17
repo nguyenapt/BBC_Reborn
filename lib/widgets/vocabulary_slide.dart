@@ -13,13 +13,17 @@ import '../services/admob_service.dart';
 import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
 import 'translation_language_picker.dart';
+import 'episode_tab_skeleton.dart';
 
 class VocabularySlide extends StatefulWidget {
   final Episode episode;
+  /// Đang tải vocab đầy đủ từ RTDB — skeleton thay vì ad/empty.
+  final bool isAwaitingFullEpisode;
 
   const VocabularySlide({
     super.key,
     required this.episode,
+    this.isAwaitingFullEpisode = false,
   });
 
   @override
@@ -60,6 +64,21 @@ class _VocabularySlideState extends State<VocabularySlide> {
     super.dispose();
   }
   
+  @override
+  void didUpdateWidget(VocabularySlide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episode.id != widget.episode.id ||
+        oldWidget.episode.vocabulary != widget.episode.vocabulary ||
+        oldWidget.episode.vocabularies != widget.episode.vocabularies) {
+      setState(() {
+        _vocabularyItems = VocabularyItem.parseFromEpisode(
+          vocabularies: widget.episode.vocabularies,
+          vocabulary: widget.episode.vocabulary,
+        );
+      });
+    }
+  }
+
   void _onLanguageChanged() {
     // If language changed and we're showing translations, clear them
     final newLanguageCode = _languageManager.currentLocale.languageCode;
@@ -88,6 +107,11 @@ class _VocabularySlideState extends State<VocabularySlide> {
   }
 
   Widget _buildVocabularyContent(List<VocabularyItem> vocabularyItems) {
+    final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+
+    if (widget.isAwaitingFullEpisode && vocabularyItems.isEmpty) {
+      return EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 8);
+    }
 
     // Nếu không có vocabulary, hiển thị Native AdMob
     if (vocabularyItems.isEmpty) {

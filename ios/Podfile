@@ -34,6 +34,7 @@ target 'Runner' do
   pod 'GoogleMobileAdsMediationFacebook'
   pod 'GoogleMobileAdsMediationUnity'
   pod 'GoogleMobileAdsMediationAppLovin'
+  pod 'GoogleMobileAdsMediationIronSource'
 end
 
 post_install do |installer|

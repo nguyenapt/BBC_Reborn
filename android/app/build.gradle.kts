@@ -68,4 +68,6 @@ dependencies {
     implementation("com.google.ads.mediation:unity:4.13.1.0")
     // AppLovin (AdMob mediation) — 13.1.0.0 tested với GMA 23.6.0; hoạt động khi bạn bật nguồn trên Console
     implementation("com.google.ads.mediation:applovin:13.1.0.0")
+    // ironSource (LevelPlay) AdMob mediation adapter
+    implementation("com.google.ads.mediation:ironsource:9.3.0.2")
 }

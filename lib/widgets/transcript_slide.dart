@@ -15,17 +15,21 @@ import '../services/heart_service.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 import 'translation_language_picker.dart';
+import 'episode_tab_skeleton.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
   final int? currentPositionMs; // Vị trí audio hiện tại (milliseconds)
   final Function(int startTimeMs)? onPlayAtTime; // Callback để play tại thời điểm cụ thể
+  /// Đang tải transcript đầy đủ từ RTDB (list mỏng) — hiển thị skeleton thay vì "No transcript".
+  final bool isAwaitingFullEpisode;
 
   const TranscriptSlide({
     super.key,
     required this.episode,
     this.currentPositionMs,
     this.onPlayAtTime,
+    this.isAwaitingFullEpisode = false,
   });
 
   @override
@@ -57,61 +61,64 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    
+    _buildTranscriptLinesFromEpisode();
+    _calculateAdPositions();
+    _updateActiveLine();
+  }
+
+  /// Parse từ [widget.episode] — gọi lại khi parent hydrate transcript (vd. list RTDB mỏng → đầy đủ).
+  void _buildTranscriptLinesFromEpisode() {
+    final ep = widget.episode;
     // Ưu tiên sử dụng transcriptHtml (có time info)
-    if (widget.episode.transcriptHtml != null && widget.episode.transcriptHtml!.isNotEmpty) {
-      transcriptLines = TranscriptLine.parseTranscriptHtml(widget.episode.transcriptHtml);
-      
-      // Kiểm tra xem transcriptLines có time info không
-      // Nếu tất cả các lines đều không có time info (startTime = 0 và endTime = 0)
-      // nhưng vẫn có giá trị → split transcriptHtml theo newline
-      if (transcriptLines.isNotEmpty && 
+    if (ep.transcriptHtml != null && ep.transcriptHtml!.isNotEmpty) {
+      transcriptLines = TranscriptLine.parseTranscriptHtml(ep.transcriptHtml);
+
+      if (transcriptLines.isNotEmpty &&
           transcriptLines.every((line) => line.startTime == 0 && line.endTime == 0)) {
-        // Không có time info nhưng vẫn có giá trị, split transcriptHtml theo newline
-        final lines = widget.episode.transcriptHtml!.split('\n').where((line) => line.trim().isNotEmpty).toList();
-        transcriptLines = lines.map((line) {
-          return TranscriptLine(
-            speaker: 'Speaker',
-            text: line.trim(),
-            startTime: 0,
-            endTime: 0,
-          );
-        }).toList().cast<TranscriptLine>();
+        final lines = ep.transcriptHtml!.split('\n').where((line) => line.trim().isNotEmpty).toList();
+        transcriptLines = lines
+            .map((line) {
+              return TranscriptLine(
+                speaker: 'Speaker',
+                text: line.trim(),
+                startTime: 0,
+                endTime: 0,
+              );
+            })
+            .toList()
+            .cast<TranscriptLine>();
+      } else if (transcriptLines.isEmpty) {
+        if (ep.transcript.isNotEmpty) {
+          final lines = ep.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
+          transcriptLines = lines
+              .map((line) {
+                return TranscriptLine(
+                  speaker: 'Speaker',
+                  text: line.trim(),
+                  startTime: 0,
+                  endTime: 0,
+                );
+              })
+              .toList()
+              .cast<TranscriptLine>();
+        }
       }
-      // Nếu transcriptLines rỗng (parse không ra gì), fallback sang dùng field transcript
-      else if (transcriptLines.isEmpty) {
-        if (widget.episode.transcript.isNotEmpty) {
-          final lines = widget.episode.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
-          transcriptLines = lines.map((line) {
+    } else if (ep.transcript.isNotEmpty) {
+      final lines = ep.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
+      transcriptLines = lines
+          .map((line) {
             return TranscriptLine(
               speaker: 'Speaker',
               text: line.trim(),
               startTime: 0,
               endTime: 0,
             );
-          }).toList().cast<TranscriptLine>();
-        }
-      }
-    } else if (widget.episode.transcript.isNotEmpty) {
-      // Không có transcriptHtml, dùng field transcript (split theo newline)
-      final lines = widget.episode.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
-      transcriptLines = lines.map((line) {
-        return TranscriptLine(
-          speaker: 'Speaker',
-          text: line.trim(),
-          startTime: 0,
-          endTime: 0,
-        );
-      }).toList().cast<TranscriptLine>();
+          })
+          .toList()
+          .cast<TranscriptLine>();
     } else {
-      // Không có cả transcriptHtml và transcript
       transcriptLines = [];
     }
-    
-    // Tính toán vị trí chèn native ads
-    _calculateAdPositions();
-
-    _updateActiveLine();
   }
 
   Color _speakerAccentColor(String speaker) {
@@ -155,7 +162,16 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   @override
   void didUpdateWidget(TranscriptSlide oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentPositionMs != widget.currentPositionMs) {
+    final transcriptChanged = oldWidget.episode.id != widget.episode.id ||
+        oldWidget.episode.transcript != widget.episode.transcript ||
+        oldWidget.episode.transcriptHtml != widget.episode.transcriptHtml;
+    if (transcriptChanged) {
+      setState(() {
+        _buildTranscriptLinesFromEpisode();
+        _calculateAdPositions();
+      });
+    }
+    if (oldWidget.currentPositionMs != widget.currentPositionMs || transcriptChanged) {
       _updateActiveLine();
     }
   }
@@ -203,6 +219,9 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
     final panelBg = categoryColor.withOpacity(0.12);
 
     Widget emptyOrList() {
+      if (widget.isAwaitingFullEpisode && transcriptLines.isEmpty) {
+        return EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 12);
+      }
       if (transcriptLines.isEmpty) {
         return Center(
           child: Column(

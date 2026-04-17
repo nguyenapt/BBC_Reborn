@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../config/rtdb_list_config.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../services/audio_player_service.dart';
+import '../services/firebase_service.dart';
+import '../services/local_database_service.dart';
 import '../services/language_manager.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
@@ -36,19 +40,33 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
+  late Episode _episode;
+  bool _hydratingFullEpisode = false;
   int _currentPageIndex = 0; // Transcript
   bool _hasShownInterstitialAd = false;
+
+  bool _mustFetchFullEpisode(Episode e) {
+    if (!RtdbListConfig.useSlimListPaths) return false;
+    if (e.transcript.trim().isNotEmpty) return false;
+    final id = e.id;
+    if (id == null || id.isEmpty) return false;
+    return true;
+  }
 
   @override
   void initState() {
     super.initState();
+    _episode = widget.episode;
+    _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
     _audioService = AudioPlayerService();
     _languageManager = LanguageManager();
     _pageController = PageController(initialPage: 0);
 
     // Load episode vào audio service với category episodes
-    _audioService.loadEpisodeWithCategory(widget.episode, widget.categoryEpisodes);
-    
+    _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+    Future.microtask(_hydrateFullEpisodeIfNeeded);
+    _scheduleDebugSqliteSourceNotice(widget.episode);
+
     // Bật Always Display (Wakelock) để màn hình không tự tắt
     _enableAlwaysDisplay();
     
@@ -63,6 +81,73 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           _hasShownInterstitialAd = true;
         });
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(EpisodeDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episode.id != widget.episode.id ||
+        oldWidget.episode.episodeName != widget.episode.episodeName) {
+      _episode = widget.episode;
+      setState(() {
+        _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
+      });
+      _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+      Future.microtask(_hydrateFullEpisodeIfNeeded);
+      _scheduleDebugSqliteSourceNotice(widget.episode);
+    }
+  }
+
+  /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
+  void _scheduleDebugSqliteSourceNotice(Episode episodeAtOpen) {
+    if (!kDebugMode || kIsWeb) return;
+    final id = episodeAtOpen.id;
+    if (id == null || id.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (_mustFetchFullEpisode(episodeAtOpen)) return;
+      if (episodeAtOpen.transcript.trim().isEmpty) return;
+      final fromDb = await LocalDatabaseService().getEpisodeById(id);
+      if (fromDb == null || fromDb.transcript.trim().isEmpty) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('[Debug] Detail: đọc từ SQLite ($id)'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    });
+  }
+
+  /// List `List/...` không có transcript — tải bản đầy đủ từ tree gốc và ghi SQLite.
+  Future<void> _hydrateFullEpisodeIfNeeded() async {
+    if (!_mustFetchFullEpisode(_episode)) {
+      if (mounted) setState(() => _hydratingFullEpisode = false);
+      return;
+    }
+
+    try {
+      final full = await FirebaseService.fetchEpisodeFull(_episode);
+      if (!mounted || full == null) {
+        if (mounted) setState(() => _hydratingFullEpisode = false);
+        return;
+      }
+      // Cập nhật UI trước — SQLite (đặc biệt web) có thể lỗi; không được chặn hiển thị transcript.
+      setState(() {
+        _episode = full;
+        _hydratingFullEpisode = false;
+      });
+      await _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+      try {
+        await LocalDatabaseService().upsertEpisode(full);
+      } catch (e, st) {
+        debugPrint('upsert after hydrate (non-fatal): $e\n$st');
+      }
+    } catch (e, st) {
+      debugPrint('hydrate episode: $e\n$st');
+      if (mounted) setState(() => _hydratingFullEpisode = false);
     }
   }
 
@@ -108,7 +193,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     return ListenableBuilder(
       listenable: _languageManager,
       builder: (context, child) {
-        final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+        final categoryColor = CategoryColors.getCategoryColor(_episode.category);
         
         return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -123,7 +208,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => SpeakingPracticeScreen(
-                    episode: widget.episode,
+                    episode: _episode,
                     audioService: _audioService,
                   ),
                 ),
@@ -216,7 +301,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        widget.episode.category,
+                        _episode.category,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -227,7 +312,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     // Episode Name
                     Expanded(
                       child: SelectableText(
-                        widget.episode.episodeName,
+                        _episode.episodeName,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 18,
@@ -292,14 +377,14 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          widget.episode.duration,
+                          _episode.duration,
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                         // Chỉ hiển thị date nếu không phải Other Programs category
-                        if (!_isOtherProgramsCategory(widget.episode.category)) ...[
+                        if (!_isOtherProgramsCategory(_episode.category)) ...[
                           const SizedBox(width: 16),
                           Icon(
                             Icons.calendar_today,
@@ -308,7 +393,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _formatDate(widget.episode.publishedDate),
+                            _formatDate(_episode.publishedDate),
                             style: TextStyle(
                               fontSize: 14,
                               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -336,7 +421,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   listenable: _audioService,
                   builder: (context, child) {
                     return TranscriptSlide(
-                      episode: widget.episode,
+                      episode: _episode,
+                      isAwaitingFullEpisode: _hydratingFullEpisode,
                       currentPositionMs: _audioService.currentPositionMs,
                       onPlayAtTime: (startTimeMs) {
                         _audioService.seekTo(Duration(milliseconds: startTimeMs));
@@ -347,7 +433,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 ),
                 EpisodeInfoSlide(
                   languageManager: _languageManager,
-                  episode: widget.episode,
+                  episode: _episode,
                   topEpisodes: widget.categoryEpisodes,
                   onEpisodeTap: (episode) {
                     const shouldShowInterstitial = true;
@@ -363,8 +449,14 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     );
                   },
                 ),
-                VocabularySlide(episode: widget.episode),
-                QuestionSlide(episode: widget.episode),
+                VocabularySlide(
+                  episode: _episode,
+                  isAwaitingFullEpisode: _hydratingFullEpisode,
+                ),
+                QuestionSlide(
+                  episode: _episode,
+                  isAwaitingFullEpisode: _hydratingFullEpisode,
+                ),
               ],
             ),
           ),
