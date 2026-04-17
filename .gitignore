@@ -58,3 +58,5 @@ tools/FirestoreMigration/obj/
 tools/FirestoreMigration/**/service-account*.json
 tools/FirestoreMigration/**/*export*.json
 tools/FirestoreMigration/appsettings.Local.json
+database - 17042026.json
+database-list-17042026.json

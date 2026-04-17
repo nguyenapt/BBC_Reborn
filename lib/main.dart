@@ -25,12 +25,14 @@ import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/consent_service.dart';
 import 'firebase_options.dart';
 import 'widgets/app_update_prompt.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('🚀 App starting...');
+  final ConsentService consentService = ConsentService();
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -38,11 +40,20 @@ void main() async {
     await PushNotificationService.instance.initialize();
   }
   
-  // Khởi tạo Google Mobile Ads (chỉ trên mobile, không phải web)
-  if (!kIsWeb) {
-    debugPrint('📱 Initializing MobileAds...');
-    await MobileAds.instance.initialize();
-    debugPrint('✅ MobileAds initialized');
+  // Thu thập consent trước khi khởi tạo và request ads.
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    debugPrint('🛡️ Running UMP consent flow...');
+    await consentService.initializeConsentFlow();
+    debugPrint(
+        '🛡️ UMP completed. canRequestAds=${consentService.canRequestAds}, status=${consentService.consentStatus}');
+
+    if (consentService.canRequestAds) {
+      debugPrint('📱 Initializing MobileAds...');
+      await MobileAds.instance.initialize();
+      debugPrint('✅ MobileAds initialized');
+    } else {
+      debugPrint('⚠️ MobileAds init skipped because consent not granted yet');
+    }
   }
   
   // Khởi tạo các service với error handling
@@ -67,7 +78,7 @@ void main() async {
     debugPrint('✅ HeartService initialized');
     
     // Preload rewarded ad for hearts
-    if (!kIsWeb) {
+    if (!kIsWeb && consentService.canRequestAds) {
       AdMobService().createRewardedAd();
     }
     

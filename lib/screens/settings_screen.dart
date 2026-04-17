@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/language_manager.dart';
 import '../services/auth_service.dart';
@@ -7,6 +8,7 @@ import '../services/image_cache_service.dart';
 import '../services/rate_app_service.dart';
 import '../widgets/auth_dialog.dart';
 import '../services/push_notification_service.dart';
+import '../services/consent_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,6 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final LanguageManager _languageManager = LanguageManager();
   final AuthService _authService = AuthService();
   final ImageCacheService _imageCacheService = ImageCacheService();
+  final ConsentService _consentService = ConsentService();
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
   String _appVersionLabel = '—';
@@ -197,6 +200,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Notification Section (Placeholder)
         _buildNotificationSection(),
         const SizedBox(height: 16),
+
+        // Privacy options (CMP / UMP)
+        if (!kIsWeb) ...[
+          _buildPrivacyOptionsSection(),
+          const SizedBox(height: 16),
+        ],
 
         // About Section
         //_buildAboutSection(),
@@ -646,6 +655,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontSize: 12,
                 color: Colors.grey[500],
                 fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyOptionsSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.privacy_tip_outlined, color: Colors.teal),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('adPrivacyOptionsTitle'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<PrivacyOptionsRequirementStatus>(
+              future: _consentService.refreshConsentState().then(
+                    (_) => _consentService.privacyOptionsRequirementStatus,
+                  ),
+              builder: (context, snapshot) {
+                final status = snapshot.data;
+                final statusLabel = switch (status) {
+                  PrivacyOptionsRequirementStatus.required =>
+                    _languageManager.getText('privacyOptionsStatusRequired'),
+                  PrivacyOptionsRequirementStatus.notRequired =>
+                    _languageManager.getText('privacyOptionsStatusNotRequired'),
+                  _ => _languageManager.getText('privacyOptionsStatusUpdating'),
+                };
+
+                return Text(
+                  _languageManager.getTextWithParams(
+                    'privacyOptionsStatusLabel',
+                    {'status': statusLabel},
+                  ),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  await _consentService.refreshConsentState();
+                  final requirementStatus =
+                      _consentService.privacyOptionsRequirementStatus;
+
+                  if (requirementStatus !=
+                      PrivacyOptionsRequirementStatus.required) {
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _languageManager
+                              .getText('privacyOptionsNotRequiredInfo'),
+                        ),
+                        backgroundColor: Colors.blueGrey,
+                      ),
+                    );
+                    setState(() {});
+                    return;
+                  }
+
+                  final errorMessage =
+                      await _consentService.showPrivacyOptionsForm();
+                  if (!mounted) return;
+
+                  if (errorMessage == null) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _languageManager
+                              .getText('privacyOptionsUpdateSuccess'),
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _languageManager.getTextWithParams(
+                            'privacyOptionsOpenError',
+                            {'error': errorMessage},
+                          ),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  setState(() {});
+                },
+                icon: const Icon(Icons.manage_accounts_outlined),
+                label: Text(
+                  _languageManager.getText('managePrivacyChoices'),
+                ),
               ),
             ),
           ],

@@ -182,6 +182,18 @@ class AppRu {
     'loadingFavouritesErrorDesc': 'Произошла ошибка: {error}',
     'loadingVocabulariesErrorDesc': 'Произошла ошибка: {error}',
     'doubleBackExit': 'Нажмите на кнопку назад еще раз, чтобы выйти',
+    'adPrivacyOptionsTitle': 'Параметры конфиденциальности рекламы',
+    'privacyOptionsStatusLabel': 'Статус privacy options: {status}',
+    'privacyOptionsStatusRequired': 'Требуется показать',
+    'privacyOptionsStatusNotRequired': 'Не требуется',
+    'privacyOptionsStatusUpdating': 'Обновляется',
+    'managePrivacyChoices': 'Управлять параметрами конфиденциальности',
+    'privacyOptionsUpdateSuccess':
+        'Параметры конфиденциальности рекламы обновлены.',
+    'privacyOptionsOpenError':
+        'Не удалось открыть privacy options: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'В вашем регионе privacy options сейчас не требуются.',
 
     // Speaking practice
     'speakingPracticeTitle': 'Практика речи',
