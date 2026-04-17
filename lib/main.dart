@@ -25,12 +25,14 @@ import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/consent_service.dart';
 import 'firebase_options.dart';
 import 'widgets/app_update_prompt.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('🚀 App starting...');
+  final ConsentService consentService = ConsentService();
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -38,11 +40,20 @@ void main() async {
     await PushNotificationService.instance.initialize();
   }
   
-  // Khởi tạo Google Mobile Ads (chỉ trên mobile, không phải web)
-  if (!kIsWeb) {
-    debugPrint('📱 Initializing MobileAds...');
-    await MobileAds.instance.initialize();
-    debugPrint('✅ MobileAds initialized');
+  // Thu thập consent trước khi khởi tạo và request ads.
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    debugPrint('🛡️ Running UMP consent flow...');
+    await consentService.initializeConsentFlow();
+    debugPrint(
+        '🛡️ UMP completed. canRequestAds=${consentService.canRequestAds}, status=${consentService.consentStatus}');
+
+    if (consentService.canRequestAds) {
+      debugPrint('📱 Initializing MobileAds...');
+      await MobileAds.instance.initialize();
+      debugPrint('✅ MobileAds initialized');
+    } else {
+      debugPrint('⚠️ MobileAds init skipped because consent not granted yet');
+    }
   }
   
   // Khởi tạo các service với error handling
@@ -67,7 +78,7 @@ void main() async {
     debugPrint('✅ HeartService initialized');
     
     // Preload rewarded ad for hearts
-    if (!kIsWeb) {
+    if (!kIsWeb && consentService.canRequestAds) {
       AdMobService().createRewardedAd();
     }
     
@@ -152,9 +163,14 @@ class BBCLearningAppStateful extends StatefulWidget {
 
 class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful> 
     with WidgetsBindingObserver, DoubleBackExitMixin {
+  static const Duration _appOpenStartupDelay = Duration(milliseconds: 2500);
+  static const Duration _appOpenResumeBackgroundThreshold = Duration(minutes: 5);
+  static const Duration _appOpenShowAttemptDelay = Duration(milliseconds: 900);
+
   int currentPageIndex = 0;
   String? categoriesInitialTab;
   String? grammarInitialTab;
+  DateTime? _lastBackgroundAt;
 
   void navigateToCategoriesWithTab(String tabName) {
     setState(() {
@@ -173,12 +189,23 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   Future<void> _checkAndShowRateDialog() async {
     try {
       if (await RateAppService.shouldShowRatePrompt()) {
+        if (!mounted) return;
         await RateAppService.incrementPromptCount();
+        if (!mounted) return;
         await RateAppService.showRateDialog(context);
       }
     } catch (e) {
       debugPrint('Error showing rate dialog: $e');
     }
+  }
+
+  Future<void> _tryShowAppOpenAd({required String trigger}) async {
+    if (kIsWeb || !mounted) return;
+    final adService = AdMobService();
+    await adService.preloadAppOpenAd();
+    await Future.delayed(_appOpenShowAttemptDelay);
+    if (!mounted) return;
+    await adService.showAppOpenAdIfReady(trigger: trigger);
   }
 
   @override
@@ -194,22 +221,13 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     // Khởi tạo dữ liệu cho rate app service
     RateAppService.initializeForNewUser();
     
-    // Giảm tần suất App Open Ad khi khởi động app
+    // App Open policy cân bằng:
+    // - Cold start: thử hiển thị sau khi UI ổn định.
+    // - Resume: chỉ thử khi app ở background đủ lâu.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Delay lâu hơn để đảm bảo UI đã render xong và ổn định
-      Future.delayed(const Duration(milliseconds: 3000), () {
-        if (!kIsWeb && mounted) {
-          // Chỉ hiển thị App Open Ad 30% thời gian để giảm quảng cáo
-          if (DateTime.now().millisecondsSinceEpoch % 10 < 3) {
-            // Tạo App Open Ad trước khi hiển thị
-            AdMobService().createAppOpenAd();
-            // Delay thêm một chút để ad load xong
-            Future.delayed(const Duration(milliseconds: 1000), () {
-              if (mounted) {
-                AdMobService().showAppOpenAdIfReady();
-              }
-            });
-          }
+      Future.delayed(_appOpenStartupDelay, () {
+        if (mounted) {
+          _tryShowAppOpenAd(trigger: 'startup');
         }
       });
       
@@ -242,16 +260,29 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     // Xử lý audio player khi có cuộc gọi điện thoại
     AudioPlayerService().handleAppLifecycleChange(state);
 
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _lastBackgroundAt = DateTime.now();
+    }
+
     if (state == AppLifecycleState.resumed && !kIsWeb && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           AppUpdateCoordinator.checkAndPrompt(context, fromResume: true);
         }
       });
-    }
 
-    // Bỏ App Open Ad khi resume từ background để giảm quảng cáo
-    // Chỉ giữ lại App Open Ad khi app khởi động lần đầu
+      final lastBackgroundAt = _lastBackgroundAt;
+      if (lastBackgroundAt != null) {
+        final backgroundDuration = DateTime.now().difference(lastBackgroundAt);
+        if (backgroundDuration >= _appOpenResumeBackgroundThreshold) {
+          _tryShowAppOpenAd(trigger: 'resume');
+        } else {
+          debugPrint(
+            'Skip app open ad on resume (background too short: $backgroundDuration)',
+          );
+        }
+      }
+    }
   }
 
   @override

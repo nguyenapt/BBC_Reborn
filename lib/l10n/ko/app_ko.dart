@@ -181,6 +181,16 @@ class AppKo {
     'loadingFavouritesErrorDesc': '오류가 발생했습니다: {error}',
     'loadingVocabulariesErrorDesc': '오류가 발생했습니다: {error}',
     'doubleBackExit': '뒤로 버튼을 다시 눌러 종료',
+    'adPrivacyOptionsTitle': '광고 개인정보 옵션',
+    'privacyOptionsStatusLabel': '개인정보 옵션 상태: {status}',
+    'privacyOptionsStatusRequired': '필수 표시',
+    'privacyOptionsStatusNotRequired': '필수 아님',
+    'privacyOptionsStatusUpdating': '업데이트 중',
+    'managePrivacyChoices': '개인정보 선택 관리',
+    'privacyOptionsUpdateSuccess': '광고 개인정보 선택이 업데이트되었습니다.',
+    'privacyOptionsOpenError': '개인정보 옵션을 열 수 없습니다: {error}',
+    'privacyOptionsNotRequiredInfo':
+        '현재 지역에서는 개인정보 옵션 표시가 필요하지 않습니다.',
 
     // Speaking practice
     'speakingPracticeTitle': '말하기 연습',

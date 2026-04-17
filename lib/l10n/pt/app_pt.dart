@@ -182,6 +182,18 @@ class AppPt {
     'loadingFavouritesErrorDesc': 'Ocorreu um erro: {error}',
     'loadingVocabulariesErrorDesc': 'Ocorreu um erro: {error}',
     'doubleBackExit': 'Pressione o botão de volta novamente para sair',
+    'adPrivacyOptionsTitle': 'Opções de privacidade de anúncios',
+    'privacyOptionsStatusLabel': 'Status das opções de privacidade: {status}',
+    'privacyOptionsStatusRequired': 'Obrigatório',
+    'privacyOptionsStatusNotRequired': 'Não obrigatório',
+    'privacyOptionsStatusUpdating': 'Atualizando',
+    'managePrivacyChoices': 'Gerenciar opções de privacidade',
+    'privacyOptionsUpdateSuccess':
+        'As opções de privacidade de anúncios foram atualizadas.',
+    'privacyOptionsOpenError':
+        'Não foi possível abrir as opções de privacidade: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'As opções de privacidade não são obrigatórias na sua região no momento.',
 
     // Speaking practice
     'speakingPracticeTitle': 'Prática de fala',

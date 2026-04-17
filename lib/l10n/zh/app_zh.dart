@@ -181,6 +181,15 @@ class AppZh {
     'loadingFavouritesErrorDesc': '发生错误: {error}',
     'loadingVocabulariesErrorDesc': '发生错误: {error}',
     'doubleBackExit': '点击返回按钮再次退出',
+    'adPrivacyOptionsTitle': '广告隐私选项',
+    'privacyOptionsStatusLabel': '隐私选项状态：{status}',
+    'privacyOptionsStatusRequired': '必须显示',
+    'privacyOptionsStatusNotRequired': '非必需',
+    'privacyOptionsStatusUpdating': '正在更新',
+    'managePrivacyChoices': '管理隐私选项',
+    'privacyOptionsUpdateSuccess': '广告隐私选项已更新。',
+    'privacyOptionsOpenError': '无法打开隐私选项：{error}',
+    'privacyOptionsNotRequiredInfo': '你所在地区当前不要求显示隐私选项。',
 
     // Speaking practice
     'speakingPracticeTitle': '口语练习',

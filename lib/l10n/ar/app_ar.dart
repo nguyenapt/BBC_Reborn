@@ -182,6 +182,16 @@ class AppAr {
     'loadingFavouritesErrorDesc': 'حدث خطأ: {error}',
     'loadingVocabulariesErrorDesc': 'حدث خطأ: {error}',
     'doubleBackExit': 'اضغط على زر الخلف مرة أخرى للخروج',
+    'adPrivacyOptionsTitle': 'خيارات خصوصية الإعلانات',
+    'privacyOptionsStatusLabel': 'حالة خيارات الخصوصية: {status}',
+    'privacyOptionsStatusRequired': 'مطلوب',
+    'privacyOptionsStatusNotRequired': 'غير مطلوب',
+    'privacyOptionsStatusUpdating': 'جارٍ التحديث',
+    'managePrivacyChoices': 'إدارة خيارات الخصوصية',
+    'privacyOptionsUpdateSuccess': 'تم تحديث خيارات خصوصية الإعلانات.',
+    'privacyOptionsOpenError': 'تعذر فتح خيارات الخصوصية: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'خيارات الخصوصية غير مطلوبة حالياً في منطقتك.',
 
     // Speaking practice
     'speakingPracticeTitle': 'ممارسة التحدث',

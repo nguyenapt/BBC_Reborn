@@ -182,6 +182,16 @@ class AppJa {
     'loadingVocabulariesErrorDesc': 'エラーが発生しました: {error}',
     'doubleBackExit': '戻るボタンを再度押して退出',
     'loadMore': 'もっと読み込む',
+    'adPrivacyOptionsTitle': '広告プライバシー設定',
+    'privacyOptionsStatusLabel': 'プライバシー設定の状態: {status}',
+    'privacyOptionsStatusRequired': '表示が必要',
+    'privacyOptionsStatusNotRequired': '不要',
+    'privacyOptionsStatusUpdating': '更新中',
+    'managePrivacyChoices': 'プライバシー設定を管理',
+    'privacyOptionsUpdateSuccess': '広告プライバシー設定を更新しました。',
+    'privacyOptionsOpenError': 'プライバシー設定を開けませんでした: {error}',
+    'privacyOptionsNotRequiredInfo':
+        '現在の地域ではプライバシー設定の表示は不要です。',
     // Speaking practice
     'speakingPracticeTitle': 'スピーキング練習',
     'speakingTabRepeat': 'リピート',

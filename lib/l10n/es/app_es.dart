@@ -182,6 +182,18 @@ class AppEs {
     'loadingFavouritesErrorDesc': 'Ocurrió un error: {error}',
     'loadingVocabulariesErrorDesc': 'Ocurrió un error: {error}',
     'doubleBackExit': 'Presiona el botón de atrás nuevamente para salir',
+    'adPrivacyOptionsTitle': 'Opciones de privacidad de anuncios',
+    'privacyOptionsStatusLabel': 'Estado de opciones de privacidad: {status}',
+    'privacyOptionsStatusRequired': 'Obligatorio',
+    'privacyOptionsStatusNotRequired': 'No obligatorio',
+    'privacyOptionsStatusUpdating': 'Actualizando',
+    'managePrivacyChoices': 'Gestionar opciones de privacidad',
+    'privacyOptionsUpdateSuccess':
+        'Se actualizaron las opciones de privacidad de anuncios.',
+    'privacyOptionsOpenError':
+        'No se pudieron abrir las opciones de privacidad: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'Las opciones de privacidad no son obligatorias en tu región por ahora.',
 
     // Speaking practice
     'speakingPracticeTitle': 'Práctica oral',

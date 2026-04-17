@@ -188,6 +188,16 @@ class AppVi {
     'notificationsDisabled': 'Đã tắt thông báo đẩy',
     'notificationFeatureNote':
         'Khi tắt, bạn sẽ không nhận thông báo đẩy khi có tập mới trên thiết bị này.',
+    'adPrivacyOptionsTitle': 'Tuy chon quyen rieng tu quang cao',
+    'privacyOptionsStatusLabel': 'Trang thai privacy options: {status}',
+    'privacyOptionsStatusRequired': 'Bat buoc hien thi',
+    'privacyOptionsStatusNotRequired': 'Khong bat buoc',
+    'privacyOptionsStatusUpdating': 'Dang cap nhat',
+    'managePrivacyChoices': 'Quan ly lua chon quyen rieng tu',
+    'privacyOptionsUpdateSuccess': 'Da cap nhat lua chon quyen rieng tu quang cao.',
+    'privacyOptionsOpenError': 'Khong mo duoc privacy options: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'Privacy options hien khong bat buoc o khu vuc cua ban.',
     
     // Grammar
     'grammarLessons': 'Bài học ngữ pháp',

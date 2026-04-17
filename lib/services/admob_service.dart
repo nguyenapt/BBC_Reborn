@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdMobService {
   static final AdMobService _instance = AdMobService._internal();
@@ -34,7 +35,16 @@ class AdMobService {
   
   // Thời gian lần cuối hiển thị App Open Ad (để tránh spam)
   DateTime? _lastAppOpenAdTime;
-  static const Duration _appOpenAdCooldown = Duration(hours: 4); // 4 giờ mới hiển thị lại
+  DateTime? _appOpenAdLoadedAt;
+  bool _isLoadingAppOpenAd = false;
+  bool _isShowingAppOpenAd = false;
+  bool _lastShownLoaded = false;
+  int _appOpenShownThisSession = 0;
+
+  static const Duration _appOpenAdCooldown = Duration(hours: 3); // 3 giờ mới hiển thị lại
+  static const Duration _maxAppOpenAdAge = Duration(hours: 4);
+  static const int _maxAppOpenShowsPerSession = 2;
+  static const String _appOpenLastShownPrefKey = 'admob.app_open.last_shown_iso';
 
   // Helper methods để lấy đúng Ad Unit ID dựa trên debug mode
   String _getBannerAdUnitId() {
@@ -185,51 +195,117 @@ class AdMobService {
     _interstitialAd = null;
   }
 
-  // Tạo App Open Ad
-  void createAppOpenAd() {
+  Future<void> _loadLastShownTimeIfNeeded() async {
+    if (_lastShownLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final iso = prefs.getString(_appOpenLastShownPrefKey);
+      if (iso != null && iso.isNotEmpty) {
+        _lastAppOpenAdTime = DateTime.tryParse(iso);
+      }
+    } catch (e) {
+      debugPrint('Failed to load app open last shown time: $e');
+    } finally {
+      _lastShownLoaded = true;
+    }
+  }
+
+  Future<void> _saveLastShownTime(DateTime time) async {
+    _lastAppOpenAdTime = time;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_appOpenLastShownPrefKey, time.toIso8601String());
+    } catch (e) {
+      debugPrint('Failed to save app open last shown time: $e');
+    }
+  }
+
+  // Tạo App Open Ad (idempotent)
+  Future<void> createAppOpenAd() async {
     if (kIsWeb) {
       print('App Open ads không được hỗ trợ trên web');
       return;
     }
+    if (_isLoadingAppOpenAd || _appOpenAd != null) return;
     final adUnitId = _getAppOpenAdUnitId();
-    
+    _isLoadingAppOpenAd = true;
+
     AppOpenAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (ad) {
           _appOpenAd = ad;
+          _appOpenAdLoadedAt = DateTime.now();
+          _isLoadingAppOpenAd = false;
           print('App Open ad loaded');
         },
         onAdFailedToLoad: (error) {
           print('App Open ad failed to load: $error');
           _appOpenAd = null;
+          _appOpenAdLoadedAt = null;
+          _isLoadingAppOpenAd = false;
         },
       ),
     );
   }
 
-  // Hiển thị App Open Ad (với cooldown)
-  void showAppOpenAdIfReady() {
-    // Kiểm tra cooldown
-    if (_lastAppOpenAdTime != null) {
-      final timeSinceLastAd = DateTime.now().difference(_lastAppOpenAdTime!);
-      if (timeSinceLastAd < _appOpenAdCooldown) {
-        print('App Open ad in cooldown, remaining: ${_appOpenAdCooldown - timeSinceLastAd}');
-        return;
+  Future<void> preloadAppOpenAd() async {
+    await createAppOpenAd();
+  }
+
+  bool _isAppOpenAdFresh() {
+    final loadedAt = _appOpenAdLoadedAt;
+    if (loadedAt == null) return false;
+    return DateTime.now().difference(loadedAt) <= _maxAppOpenAdAge;
+  }
+
+  Future<bool> canShowAppOpenAd() async {
+    if (kIsWeb) return false;
+    if (_isShowingAppOpenAd) return false;
+    if (_appOpenShownThisSession >= _maxAppOpenShowsPerSession) {
+      print('App Open ad blocked: reached session cap ($_maxAppOpenShowsPerSession)');
+      return false;
+    }
+    await _loadLastShownTimeIfNeeded();
+    if (_lastAppOpenAdTime == null) return true;
+    final timeSinceLastAd = DateTime.now().difference(_lastAppOpenAdTime!);
+    if (timeSinceLastAd < _appOpenAdCooldown) {
+      print('App Open ad in cooldown, remaining: ${_appOpenAdCooldown - timeSinceLastAd}');
+      return false;
+    }
+    return true;
+  }
+
+  // Hiển thị App Open Ad khi đủ điều kiện; trả về true nếu show thành công.
+  Future<bool> showAppOpenAdIfReady({String trigger = 'unknown'}) async {
+    if (!await canShowAppOpenAd()) return false;
+
+    if (_appOpenAd == null || !_isAppOpenAdFresh()) {
+      if (_appOpenAd != null) {
+        _appOpenAd!.dispose();
+        _appOpenAd = null;
+        _appOpenAdLoadedAt = null;
       }
+      await createAppOpenAd();
+      print('App Open ad not ready/fresh for trigger=$trigger');
+      return false;
     }
 
     if (_appOpenAd != null) {
+      _isShowingAppOpenAd = true;
       _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdShowedFullScreenContent: (ad) {
           print('App Open ad showed full screen content');
-          _lastAppOpenAdTime = DateTime.now();
+          _appOpenShownThisSession += 1;
+          _saveLastShownTime(DateTime.now());
         },
         onAdDismissedFullScreenContent: (ad) {
           print('App Open ad dismissed');
           ad.dispose();
           _appOpenAd = null;
+          _appOpenAdLoadedAt = null;
+          _isShowingAppOpenAd = false;
           // Tạo ad mới cho lần tiếp theo
           createAppOpenAd();
         },
@@ -237,25 +313,27 @@ class AdMobService {
           print('App Open ad failed to show: $error');
           ad.dispose();
           _appOpenAd = null;
+          _appOpenAdLoadedAt = null;
+          _isShowingAppOpenAd = false;
+          createAppOpenAd();
         },
       );
       _appOpenAd!.show();
+      return true;
     } else {
       print('App Open ad not ready');
+      createAppOpenAd();
+      return false;
     }
-  }
-
-  // Kiểm tra xem có thể hiển thị App Open Ad không
-  bool canShowAppOpenAd() {
-    if (_lastAppOpenAdTime == null) return true;
-    final timeSinceLastAd = DateTime.now().difference(_lastAppOpenAdTime!);
-    return timeSinceLastAd >= _appOpenAdCooldown;
   }
 
   // Dispose App Open ad
   void disposeAppOpenAd() {
     _appOpenAd?.dispose();
     _appOpenAd = null;
+    _appOpenAdLoadedAt = null;
+    _isLoadingAppOpenAd = false;
+    _isShowingAppOpenAd = false;
   }
 
   // Tạo Rewarded Ad

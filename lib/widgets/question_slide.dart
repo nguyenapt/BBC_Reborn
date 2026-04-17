@@ -8,13 +8,17 @@ import '../services/admob_service.dart';
 import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../utils/category_colors.dart';
+import 'episode_tab_skeleton.dart';
 
 class QuestionSlide extends StatefulWidget {
   final Episode episode;
+  /// Chờ transcript đầy đủ — tránh gọi AI / lỗi "no transcript" khi list RTDB mỏng.
+  final bool isAwaitingFullEpisode;
 
   const QuestionSlide({
     super.key,
     required this.episode,
+    this.isAwaitingFullEpisode = false,
   });
 
   @override
@@ -34,7 +38,30 @@ class _QuestionSlideState extends State<QuestionSlide> {
   @override
   void initState() {
     super.initState();
-    _loadQuestions();
+    if (!widget.isAwaitingFullEpisode) {
+      _loadQuestions();
+    }
+  }
+
+  @override
+  void didUpdateWidget(QuestionSlide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episode.id != widget.episode.id) {
+      setState(() {
+        _questions = [];
+        _hasError = false;
+        _errorMessage = null;
+        _selectedAnswers.clear();
+        _showResults = false;
+      });
+      if (!widget.isAwaitingFullEpisode) {
+        _loadQuestions();
+      }
+      return;
+    }
+    if (oldWidget.isAwaitingFullEpisode && !widget.isAwaitingFullEpisode) {
+      _loadQuestions();
+    }
   }
 
   Future<void> _loadQuestions() async {
@@ -116,6 +143,13 @@ class _QuestionSlideState extends State<QuestionSlide> {
   @override
   Widget build(BuildContext context) {
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+
+    if (widget.isAwaitingFullEpisode) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 12),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),

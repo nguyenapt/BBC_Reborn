@@ -188,6 +188,16 @@ class AppEn {
     'notificationsDisabled': 'Push notifications disabled',
     'notificationFeatureNote':
         'When off, you will not receive push alerts for new episodes on this device.',
+    'adPrivacyOptionsTitle': 'Ad privacy options',
+    'privacyOptionsStatusLabel': 'Privacy options status: {status}',
+    'privacyOptionsStatusRequired': 'Required',
+    'privacyOptionsStatusNotRequired': 'Not required',
+    'privacyOptionsStatusUpdating': 'Updating',
+    'managePrivacyChoices': 'Manage privacy choices',
+    'privacyOptionsUpdateSuccess': 'Ad privacy choices updated.',
+    'privacyOptionsOpenError': 'Could not open privacy options: {error}',
+    'privacyOptionsNotRequiredInfo':
+        'Privacy options are currently not required in your region.',
     
     // Advertisement
     'advertisementNotice': 'Advertisement Notice',
