@@ -1,70 +1,24 @@
 import 'package:flutter/material.dart';
 
 class CategoryColors {
-  static const Map<String, Color> _categoryColorMap = {
-    '6M': Colors.red,
-    '6MGB': Colors.blue,
-    '6MGI': Colors.green,
-    '6MVB': Colors.orange,
-    '6MVI': Colors.deepOrange,
-    'DRM': Colors.brown,
-    'EAW': Colors.teal,
-    'EG': Colors.orange,
-    'REE': Colors.purple,
-    'TEWS': Colors.amber,
-    '6Minute': Colors.teal,
-    'Grammar': Colors.indigo,
-    'Vocabulary': Colors.pink,
-    'Pronunciation': Colors.cyan,
-  };
-
-  static const Map<String, Color> _categoryBackgroundMap = {
-    '6M': Color(0xFFFFEBEE), // Light red
-    '6MGB': Color(0xFFE3F2FD), // Light blue
-    '6MGI': Color(0xFFE8F5E8), // Light green
-    '6MVB': Color(0xFFFFF3E0), // Light orange
-    '6MVI': Color(0xFFFFE0B2), // Light deep orange
-    'DRM': Color(0xFFEFEBE9), // Light brown
-    'EAW': Color(0xFFE0F2F1), // Light teal
-    'EG': Color(0xFFFFF3E0), // Light orange
-    'REE': Color(0xFFF3E5F5), // Light purple
-    'TEWS': Color(0xFFFFFDE7), // Light amber
-    '6Minute': Color(0xFFE0F2F1), // Light teal
-    'Grammar': Color(0xFFE8EAF6), // Light indigo
-    'Vocabulary': Color(0xFFFCE4EC), // Light pink
-    'Pronunciation': Color(0xFFE0F7FA), // Light cyan
-  };
-
-  static const Map<String, Color> _categoryBorderMap = {
-    '6M': Colors.redAccent,
-    '6MGB': Colors.blueAccent,
-    '6MGI': Colors.greenAccent,
-    '6MVB': Colors.orangeAccent,
-    '6MVI': Colors.deepOrangeAccent,
-    'DRM': Colors.brown,
-    'EAW': Colors.tealAccent,
-    'EG': Colors.orangeAccent,
-    'REE': Colors.purpleAccent,
-    'TEWS': Colors.amberAccent,
-    '6Minute': Colors.tealAccent,
-    'Grammar': Colors.indigoAccent,
-    'Vocabulary': Colors.pinkAccent,
-    'Pronunciation': Colors.cyanAccent,
-  };
+  // Unified brand palette: no per-category color mapping.
+  static const Color _brandPrimary = Color(0xFF08789D);
+  static const Color _brandBackground = Color(0x2608789D);
+  static const Color _brandBorder = Color(0x8A08789D);
 
   /// Lấy màu chính của category
   static Color getCategoryColor(String categoryName) {
-    return _categoryColorMap[categoryName] ?? Colors.grey;
+    return _brandPrimary;
   }
 
   /// Lấy màu nền nhạt của category
   static Color getCategoryBackgroundColor(String categoryName) {
-    return _categoryBackgroundMap[categoryName] ?? Colors.grey[100]!;
+    return _brandBackground;
   }
 
   /// Lấy màu viền của category
   static Color getCategoryBorderColor(String categoryName) {
-    return _categoryBorderMap[categoryName] ?? Colors.grey[400]!;
+    return _brandBorder;
   }
 
   /// Lấy màu chữ phù hợp với màu nền
@@ -77,12 +31,12 @@ class CategoryColors {
 
   /// Lấy tất cả categories có màu được định nghĩa
   static List<String> getDefinedCategories() {
-    return _categoryColorMap.keys.toList();
+    return const [];
   }
 
   /// Kiểm tra xem category có màu được định nghĩa không
   static bool hasColorDefinition(String categoryName) {
-    return _categoryColorMap.containsKey(categoryName);
+    return false;
   }
 }
 

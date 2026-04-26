@@ -82,7 +82,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Hiển thị interstitial ad ngay nếu flag = true (50% trường hợp)
     if (widget.shouldShowInterstitialOnEnter) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        AdMobService().showInterstitialAd();
+        AdMobService().showInterstitialAd(context: context);
         setState(() {
           _hasShownInterstitialAd = true;
         });
@@ -209,11 +209,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Tắt Always Display khi rời khỏi màn hình
     _disableAlwaysDisplay();
     
-    // Luôn hiển thị interstitial ad khi rời khỏi màn hình
-    Future.delayed(const Duration(seconds: 2), () {
-      AdMobService().showInterstitialAd();
-    });
-    
     super.dispose();
   }
 
@@ -229,7 +224,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: categoryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         actions: [
           IconButton(
@@ -265,7 +260,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 onPressed: () => _audioService.toggleFavourite(),
                 icon: Icon(
                   _audioService.isFavourite ? Icons.favorite : Icons.favorite_border,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               );
             },
@@ -280,7 +275,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     : () => _audioService.downloadEpisode(),
                 icon: Icon(
                   _audioService.isDownloaded ? Icons.download_done : Icons.download,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               );
             },
@@ -509,7 +504,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 onPlayPressed: () async {
                   // Nếu chưa hiển thị interstitial ads, hiển thị trước khi play
                   if (!_hasShownInterstitialAd) {
-                    AdMobService().showInterstitialAd();
+                    AdMobService().showInterstitialAd(context: context);
                     setState(() {
                       _hasShownInterstitialAd = true;
                     });

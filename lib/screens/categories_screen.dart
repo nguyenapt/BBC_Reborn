@@ -447,7 +447,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
         tabs: [
           _buildTabLabel(0, '6 Minutes', 'English'),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../utils/category_colors.dart';
 
 class TranscriptNativeAdWidget extends StatefulWidget {
   final String category;
@@ -109,6 +108,7 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (kIsWeb) {
       return const SizedBox.shrink();
     }
@@ -132,7 +132,7 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: CategoryColors.getCategoryColor(widget.category),
+                    color: colorScheme.primary,
                   ),
                 ),
               ),
@@ -150,7 +150,7 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
                     ? Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            CategoryColors.getCategoryColor(widget.category),
+                            colorScheme.primary,
                           ),
                         ),
                       )

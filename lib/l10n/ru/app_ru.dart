@@ -267,6 +267,10 @@ class AppRu {
     'speakingHistorySessionSubtitle': '{attempts} попыток · Ср. {avg}',
     'speakingHistoryModeLabel': 'Режим',
 
+    'adsInterstitialTitle': 'Спасибо за поддержку бесплатного приложения',
+    'adsInterstitialBodyLine1': 'Извините, если реклама иногда мешает.',
+    'adsInterstitialBodyLine2': 'Реклама помогает нам поддерживать продукт бесплатным для всех.',
+
     'loadMore': 'Загрузить больше',
 
     'appUpdateTitle': 'Update available',

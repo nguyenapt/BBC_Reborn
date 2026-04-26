@@ -216,6 +216,8 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
 
   Widget _buildTranscriptContent() {
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final tertiaryColor = Theme.of(context).colorScheme.tertiary;
     final panelBg = categoryColor.withOpacity(0.12);
 
     Widget emptyOrList() {
@@ -353,88 +355,6 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                       ),
                                     ),
                                   ),
-                                  if (hasTimeInfo) ...[
-                                    Text(
-                                      '${(line.startTime / 1000).toStringAsFixed(1)}s · ${(line.endTime / 1000).toStringAsFixed(1)}s',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Tooltip(
-                                      message: _languageManager
-                                          .getTextWithParams(
-                                        'transcriptPlayFromSeconds',
-                                        {
-                                          'seconds': (line.startTime / 1000)
-                                              .toStringAsFixed(1),
-                                        },
-                                      ),
-                                      child: Material(
-                                        color: categoryColor,
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: InkWell(
-                                          onTap: () =>
-                                              widget.onPlayAtTime?.call(line.startTime),
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: const Padding(
-                                            padding: EdgeInsets.all(7),
-                                            child: Icon(
-                                              Icons.volume_up_rounded,
-                                              color: Colors.white,
-                                              size: 19,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  IconButton(
-                                    onPressed: () =>
-                                        _translateLine(context, line.text, transcriptIndex),
-                                    icon: _lineTranslating[line.text] == true
-                                        ? SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                Colors.blue.shade600,
-                                              ),
-                                            ),
-                                          )
-                                        : Icon(
-                                            _lineTranslations.containsKey(line.text)
-                                                ? Icons.translate
-                                                : Icons.translate_outlined,
-                                            color: Colors.blue.shade600,
-                                            size: 18,
-                                          ),
-                                    tooltip: _lineTranslations.containsKey(line.text)
-                                        ? 'Show translation'
-                                        : 'Translate line',
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _showGrammarExplanation(context, line.text),
-                                    icon: Icon(
-                                      Icons.lightbulb_outline,
-                                      color: Colors.green.shade600,
-                                      size: 18,
-                                    ),
-                                    tooltip: 'Explain grammar',
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                  ),
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -529,6 +449,98 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                                     ),
                                   ),
                                 ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 6,
+                                children: [
+                                  if (hasTimeInfo)
+                                    InkWell(
+                                      onTap: () => widget.onPlayAtTime?.call(line.startTime),
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.volume_up_rounded,
+                                            color: categoryColor,
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Listen',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: categoryColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  InkWell(
+                                    onTap: () =>
+                                        _translateLine(context, line.text, transcriptIndex),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _lineTranslating[line.text] == true
+                                            ? SizedBox(
+                                                width: 14,
+                                                height: 14,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<Color>(
+                                                    primaryColor,
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                _lineTranslations.containsKey(line.text)
+                                                    ? Icons.translate
+                                                    : Icons.translate_outlined,
+                                                color: primaryColor,
+                                                size: 14,
+                                              ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Translate',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () => _showGrammarExplanation(context, line.text),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.lightbulb_outline,
+                                          color: tertiaryColor,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Grammar',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: tertiaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -634,7 +646,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
               children: [
                 CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    CategoryColors.getCategoryColor(widget.episode.category),
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -743,7 +755,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
           content: Text(AIErrorHandler.getErrorMessage(error)),
           action: SnackBarAction(
             label: 'Watch Ads',
-            textColor: Colors.white,
+            textColor: Theme.of(context).colorScheme.onInverseSurface,
             onPressed: () {
               if (admobService.isRewardedAdReady()) {
                 admobService.showRewardedAd(
@@ -752,7 +764,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: Color(0xFF7A5CFF),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -763,7 +775,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Failed to show ad: $error'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                   },

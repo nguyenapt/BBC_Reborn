@@ -291,6 +291,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
     int index,
     Color categoryColor,
   ) {
+    final successColor = Theme.of(context).colorScheme.tertiary;
+    final errorColor = Theme.of(context).colorScheme.error;
     final selectedAnswer = _selectedAnswers[index];
     final isCorrect = selectedAnswer == question.correctAnswer;
     final showAnswer = _showResults;
@@ -303,7 +305,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: showAnswer
-              ? (isCorrect ? Colors.green : Colors.red)
+              ? (isCorrect ? successColor : errorColor)
               : Theme.of(context).colorScheme.outline.withOpacity(0.3),
           width: showAnswer ? 2 : 1,
         ),
@@ -323,8 +325,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
                 ),
                 child: Text(
                   '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -362,9 +364,9 @@ class _QuestionSlideState extends State<QuestionSlide> {
                   decoration: BoxDecoration(
                     color: showAnswer
                         ? (isCorrectOption
-                            ? Colors.green.withOpacity(0.1)
+                            ? successColor.withOpacity(0.1)
                             : isSelected && !isCorrectOption
-                                ? Colors.red.withOpacity(0.1)
+                                ? errorColor.withOpacity(0.1)
                                 : Colors.transparent)
                         : isSelected
                             ? categoryColor.withOpacity(0.1)
@@ -373,9 +375,9 @@ class _QuestionSlideState extends State<QuestionSlide> {
                     border: Border.all(
                       color: showAnswer
                           ? (isCorrectOption
-                              ? Colors.green
+                              ? successColor
                               : isSelected && !isCorrectOption
-                                  ? Colors.red
+                                  ? errorColor
                                   : Colors.transparent)
                           : isSelected
                               ? categoryColor
@@ -403,13 +405,13 @@ class _QuestionSlideState extends State<QuestionSlide> {
                       if (showAnswer && isCorrectOption)
                         Icon(
                           Icons.check_circle,
-                          color: Colors.green,
+                          color: successColor,
                           size: 20,
                         ),
                       if (showAnswer && isSelected && !isCorrectOption)
                         Icon(
                           Icons.cancel,
-                          color: Colors.red,
+                          color: errorColor,
                           size: 20,
                         ),
                     ],
@@ -474,7 +476,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: Color(0xFF7A5CFF),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -485,7 +487,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Failed to show ad: $error'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                   },
@@ -503,8 +505,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
             icon: const Icon(Icons.play_circle_outline),
             label: const Text('Watch Ads Now'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
           ),
           const SizedBox(width: 12),
@@ -514,7 +516,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
               backgroundColor: categoryColor,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],
@@ -527,7 +529,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
         label: const Text('Retry'),
         style: ElevatedButton.styleFrom(
           backgroundColor: categoryColor,
-          foregroundColor: Colors.white,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
         ),
       );
     }

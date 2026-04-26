@@ -10,7 +10,6 @@ import '../models/speaking_feedback.dart';
 import '../services/admob_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
-import '../utils/category_colors.dart';
 import '../widgets/speaking_reference_highlight.dart';
 
 /// Màn phân tích AI sau khi hoàn tất ghi âm — màu nền & accent theo category + Theme.
@@ -86,6 +85,7 @@ class _SpeakingAiAnalysisScreenState extends State<SpeakingAiAnalysisScreen> {
       return;
     }
     AdMobService().showInterstitialAd(
+      context: context,
       onDismissedOrUnavailable: () {
         if (!mounted) return;
         Navigator.of(context).pop();
@@ -191,8 +191,8 @@ class _SpeakingAiAnalysisScreenState extends State<SpeakingAiAnalysisScreen> {
         final lm = LanguageManager();
         final theme = Theme.of(context);
         final cs = theme.colorScheme;
-        final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
-        final categoryBg = CategoryColors.getCategoryBackgroundColor(widget.episode.category);
+        final categoryColor = cs.primary;
+        final categoryBg = cs.surfaceContainerHighest;
 
         final screenBg = Color.lerp(categoryBg, cs.surface, 0.42)!;
         final pronunciation = _scorePercent(widget.feedback.pronunciationScore);
@@ -222,8 +222,8 @@ class _SpeakingAiAnalysisScreenState extends State<SpeakingAiAnalysisScreen> {
           child: Scaffold(
             backgroundColor: screenBg,
             appBar: AppBar(
-              backgroundColor: CategoryColors.getCategoryColor(widget.episode.category),
-              foregroundColor: Colors.white,
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
               elevation: 0,
               title: Text(lm.getText('speakingAiAnalysisTitle')),
               leading: IconButton(
@@ -267,7 +267,7 @@ class _SpeakingAiAnalysisScreenState extends State<SpeakingAiAnalysisScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Color.lerp(
-                                      CategoryColors.getCategoryBackgroundColor(widget.episode.category),
+                                      cs.surfaceContainerHighest,
                                       cs.tertiaryContainer,
                                       0.5,
                                     ) ??

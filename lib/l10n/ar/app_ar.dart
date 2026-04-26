@@ -265,6 +265,10 @@ class AppAr {
     'speakingHistorySessionSubtitle': '{attempts} محاولات · المعدل {avg}',
     'speakingHistoryModeLabel': 'الوضع',
 
+    'adsInterstitialTitle': 'شكرا لدعمك تطبيقا مجانيا',
+    'adsInterstitialBodyLine1': 'نعتذر إذا كانت الإعلانات مزعجة أحيانا.',
+    'adsInterstitialBodyLine2': 'الإعلانات تساعدنا على إبقاء التطبيق مجانيا للجميع.',
+
     'loadMore': 'تحميل المزيد',
 
     'appUpdateTitle': 'Update available',

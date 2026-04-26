@@ -5,7 +5,6 @@ import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../widgets/category_group_box.dart';
-import '../widgets/banner_ad_widget.dart';
 import '../widgets/heart_widget.dart';
 import 'episode_detail_screen.dart';
 import 'categories_screen.dart';
@@ -258,6 +257,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildHeroSection() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -296,8 +296,8 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   onPressed: _openLatestEpisode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88E5),
-                    foregroundColor: Colors.white,
+                    backgroundColor: strongAccent,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -350,8 +350,8 @@ class _HomePageState extends State<HomePage> {
                     letter: '6',
                     title: _languageManager.getText('categorySixMinutes'),
                     subtitle: _languageManager.getText('categoryConversation'),
-                    color: const Color(0xFFE3F2FD),
-                    badgeColor: const Color(0xFF1E88E5),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('6M'),
                   ),
                   _buildCategoryCard(
@@ -359,8 +359,8 @@ class _HomePageState extends State<HomePage> {
                     letter: 'T',
                     title: _languageManager.getText('categoryTheEnglish'),
                     subtitle: _languageManager.getText('categoryWeSpeak'),
-                    color: const Color(0xFFFFF3E0),
-                    badgeColor: const Color(0xFFFF9800),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('TEWS'),
                   ),
                   _buildCategoryCard(
@@ -368,8 +368,8 @@ class _HomePageState extends State<HomePage> {
                     letter: 'R',
                     title: _languageManager.getText('categoryRealEasy'),
                     subtitle: _languageManager.getText('categoryEnglish'),
-                    color: const Color(0xFFE8F5E9),
-                    badgeColor: const Color(0xFF43A047),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('REE'),
                   ),
                   _buildCategoryCard(
@@ -377,8 +377,8 @@ class _HomePageState extends State<HomePage> {
                     letter: 'E',
                     title: _languageManager.getText('categoryEnglish'),
                     subtitle: _languageManager.getText('categoryGrammar'),
-                    color: const Color(0xFFEDE7F6),
-                    badgeColor: const Color(0xFF7E57C2),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('EG'),
                   ),
                   _buildCategoryCard(
@@ -386,8 +386,8 @@ class _HomePageState extends State<HomePage> {
                     letter: 'O',
                     title: _languageManager.getText('categoryOther'),
                     subtitle: _languageManager.getText('categoryPrograms'),
-                    color: const Color(0xFFFFF9C4),
-                    badgeColor: const Color(0xFFFFB300),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('OTHER'),
                   ),
                 ],
@@ -492,7 +492,7 @@ class _HomePageState extends State<HomePage> {
             Icon(
               Icons.error_outline,
               size: 64,
-              color: Colors.red[300],
+              color: Theme.of(context).colorScheme.error.withOpacity(0.75),
             ),
             const SizedBox(height: 16),
             Text(
@@ -503,7 +503,9 @@ class _HomePageState extends State<HomePage> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.68),
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -520,15 +522,18 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.inbox_outlined,
               size: 64,
-              color: Colors.grey,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
             const SizedBox(height: 16),
             Text(
               _languageManager.getText('noData'),
-              style: const TextStyle(fontSize: 18),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.72),
+              ),
             ),
           ],
         ),
@@ -554,11 +559,6 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Banner Ad (below Other Programs)
-          SliverToBoxAdapter(
-            child: const BannerAdWidget(),
-          ),
-          
           // Categories
           SliverList(
             delegate: SliverChildBuilderDelegate(

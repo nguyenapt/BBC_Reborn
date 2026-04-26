@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/grammar_explanation.dart';
-import '../utils/category_colors.dart';
 
 /// Dialog widget for displaying grammar explanation
 class GrammarExplanationDialog extends StatelessWidget {
@@ -15,9 +14,7 @@ class GrammarExplanationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoryColor = category != null
-        ? CategoryColors.getCategoryColor(category!)
-        : Theme.of(context).colorScheme.primary;
+    final categoryColor = Theme.of(context).colorScheme.primary;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -136,7 +133,7 @@ class GrammarExplanationDialog extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: categoryColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

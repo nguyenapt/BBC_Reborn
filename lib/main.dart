@@ -28,6 +28,7 @@ import 'services/push_notification_service.dart';
 import 'services/consent_service.dart';
 import 'firebase_options.dart';
 import 'widgets/app_update_prompt.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -111,42 +112,8 @@ class BBCLearningApp extends StatelessWidget {
           supportedLocales: LanguageManager.supportedLocales,
           locale: LanguageManager().currentLocale,
           themeMode: LanguageManager().themeMode,
-          theme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.light,
-            textTheme: TextTheme(
-              bodyLarge: TextStyle(
-                fontSize: 16 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-              bodyMedium: TextStyle(
-                fontSize: 14 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-              bodySmall: TextStyle(
-                fontSize: 12 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.dark,
-            textTheme: TextTheme(
-              bodyLarge: TextStyle(
-                fontSize: 16 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-              bodyMedium: TextStyle(
-                fontSize: 14 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-              bodySmall: TextStyle(
-                fontSize: 12 * LanguageManager().textScaleFactor,
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ),
+          theme: AppTheme.light(LanguageManager().textScaleFactor),
+          darkTheme: AppTheme.dark(LanguageManager().textScaleFactor),
           home: const SplashScreen(),
         );
       },
@@ -305,7 +272,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
             currentPageIndex = index;
           });
         },
-        indicatorColor: Colors.amber,
+        indicatorColor: Theme.of(context).colorScheme.primary.withOpacity(0.32),
         selectedIndex: currentPageIndex,
         destinations: <Widget>[
           NavigationDestination(
