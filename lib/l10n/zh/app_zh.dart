@@ -202,6 +202,7 @@ class AppZh {
     'speakingNoTranscript': '没有可用于口语练习的文本。',
     'speakingNoSpeakersRoleplay': '文本中没有说话人，无法进行角色扮演。',
     'speakingYou': '你',
+    'speakerDefault': '说话人',
     'speakingCurrentSentenceBadge': '当前练习句',
     'speakingListenSampleTooltip': '听示范',
     'speakingStartRecording': '开始录音',

@@ -208,6 +208,7 @@ class AppRu {
     'speakingNoTranscript': 'Нет транскрипта для практики речи.',
     'speakingNoSpeakersRoleplay': 'В транскрипте нет говорящих для ролевой игры.',
     'speakingYou': 'Вы',
+    'speakerDefault': 'Спикер',
     'speakingCurrentSentenceBadge': 'ТЕКУЩАЯ ФРАЗА',
     'speakingListenSampleTooltip': 'Слушать образец',
     'speakingStartRecording': 'Начать запись',

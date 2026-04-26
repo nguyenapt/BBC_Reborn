@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../config/rtdb_list_config.dart';
 import '../models/episode.dart';
+import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
 import '../services/audio_player_service.dart';
 import '../services/firebase_service.dart';
@@ -23,13 +24,11 @@ import 'speaking_history_screen.dart';
 class EpisodeDetailScreen extends StatefulWidget {
   final Episode episode;
   final List<Episode> categoryEpisodes;
-  final bool shouldShowInterstitialOnEnter;
 
   const EpisodeDetailScreen({
     super.key,
     required this.episode,
     required this.categoryEpisodes,
-    this.shouldShowInterstitialOnEnter = false,
   });
 
   @override
@@ -48,8 +47,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late Episode _episode;
   bool _hydratingFullEpisode = false;
   int _currentPageIndex = 0; // Transcript
-  bool _hasShownInterstitialAd = false;
+  bool _isHandlingBackNavigation = false;
   double _playerHeight = _fallbackPlayerHeight;
+  List<TranscriptLine> _parsedTranscriptLines = [];
 
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
@@ -63,6 +63,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   void initState() {
     super.initState();
     _episode = widget.episode;
+    _rebuildParsedTranscriptLines();
     _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
     _audioService = AudioPlayerService();
     _languageManager = LanguageManager();
@@ -79,16 +80,21 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Tạo interstitial ad để sẵn sàng hiển thị
     AdMobService().createInterstitialAd();
     
-    // Hiển thị interstitial ad ngay nếu flag = true (50% trường hợp)
-    if (widget.shouldShowInterstitialOnEnter) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        AdMobService().showInterstitialAd(context: context);
-        setState(() {
-          _hasShownInterstitialAd = true;
-        });
-      });
-    }
     _scheduleMeasurePlayerHeight();
+  }
+
+  Future<bool> _onWillPopShowInterstitial() async {
+    if (_isHandlingBackNavigation) return false;
+    _isHandlingBackNavigation = true;
+    AdMobService().showInterstitialAd(
+      context: context,
+      onDismissedOrUnavailable: () {
+        if (!mounted) return;
+        _isHandlingBackNavigation = false;
+        Navigator.of(context).pop();
+      },
+    );
+    return false;
   }
 
   @override
@@ -99,6 +105,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       _episode = widget.episode;
       setState(() {
         _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
+        _rebuildParsedTranscriptLines();
       });
       _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
       Future.microtask(_hydrateFullEpisodeIfNeeded);
@@ -125,7 +132,49 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   double _contentBottomInset(BuildContext context) {
     final safeBottom = MediaQuery.of(context).padding.bottom;
-    return _playerHeight + _playerBottomOffset + _contentPlayerGap + safeBottom;
+    return _playerHeight +
+        _playerBottomOffset +
+        _contentPlayerGap +
+        safeBottom;
+  }
+
+  void _rebuildParsedTranscriptLines() {
+    if (_episode.transcriptHtml != null && _episode.transcriptHtml!.isNotEmpty) {
+      _parsedTranscriptLines =
+          TranscriptLine.parseTranscriptHtml(_episode.transcriptHtml);
+      return;
+    }
+    if (_episode.transcript.isNotEmpty) {
+      _parsedTranscriptLines = _episode.transcript
+          .split('\n')
+          .where((line) => line.trim().isNotEmpty)
+          .map(
+            (line) => TranscriptLine(
+              startTime: 0,
+              endTime: 0,
+              speaker: '',
+              text: line.trim(),
+            ),
+          )
+          .toList();
+      return;
+    }
+    _parsedTranscriptLines = [];
+  }
+
+  TranscriptLine? _currentActiveTranscriptLine() {
+    if (_parsedTranscriptLines.isEmpty) return null;
+    final currentMs = _audioService.currentPositionMs;
+    if (currentMs <= 0) return null;
+    for (final line in _parsedTranscriptLines) {
+      if (line.startTime == 0 && line.endTime == 0) {
+        continue;
+      }
+      if (line.isActiveAt(currentMs)) {
+        return line;
+      }
+    }
+    return null;
   }
 
   /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
@@ -167,6 +216,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       setState(() {
         _episode = full;
         _hydratingFullEpisode = false;
+        _rebuildParsedTranscriptLines();
       });
       await _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
       try {
@@ -220,7 +270,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       builder: (context, child) {
         final categoryColor = CategoryColors.getCategoryColor(_episode.category);
         
-        return Scaffold(
+        return WillPopScope(
+          onWillPop: _onWillPopShowInterstitial,
+          child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: categoryColor,
@@ -466,14 +518,12 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     episode: _episode,
                     topEpisodes: widget.categoryEpisodes,
                     onEpisodeTap: (episode) {
-                      const shouldShowInterstitial = true;
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) => EpisodeDetailScreen(
                             episode: episode,
                             categoryEpisodes: widget.categoryEpisodes,
-                            shouldShowInterstitialOnEnter: shouldShowInterstitial,
                           ),
                         ),
                       );
@@ -497,26 +547,37 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             left: 10,
             right: 10,
             bottom: 10,
-            child: KeyedSubtree(
-              key: _playerKey,
-              child: AudioPlayerWidget(
-                audioService: _audioService,
-                onPlayPressed: () async {
-                  // Nếu chưa hiển thị interstitial ads, hiển thị trước khi play
-                  if (!_hasShownInterstitialAd) {
-                    AdMobService().showInterstitialAd(context: context);
-                    setState(() {
-                      _hasShownInterstitialAd = true;
-                    });
-                    // Đợi một chút để ad hiển thị
-                    await Future.delayed(const Duration(milliseconds: 500));
-                  }
-                },
-              ),
+            child: ListenableBuilder(
+              listenable: _audioService,
+              builder: (context, child) {
+                _scheduleMeasurePlayerHeight();
+                final activeLine = _currentActiveTranscriptLine();
+                final shouldShowCurrentPanel = activeLine != null &&
+                    (_audioService.isPlaying ||
+                        _audioService.isPaused ||
+                        _audioService.currentPositionMs > 0);
+                final speaker = activeLine != null && activeLine.speaker.trim().isNotEmpty
+                    ? activeLine.speaker.toUpperCase()
+                    : _languageManager.getText('speakerDefault');
+                final lineText = activeLine?.text.trim().isNotEmpty == true
+                    ? activeLine!.text
+                    : '...';
+                return KeyedSubtree(
+                  key: _playerKey,
+                  child: AudioPlayerWidget(
+                    audioService: _audioService,
+                    currentSpeaker: speaker,
+                    currentLineText: lineText,
+                    showCurrentPanel: shouldShowCurrentPanel,
+                    onPlayPressed: null,
+                  ),
+                );
+              },
             ),
           ),
         ],
       ),
+        ),
         );
       },
     );

@@ -46,7 +46,7 @@ class AdMobService {
   int _appOpenShownThisSession = 0;
 
   static const Duration _appOpenAdCooldown = Duration(hours: 3); // 3 giờ mới hiển thị lại
-  static const Duration _interstitialCooldown = Duration(minutes: 3);
+  static const Duration _interstitialCooldown = Duration(minutes: 2);
   static const int _interstitialFallbackEvery = 3;
   static const Duration _maxAppOpenAdAge = Duration(hours: 4);
   static const int _maxAppOpenShowsPerSession = 2;
@@ -233,7 +233,14 @@ class AdMobService {
       _interstitialAd!.show();
     } else {
       print('Interstitial ad not ready');
-      onDismissedOrUnavailable?.call();
+      if (context != null) {
+        _showInterstitialFallbackNotice(
+          context,
+          onDismissedOrUnavailable: onDismissedOrUnavailable,
+        );
+      } else {
+        onDismissedOrUnavailable?.call();
+      }
     }
   }
 

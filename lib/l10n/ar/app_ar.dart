@@ -206,6 +206,7 @@ class AppAr {
     'speakingNoTranscript': 'لا يوجد نص لممارسة التحدث.',
     'speakingNoSpeakersRoleplay': 'لا يوجد متحدثون في هذا النص للعب الأدوار.',
     'speakingYou': 'أنت',
+    'speakerDefault': 'المتحدث',
     'speakingCurrentSentenceBadge': 'جملة التدريب الحالية',
     'speakingListenSampleTooltip': 'استمع للنموذج',
     'speakingStartRecording': 'بدء التسجيل',

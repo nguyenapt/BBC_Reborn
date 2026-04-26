@@ -185,6 +185,23 @@ class AudioPlayerService extends ChangeNotifier {
   /// Thứ tự: file local trong episode → downloads/ → audio_stream_cache/ → remote.
   Future<String?> _resolvePlaybackUrl(Episode episode) async {
     final id = episode.id ?? '';
+    if (kIsWeb) {
+      final direct = _getAudioUrl(episode);
+      if (direct != null && _isRemoteUrl(direct)) {
+        debugLogDataSource(
+          'Audio',
+          'episodeId=$id | Source: web remote direct URL | ${_truncateForLog(direct)}',
+        );
+        return direct;
+      }
+      final remote = _getRemoteAudioUrl(episode);
+      debugLogDataSource(
+        'Audio',
+        'episodeId=$id | Source: web remote fallback URL | ${_truncateForLog(remote)}',
+      );
+      return remote;
+    }
+
     final direct = _getAudioUrl(episode);
     if (direct != null && !_isRemoteUrl(direct)) {
       if (await _downloadService.fileExists(direct)) {

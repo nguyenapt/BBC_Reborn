@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/language_manager.dart';
 
 class AdsSupportNoticeScreen extends StatelessWidget {
   final Future<void> Function(BuildContext context) onContinue;
@@ -10,6 +11,7 @@ class AdsSupportNoticeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageManager = LanguageManager();
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -17,34 +19,38 @@ class AdsSupportNoticeScreen extends StatelessWidget {
       backgroundColor: cs.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Spacer(),
               Container(
-                width: 52,
-                height: 52,
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   color: cs.primary.withOpacity(0.14),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.campaign_outlined,
-                  color: cs.primary,
-                  size: 28,
+                child: Center(
+                  child: Icon(
+                    Icons.campaign_outlined,
+                    color: cs.primary,
+                    size: 86,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 44),
               Text(
-                "We're supported by ads",
+                languageManager.getText('adsInterstitialTitle'),
+                textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: cs.onSurface,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               Text(
-                'Ads help us keep this app free and continuously improve listening content.',
+                languageManager.getText('adsInterstitialBodyLine1'),
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: cs.onSurface.withOpacity(0.8),
                   height: 1.45,
@@ -52,7 +58,8 @@ class AdsSupportNoticeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                'You can continue using the app normally. We appreciate your support.',
+                languageManager.getText('adsInterstitialBodyLine2'),
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: cs.onSurface.withOpacity(0.72),
                   height: 1.45,
@@ -61,17 +68,23 @@ class AdsSupportNoticeScreen extends StatelessWidget {
               const Spacer(),
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: FilledButton(
                   onPressed: () => onContinue(context),
                   style: FilledButton.styleFrom(
                     backgroundColor: cs.primary,
                     foregroundColor: cs.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text('Continue'),
+                  child: Text(
+                    languageManager.getText('adsInterstitialCta'),
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],

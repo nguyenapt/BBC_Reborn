@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/audio_player_service.dart';
-import '../utils/category_colors.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
   final AudioPlayerService audioService;
   final Future<void> Function()? onPlayPressed;
+  final String currentSpeaker;
+  final String currentLineText;
+  final bool showCurrentPanel;
 
   const AudioPlayerWidget({
     super.key,
     required this.audioService,
     this.onPlayPressed,
+    required this.currentSpeaker,
+    required this.currentLineText,
+    required this.showCurrentPanel,
   });
 
   @override
@@ -24,7 +29,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 330),
+        constraints: const BoxConstraints(maxWidth: 350),
         child: Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
@@ -39,13 +44,35 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final offsetAnimation = Tween<Offset>(
+                      begin: const Offset(0, 0.18),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: widget.showCurrentPanel
+                      ? _buildCurrentTranscriptPanel(context)
+                      : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
+                ),
+                if (widget.showCurrentPanel) const SizedBox(height: 4),
+                _buildSeekBarRow(),
+                const SizedBox(height: 3),
                 _buildCenterControls(context),
-                const SizedBox(height: 8),
-                _buildControlButtons(),
               ],
             ),
           ),
@@ -54,7 +81,69 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     );
   }
 
-  Widget _buildControlButtons() {
+  Widget _buildCurrentTranscriptPanel(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      key: const ValueKey('current-panel-shown'),
+      padding: const EdgeInsets.only(top: 8),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 84, maxHeight: 90),
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withOpacity(0.65),
+              ),
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Text(
+                widget.currentLineText,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.25,
+                  color: colorScheme.onSurface.withOpacity(0.92),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.8),
+                  ),
+                ),
+                child: Text(
+                  widget.currentSpeaker,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.35,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeekBarRow() {
     return ListenableBuilder(
       listenable: widget.audioService,
       builder: (context, child) {
@@ -76,17 +165,17 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         final remainingDuration =
             widget.audioService.totalDuration - effectivePosition;
 
-        final categoryColor = CategoryColors.getCategoryColor(episode.category);
+        final primary = Theme.of(context).colorScheme.primary;
 
         return Row(
           children: [
             SizedBox(
-              width: 40,
+              width: 36,
               child: Text(
                 _formatDuration(effectivePosition),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
                 ),
               ),
@@ -94,7 +183,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: categoryColor,
+                  activeTrackColor: primary,
                   inactiveTrackColor:
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
                   thumbColor: Colors.transparent,
@@ -131,12 +220,12 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
               ),
             ),
             SizedBox(
-              width: 40,
+              width: 36,
               child: Text(
                 '-${_formatDuration(remainingDuration.isNegative ? Duration.zero : remainingDuration)}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
                 ),
               ),
@@ -156,25 +245,29 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
           return const SizedBox.shrink();
         }
 
-        final categoryColor = CategoryColors.getCategoryColor(episode.category);
+        final primary = Theme.of(context).colorScheme.primary;
 
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               onPressed: () async => await widget.audioService.skipBackward(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               icon: Icon(
                 Icons.replay_10_rounded,
-                color: categoryColor,
-                size: 24,
+                color: primary,
+                size: 22,
               ),
             ),
             Container(
               decoration: BoxDecoration(
-                color: categoryColor,
+                color: primary,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(width: 44, height: 44),
                 onPressed: () async {
                   if (widget.audioService.isPlaying) {
                     await widget.audioService.pause();
@@ -193,16 +286,18 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                           ? Icons.pause
                           : Icons.play_arrow,
                   color: Theme.of(context).colorScheme.onPrimary,
-                  size: 30,
+                  size: 28,
                 ),
               ),
             ),
             IconButton(
               onPressed: () async => await widget.audioService.skipForward(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               icon: Icon(
                 Icons.forward_10_rounded,
-                color: categoryColor,
-                size: 24,
+                color: primary,
+                size: 22,
               ),
             ),
           ],
@@ -218,3 +313,4 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     return '$minutes:$seconds';
   }
 }
+

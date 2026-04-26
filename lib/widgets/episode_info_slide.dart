@@ -5,6 +5,11 @@ import '../services/language_manager.dart';
 import 'banner_ad_widget.dart';
 
 class EpisodeInfoSlide extends StatelessWidget {
+  static const double _mainThumbWidth = 150;
+  static const double _mainThumbHeight = 85; // 266:150 aspect ratio
+  static const double _listThumbWidth = 100;
+  static const double _listThumbHeight = 56; // 266:150 aspect ratio
+
   final Episode episode;
   final List<Episode> topEpisodes;
   final Function(Episode) onEpisodeTap;
@@ -56,8 +61,8 @@ class EpisodeInfoSlide extends StatelessWidget {
           // Thumbnail
           ImageCacheService().buildCachedImage(
             imageUrl: episode.thumbImage,
-            width: 120,
-            height: 120,
+            width: _mainThumbWidth,
+            height: _mainThumbHeight,
             fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(8),
           ),
@@ -158,8 +163,8 @@ class EpisodeInfoSlide extends StatelessWidget {
               // Thumbnail
               ImageCacheService().buildCachedImage(
                 imageUrl: topEpisode.thumbImage,
-                width: 60,
-                height: 60,
+                width: _listThumbWidth,
+                height: _listThumbHeight,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(6),
               ),

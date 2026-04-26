@@ -91,9 +91,6 @@ class _HomePageState extends State<HomePage> {
       }
     }
 
-    // Luôn hiển thị interstitial ads khi vào episode detail
-    const shouldShowInterstitial = true;
-
     if (episodeCategory != null) {
       Navigator.push(
         context,
@@ -101,7 +98,6 @@ class _HomePageState extends State<HomePage> {
           builder: (context) => EpisodeDetailScreen(
             episode: episode,
             categoryEpisodes: episodeCategory!.episodes,
-            shouldShowInterstitialOnEnter: shouldShowInterstitial,
           ),
         ),
       );
@@ -113,7 +109,6 @@ class _HomePageState extends State<HomePage> {
           builder: (context) => EpisodeDetailScreen(
             episode: episode,
             categoryEpisodes: [episode],
-            shouldShowInterstitialOnEnter: shouldShowInterstitial,
           ),
         ),
       );

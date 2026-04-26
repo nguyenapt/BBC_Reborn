@@ -91,45 +91,39 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _navigateToAppropriateScreen() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
-
-    if (!hasSeenAdsNotice && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => AdsSupportNoticeScreen(
-            onContinue: (noticeContext) async {
-              final localPrefs = await SharedPreferences.getInstance();
-              await localPrefs.setBool(_adsNoticeSeenKey, true);
-              final isOnboardingCompleted =
-                  localPrefs.getBool('onboarding_completed') ?? false;
-              if (!noticeContext.mounted) return;
-              Navigator.of(noticeContext).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => isOnboardingCompleted
-                      ? const BBCLearningAppStateful()
-                      : const OnboardingScreen(),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-      return;
-    }
-
     await _navigateToOnboardingOrMain(prefs);
   }
 
   Future<void> _navigateToOnboardingOrMain(SharedPreferences prefs) async {
     // Kiểm tra xem user đã hoàn thành onboarding chưa
     final isOnboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
 
     if (mounted) {
       if (isOnboardingCompleted) {
-        // User đã hoàn thành onboarding, chuyển đến main app với bottom navigation
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
-        );
+        if (!hasSeenAdsNotice) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => AdsSupportNoticeScreen(
+                onContinue: (noticeContext) async {
+                  final localPrefs = await SharedPreferences.getInstance();
+                  await localPrefs.setBool(_adsNoticeSeenKey, true);
+                  if (!noticeContext.mounted) return;
+                  Navigator.of(noticeContext).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const BBCLearningAppStateful(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        } else {
+          // User đã hoàn thành onboarding, chuyển đến main app với bottom navigation
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
+          );
+        }
       } else {
         // User mới, chuyển đến onboarding
         Navigator.of(context).pushReplacement(

@@ -205,6 +205,7 @@ class AppJa {
     'speakingNoTranscript': 'スピーキング練習用の台本がありません。',
     'speakingNoSpeakersRoleplay': 'この台本にはロールプレイ用の話者情報がありません。',
     'speakingYou': 'あなた',
+    'speakerDefault': '話者',
     'speakingCurrentSentenceBadge': '練習中の文',
     'speakingListenSampleTooltip': 'お手本を聞く',
     'speakingStartRecording': '録音開始',

@@ -208,6 +208,7 @@ class AppEs {
     'speakingNoTranscript': 'No hay transcripción para practicar el habla.',
     'speakingNoSpeakersRoleplay': 'Esta transcripción no tiene hablantes para el juego de roles.',
     'speakingYou': 'Tú',
+    'speakerDefault': 'Hablante',
     'speakingCurrentSentenceBadge': 'FRASE ACTUAL',
     'speakingListenSampleTooltip': 'Escuchar ejemplo',
     'speakingStartRecording': 'Empezar a grabar',

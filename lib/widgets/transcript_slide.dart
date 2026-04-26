@@ -36,7 +36,8 @@ class TranscriptSlide extends StatefulWidget {
   State<TranscriptSlide> createState() => _TranscriptSlideState();
 }
 
-class _TranscriptSlideState extends State<TranscriptSlide> {
+class _TranscriptSlideState extends State<TranscriptSlide>
+    with SingleTickerProviderStateMixin {
   late List<TranscriptLine> transcriptLines;
   late ScrollController _scrollController;
   int? _currentActiveIndex;
@@ -52,6 +53,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
   final Map<String, GrammarExplanation> _grammarCache = {};
+  late final AnimationController _breathController;
   
   // Line translation state (cache translations for each line)
   final Map<String, String> _lineTranslations = {};
@@ -60,6 +62,10 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
   @override
   void initState() {
     super.initState();
+    _breathController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
     _scrollController = ScrollController();
     _buildTranscriptLinesFromEpisode();
     _calculateAdPositions();
@@ -331,15 +337,27 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 17,
-                                    backgroundColor: speakerColor.withOpacity(0.22),
-                                    child: Text(
-                                      _speakerInitial(line.speaker),
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: speakerColor,
+                                  AnimatedBuilder(
+                                    animation: _breathController,
+                                    builder: (context, child) {
+                                      final scale =
+                                          isActive ? (1.0 + (_breathController.value * 0.11)) : 1.0;
+                                      return Transform.scale(
+                                        alignment: Alignment.center,
+                                        scale: scale,
+                                        child: child,
+                                      );
+                                    },
+                                    child: CircleAvatar(
+                                      radius: 17,
+                                      backgroundColor: speakerColor.withOpacity(0.22),
+                                      child: Text(
+                                        _speakerInitial(line.speaker),
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: speakerColor,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -809,6 +827,7 @@ class _TranscriptSlideState extends State<TranscriptSlide> {
 
   @override
   void dispose() {
+    _breathController.dispose();
     _scrollController.dispose();
     super.dispose();
   }

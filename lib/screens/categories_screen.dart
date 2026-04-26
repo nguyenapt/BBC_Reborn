@@ -225,16 +225,12 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       categoryEpisodes = _episodesData[currentCategory] ?? [];
     }
 
-    // Luôn hiển thị interstitial ads khi vào episode detail
-    const shouldShowInterstitial = true;
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
           categoryEpisodes: categoryEpisodes,
-          shouldShowInterstitialOnEnter: shouldShowInterstitial,
         ),
       ),
     );

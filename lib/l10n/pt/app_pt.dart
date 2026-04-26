@@ -208,6 +208,7 @@ class AppPt {
     'speakingNoTranscript': 'Não há transcrição para prática de fala.',
     'speakingNoSpeakersRoleplay': 'Esta transcrição não tem falantes para interpretação de papéis.',
     'speakingYou': 'Você',
+    'speakerDefault': 'Falante',
     'speakingCurrentSentenceBadge': 'FRASE ATUAL',
     'speakingListenSampleTooltip': 'Ouvir exemplo',
     'speakingStartRecording': 'Iniciar gravação',

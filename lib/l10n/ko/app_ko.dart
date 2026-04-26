@@ -205,6 +205,7 @@ class AppKo {
     'speakingNoTranscript': '말하기 연습에 사용할 대본이 없습니다.',
     'speakingNoSpeakersRoleplay': '이 대본에는 롤플레이에 필요한 화자 정보가 없습니다.',
     'speakingYou': '나',
+    'speakerDefault': '화자',
     'speakingCurrentSentenceBadge': '연습 중인 문장',
     'speakingListenSampleTooltip': '샘플 듣기',
     'speakingStartRecording': '녹음 시작',
