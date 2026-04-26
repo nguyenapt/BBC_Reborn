@@ -37,13 +37,19 @@ class EpisodeDetailScreen extends StatefulWidget {
 }
 
 class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
+  static const double _playerBottomOffset = 10;
+  static const double _contentPlayerGap = 16;
+  static const double _fallbackPlayerHeight = 88;
+
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
+  final GlobalKey _playerKey = GlobalKey();
   late Episode _episode;
   bool _hydratingFullEpisode = false;
   int _currentPageIndex = 0; // Transcript
   bool _hasShownInterstitialAd = false;
+  double _playerHeight = _fallbackPlayerHeight;
 
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
@@ -82,6 +88,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         });
       });
     }
+    _scheduleMeasurePlayerHeight();
   }
 
   @override
@@ -97,6 +104,28 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       Future.microtask(_hydrateFullEpisodeIfNeeded);
       _scheduleDebugSqliteSourceNotice(widget.episode);
     }
+    _scheduleMeasurePlayerHeight();
+  }
+
+  void _scheduleMeasurePlayerHeight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _playerKey.currentContext;
+      if (ctx == null) return;
+      final size = ctx.size;
+      if (size == null) return;
+      final measured = size.height;
+      if ((_playerHeight - measured).abs() > 0.5) {
+        setState(() {
+          _playerHeight = measured;
+        });
+      }
+    });
+  }
+
+  double _contentBottomInset(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    return _playerHeight + _playerBottomOffset + _contentPlayerGap + safeBottom;
   }
 
   /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
@@ -190,6 +219,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _scheduleMeasurePlayerHeight();
     return ListenableBuilder(
       listenable: _languageManager,
       builder: (context, child) {
@@ -269,10 +299,13 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Episode Name Header
-          Container(
+          Column(
+            children: [
+              // Episode Name Header
+              Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -409,71 +442,83 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           ),
           _buildDetailTabs(context, categoryColor),
           Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPageIndex = index;
-                });
-              },
-              children: [
-                ListenableBuilder(
-                  listenable: _audioService,
-                  builder: (context, child) {
-                    return TranscriptSlide(
-                      episode: _episode,
-                      isAwaitingFullEpisode: _hydratingFullEpisode,
-                      currentPositionMs: _audioService.currentPositionMs,
-                      onPlayAtTime: (startTimeMs) {
-                        _audioService.seekTo(Duration(milliseconds: startTimeMs));
-                        _audioService.play();
-                      },
-                    );
-                  },
-                ),
-                EpisodeInfoSlide(
-                  languageManager: _languageManager,
-                  episode: _episode,
-                  topEpisodes: widget.categoryEpisodes,
-                  onEpisodeTap: (episode) {
-                    const shouldShowInterstitial = true;
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EpisodeDetailScreen(
-                          episode: episode,
-                          categoryEpisodes: widget.categoryEpisodes,
-                          shouldShowInterstitialOnEnter: shouldShowInterstitial,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: _contentBottomInset(context)),
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPageIndex = index;
+                  });
+                },
+                children: [
+                  ListenableBuilder(
+                    listenable: _audioService,
+                    builder: (context, child) {
+                      return TranscriptSlide(
+                        episode: _episode,
+                        isAwaitingFullEpisode: _hydratingFullEpisode,
+                        currentPositionMs: _audioService.currentPositionMs,
+                        onPlayAtTime: (startTimeMs) {
+                          _audioService.seekTo(Duration(milliseconds: startTimeMs));
+                          _audioService.play();
+                        },
+                      );
+                    },
+                  ),
+                  EpisodeInfoSlide(
+                    languageManager: _languageManager,
+                    episode: _episode,
+                    topEpisodes: widget.categoryEpisodes,
+                    onEpisodeTap: (episode) {
+                      const shouldShowInterstitial = true;
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EpisodeDetailScreen(
+                            episode: episode,
+                            categoryEpisodes: widget.categoryEpisodes,
+                            shouldShowInterstitialOnEnter: shouldShowInterstitial,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                VocabularySlide(
-                  episode: _episode,
-                  isAwaitingFullEpisode: _hydratingFullEpisode,
-                ),
-                QuestionSlide(
-                  episode: _episode,
-                  isAwaitingFullEpisode: _hydratingFullEpisode,
-                ),
-              ],
+                      );
+                    },
+                  ),
+                  VocabularySlide(
+                    episode: _episode,
+                    isAwaitingFullEpisode: _hydratingFullEpisode,
+                  ),
+                  QuestionSlide(
+                    episode: _episode,
+                    isAwaitingFullEpisode: _hydratingFullEpisode,
+                  ),
+                ],
+              ),
             ),
           ),
-          // Audio Player
-          AudioPlayerWidget(
-            audioService: _audioService,
-            onPlayPressed: () async {
-              // Nếu chưa hiển thị interstitial ads, hiển thị trước khi play
-              if (!_hasShownInterstitialAd) {
-                AdMobService().showInterstitialAd();
-                setState(() {
-                  _hasShownInterstitialAd = true;
-                });
-                // Đợi một chút để ad hiển thị
-                await Future.delayed(const Duration(milliseconds: 500));
-              }
-            },
+            ],
+          ),
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            child: KeyedSubtree(
+              key: _playerKey,
+              child: AudioPlayerWidget(
+                audioService: _audioService,
+                onPlayPressed: () async {
+                  // Nếu chưa hiển thị interstitial ads, hiển thị trước khi play
+                  if (!_hasShownInterstitialAd) {
+                    AdMobService().showInterstitialAd();
+                    setState(() {
+                      _hasShownInterstitialAd = true;
+                    });
+                    // Đợi một chút để ad hiển thị
+                    await Future.delayed(const Duration(milliseconds: 500));
+                  }
+                },
+              ),
+            ),
           ),
         ],
       ),

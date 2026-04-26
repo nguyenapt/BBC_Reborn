@@ -14,103 +14,35 @@ class AudioPlayerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Progress bar
-              _buildProgressBar(),
-              const SizedBox(height: 2),
-              // Control buttons
-              _buildControlButtons(),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 330),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildCenterControls(context),
+                const SizedBox(height: 8),
+                _buildControlButtons(),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildProgressBar() {
-    return ListenableBuilder(
-      listenable: audioService,
-      builder: (context, child) {
-        final progress = audioService.totalDuration.inMilliseconds > 0
-            ? audioService.currentPosition.inMilliseconds / audioService.totalDuration.inMilliseconds
-            : 0.0;
-
-        final remainingDuration = audioService.totalDuration - audioService.currentPosition;
-
-        return Row(
-          children: [
-            // Thời gian đã chạy bên trái
-            SizedBox(
-              width: 45,
-              child: Text(
-                _formatDuration(audioService.currentPosition),
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(width: 4),
-            // Progress bar ở giữa
-            Expanded(
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                      : Colors.blue,
-                  inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                  thumbColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                      : Colors.blue,
-                  overlayColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category).withOpacity(0.2)
-                      : Colors.blue.withOpacity(0.2),
-                ),
-                child: Slider(
-                  value: progress.clamp(0.0, 1.0),
-                  onChanged: (value) async {
-                    final newPosition = Duration(
-                      milliseconds: (value * audioService.totalDuration.inMilliseconds).round(),
-                    );
-                    await audioService.seekTo(newPosition);
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            // Thời gian còn lại bên phải
-            SizedBox(
-              width: 45,
-              child: Text(
-                '-${_formatDuration(remainingDuration)}',
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -123,34 +55,58 @@ class AudioPlayerWidget extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
+        final progress = audioService.totalDuration.inMilliseconds > 0
+            ? audioService.currentPosition.inMilliseconds / audioService.totalDuration.inMilliseconds
+            : 0.0;
+
+        final categoryColor = CategoryColors.getCategoryColor(episode.category);
+
+        return SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: categoryColor,
+            inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
+            thumbColor: Colors.transparent,
+            overlayColor: Colors.transparent,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
+            trackHeight: 3,
+          ),
+          child: Slider(
+            value: progress.clamp(0.0, 1.0),
+            onChanged: (value) async {
+              final newPosition = Duration(
+                milliseconds: (value * audioService.totalDuration.inMilliseconds).round(),
+              );
+              await audioService.seekTo(newPosition);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCenterControls(BuildContext context) {
+    return ListenableBuilder(
+      listenable: audioService,
+      builder: (context, child) {
+        final episode = audioService.currentEpisode;
+        if (episode == null) {
+          return const SizedBox.shrink();
+        }
+
         final categoryColor = CategoryColors.getCategoryColor(episode.category);
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Previous button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
-            // IconButton(
-            //   onPressed: audioService.currentEpisodeIndex > 0
-            //       ? () => audioService.previousEpisode()
-            //       : null,
-            //   icon: Icon(
-            //     Icons.skip_previous,
-            //     color: audioService.currentEpisodeIndex > 0 
-            //         ? categoryColor 
-            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            //     size: 32,
-            //   ),
-            // ),
-            // Skip backward button
             IconButton(
               onPressed: () async => await audioService.skipBackward(),
               icon: Icon(
-                Icons.replay_10,
+                Icons.skip_previous_rounded,
                 color: categoryColor,
-                size: 28,
+                size: 30,
               ),
             ),
-            // Play/Pause button
             Container(
               decoration: BoxDecoration(
                 color: categoryColor,
@@ -175,42 +131,21 @@ class AudioPlayerWidget extends StatelessWidget {
                           ? Icons.pause
                           : Icons.play_arrow,
                   color: Colors.white,
-                  size: 32,
+                  size: 30,
                 ),
               ),
             ),
-            // Skip forward button
             IconButton(
               onPressed: () async => await audioService.skipForward(),
               icon: Icon(
-                Icons.forward_10,
+                Icons.skip_next_rounded,
                 color: categoryColor,
-                size: 28,
+                size: 30,
               ),
             ),
-            // Next button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
-            // IconButton(
-            //   onPressed: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-            //       ? () => audioService.nextEpisode()
-            //       : null,
-            //   icon: Icon(
-            //     Icons.skip_next,
-            //     color: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-            //         ? categoryColor
-            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            //     size: 32,
-            //   ),
-            // ),
           ],
         );
       },
     );
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
   }
 }

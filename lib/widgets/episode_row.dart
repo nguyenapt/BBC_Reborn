@@ -29,11 +29,11 @@ class EpisodeRow extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail bên trái (100x100 hoặc 150x150 nếu là episode mới nhất)
+              // Thumbnail bên trái theo tỉ lệ gốc 266:150
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: isLatest ? 150 : 100,
-                height: isLatest ? 150 : 100,
+                height: isLatest ? 85 : 56,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
               ),

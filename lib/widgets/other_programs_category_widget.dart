@@ -77,11 +77,11 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail 150x150
+              // Thumbnail theo tỉ lệ gốc 266:150
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: 150,
-                height: 150,
+                height: 85,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -177,13 +177,13 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image 100x100
+            // Image theo tỉ lệ gốc 266:150
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: 100,
-                height: 100,
+                height: 56,
                 fit: BoxFit.cover,
               ),
             ),
