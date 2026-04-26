@@ -37,6 +37,7 @@ class EpisodeRow extends StatelessWidget {
                 height: isLatest ? 85 : 56,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               // Thông tin bên phải

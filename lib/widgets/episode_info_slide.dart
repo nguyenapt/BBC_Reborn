@@ -65,6 +65,7 @@ class EpisodeInfoSlide extends StatelessWidget {
             height: _mainThumbHeight,
             fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(8),
+            showWatermark: true,
           ),
           const SizedBox(width: 16),
           // Episode Info
@@ -167,6 +168,7 @@ class EpisodeInfoSlide extends StatelessWidget {
                 height: _listThumbHeight,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(6),
+                showWatermark: true,
               ),
               const SizedBox(width: 12),
               // Episode Info

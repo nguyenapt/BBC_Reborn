@@ -47,6 +47,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late Episode _episode;
   bool _hydratingFullEpisode = false;
   int _currentPageIndex = 0; // Transcript
+  int _scrollToActiveTranscriptRequestId = 0;
   bool _isHandlingBackNavigation = false;
   double _playerHeight = _fallbackPlayerHeight;
   List<TranscriptLine> _parsedTranscriptLines = [];
@@ -175,6 +176,20 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       }
     }
     return null;
+  }
+
+  void _focusCurrentTranscriptLine() {
+    final activeLine = _currentActiveTranscriptLine();
+    if (activeLine == null) return;
+    setState(() {
+      _currentPageIndex = 0;
+      _scrollToActiveTranscriptRequestId++;
+    });
+    _pageController.animateToPage(
+      0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
@@ -506,6 +521,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         episode: _episode,
                         isAwaitingFullEpisode: _hydratingFullEpisode,
                         currentPositionMs: _audioService.currentPositionMs,
+                        scrollToActiveRequestId: _scrollToActiveTranscriptRequestId,
                         onPlayAtTime: (startTimeMs) {
                           _audioService.seekTo(Duration(milliseconds: startTimeMs));
                           _audioService.play();
@@ -569,6 +585,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     currentSpeaker: speaker,
                     currentLineText: lineText,
                     showCurrentPanel: shouldShowCurrentPanel,
+                    onCurrentPanelTap: _focusCurrentTranscriptLine,
                     onPlayPressed: null,
                   ),
                 );

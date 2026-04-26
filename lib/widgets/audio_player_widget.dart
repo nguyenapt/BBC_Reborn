@@ -7,6 +7,7 @@ class AudioPlayerWidget extends StatefulWidget {
   final String currentSpeaker;
   final String currentLineText;
   final bool showCurrentPanel;
+  final VoidCallback? onCurrentPanelTap;
 
   const AudioPlayerWidget({
     super.key,
@@ -15,6 +16,7 @@ class AudioPlayerWidget extends StatefulWidget {
     required this.currentSpeaker,
     required this.currentLineText,
     required this.showCurrentPanel,
+    this.onCurrentPanelTap,
   });
 
   @override
@@ -83,7 +85,10 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   Widget _buildCurrentTranscriptPanel(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
+    return GestureDetector(
+      onTap: widget.onCurrentPanelTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
       key: const ValueKey('current-panel-shown'),
       padding: const EdgeInsets.only(top: 8),
       child: Stack(
@@ -140,6 +145,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
           ),
         ],
       ),
+    ),
     );
   }
 

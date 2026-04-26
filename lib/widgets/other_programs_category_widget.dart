@@ -86,6 +86,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                 height: 85,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               // Thông tin bên phải
@@ -187,6 +188,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                 width: 100,
                 height: 56,
                 fit: BoxFit.cover,
+                showWatermark: true,
               ),
             ),
             const SizedBox(height: 6),

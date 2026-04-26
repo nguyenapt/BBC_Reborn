@@ -279,6 +279,7 @@ class CategoryGroupBox extends StatelessWidget {
                 height: 85,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -376,6 +377,7 @@ class CategoryGroupBox extends StatelessWidget {
                 width: width,
                 height: 56,
                 fit: BoxFit.cover,
+                showWatermark: true,
               ),
             ),
             const SizedBox(height: 6),

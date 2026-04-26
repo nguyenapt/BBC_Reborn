@@ -21,6 +21,7 @@ class TranscriptSlide extends StatefulWidget {
   final Episode episode;
   final int? currentPositionMs; // Vị trí audio hiện tại (milliseconds)
   final Function(int startTimeMs)? onPlayAtTime; // Callback để play tại thời điểm cụ thể
+  final int scrollToActiveRequestId;
   /// Đang tải transcript đầy đủ từ RTDB (list mỏng) — hiển thị skeleton thay vì "No transcript".
   final bool isAwaitingFullEpisode;
 
@@ -29,6 +30,7 @@ class TranscriptSlide extends StatefulWidget {
     required this.episode,
     this.currentPositionMs,
     this.onPlayAtTime,
+    this.scrollToActiveRequestId = 0,
     this.isAwaitingFullEpisode = false,
   });
 
@@ -180,6 +182,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     if (oldWidget.currentPositionMs != widget.currentPositionMs || transcriptChanged) {
       _updateActiveLine();
     }
+    if (oldWidget.scrollToActiveRequestId != widget.scrollToActiveRequestId) {
+      _scrollToActiveLine();
+    }
   }
 
   void _updateActiveLine() {
@@ -206,6 +211,32 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _currentActiveIndex = newActiveIndex;
       });
     }
+  }
+
+  int _displayIndexForTranscriptIndex(int transcriptIndex) {
+    var adsBefore = 0;
+    for (final adPos in _adPositions) {
+      if (adPos <= transcriptIndex) {
+        adsBefore += 1;
+      }
+    }
+    return transcriptIndex + adsBefore;
+  }
+
+  void _scrollToActiveLine() {
+    if (!_scrollController.hasClients) return;
+    final activeIndex = _currentActiveIndex;
+    if (activeIndex == null || activeIndex < 0 || activeIndex >= transcriptLines.length) {
+      return;
+    }
+    final displayIndex = _displayIndexForTranscriptIndex(activeIndex);
+    final target = (displayIndex * 112.0)
+        .clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+    );
   }
 
 

@@ -25,29 +25,103 @@ class ImageCacheService {
     Widget? errorWidget,
     Color? placeholderColor,
     Color? errorColor,
+    bool showWatermark = false,
+    IconData watermarkIcon = Icons.copyright_rounded,
+    double watermarkOpacity = 0.32,
+    String? watermarkAssetPath = 'assets/images/logo.png',
   }) {
-    return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.circular(8),
-      child: CachedNetworkImage(
-        imageUrl: imageUrl,
+    final image = CachedNetworkImage(
+      imageUrl: imageUrl,
+      width: width,
+      height: height,
+      fit: fit,
+      placeholder: (context, url) => placeholder ?? _buildPlaceholder(
         width: width,
         height: height,
-        fit: fit,
-        placeholder: (context, url) => placeholder ?? _buildPlaceholder(
-          width: width,
-          height: height,
-          color: placeholderColor,
-        ),
-        errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(
-          width: width,
-          height: height,
-          color: errorColor,
-        ),
-        memCacheWidth: width.toInt(),
-        memCacheHeight: height.toInt(),
-        maxWidthDiskCache: (width * 2).toInt(), // Cache với độ phân giải cao hơn
-        maxHeightDiskCache: (height * 2).toInt(),
+        color: placeholderColor,
       ),
+      errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(
+        width: width,
+        height: height,
+        color: errorColor,
+      ),
+      memCacheWidth: width.toInt(),
+      memCacheHeight: height.toInt(),
+      maxWidthDiskCache: (width * 2).toInt(), // Cache với độ phân giải cao hơn
+      maxHeightDiskCache: (height * 2).toInt(),
+    );
+
+    final clippedRadius = borderRadius ?? BorderRadius.circular(8);
+    return ClipRRect(
+      borderRadius: clippedRadius,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: showWatermark
+            ? _buildWatermarkedImage(
+                image: image,
+                width: width,
+                height: height,
+                watermarkIcon: watermarkIcon,
+                watermarkOpacity: watermarkOpacity,
+                watermarkAssetPath: watermarkAssetPath,
+              )
+            : image,
+      ),
+    );
+  }
+
+  Widget _buildWatermarkedImage({
+    required Widget image,
+    required double width,
+    required double height,
+    required IconData watermarkIcon,
+    required double watermarkOpacity,
+    String? watermarkAssetPath,
+  }) {
+    final iconSize = (height * 0.22).clamp(11.0, 16.0);
+    final logoWidth = (height * 0.38).clamp(15.0, 24.0);
+    final badgePadding = (height * 0.04).clamp(2.0, 4.0);
+    final inset = (height * 0.04).clamp(2.0, 4.0);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        image,
+        Positioned(
+          right: inset,
+          bottom: inset,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: watermarkOpacity.clamp(0.0, 1.0),
+              child: Container(
+                padding: EdgeInsets.all(badgePadding),
+                decoration: BoxDecoration(
+                  color: const Color(0xAA000000),
+                  shape: BoxShape.circle,
+                ),
+                child: watermarkAssetPath != null
+                    ? Image.asset(
+                        watermarkAssetPath,
+                        width: logoWidth,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            watermarkIcon,
+                            size: iconSize,
+                            color: Colors.white,
+                          );
+                        },
+                      )
+                    : Icon(
+                        watermarkIcon,
+                        size: iconSize,
+                        color: Colors.white,
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
