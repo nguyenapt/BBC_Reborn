@@ -210,16 +210,12 @@ class _GrammarScreenState extends State<GrammarScreen>
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
-    // Luôn hiển thị interstitial ads khi vào episode detail
-    const shouldShowInterstitial = true;
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
           categoryEpisodes: _egEpisodes,
-          shouldShowInterstitialOnEnter: shouldShowInterstitial,
         ),
       ),
     );

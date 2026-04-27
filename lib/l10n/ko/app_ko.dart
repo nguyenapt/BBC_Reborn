@@ -205,6 +205,7 @@ class AppKo {
     'speakingNoTranscript': '말하기 연습에 사용할 대본이 없습니다.',
     'speakingNoSpeakersRoleplay': '이 대본에는 롤플레이에 필요한 화자 정보가 없습니다.',
     'speakingYou': '나',
+    'speakerDefault': '화자',
     'speakingCurrentSentenceBadge': '연습 중인 문장',
     'speakingListenSampleTooltip': '샘플 듣기',
     'speakingStartRecording': '녹음 시작',
@@ -263,6 +264,10 @@ class AppKo {
     'speakingHistoryEmpty': '말하기 연습 기록이 없습니다.',
     'speakingHistorySessionSubtitle': '{attempts}회 · 평균 {avg}',
     'speakingHistoryModeLabel': '모드',
+
+    'adsInterstitialTitle': '무료 앱을 지원해 주셔서 감사합니다',
+    'adsInterstitialBodyLine1': '광고가 때때로 불편하게 느껴지실 수 있어 죄송합니다.',
+    'adsInterstitialBodyLine2': '광고 수익으로 누구나 무료로 서비스를 이용할 수 있습니다.',
 
     'loadMore': '더 읽기',
 

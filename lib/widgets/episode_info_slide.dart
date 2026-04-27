@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
-import '../utils/category_colors.dart';
 import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
 import 'banner_ad_widget.dart';
 
 class EpisodeInfoSlide extends StatelessWidget {
+  static const double _mainThumbWidth = 150;
+  static const double _mainThumbHeight = 85; // 266:150 aspect ratio
+  static const double _listThumbWidth = 100;
+  static const double _listThumbHeight = 56; // 266:150 aspect ratio
+
   final Episode episode;
   final List<Episode> topEpisodes;
   final Function(Episode) onEpisodeTap;
@@ -38,7 +42,8 @@ class EpisodeInfoSlide extends StatelessWidget {
   }
 
   Widget _buildCurrentEpisodeSection(BuildContext context) {
-    final categoryColor = CategoryColors.getCategoryColor(episode.category);
+    final colorScheme = Theme.of(context).colorScheme;
+    final categoryColor = colorScheme.primary;
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -46,7 +51,7 @@ class EpisodeInfoSlide extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: categoryColor.withOpacity(0.3),
+          color: colorScheme.outline.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -56,10 +61,11 @@ class EpisodeInfoSlide extends StatelessWidget {
           // Thumbnail
           ImageCacheService().buildCachedImage(
             imageUrl: episode.thumbImage,
-            width: 120,
-            height: 120,
+            width: _mainThumbWidth,
+            height: _mainThumbHeight,
             fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(8),
+            showWatermark: true,
           ),
           const SizedBox(width: 16),
           // Episode Info
@@ -97,6 +103,8 @@ class EpisodeInfoSlide extends StatelessWidget {
   }
 
   Widget _buildTopEpisodesSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.28)!;
     if (topEpisodes.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -108,16 +116,16 @@ class EpisodeInfoSlide extends StatelessWidget {
           children: [
             Icon(
               Icons.star,
-              color: CategoryColors.getCategoryColor(episode.category),
-              size: 20,
+              color: strongAccent,
+              size: 21,
             ),
             const SizedBox(width: 8),
             Text(
               languageManager.getText('topEpisodes'),
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: CategoryColors.getCategoryColor(episode.category),
+                fontWeight: FontWeight.w800,
+                color: strongAccent,
               ),
             ),
           ],
@@ -129,6 +137,7 @@ class EpisodeInfoSlide extends StatelessWidget {
   }
 
   Widget _buildTopEpisodeItem(BuildContext context, Episode topEpisode) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isCurrentEpisode = topEpisode.id == episode.id;
     
     return Container(
@@ -140,12 +149,12 @@ class EpisodeInfoSlide extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isCurrentEpisode 
-                ? CategoryColors.getCategoryColor(episode.category).withOpacity(0.1)
-                : Theme.of(context).colorScheme.surface,
+                ? colorScheme.primary.withOpacity(0.1)
+                : colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: isCurrentEpisode
                 ? Border.all(
-                    color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.3),
+                    color: colorScheme.primary.withOpacity(0.3),
                     width: 1,
                   )
                 : null,
@@ -155,10 +164,11 @@ class EpisodeInfoSlide extends StatelessWidget {
               // Thumbnail
               ImageCacheService().buildCachedImage(
                 imageUrl: topEpisode.thumbImage,
-                width: 60,
-                height: 60,
+                width: _listThumbWidth,
+                height: _listThumbHeight,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(6),
+                showWatermark: true,
               ),
               const SizedBox(width: 12),
               // Episode Info
@@ -172,8 +182,8 @@ class EpisodeInfoSlide extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: isCurrentEpisode ? FontWeight.bold : FontWeight.w500,
                         color: isCurrentEpisode 
-                            ? CategoryColors.getCategoryColor(episode.category)
-                            : Theme.of(context).colorScheme.onSurface,
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -204,7 +214,7 @@ class EpisodeInfoSlide extends StatelessWidget {
               if (isCurrentEpisode)
                 Icon(
                   Icons.play_circle_filled,
-                  color: CategoryColors.getCategoryColor(episode.category),
+                  color: colorScheme.primary,
                   size: 24,
                 ),
             ],

@@ -22,6 +22,8 @@ class CategoryGroupBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     final languageManager = LanguageManager();
     final useHorizontalLayout = _shouldUseHorizontalLayout(category.name);
     final latestEpisodes = useHorizontalLayout
@@ -35,11 +37,11 @@ class CategoryGroupBox extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: colorScheme.shadow.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -68,12 +70,12 @@ class CategoryGroupBox extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: CategoryColors.getCategoryColor(category.name).withOpacity(0.2),
+                        color: CategoryColors.getCategoryBackgroundColor(category.name),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         _getCategoryIcon(category.name),
-                        color: CategoryColors.getCategoryColor(category.name),
+                        color: strongAccent,
                         size: 20,
                       ),
                     ),
@@ -83,7 +85,7 @@ class CategoryGroupBox extends StatelessWidget {
                       child: Text(
                         CategoryNames.getDisplayName(category.name),
                         style: TextStyle(
-                          color: CategoryColors.getCategoryColor(category.name),
+                          color: strongAccent,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -101,7 +103,8 @@ class CategoryGroupBox extends StatelessWidget {
                   if (latestEpisodes.length > 1 || onViewAllTap != null)
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final itemWidth = (constraints.maxWidth - 16) / 3;
+                        const itemWidth = 100.0;
+                        const itemSpacing = 8.0;
                         final horizontalEpisodes = _getHorizontalEpisodes(latestEpisodes);
                         final items = <Widget>[];
 
@@ -113,11 +116,16 @@ class CategoryGroupBox extends StatelessWidget {
                           ));
                         }
 
+                        final remainingWidth = (constraints.maxWidth -
+                                (horizontalEpisodes.length * itemWidth) -
+                                (horizontalEpisodes.length * itemSpacing))
+                            .clamp(0.0, constraints.maxWidth);
+
                         items.add(_buildViewAllItem(
                           context,
                           languageManager,
                           category.name,
-                          width: itemWidth,
+                          width: remainingWidth,
                         ));
 
                         return SizedBox(
@@ -207,9 +215,11 @@ class CategoryGroupBox extends StatelessWidget {
     String categoryName, {
     required double width,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     return Container(
       width: width,
-      height: 100,
+      height: 56,
       child: InkWell(
         onTap: () {
           if (onViewAllTap != null) {
@@ -228,10 +238,10 @@ class CategoryGroupBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Container(
           decoration: BoxDecoration(
-            color: CategoryColors.getCategoryColor(categoryName).withOpacity(0.1),
+            color: CategoryColors.getCategoryBackgroundColor(categoryName),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: CategoryColors.getCategoryColor(categoryName).withOpacity(0.4),
+              color: CategoryColors.getCategoryBorderColor(categoryName),
               width: 1,
             ),
           ),
@@ -243,7 +253,7 @@ class CategoryGroupBox extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: CategoryColors.getCategoryColor(categoryName),
+              color: strongAccent,
             ),
           ),
         ),
@@ -252,7 +262,9 @@ class CategoryGroupBox extends StatelessWidget {
   }
 
   Widget _buildFirstEpisode(Episode episode, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
+      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: () => onEpisodeTap(episode),
         borderRadius: BorderRadius.circular(8),
@@ -264,16 +276,16 @@ class CategoryGroupBox extends StatelessWidget {
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: 150,
-                height: 150,
+                height: 85,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 6),
                     Text(
                       episode.episodeName,
                       style: const TextStyle(
@@ -290,7 +302,7 @@ class CategoryGroupBox extends StatelessWidget {
                           : episode.shortTranscript,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurface.withOpacity(0.68),
                         height: 1.4,
                       ),
                       maxLines: 3,
@@ -303,10 +315,10 @@ class CategoryGroupBox extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.2),
+                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.5),
+                              color: CategoryColors.getCategoryBorderColor(episode.category),
                               width: 1,
                             ),
                           ),
@@ -323,14 +335,14 @@ class CategoryGroupBox extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurface.withOpacity(0.65),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           episode.duration,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurface.withOpacity(0.65),
                           ),
                         ),
                       ],
@@ -363,8 +375,9 @@ class CategoryGroupBox extends StatelessWidget {
               child: ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: width,
-                height: 100,
+                height: 56,
                 fit: BoxFit.cover,
+                showWatermark: true,
               ),
             ),
             const SizedBox(height: 6),

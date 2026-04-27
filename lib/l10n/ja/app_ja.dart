@@ -205,6 +205,7 @@ class AppJa {
     'speakingNoTranscript': 'スピーキング練習用の台本がありません。',
     'speakingNoSpeakersRoleplay': 'この台本にはロールプレイ用の話者情報がありません。',
     'speakingYou': 'あなた',
+    'speakerDefault': '話者',
     'speakingCurrentSentenceBadge': '練習中の文',
     'speakingListenSampleTooltip': 'お手本を聞く',
     'speakingStartRecording': '録音開始',
@@ -263,6 +264,10 @@ class AppJa {
     'speakingHistoryEmpty': 'スピーキングの履歴はまだありません。',
     'speakingHistorySessionSubtitle': '{attempts} 回 · 平均 {avg}',
     'speakingHistoryModeLabel': 'モード',
+
+    'adsInterstitialTitle': '無料アプリへのご支援ありがとうございます',
+    'adsInterstitialBodyLine1': '広告がときどき煩わしく感じられる場合は申し訳ありません。',
+    'adsInterstitialBodyLine2': '広告により、このサービスを誰でも無料で利用できます。',
 
 
     'appUpdateTitle': 'Update available',

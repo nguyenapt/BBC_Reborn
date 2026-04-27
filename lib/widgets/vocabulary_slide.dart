@@ -146,7 +146,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            CategoryColors.getCategoryColor(widget.episode.category),
+                            Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       )
@@ -257,8 +257,8 @@ class _VocabularySlideState extends State<VocabularySlide> {
                                   ),
                                   child: Text(
                                     '${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -438,7 +438,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
               children: [
                 CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    CategoryColors.getCategoryColor(widget.episode.category),
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -610,7 +610,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: categoryColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -689,7 +689,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
           content: Text(AIErrorHandler.getErrorMessage(error)),
           action: SnackBarAction(
             label: 'Watch Ads',
-            textColor: Colors.white,
+            textColor: Theme.of(context).colorScheme.onInverseSurface,
             onPressed: () {
               if (admobService.isRewardedAdReady()) {
                 admobService.showRewardedAd(
@@ -698,7 +698,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: Color(0xFF7A5CFF),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -709,7 +709,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Failed to show ad: $error'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                   },

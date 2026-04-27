@@ -285,7 +285,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 8,
             offset: const Offset(0, 2),
@@ -303,7 +303,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: Theme.of(context).colorScheme.primary,
-        unselectedLabelColor: Colors.grey[600],
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.62),
         labelStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -312,7 +312,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         tabs: [
           Tab(
             icon: const Icon(Icons.favorite, size: 20),
@@ -348,12 +348,12 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, color: Colors.red, size: 40),
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 40),
               const SizedBox(height: 16),
               Text(
                 '${_languageManager.getText('errorOccurred')}: $_favouritesError',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -371,13 +371,17 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.favorite_border, color: Colors.grey, size: 60),
+            Icon(
+              Icons.favorite_border,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+              size: 60,
+            ),
             const SizedBox(height: 16),
             LocalizedText(
               'noFavouriteEpisodes',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
               ),
             ),
             const SizedBox(height: 8),
@@ -386,7 +390,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
               ),
             ),
           ],
@@ -432,12 +436,12 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, color: Colors.red, size: 40),
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 40),
               const SizedBox(height: 16),
               Text(
                 '${_languageManager.getText('errorOccurred')}: $_vocabulariesError',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -455,13 +459,17 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.book_outlined, color: Colors.grey, size: 60),
+            Icon(
+              Icons.book_outlined,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+              size: 60,
+            ),
             const SizedBox(height: 16),
             LocalizedText(
               'noSavedVocabularies',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
               ),
             ),
             const SizedBox(height: 8),
@@ -470,7 +478,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
               ),
             ),
           ],
@@ -502,17 +510,17 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                       Expanded(
                         child: Text(
                           vocabulary.vocab,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () => _removeVocabulary(vocabulary.vocab),
                         icon: const Icon(Icons.delete_outline),
-                        color: Colors.red[400],
+                        color: Theme.of(context).colorScheme.error.withOpacity(0.85),
                         tooltip: 'removeFromVocabularies',
                       ),
                     ],
@@ -522,7 +530,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                     vocabulary.mean,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.78),
                       height: 1.4,
                     ),
                   ),

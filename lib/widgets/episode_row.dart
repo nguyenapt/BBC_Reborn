@@ -19,6 +19,7 @@ class EpisodeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       //margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: InkWell(
@@ -29,13 +30,14 @@ class EpisodeRow extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail bên trái (100x100 hoặc 150x150 nếu là episode mới nhất)
+              // Thumbnail bên trái theo tỉ lệ gốc 266:150
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: isLatest ? 150 : 100,
-                height: isLatest ? 150 : 100,
+                height: isLatest ? 85 : 56,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               // Thông tin bên phải
@@ -62,7 +64,7 @@ class EpisodeRow extends StatelessWidget {
                           : episode.shortTranscript,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurface.withOpacity(0.68),
                         height: 1.4,
                       ),
                       maxLines: 3,
@@ -78,10 +80,10 @@ class EpisodeRow extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.2),
+                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.5),
+                              color: CategoryColors.getCategoryBorderColor(episode.category),
                               width: 1,
                             ),
                           ),
@@ -98,28 +100,28 @@ class EpisodeRow extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurface.withOpacity(0.65),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           episode.duration,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurface.withOpacity(0.65),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(
                           Icons.calendar_today,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurface.withOpacity(0.65),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(episode.publishedDate),
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurface.withOpacity(0.65),
                           ),
                         ),
                       ],

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/admob_service.dart';
 import 'onboarding_screen.dart';
+import 'ads_support_notice_screen.dart';
 import '../main.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,6 +15,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  static const String _adsNoticeSeenKey = 'ads_notice_seen_v1';
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -87,16 +90,40 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateToAppropriateScreen() async {
-    // Kiểm tra xem user đã hoàn thành onboarding chưa
     final prefs = await SharedPreferences.getInstance();
+    await _navigateToOnboardingOrMain(prefs);
+  }
+
+  Future<void> _navigateToOnboardingOrMain(SharedPreferences prefs) async {
+    // Kiểm tra xem user đã hoàn thành onboarding chưa
     final isOnboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    
+    final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
+
     if (mounted) {
       if (isOnboardingCompleted) {
-        // User đã hoàn thành onboarding, chuyển đến main app với bottom navigation
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
-        );
+        if (!hasSeenAdsNotice) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => AdsSupportNoticeScreen(
+                onContinue: (noticeContext) async {
+                  final localPrefs = await SharedPreferences.getInstance();
+                  await localPrefs.setBool(_adsNoticeSeenKey, true);
+                  if (!noticeContext.mounted) return;
+                  Navigator.of(noticeContext).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const BBCLearningAppStateful(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        } else {
+          // User đã hoàn thành onboarding, chuyển đến main app với bottom navigation
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
+          );
+        }
       } else {
         // User mới, chuyển đến onboarding
         Navigator.of(context).pushReplacement(

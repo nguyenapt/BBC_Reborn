@@ -225,16 +225,12 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       categoryEpisodes = _episodesData[currentCategory] ?? [];
     }
 
-    // Luôn hiển thị interstitial ads khi vào episode detail
-    const shouldShowInterstitial = true;
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
           categoryEpisodes: categoryEpisodes,
-          shouldShowInterstitialOnEnter: shouldShowInterstitial,
         ),
       ),
     );
@@ -447,7 +443,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        dividerColor: Colors.transparent,
+        dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
         tabs: [
           _buildTabLabel(0, '6 Minutes', 'English'),

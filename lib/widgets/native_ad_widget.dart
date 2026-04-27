@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../utils/category_colors.dart';
 
 class NativeAdWidget extends StatefulWidget {
   final String category;
@@ -129,6 +128,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     // Không hiển thị ads trên web
     if (kIsWeb) {
       return const SizedBox.shrink();
@@ -144,7 +144,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
             children: [
               Icon(
                 Icons.ads_click,
-                color: CategoryColors.getCategoryColor(widget.category),
+                color: colorScheme.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -153,7 +153,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: CategoryColors.getCategoryColor(widget.category),
+                  color: colorScheme.primary,
                 ),
               ),
               const Spacer(),
@@ -164,7 +164,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      CategoryColors.getCategoryColor(widget.category),
+                      colorScheme.primary,
                     ),
                   ),
                 ),
@@ -194,7 +194,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
                             children: [
                               CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  CategoryColors.getCategoryColor(widget.category),
+                                  colorScheme.primary,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -229,8 +229,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
                               ElevatedButton(
                                 onPressed: _loadNativeAd,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: CategoryColors.getCategoryColor(widget.category),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
                                 ),
                                 child: const Text('Retry'),
                               ),

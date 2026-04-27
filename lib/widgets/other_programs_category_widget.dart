@@ -21,6 +21,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (episodes.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -36,7 +37,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: CategoryColors.getCategoryColor(categoryName),
+              color: colorScheme.primary,
             ),
           ),
         ),
@@ -68,6 +69,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
   }
 
   Widget _buildFirstEpisode(Episode episode, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: InkWell(
         onTap: () => onEpisodeTap(episode),
@@ -77,13 +79,14 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail 150x150
+              // Thumbnail theo tỉ lệ gốc 266:150
               ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: 150,
-                height: 150,
+                height: 85,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(8),
+                showWatermark: true,
               ),
               const SizedBox(width: 10),
               // Thông tin bên phải
@@ -110,7 +113,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                           : episode.shortTranscript,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurface.withOpacity(0.68),
                         height: 1.4,
                       ),
                       maxLines: 3,
@@ -125,10 +128,10 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.2),
+                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: CategoryColors.getCategoryColor(episode.category).withOpacity(0.5),
+                              color: CategoryColors.getCategoryBorderColor(episode.category),
                               width: 1,
                             ),
                           ),
@@ -145,14 +148,14 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurface.withOpacity(0.65),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           episode.duration,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurface.withOpacity(0.65),
                           ),
                         ),
                       ],
@@ -177,14 +180,15 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image 100x100
+            // Image theo tỉ lệ gốc 266:150
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
                 width: 100,
-                height: 100,
+                height: 56,
                 fit: BoxFit.cover,
+                showWatermark: true,
               ),
             ),
             const SizedBox(height: 6),

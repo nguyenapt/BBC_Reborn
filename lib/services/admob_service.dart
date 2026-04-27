@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../screens/ads_interstitial_fallback_screen.dart';
 
 class AdMobService {
   static final AdMobService _instance = AdMobService._internal();
@@ -30,6 +32,8 @@ class AdMobService {
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
+  DateTime? _lastInterstitialShownAt;
+  int _interstitialShownCount = 0;
   AppOpenAd? _appOpenAd;
   RewardedAd? _rewardedAd;
   
@@ -42,6 +46,8 @@ class AdMobService {
   int _appOpenShownThisSession = 0;
 
   static const Duration _appOpenAdCooldown = Duration(hours: 3); // 3 giờ mới hiển thị lại
+  static const Duration _interstitialCooldown = Duration(seconds: 90);
+  static const int _interstitialFallbackEvery = 3;
   static const Duration _maxAppOpenAdAge = Duration(hours: 4);
   static const int _maxAppOpenShowsPerSession = 2;
   static const String _appOpenLastShownPrefKey = 'admob.app_open.last_shown_iso';
@@ -151,16 +157,64 @@ class AdMobService {
     );
   }
 
+  bool _shouldShowFallbackNotice() {
+    final nextShowOrdinal = _interstitialShownCount + 1;
+    return nextShowOrdinal % _interstitialFallbackEvery == 0;
+  }
+
+  void _showInterstitialFallbackNotice(
+    BuildContext context, {
+    VoidCallback? onDismissedOrUnavailable,
+  }) {
+    _lastInterstitialShownAt = DateTime.now();
+    _interstitialShownCount += 1;
+    Navigator.of(context, rootNavigator: true)
+        .push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (ctx) => AdsInterstitialFallbackScreen(
+          onClose: () => Navigator.of(ctx).pop(),
+        ),
+      ),
+    )
+        .whenComplete(() {
+      onDismissedOrUnavailable?.call();
+    });
+  }
+
   /// [onDismissedOrUnavailable] gọi sau khi ad đóng, lỗi hiển thị, hoặc không có ad sẵn (để điều hướng sau quảng cáo).
-  void showInterstitialAd({VoidCallback? onDismissedOrUnavailable}) {
+  void showInterstitialAd({
+    VoidCallback? onDismissedOrUnavailable,
+    BuildContext? context,
+  }) {
     if (kIsWeb) {
       onDismissedOrUnavailable?.call();
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastInterstitialShownAt != null) {
+      final sinceLast = now.difference(_lastInterstitialShownAt!);
+      if (sinceLast < _interstitialCooldown) {
+        print(
+          'Interstitial in cooldown, remaining: ${_interstitialCooldown - sinceLast}',
+        );
+        onDismissedOrUnavailable?.call();
+        return;
+      }
+    }
+    if (context != null && _shouldShowFallbackNotice()) {
+      _showInterstitialFallbackNotice(
+        context,
+        onDismissedOrUnavailable: onDismissedOrUnavailable,
+      );
       return;
     }
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdShowedFullScreenContent: (ad) {
           print('Interstitial ad showed full screen content');
+          _lastInterstitialShownAt = DateTime.now();
+          _interstitialShownCount += 1;
         },
         onAdDismissedFullScreenContent: (ad) {
           print('Interstitial ad dismissed');
@@ -179,7 +233,14 @@ class AdMobService {
       _interstitialAd!.show();
     } else {
       print('Interstitial ad not ready');
-      onDismissedOrUnavailable?.call();
+      if (context != null) {
+        _showInterstitialFallbackNotice(
+          context,
+          onDismissedOrUnavailable: onDismissedOrUnavailable,
+        );
+      } else {
+        onDismissedOrUnavailable?.call();
+      }
     }
   }
 

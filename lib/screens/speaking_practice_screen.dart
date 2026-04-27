@@ -18,7 +18,6 @@ import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import '../services/speaking_practice_service.dart';
-import '../utils/category_colors.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'speaking_ai_analysis_screen.dart';
@@ -777,7 +776,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             content: const Text('No hearts available.'),
             action: SnackBarAction(
               label: 'Watch Ads',
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onInverseSurface,
               onPressed: () {
                 if (admobService.isRewardedAdReady()) {
                   admobService.showRewardedAd(
@@ -787,7 +786,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('❤️ You earned 1 heart!'),
-                          backgroundColor: Colors.green,
+                          backgroundColor: Color(0xFF7A5CFF),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -797,7 +796,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Failed to show ad: $adError'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     },
@@ -1034,17 +1033,18 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       listenable: LanguageManager(),
       builder: (context, _) {
         final lm = LanguageManager();
-        final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+        final cs = Theme.of(context).colorScheme;
+        final categoryColor = cs.primary;
         final softBg = Color.lerp(
-          CategoryColors.getCategoryBackgroundColor(widget.episode.category),
-          Theme.of(context).colorScheme.surface,
+          cs.surfaceContainerHighest,
+          cs.surface,
           0.45,
         )!;
         return Scaffold(
           backgroundColor: softBg,
           appBar: AppBar(
             backgroundColor: categoryColor,
-            foregroundColor: Colors.white,
+            foregroundColor: cs.onPrimary,
             elevation: 0,
             title: Text(lm.getText('speakingPracticeTitle')),
             actions: [
@@ -1062,9 +1062,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             ],
             bottom: TabBar(
               controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              indicatorColor: Colors.white,
+              labelColor: cs.onPrimary,
+              unselectedLabelColor: cs.onPrimary.withOpacity(0.72),
+              indicatorColor: cs.onPrimary,
               tabs: [
                 Tab(text: lm.getText('speakingTabRepeat')),
                 Tab(text: lm.getText('speakingTabRoleplay')),
@@ -1226,7 +1226,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               final selected = _repeatSelectedLine == line;
               return Material(
                 color: selected
-                    ? Colors.white.withValues(alpha: 0.85)
+                    ? Theme.of(context).colorScheme.surface.withValues(alpha: 0.92)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 clipBehavior: Clip.antiAlias,
@@ -1235,7 +1235,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     borderRadius: BorderRadius.circular(16),
                   ),
                   selected: selected,
-                  selectedTileColor: Colors.white,
+                  selectedTileColor: Theme.of(context).colorScheme.surface,
                   title: Text(
                     line.text,
                     style: TextStyle(
@@ -1293,11 +1293,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
+            color: theme.colorScheme.shadow.withValues(alpha: 0.07),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1403,7 +1403,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: cta,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
@@ -1411,12 +1411,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             ),
             onPressed: _isProcessing ? null : _sendRepeatAnalysis,
             child: _isProcessing
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   )
                 : Text(lm.getText('speakingSendAnalysis')),
@@ -1474,7 +1474,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
               ),
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             onPressed: (_isProcessing || _micStopInProgress)
@@ -1501,7 +1501,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     width: 16,
                     height: 16,
                     decoration: const BoxDecoration(
-                      color: Colors.red,
+                      color: Color(0xFFEF4444),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -1552,7 +1552,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         FilledButton.icon(
           style: FilledButton.styleFrom(
             backgroundColor: cta,
-            foregroundColor: Colors.white,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(999),
@@ -1602,7 +1602,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: cta,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
@@ -1610,12 +1610,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
             ),
             onPressed: _isProcessing ? null : _sendRoleplayAnalysis,
             child: _isProcessing
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   )
                 : Text(lm.getText('speakingSendAnalysis')),
@@ -1673,7 +1673,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
               ),
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             onPressed: (_isProcessing || _micStopInProgress)
@@ -1700,7 +1700,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                     width: 16,
                     height: 16,
                     decoration: const BoxDecoration(
-                      color: Colors.red,
+                      color: Color(0xFFEF4444),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -1751,7 +1751,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         FilledButton.icon(
           style: FilledButton.styleFrom(
             backgroundColor: cta,
-            foregroundColor: Colors.white,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(999),
@@ -1787,7 +1787,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Color.lerp(softBg, Colors.white, 0.35),
+          color: Color.lerp(softBg, Theme.of(context).colorScheme.surface, 0.35),
           borderRadius: BorderRadius.circular(20),
         ),
         child: SingleChildScrollView(
@@ -1798,9 +1798,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Material(
-                  color: selected ? Colors.white : Colors.transparent,
+                  color: selected ? Theme.of(context).colorScheme.surface : Colors.transparent,
                   elevation: selected ? 1 : 0,
-                  shadowColor: Colors.black26,
+                  shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.26),
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(999),
@@ -1978,7 +1978,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: categoryColor.withValues(alpha: 0.25)),
       ),
@@ -2231,11 +2231,11 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.08),
                   blurRadius: 22,
                   offset: const Offset(0, 8),
                 ),
@@ -2269,7 +2269,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                         child: Text(
                           lm.getText('speakingYourTurn'),
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.w800,
                             fontSize: 10,
                             letterSpacing: 0.4,

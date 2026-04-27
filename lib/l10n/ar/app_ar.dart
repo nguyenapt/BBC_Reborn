@@ -206,6 +206,7 @@ class AppAr {
     'speakingNoTranscript': 'لا يوجد نص لممارسة التحدث.',
     'speakingNoSpeakersRoleplay': 'لا يوجد متحدثون في هذا النص للعب الأدوار.',
     'speakingYou': 'أنت',
+    'speakerDefault': 'المتحدث',
     'speakingCurrentSentenceBadge': 'جملة التدريب الحالية',
     'speakingListenSampleTooltip': 'استمع للنموذج',
     'speakingStartRecording': 'بدء التسجيل',
@@ -264,6 +265,10 @@ class AppAr {
     'speakingHistoryEmpty': 'لا يوجد سجل ممارسة للتحدث بعد.',
     'speakingHistorySessionSubtitle': '{attempts} محاولات · المعدل {avg}',
     'speakingHistoryModeLabel': 'الوضع',
+
+    'adsInterstitialTitle': 'شكرا لدعمك تطبيقا مجانيا',
+    'adsInterstitialBodyLine1': 'نعتذر إذا كانت الإعلانات مزعجة أحيانا.',
+    'adsInterstitialBodyLine2': 'الإعلانات تساعدنا على إبقاء التطبيق مجانيا للجميع.',
 
     'loadMore': 'تحميل المزيد',
 

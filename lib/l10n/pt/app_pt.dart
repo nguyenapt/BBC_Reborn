@@ -208,6 +208,7 @@ class AppPt {
     'speakingNoTranscript': 'Não há transcrição para prática de fala.',
     'speakingNoSpeakersRoleplay': 'Esta transcrição não tem falantes para interpretação de papéis.',
     'speakingYou': 'Você',
+    'speakerDefault': 'Falante',
     'speakingCurrentSentenceBadge': 'FRASE ATUAL',
     'speakingListenSampleTooltip': 'Ouvir exemplo',
     'speakingStartRecording': 'Iniciar gravação',
@@ -266,6 +267,10 @@ class AppPt {
     'speakingHistoryEmpty': 'Ainda não há histórico de prática de fala.',
     'speakingHistorySessionSubtitle': '{attempts} tentativas · Média {avg}',
     'speakingHistoryModeLabel': 'Modo',
+
+    'adsInterstitialTitle': 'Obrigado por apoiar um aplicativo gratuito',
+    'adsInterstitialBodyLine1': 'Desculpe se os anúncios às vezes incomodam.',
+    'adsInterstitialBodyLine2': 'Os anúncios nos ajudam a manter o produto gratuito para todos.',
 
     'loadMore': 'Carregar mais',
 

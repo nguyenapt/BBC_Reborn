@@ -208,6 +208,7 @@ class AppRu {
     'speakingNoTranscript': 'Нет транскрипта для практики речи.',
     'speakingNoSpeakersRoleplay': 'В транскрипте нет говорящих для ролевой игры.',
     'speakingYou': 'Вы',
+    'speakerDefault': 'Спикер',
     'speakingCurrentSentenceBadge': 'ТЕКУЩАЯ ФРАЗА',
     'speakingListenSampleTooltip': 'Слушать образец',
     'speakingStartRecording': 'Начать запись',
@@ -266,6 +267,10 @@ class AppRu {
     'speakingHistoryEmpty': 'Пока нет истории практики речи.',
     'speakingHistorySessionSubtitle': '{attempts} попыток · Ср. {avg}',
     'speakingHistoryModeLabel': 'Режим',
+
+    'adsInterstitialTitle': 'Спасибо за поддержку бесплатного приложения',
+    'adsInterstitialBodyLine1': 'Извините, если реклама иногда мешает.',
+    'adsInterstitialBodyLine2': 'Реклама помогает нам поддерживать продукт бесплатным для всех.',
 
     'loadMore': 'Загрузить больше',
 

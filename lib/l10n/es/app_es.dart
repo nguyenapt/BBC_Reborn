@@ -208,6 +208,7 @@ class AppEs {
     'speakingNoTranscript': 'No hay transcripción para practicar el habla.',
     'speakingNoSpeakersRoleplay': 'Esta transcripción no tiene hablantes para el juego de roles.',
     'speakingYou': 'Tú',
+    'speakerDefault': 'Hablante',
     'speakingCurrentSentenceBadge': 'FRASE ACTUAL',
     'speakingListenSampleTooltip': 'Escuchar ejemplo',
     'speakingStartRecording': 'Empezar a grabar',
@@ -266,6 +267,10 @@ class AppEs {
     'speakingHistoryEmpty': 'Aún no hay historial de práctica oral.',
     'speakingHistorySessionSubtitle': '{attempts} intentos · Media {avg}',
     'speakingHistoryModeLabel': 'Modo',
+
+    'adsInterstitialTitle': 'Gracias por apoyar una app gratuita',
+    'adsInterstitialBodyLine1': 'Perdón si los anuncios a veces resultan molestos.',
+    'adsInterstitialBodyLine2': 'Los anuncios nos ayudan a mantener el producto gratis para todos.',
 
     'loadMore': 'Cargar más',
 

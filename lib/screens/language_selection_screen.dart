@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/language_manager.dart';
 import '../main.dart';
+import 'ads_support_notice_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -11,6 +12,7 @@ class LanguageSelectionScreen extends StatefulWidget {
 }
 
 class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
+  static const String _adsNoticeSeenKey = 'ads_notice_seen_v1';
   final LanguageManager _languageManager = LanguageManager();
   Locale? _selectedLocale;
 
@@ -93,10 +95,32 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       debugPrint('   Current locale after change: ${_languageManager.currentLocale.languageCode}');
       
       if (mounted) {
+        final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
+        if (!hasSeenAdsNotice) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => AdsSupportNoticeScreen(
+                onContinue: (noticeContext) async {
+                  final localPrefs = await SharedPreferences.getInstance();
+                  await localPrefs.setBool(_adsNoticeSeenKey, true);
+                  if (!noticeContext.mounted) return;
+                  Navigator.of(noticeContext).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const BBCLearningAppStateful(),
+                    ),
+                    (route) => false,
+                  );
+                },
+              ),
+            ),
+          );
+          return;
+        }
+
         // 3. Đợi đủ lâu để MaterialApp rebuild với locale mới
         // ListenableBuilder sẽ rebuild MaterialApp khi LanguageManager notify
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         // 4. Pop về root và push lại để đảm bảo MaterialApp được rebuild hoàn toàn
         // Sử dụng pushAndRemoveUntil để clear toàn bộ stack
         Navigator.of(context).pushAndRemoveUntil(
@@ -123,7 +147,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -135,8 +161,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               Text(
                 'Choose your language',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -147,7 +173,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                 'You can change the language anytime in the settings',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: colorScheme.onSurface.withOpacity(0.74),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -177,13 +203,13 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: isSelected 
-                                  ? Colors.blue[50] 
-                                  : Colors.grey[50],
+                                  ? colorScheme.primary.withOpacity(0.10)
+                                  : colorScheme.surfaceContainerHighest.withOpacity(0.35),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isSelected 
-                                    ? Colors.blue[300]! 
-                                    : Colors.grey[200]!,
+                                    ? colorScheme.primary.withOpacity(0.65)
+                                    : colorScheme.outlineVariant.withOpacity(0.55),
                                 width: isSelected ? 2 : 1,
                               ),
                             ),
@@ -208,8 +234,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
                                           color: isSelected 
-                                              ? Colors.blue[700] 
-                                              : Colors.black87,
+                                              ? colorScheme.primary
+                                              : colorScheme.onSurface,
                                         ),
                                       ),
                                       if (language.name != language.nativeName)
@@ -217,7 +243,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                                           language.nativeName,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.grey[600],
+                                            color: colorScheme.onSurface.withOpacity(0.7),
                                           ),
                                         ),
                                     ],
@@ -228,7 +254,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                                 if (isSelected)
                                   Icon(
                                     Icons.check_circle,
-                                    color: Colors.blue[600],
+                                    color: colorScheme.primary,
                                     size: 24,
                                   ),
                               ],
@@ -243,25 +269,24 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               
               const SizedBox(height: 24),
               
-              // Continue button
+              // CTA button
               SizedBox(
                 width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
+                height: 52,
+                child: FilledButton(
                   onPressed: _selectedLocale != null ? _completeSetup : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    foregroundColor: Colors.white,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 2,
                   ),
                   child: const Text(
-                    'Complete',
+                    'Continue',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

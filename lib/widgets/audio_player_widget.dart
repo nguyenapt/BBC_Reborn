@@ -1,111 +1,239 @@
 import 'package:flutter/material.dart';
 import '../services/audio_player_service.dart';
-import '../utils/category_colors.dart';
 
-class AudioPlayerWidget extends StatelessWidget {
+class AudioPlayerWidget extends StatefulWidget {
   final AudioPlayerService audioService;
   final Future<void> Function()? onPlayPressed;
+  final String currentSpeaker;
+  final String currentLineText;
+  final bool showCurrentPanel;
+  final VoidCallback? onCurrentPanelTap;
 
   const AudioPlayerWidget({
     super.key,
     required this.audioService,
     this.onPlayPressed,
+    required this.currentSpeaker,
+    required this.currentLineText,
+    required this.showCurrentPanel,
+    this.onCurrentPanelTap,
   });
 
   @override
+  State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+  bool _isDragging = false;
+  double _dragProgress = 0;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Progress bar
-              _buildProgressBar(),
-              const SizedBox(height: 2),
-              // Control buttons
-              _buildControlButtons(),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 350),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final offsetAnimation = Tween<Offset>(
+                      begin: const Offset(0, 0.18),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: widget.showCurrentPanel
+                      ? _buildCurrentTranscriptPanel(context)
+                      : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
+                ),
+                if (widget.showCurrentPanel) const SizedBox(height: 4),
+                _buildSeekBarRow(),
+                const SizedBox(height: 3),
+                _buildCenterControls(context),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProgressBar() {
-    return ListenableBuilder(
-      listenable: audioService,
-      builder: (context, child) {
-        final progress = audioService.totalDuration.inMilliseconds > 0
-            ? audioService.currentPosition.inMilliseconds / audioService.totalDuration.inMilliseconds
-            : 0.0;
+  Widget _buildCurrentTranscriptPanel(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: widget.onCurrentPanelTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+      key: const ValueKey('current-panel-shown'),
+      padding: const EdgeInsets.only(top: 8),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 84, maxHeight: 90),
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withOpacity(0.65),
+              ),
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Text(
+                widget.currentLineText,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.25,
+                  color: colorScheme.onSurface.withOpacity(0.92),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.8),
+                  ),
+                ),
+                child: Text(
+                  widget.currentSpeaker,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.35,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    );
+  }
 
-        final remainingDuration = audioService.totalDuration - audioService.currentPosition;
+  Widget _buildSeekBarRow() {
+    return ListenableBuilder(
+      listenable: widget.audioService,
+      builder: (context, child) {
+        final episode = widget.audioService.currentEpisode;
+        if (episode == null) {
+          return const SizedBox.shrink();
+        }
+
+        final progress = widget.audioService.totalDuration.inMilliseconds > 0
+            ? widget.audioService.currentPosition.inMilliseconds /
+                widget.audioService.totalDuration.inMilliseconds
+            : 0.0;
+        final effectiveProgress = _isDragging ? _dragProgress : progress;
+        final effectivePosition = Duration(
+          milliseconds:
+              (effectiveProgress * widget.audioService.totalDuration.inMilliseconds)
+                  .round(),
+        );
+        final remainingDuration =
+            widget.audioService.totalDuration - effectivePosition;
+
+        final primary = Theme.of(context).colorScheme.primary;
 
         return Row(
           children: [
-            // Thời gian đã chạy bên trái
             SizedBox(
-              width: 45,
+              width: 36,
               child: Text(
-                _formatDuration(audioService.currentPosition),
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
+                _formatDuration(effectivePosition),
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
+                ),
               ),
             ),
-            const SizedBox(width: 4),
-            // Progress bar ở giữa
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                      : Colors.blue,
-                  inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                  thumbColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category)
-                      : Colors.blue,
-                  overlayColor: audioService.currentEpisode != null
-                      ? CategoryColors.getCategoryColor(audioService.currentEpisode!.category).withOpacity(0.2)
-                      : Colors.blue.withOpacity(0.2),
+                  activeTrackColor: primary,
+                  inactiveTrackColor:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
+                  thumbColor: Colors.transparent,
+                  overlayColor: Colors.transparent,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
+                  trackHeight: 3,
                 ),
                 child: Slider(
-                  value: progress.clamp(0.0, 1.0),
-                  onChanged: (value) async {
+                  value: effectiveProgress.clamp(0.0, 1.0),
+                  onChangeStart: (value) {
+                    setState(() {
+                      _isDragging = true;
+                      _dragProgress = value;
+                    });
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      _dragProgress = value;
+                    });
+                  },
+                  onChangeEnd: (value) async {
+                    setState(() {
+                      _isDragging = false;
+                    });
                     final newPosition = Duration(
-                      milliseconds: (value * audioService.totalDuration.inMilliseconds).round(),
+                      milliseconds:
+                          (value * widget.audioService.totalDuration.inMilliseconds)
+                              .round(),
                     );
-                    await audioService.seekTo(newPosition);
+                    await widget.audioService.seekTo(newPosition);
                   },
                 ),
               ),
             ),
-            const SizedBox(width: 4),
-            // Thời gian còn lại bên phải
             SizedBox(
-              width: 45,
+              width: 36,
               child: Text(
-                '-${_formatDuration(remainingDuration)}',
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
+                '-${_formatDuration(remainingDuration.isNegative ? Duration.zero : remainingDuration)}',
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
+                ),
               ),
             ),
           ],
@@ -114,93 +242,70 @@ class AudioPlayerWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildControlButtons() {
+  Widget _buildCenterControls(BuildContext context) {
     return ListenableBuilder(
-      listenable: audioService,
+      listenable: widget.audioService,
       builder: (context, child) {
-        final episode = audioService.currentEpisode;
+        final episode = widget.audioService.currentEpisode;
         if (episode == null) {
           return const SizedBox.shrink();
         }
 
-        final categoryColor = CategoryColors.getCategoryColor(episode.category);
+        final primary = Theme.of(context).colorScheme.primary;
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Previous button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
-            // IconButton(
-            //   onPressed: audioService.currentEpisodeIndex > 0
-            //       ? () => audioService.previousEpisode()
-            //       : null,
-            //   icon: Icon(
-            //     Icons.skip_previous,
-            //     color: audioService.currentEpisodeIndex > 0 
-            //         ? categoryColor 
-            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            //     size: 32,
-            //   ),
-            // ),
-            // Skip backward button
             IconButton(
-              onPressed: () async => await audioService.skipBackward(),
+              onPressed: () async => await widget.audioService.skipBackward(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               icon: Icon(
-                Icons.replay_10,
-                color: categoryColor,
-                size: 28,
+                Icons.replay_10_rounded,
+                color: primary,
+                size: 22,
               ),
             ),
-            // Play/Pause button
             Container(
               decoration: BoxDecoration(
-                color: categoryColor,
+                color: primary,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(width: 44, height: 44),
                 onPressed: () async {
-                  if (audioService.isPlaying) {
-                    await audioService.pause();
-                  } else if (audioService.isPaused) {
-                    await audioService.resume();
+                  if (widget.audioService.isPlaying) {
+                    await widget.audioService.pause();
+                  } else if (widget.audioService.isPaused) {
+                    await widget.audioService.resume();
                   } else {
                     // Gọi callback trước khi play (để hiển thị interstitial ads nếu cần)
-                    await onPlayPressed?.call();
-                    await audioService.play();
+                    await widget.onPlayPressed?.call();
+                    await widget.audioService.play();
                   }
                 },
                 icon: Icon(
-                  audioService.isLoading
+                  widget.audioService.isLoading
                       ? Icons.hourglass_empty
-                      : audioService.isPlaying
+                      : widget.audioService.isPlaying
                           ? Icons.pause
                           : Icons.play_arrow,
-                  color: Colors.white,
-                  size: 32,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  size: 28,
                 ),
               ),
             ),
-            // Skip forward button
             IconButton(
-              onPressed: () async => await audioService.skipForward(),
+              onPressed: () async => await widget.audioService.skipForward(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               icon: Icon(
-                Icons.forward_10,
-                color: categoryColor,
-                size: 28,
+                Icons.forward_10_rounded,
+                color: primary,
+                size: 22,
               ),
             ),
-            // Next button - TẠM COMMENT LẠI VÌ HOẠT ĐỘNG CHƯA ĐÚNG
-            // IconButton(
-            //   onPressed: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-            //       ? () => audioService.nextEpisode()
-            //       : null,
-            //   icon: Icon(
-            //     Icons.skip_next,
-            //     color: audioService.currentEpisodeIndex < audioService.currentCategoryEpisodes.length - 1
-            //         ? categoryColor
-            //         : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            //     size: 32,
-            //   ),
-            // ),
           ],
         );
       },
@@ -214,3 +319,4 @@ class AudioPlayerWidget extends StatelessWidget {
     return '$minutes:$seconds';
   }
 }
+

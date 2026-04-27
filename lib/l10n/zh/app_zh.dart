@@ -202,6 +202,7 @@ class AppZh {
     'speakingNoTranscript': '没有可用于口语练习的文本。',
     'speakingNoSpeakersRoleplay': '文本中没有说话人，无法进行角色扮演。',
     'speakingYou': '你',
+    'speakerDefault': '说话人',
     'speakingCurrentSentenceBadge': '当前练习句',
     'speakingListenSampleTooltip': '听示范',
     'speakingStartRecording': '开始录音',
@@ -257,6 +258,10 @@ class AppZh {
     'speakingHistoryEmpty': '暂无口语练习记录。',
     'speakingHistorySessionSubtitle': '{attempts} 次 · 平均 {avg}',
     'speakingHistoryModeLabel': '模式',
+
+    'adsInterstitialTitle': '感谢你支持我们的免费应用',
+    'adsInterstitialBodyLine1': '如果广告偶尔让你感到打扰，我们深感抱歉。',
+    'adsInterstitialBodyLine2': '广告收入帮助我们把产品持续免费提供给所有人。',
 
     'loadMore': '加载更多',
 
