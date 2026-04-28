@@ -59,7 +59,7 @@ class NotificationService {
     try {
       await _channel.invokeMethod('showNotification', {
         'title': episode.episodeName,
-        'content': 'BBC Learning English - ${episode.category}',
+        'content': 'Speak British: English Voice - ${episode.category}',
         'isPlaying': isPlaying,
         'episodeId': episode.id,
         'category': episode.category,
@@ -83,7 +83,7 @@ class NotificationService {
     try {
       await _channel.invokeMethod('updateNotification', {
         'title': episode.episodeName,
-        'content': 'BBC Learning English - ${episode.category}',
+        'content': 'Speak British: English Voice - ${episode.category}',
         'isPlaying': isPlaying,
         'episodeId': episode.id,
         'category': episode.category,

@@ -1,5 +1,5 @@
 name: bbc_reborn
-description: "BBC Learning English - Học tiếng Anh với BBC qua các bài nghe, ngữ pháp và từ vựng."
+description: "Speak British: English Voice - Học tiếng Anh Anh qua các bài nghe, ngữ pháp và từ vựng."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+39
+version: 1.0.0+40
 
 environment:
   sdk: ^3.9.2
@@ -74,6 +74,29 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon_source.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app_icon_source.png"
+  adaptive_icon_foreground_inset: 16
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/app_icon_source.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0B4EC9"
+  windows:
+    generate: true
+    image_path: "assets/images/app_icon_source.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/images/app_icon_source.png"
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -16,7 +16,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         
         // Khởi tạo MediaSession
-        mediaSession = MediaSession(this, "BBCLearningEnglish")
+        mediaSession = MediaSession(this, "SpeakBritishEnglishVoice")
         mediaSession.setActive(true)
         
         // Khởi tạo MediaNotificationManager
@@ -63,7 +63,7 @@ class MainActivity : FlutterActivity() {
         mediaChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "showNotification" -> {
-                    val title = call.argument<String>("title") ?: "BBC Learning English"
+                    val title = call.argument<String>("title") ?: "Speak British: English Voice"
                     val content = call.argument<String>("content") ?: "Đang phát audio"
                     val isPlaying = call.argument<Boolean>("isPlaying") ?: false
                     val episodeId = call.argument<String>("episodeId")
@@ -78,7 +78,7 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "updateNotification" -> {
-                    val title = call.argument<String>("title") ?: "BBC Learning English"
+                    val title = call.argument<String>("title") ?: "Speak British: English Voice"
                     val content = call.argument<String>("content") ?: "Đang phát audio"
                     val isPlaying = call.argument<Boolean>("isPlaying") ?: false
                     val episodeId = call.argument<String>("episodeId")

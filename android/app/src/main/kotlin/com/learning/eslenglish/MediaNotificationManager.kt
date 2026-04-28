@@ -39,7 +39,7 @@ class MediaNotificationManager(private val context: Context) {
                 "Audio Player Controls",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Controls for BBC Learning English audio player"
+                description = "Controls for Speak British: English Voice audio player"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }

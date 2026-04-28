@@ -1,11 +1,11 @@
 class AppPt {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Aprenda Inglês',
-    'welcomeMessage': 'Bem-vindo ao Learning English - 6 minutos!',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'Bem-vindo ao Speak British: English Voice!',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

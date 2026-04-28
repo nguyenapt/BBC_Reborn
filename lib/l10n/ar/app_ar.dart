@@ -1,11 +1,11 @@
 class AppAr {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'بي بي سي تعلم الإنجليزية',
-    'welcomeMessage': 'مرحباً بكم في تعلم اللغة الإنجليزية - 6 دقائق!',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'مرحباً بك في Speak British: English Voice!',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

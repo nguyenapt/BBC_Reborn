@@ -193,15 +193,15 @@ class _HomePageState extends State<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _languageManager.getText('homeTitleMain'),
+                      'Speak British',
                       style: theme.textTheme.headlineSmall!.copyWith(
                         color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _languageManager.getText('homeTitleSub'),
+                      'The English voice',
                       style: theme.textTheme.bodySmall!.copyWith(
                         color: colorScheme.onSurface.withOpacity(0.8),
                         fontWeight: FontWeight.w600,
