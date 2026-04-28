@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import '../models/category.dart';
 import '../models/episode.dart';
 import '../services/firebase_service.dart';
@@ -27,10 +28,22 @@ class _HomePageState extends State<HomePage> {
   List<Category> _categories = [];
   bool _isLoading = true;
   String? _error;
+  late final String _heroImageAsset;
+  static String? _sessionHeroImageAsset;
+
+  static const List<String> _heroImageAssets = [
+    'assets/images/hero/cta_modern.png',
+    // Add more images here, e.g.
+     'assets/images/hero/hero_01.png',
+     'assets/images/hero/hero_02.png',
+     'assets/images/hero/hero_03.png',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _sessionHeroImageAsset ??= _pickHeroImageForSession(_heroImageAssets);
+    _heroImageAsset = _sessionHeroImageAsset!;
     _loadData();
   }
 
@@ -308,7 +321,7 @@ class _HomePageState extends State<HomePage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.asset(
-              'assets/images/cta_modern.png',
+              _heroImageAsset,
               width: 120,
               height: 120,
               fit: BoxFit.cover,
@@ -319,8 +332,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  String _pickHeroImageForSession(List<String> assets) {
+    if (assets.isEmpty) {
+      return 'assets/images/hero/cta_modern.png';
+    }
+    final index = Random().nextInt(assets.length);
+    return assets[index];
+  }
+
   Widget _buildCategorySection() {
     final theme = Theme.of(context);
+    final cardColor = theme.colorScheme.surface;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
@@ -345,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                     letter: '6',
                     title: _languageManager.getText('categorySixMinutes'),
                     subtitle: _languageManager.getText('categoryConversation'),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    color: cardColor,
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('6M'),
                   ),
@@ -354,7 +376,7 @@ class _HomePageState extends State<HomePage> {
                     letter: 'T',
                     title: _languageManager.getText('categoryTheEnglish'),
                     subtitle: _languageManager.getText('categoryWeSpeak'),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    color: cardColor,
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('TEWS'),
                   ),
@@ -363,7 +385,7 @@ class _HomePageState extends State<HomePage> {
                     letter: 'R',
                     title: _languageManager.getText('categoryRealEasy'),
                     subtitle: _languageManager.getText('categoryEnglish'),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    color: cardColor,
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('REE'),
                   ),
@@ -372,7 +394,7 @@ class _HomePageState extends State<HomePage> {
                     letter: 'E',
                     title: _languageManager.getText('categoryEnglish'),
                     subtitle: _languageManager.getText('categoryGrammar'),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    color: cardColor,
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('EG'),
                   ),
@@ -381,7 +403,7 @@ class _HomePageState extends State<HomePage> {
                     letter: 'O',
                     title: _languageManager.getText('categoryOther'),
                     subtitle: _languageManager.getText('categoryPrograms'),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+                    color: cardColor,
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('OTHER'),
                   ),
@@ -406,54 +428,70 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     return SizedBox(
       width: width,
-      child: Material(
-        color: color,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
           borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: badgeColor,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    letter,
-                    style: theme.textTheme.labelLarge!.copyWith(
-                      color: theme.colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.shadow.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: badgeColor,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      letter,
+                      style: theme.textTheme.labelLarge!.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.bodyMedium!.copyWith(
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.bodyMedium!.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: theme.textTheme.bodySmall!.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

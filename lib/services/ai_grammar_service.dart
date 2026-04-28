@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../config/ai_config.dart';
 import '../models/grammar_explanation.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
@@ -47,27 +48,27 @@ class AIGrammarService {
     String sentence,
     String episodeId,
   ) async {
+    if (!AIConfig.enableGrammar) {
+      throw APIException('Grammar feature is temporarily disabled.');
+    }
+
     final targetLanguage = _getTargetLanguage();
     final languageCode = _languageManager.currentLocale.languageCode;
+    final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
+    const promptVersion = AIConfig.grammarPromptVersion;
 
     // Check cache with priority: Local → Firebase → null
-    final cachedData = await _cache.getGrammarFromCache(sentence, languageCode);
+    final cachedData = await _cache.getGrammarFromCache(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
     
     if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
-      // Convert cached data to GrammarExplanation
-      final grammarPoint = cachedData['grammarPoint']?.toString() ?? 'Unknown';
-      final explanation = cachedData['explanation']?.toString() ?? '';
-      final highlightedWords = (cachedData['highlightedWords'] as List<dynamic>?)
-          ?.map((e) => e.toString())
-          .toList() ?? [];
-      
-      return GrammarExplanation(
-        sentence: sentence,
-        grammarPoint: grammarPoint,
-        explanation: explanation,
-        highlightedWords: highlightedWords,
-      );
+      return _mapResponseToModel(sentence, cachedData);
     }
 
     // Check hearts before calling AI (only if not cached)
@@ -135,39 +136,300 @@ class AIGrammarService {
         throw Exception('Grammar explanation failed: no result');
       }
 
-      // Parse response
-      final grammarPoint = response['grammarPoint']?.toString() ?? 'Unknown';
-      final explanation = response['explanation']?.toString() ?? '';
-      final highlightedWords = (response['highlightedWords'] as List<dynamic>?)
-          ?.map((e) => e.toString())
-          .toList() ?? [];
-
-      final explanationObj = GrammarExplanation(
-        sentence: sentence,
-        grammarPoint: grammarPoint,
-        explanation: explanation,
-        highlightedWords: highlightedWords,
-      );
+      final explanationObj = _mapResponseToModel(sentence, response);
 
       // Save to both local and Firebase cache
-      final grammarData = {
-        'grammarPoint': grammarPoint,
-        'explanation': explanation,
-        'highlightedWords': highlightedWords,
-      };
-      await _cache.saveGrammarToCache(sentence, languageCode, grammarData);
+      await _cache.saveGrammarToCache(
+        sentence,
+        languageCode,
+        explanationObj.toJson(),
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
 
       return explanationObj;
     } catch (e) {
       debugPrint('Error explaining grammar: $e');
-      // Return default explanation on error
+      rethrow;
+    }
+  }
+
+  /// Explain grammar for a full passage with fallback to sentence-level flow
+  Future<GrammarExplanation> explainPassage(
+    String passage,
+    String episodeId,
+  ) async {
+    if (!AIConfig.enableGrammar) {
+      throw APIException('Grammar feature is temporarily disabled.');
+    }
+
+    final normalizedPassage = _normalizePassage(passage);
+    if (normalizedPassage.isEmpty) {
+      throw InvalidResponseException('Passage is empty');
+    }
+
+    final targetLanguage = _getTargetLanguage();
+    final languageCode = _languageManager.currentLocale.languageCode;
+    final modelVersion =
+        '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
+    const promptVersion = '${AIConfig.grammarPromptVersion}_passage_v1';
+    const schemaVersion = '${AIConfig.grammarSchemaVersion}_passage_v1';
+
+    final cachedData = await _cache.getGrammarPassageFromCache(
+      normalizedPassage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    if (cachedData != null) {
+      return _mapPassageResponseToModel(normalizedPassage, cachedData);
+    }
+
+    final heartService = HeartService();
+    if (!heartService.hasHearts) {
+      throw NoHeartsException();
+    }
+    final heartUsed = await heartService.useHeart();
+    if (!heartUsed) {
+      throw NoHeartsException();
+    }
+
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
+
+    try {
+      Map<String, dynamic>? response;
+      try {
+        response = await AIErrorHandler.withRetry(
+          () => primaryProvider.explainGrammarPassage(normalizedPassage, targetLanguage),
+          maxRetries: 1,
+        );
+      } catch (_) {
+        if (await backupProvider.isAvailable()) {
+          response = await backupProvider.explainGrammarPassage(
+            normalizedPassage,
+            targetLanguage,
+          );
+        } else {
+          rethrow;
+        }
+      }
+
+      if (response == null || !_isValidPassageSchema(response)) {
+        return _fallbackPassageFromSentences(normalizedPassage, episodeId);
+      }
+
+      final mapped = _mapPassageResponseToModel(normalizedPassage, response);
+      await _cache.saveGrammarPassageToCache(
+        normalizedPassage,
+        languageCode,
+        mapped.toJson(),
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+        schemaVersion: schemaVersion,
+      );
+      return mapped;
+    } catch (_) {
+      return _fallbackPassageFromSentences(normalizedPassage, episodeId);
+    }
+  }
+
+  GrammarExplanation _mapResponseToModel(
+    String sentence,
+    Map<String, dynamic> response,
+  ) {
+    final grammarPoint =
+        response['grammarPoint']?.toString().trim().isNotEmpty == true
+            ? response['grammarPoint'].toString().trim()
+            : 'Grammar Pattern';
+    final explanation = response['explanation']?.toString().trim() ?? '';
+    if (explanation.isEmpty) {
+      throw InvalidResponseException('Missing grammar explanation content');
+    }
+    final highlightedWords = (response['highlightedWords'] as List<dynamic>?)
+            ?.map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+    final commonMistakes = (response['commonMistakes'] as List<dynamic>?)
+            ?.map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+
+    GrammarMiniQuiz? quiz;
+    final miniQuizMap = response['miniQuiz'];
+    if (miniQuizMap is Map<String, dynamic>) {
+      final question = miniQuizMap['question']?.toString().trim() ?? '';
+      final options = (miniQuizMap['options'] as List<dynamic>?)
+              ?.map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          [];
+      if (question.isNotEmpty && options.isNotEmpty) {
+        quiz = GrammarMiniQuiz(
+          question: question,
+          options: options,
+          correctAnswer: miniQuizMap['correctAnswer']?.toString().trim() ?? '',
+          explanation: miniQuizMap['explanation']?.toString().trim() ?? '',
+        );
+      }
+    }
+
+    return GrammarExplanation(
+      sentence: sentence,
+      grammarPoint: grammarPoint,
+      explanation: explanation,
+      highlightedWords: highlightedWords,
+      rulePattern: response['rulePattern']?.toString(),
+      whyThisForm: response['whyThisForm']?.toString(),
+      commonMistakes: commonMistakes,
+      miniQuiz: quiz,
+    );
+  }
+
+  GrammarExplanation _mapPassageResponseToModel(
+    String passage,
+    Map<String, dynamic> response,
+  ) {
+    // Backward-compatible support: if old sentence schema is returned, adapt.
+    if (response.containsKey('grammarPoint') && response.containsKey('explanation')) {
+      final single = _mapResponseToModel(passage, response);
       return GrammarExplanation(
-        sentence: sentence,
-        grammarPoint: 'Error',
-        explanation: AIErrorHandler.getErrorMessage(e),
-        highlightedWords: [],
+        sentence: single.sentence,
+        passageText: passage,
+        grammarPoint: single.grammarPoint,
+        explanation: single.explanation,
+        highlightedWords: single.highlightedWords,
+        overall: GrammarPassageOverall(
+          grammarTheme: single.grammarPoint,
+          usageSummary: single.explanation,
+          keyStructures: [
+            if ((single.rulePattern ?? '').trim().isNotEmpty) single.rulePattern!.trim(),
+          ],
+        ),
+        sentenceAnalyses: [
+          GrammarSentenceAnalysis(
+            sentenceText: passage,
+            mainStructure: single.rulePattern ?? '',
+            usageInContext: single.whyThisForm ?? single.explanation,
+            phraseBreakdown: single.highlightedWords
+                .map(
+                  (w) => GrammarPhraseAnalysis(phrase: w, structure: '', usage: ''),
+                )
+                .toList(),
+            commonMistakes: single.commonMistakes,
+            rewriteExercise: '',
+            miniQuiz: single.miniQuiz,
+          ),
+        ],
+        rulePattern: single.rulePattern,
+        whyThisForm: single.whyThisForm,
+        commonMistakes: single.commonMistakes,
+        miniQuiz: single.miniQuiz,
       );
     }
+
+    final overallMap = response['overall'] as Map<String, dynamic>? ?? {};
+    final overall = GrammarPassageOverall(
+      grammarTheme: overallMap['grammarTheme']?.toString() ?? 'Grammar Overview',
+      usageSummary: overallMap['usageSummary']?.toString() ?? '',
+      keyStructures: (overallMap['keyStructures'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+    final analyses = (response['sentenceAnalyses'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(GrammarSentenceAnalysis.fromJson)
+        .toList();
+
+    final firstAnalysis = analyses.isNotEmpty ? analyses.first : null;
+    return GrammarExplanation(
+      sentence: passage,
+      passageText: passage,
+      grammarPoint: overall.grammarTheme,
+      explanation: overall.usageSummary,
+      highlightedWords: firstAnalysis?.phraseBreakdown.map((e) => e.phrase).toList() ?? const [],
+      overall: overall,
+      sentenceAnalyses: analyses,
+      rulePattern: firstAnalysis?.mainStructure,
+      whyThisForm: firstAnalysis?.usageInContext,
+      commonMistakes: firstAnalysis?.commonMistakes ?? const [],
+      miniQuiz: firstAnalysis?.miniQuiz,
+    );
+  }
+
+  bool _isValidPassageSchema(Map<String, dynamic> response) {
+    final overall = response['overall'];
+    final analyses = response['sentenceAnalyses'];
+    return overall is Map<String, dynamic> && analyses is List && analyses.isNotEmpty;
+  }
+
+  Future<GrammarExplanation> _fallbackPassageFromSentences(
+    String passage,
+    String episodeId,
+  ) async {
+    final parts = _splitPassageIntoSentences(passage);
+    final analyses = <GrammarSentenceAnalysis>[];
+    for (final part in parts) {
+      if (part.trim().isEmpty) continue;
+      try {
+        final explained = await explainSentence(part, episodeId);
+        analyses.add(
+          GrammarSentenceAnalysis(
+            sentenceText: part,
+            mainStructure: explained.rulePattern ?? explained.grammarPoint,
+            usageInContext: explained.whyThisForm ?? explained.explanation,
+            phraseBreakdown: explained.highlightedWords
+                .map((w) => GrammarPhraseAnalysis(phrase: w, structure: '', usage: ''))
+                .toList(),
+            examples: const [],
+            commonMistakes: explained.commonMistakes,
+            rewriteExercise: '',
+            miniQuiz: explained.miniQuiz,
+          ),
+        );
+      } catch (_) {
+        // Skip failing sentence and continue fallback merge.
+      }
+    }
+
+    final overviewText = analyses.isEmpty
+        ? 'No detailed analysis available.'
+        : 'This passage contains ${analyses.length} sentence-level grammar points.';
+    return GrammarExplanation(
+      sentence: passage,
+      passageText: passage,
+      grammarPoint: 'Passage Grammar',
+      explanation: overviewText,
+      highlightedWords: const [],
+      overall: GrammarPassageOverall(
+        grammarTheme: 'Passage Grammar',
+        usageSummary: overviewText,
+        keyStructures: analyses.map((a) => a.mainStructure).where((e) => e.trim().isNotEmpty).take(4).toList(),
+      ),
+      sentenceAnalyses: analyses,
+      commonMistakes: analyses.expand((a) => a.commonMistakes).take(3).toList(),
+    );
+  }
+
+  String _normalizePassage(String input) {
+    final squashed = input.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (squashed.length <= 1200) return squashed;
+    return squashed.substring(0, 1200).trim();
+  }
+
+  List<String> _splitPassageIntoSentences(String passage) {
+    return passage
+        .split(RegExp(r'(?<=[.!?])\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
   /// Analyze entire transcript for grammar points

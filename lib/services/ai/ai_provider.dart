@@ -19,6 +19,12 @@ abstract class AIProvider {
     String sentence,
     String targetLanguage,
   );
+
+  /// Explain grammar for a full passage (multi-sentence)
+  Future<Map<String, dynamic>> explainGrammarPassage(
+    String passage,
+    String targetLanguage,
+  );
   
   /// Generate questions from transcript
   Future<List<Map<String, dynamic>>> generateQuestions(

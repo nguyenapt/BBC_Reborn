@@ -21,6 +21,8 @@ import 'services/admob_service.dart';
 import 'services/vocabulary_service.dart';
 import 'services/rate_app_service.dart';
 import 'services/heart_service.dart';
+import 'services/saved_grammar_service.dart';
+import 'services/learning_analytics_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
@@ -77,6 +79,12 @@ void main() async {
     
     await HeartService().initialize();
     debugPrint('✅ HeartService initialized');
+
+    await SavedGrammarService().initialize();
+    debugPrint('✅ SavedGrammarService initialized');
+
+    await LearningAnalyticsService().initialize();
+    debugPrint('✅ LearningAnalyticsService initialized');
     
     // Preload rewarded ad for hearts
     if (!kIsWeb && consentService.canRequestAds) {
@@ -138,6 +146,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   String? categoriesInitialTab;
   String? grammarInitialTab;
   DateTime? _lastBackgroundAt;
+  bool _didShowReviewReminderThisSession = false;
 
   void navigateToCategoriesWithTab(String tabName) {
     setState(() {
@@ -175,6 +184,66 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     await adService.showAppOpenAdIfReady(trigger: trigger);
   }
 
+  Future<void> _checkAndShowReviewReminder() async {
+    if (!mounted || _didShowReviewReminderThisSession) return;
+    final dueItems = SavedGrammarService().dueReviewItems;
+    if (dueItems.isEmpty) return;
+
+    _didShowReviewReminderThisSession = true;
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    final languageManager = LanguageManager();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                languageManager.getText('reviewQueueLabel'),
+                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${languageManager.getText('reviewDueNow')}: ${dueItems.length}',
+                style: Theme.of(sheetContext).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: Text(languageManager.getText('later')),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        setState(() {
+                          currentPageIndex = 2; // My Learning
+                        });
+                      },
+                      child: Text(languageManager.getText('reviewNowLabel')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -195,6 +264,11 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       Future.delayed(_appOpenStartupDelay, () {
         if (mounted) {
           _tryShowAppOpenAd(trigger: 'startup');
+        }
+      });
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) {
+          _checkAndShowReviewReminder();
         }
       });
       
@@ -249,6 +323,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
           );
         }
       }
+      _checkAndShowReviewReminder();
     }
   }
 
@@ -286,7 +361,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
           ),
           NavigationDestination(
             icon: const Icon(Icons.favorite),
-            label: languageManager.getText('saved'),
+            label: languageManager.getText('myLearning'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.menu_book),
@@ -323,7 +398,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
         ),
 
         /// Saved page
-        const SavedScreen(),
+        const MyLearningScreen(),
 
         /// Grammar page
         Builder(

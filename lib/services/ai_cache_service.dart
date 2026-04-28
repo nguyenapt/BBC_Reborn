@@ -232,8 +232,20 @@ class AICacheService {
   }
 
   /// Get grammar explanation with priority: Local → Firebase → null
-  Future<Map<String, dynamic>?> getGrammarFromCache(String sentence, String languageCode) async {
-    final localKey = CacheKeyHelper.grammarKey(sentence, languageCode);
+  Future<Map<String, dynamic>?> getGrammarFromCache(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarKey(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
     
     // 1. Check local cache first
     final localCache = await getCached<Map<String, dynamic>>(
@@ -246,7 +258,13 @@ class AICacheService {
     }
 
     // 2. Check Firebase cache
-    final firebaseCache = await _firebaseCache.getGrammar(sentence, languageCode);
+    final firebaseCache = await _firebaseCache.getGrammar(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
     if (firebaseCache != null) {
       // Save to local cache
       await cacheData<Map<String, dynamic>>(
@@ -265,8 +283,18 @@ class AICacheService {
     String sentence,
     String languageCode,
     Map<String, dynamic> grammarData,
-  ) async {
-    final localKey = CacheKeyHelper.grammarKey(sentence, languageCode);
+    {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarKey(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
     
     // Save to local cache
     await cacheData<Map<String, dynamic>>(
@@ -276,8 +304,130 @@ class AICacheService {
     );
     
     // Save to Firebase cache (async)
-    _firebaseCache.saveGrammar(sentence, languageCode, grammarData)
+    _firebaseCache
+        .saveGrammar(
+          sentence,
+          languageCode,
+          grammarData,
+          episodeId: episodeId,
+          modelVersion: modelVersion,
+          promptVersion: promptVersion,
+        )
         .catchError((e) => debugPrint('Error saving grammar to Firebase: $e'));
+  }
+
+  /// Get passage grammar with priority: Local -> Firebase -> legacy sentence cache
+  Future<Map<String, dynamic>?> getGrammarPassageFromCache(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarPassageKey(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+
+    final localCache = await getCached<Map<String, dynamic>>(localKey, (json) => json);
+    if (localCache != null) {
+      return localCache;
+    }
+
+    final firebaseCache = await _firebaseCache.getGrammarPassage(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    if (firebaseCache != null) {
+      await cacheData<Map<String, dynamic>>(localKey, firebaseCache, (data) => data);
+      return firebaseCache;
+    }
+
+    // Backward-compatible fallback:
+    // if passage behaves as a single sentence, attempt old sentence cache and map.
+    final legacy = await getGrammarFromCache(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (legacy != null) {
+      return {
+        'overall': {
+          'grammarTheme': legacy['grammarPoint']?.toString() ?? 'Grammar Pattern',
+          'usageSummary': legacy['explanation']?.toString() ?? '',
+          'keyStructures': [
+            if ((legacy['rulePattern']?.toString() ?? '').trim().isNotEmpty)
+              legacy['rulePattern'].toString(),
+          ],
+        },
+        'sentenceAnalyses': [
+          {
+            'sentenceText': passage,
+            'mainStructure': legacy['rulePattern']?.toString() ?? '',
+            'usageInContext': legacy['explanation']?.toString() ?? '',
+            'phraseBreakdown': (legacy['highlightedWords'] as List<dynamic>? ?? [])
+                .map(
+                  (word) => {
+                    'phrase': word.toString(),
+                    'structure': '',
+                    'usage': '',
+                  },
+                )
+                .toList(),
+            'examples': <String>[],
+            'commonMistakes': legacy['commonMistakes'] ?? <String>[],
+            'rewriteExercise': '',
+            'miniQuiz': legacy['miniQuiz'],
+          },
+        ],
+      };
+    }
+
+    return null;
+  }
+
+  /// Save passage grammar to both local and Firebase cache (new namespace)
+  Future<void> saveGrammarPassageToCache(
+    String passage,
+    String languageCode,
+    Map<String, dynamic> grammarData, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarPassageKey(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+
+    await cacheData<Map<String, dynamic>>(localKey, grammarData, (data) => data);
+    _firebaseCache
+        .saveGrammarPassage(
+          passage,
+          languageCode,
+          grammarData,
+          episodeId: episodeId,
+          modelVersion: modelVersion,
+          promptVersion: promptVersion,
+          schemaVersion: schemaVersion,
+        )
+        .catchError((e) => debugPrint('Error saving grammar passage to Firebase: $e'));
   }
 
   /// Get questions with priority: Local → Firebase → null
