@@ -9,9 +9,41 @@ class CacheKeyHelper {
   }
 
   /// Generate grammar cache key from sentence hash and language code
-  static String grammarKey(String sentence, String languageCode) {
-    final hash = hashString(sentence);
+  static String grammarKey(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) {
+    final scopedPayload = [
+      sentence.trim(),
+      episodeId?.trim() ?? '',
+      modelVersion?.trim() ?? '',
+      promptVersion?.trim() ?? '',
+    ].join('|');
+    final hash = hashString(scopedPayload);
     return 'grammar_${hash}_$languageCode';
+  }
+
+  /// Generate passage grammar cache key with isolated namespace
+  static String grammarPassageKey(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) {
+    final scopedPayload = [
+      passage.trim(),
+      episodeId?.trim() ?? '',
+      modelVersion?.trim() ?? '',
+      promptVersion?.trim() ?? '',
+      schemaVersion?.trim() ?? '',
+    ].join('|');
+    final hash = hashString(scopedPayload);
+    return 'grammar_passage_${hash}_$languageCode';
   }
 
   /// Generate questions cache key

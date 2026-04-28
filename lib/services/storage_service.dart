@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/episode.dart';
 import '../models/vocabulary_item.dart';
 import '../models/favourite_episode.dart';
+import '../models/saved_grammar_item.dart';
 import 'auth_service.dart';
 
 class StorageService {
@@ -14,6 +15,7 @@ class StorageService {
   static const String _vocabulariesKey = 'saved_vocabularies';
   static const String _vocabularyItemsKey = 'saved_vocabulary_items';
   static const String _favouriteEpisodesDataKey = 'favourite_episodes_data';
+  static const String _savedGrammarItemsKey = 'saved_grammar_items';
   static const String _aiCachePrefix = 'ai_cache_';
   
   final AuthService _authService = AuthService();
@@ -184,6 +186,31 @@ class StorageService {
     await prefs.setString(_vocabularyItemsKey, json.encode(vocabulariesData));
   }
 
+  /// Saved Grammar Management
+  Future<List<SavedGrammarItem>> getSavedGrammarItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final grammarJson = prefs.getString(_savedGrammarItemsKey);
+    if (grammarJson == null || grammarJson.isEmpty) {
+      return [];
+    }
+    try {
+      final List<dynamic> payload = json.decode(grammarJson);
+      return payload
+          .whereType<Map<String, dynamic>>()
+          .map(SavedGrammarItem.fromJson)
+          .toList();
+    } catch (e) {
+      debugPrint('Error loading saved grammar items: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveSavedGrammarItems(List<SavedGrammarItem> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = items.map((item) => item.toJson()).toList();
+    await prefs.setString(_savedGrammarItemsKey, json.encode(payload));
+  }
+
 
   /// AI Cache Management
   Future<void> saveCachedData(String key, String data) async {
@@ -234,6 +261,7 @@ class StorageService {
     await prefs.remove(_vocabulariesKey);
     await prefs.remove(_vocabularyItemsKey);
     await prefs.remove(_favouriteEpisodesDataKey);
+    await prefs.remove(_savedGrammarItemsKey);
     await clearAICache();
   }
 }

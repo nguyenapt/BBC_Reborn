@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../models/episode.dart';
-import '../models/vocabulary_item.dart';
 import '../models/favourite_episode.dart';
-import '../services/storage_service.dart';
-import '../services/firebase_storage_service.dart';
-import '../services/user_service.dart';
+import '../models/saved_grammar_item.dart';
+import '../models/vocabulary_item.dart';
+import '../services/api_daily_cache_service.dart';
 import '../services/auth_service.dart';
+import '../services/firebase_storage_service.dart';
 import '../services/language_manager.dart';
+import '../services/learning_analytics_service.dart';
+import '../services/saved_grammar_service.dart';
+import '../services/storage_service.dart';
+import '../services/user_service.dart';
 import '../services/vocabulary_service.dart';
 import '../widgets/episode_row.dart';
-import '../l10n/localized_text.dart';
+import '../widgets/grammar_explanation_widget.dart';
 import 'episode_detail_screen.dart';
 
-class SavedScreen extends StatefulWidget {
-  const SavedScreen({super.key});
+class MyLearningScreen extends StatefulWidget {
+  const MyLearningScreen({super.key});
 
   @override
-  State<SavedScreen> createState() => _SavedScreenState();
+  State<MyLearningScreen> createState() => _MyLearningScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStateMixin {
+class _MyLearningScreenState extends State<MyLearningScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final StorageService _storageService = StorageService();
   final FirebaseStorageService _firebaseStorageService = FirebaseStorageService();
@@ -28,38 +32,57 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   final LanguageManager _languageManager = LanguageManager();
   final AuthService _authService = AuthService();
   final VocabularyService _vocabularyService = VocabularyService();
+  final SavedGrammarService _savedGrammarService = SavedGrammarService();
+  final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
+  final ApiDailyCacheService _apiDailyCacheService = ApiDailyCacheService();
+
+  late final VoidCallback _vocabularyListener;
+  late final VoidCallback _savedGrammarListener;
 
   List<FavouriteEpisode> _favouriteEpisodes = [];
   List<VocabularyItem> _savedVocabularies = [];
+  List<SavedGrammarItem> _savedGrammarItems = [];
+  final Map<String, Episode> _episodeLookup = {};
+
   bool _isLoadingFavourites = true;
   bool _isLoadingVocabularies = true;
+  bool _isLoadingSavedGrammar = true;
   String? _favouritesError;
   String? _vocabulariesError;
+  String? _savedGrammarError;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadData();
-    
-    // Listen to vocabulary changes
-    _vocabularyService.addListener(() {
+    _tabController = TabController(length: 3, vsync: this);
+    _vocabularyListener = () {
       if (mounted) {
         _loadSavedVocabularies();
       }
-    });
+    };
+    _savedGrammarListener = () {
+      if (mounted) {
+        _loadSavedGrammar();
+      }
+    };
+    _vocabularyService.addListener(_vocabularyListener);
+    _savedGrammarService.addListener(_savedGrammarListener);
+    _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _vocabularyService.removeListener(() {});
+    _vocabularyService.removeListener(_vocabularyListener);
+    _savedGrammarService.removeListener(_savedGrammarListener);
     super.dispose();
   }
 
   Future<void> _loadData() async {
     await _loadFavouriteEpisodes();
     await _loadSavedVocabularies();
+    await _loadSavedGrammar();
+    await _buildEpisodeLookup();
   }
 
   Future<void> _loadFavouriteEpisodes() async {
@@ -69,37 +92,28 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     });
 
     try {
-      // Always load from local storage first (faster and more reliable)
       final localEpisodes = await _storageService.getFavouriteEpisodes();
-      debugPrint('Loaded ${localEpisodes.length} episodes from local storage');
-      
       if (localEpisodes.isNotEmpty) {
-        setState(() {
-          _favouriteEpisodes = localEpisodes;
-        });
-        debugPrint('Set ${_favouriteEpisodes.length} episodes to state');
+        _favouriteEpisodes = localEpisodes;
       } else if (_authService.isLoggedIn) {
-        // Only try Firebase if user is logged in and local storage is empty
         try {
-          final firebaseEpisodes = await _firebaseStorageService.getFavouriteEpisodes(_userService.userId);
-          // Convert Episode list to FavouriteEpisode list
-          final favouriteEpisodes = firebaseEpisodes.map((episode) => FavouriteEpisode.fromEpisode(episode)).toList();
-          setState(() {
-            _favouriteEpisodes = favouriteEpisodes;
-          });
+          final firebaseEpisodes =
+              await _firebaseStorageService.getFavouriteEpisodes(_userService.userId);
+          _favouriteEpisodes = firebaseEpisodes
+              .map((episode) => FavouriteEpisode.fromEpisode(episode))
+              .toList();
         } catch (firebaseError) {
           debugPrint('Firebase load failed: $firebaseError');
-          // Keep local episodes (empty list)
         }
       }
     } catch (e) {
-      setState(() {
-        _favouritesError = e.toString();
-      });
+      _favouritesError = e.toString();
     } finally {
-      setState(() {
-        _isLoadingFavourites = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingFavourites = false;
+        });
+      }
     }
   }
 
@@ -110,52 +124,120 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     });
 
     try {
-      // Load từ VocabularyService
-      final savedVocabularies = _vocabularyService.savedVocabularies;
-      setState(() {
-        _savedVocabularies = savedVocabularies;
-      });
+      _savedVocabularies = _vocabularyService.savedVocabularies;
     } catch (e) {
-      setState(() {
-        _vocabulariesError = e.toString();
-      });
+      _vocabulariesError = e.toString();
     } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingVocabularies = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadSavedGrammar() async {
+    setState(() {
+      _isLoadingSavedGrammar = true;
+      _savedGrammarError = null;
+    });
+
+    try {
+      _savedGrammarItems = _savedGrammarService.items;
+    } catch (e) {
+      _savedGrammarError = e.toString();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingSavedGrammar = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _buildEpisodeLookup() async {
+    final lookup = <String, Episode>{};
+    for (final fav in _favouriteEpisodes) {
+      final episode = fav.toEpisode();
+      if ((episode.id ?? '').isNotEmpty) {
+        lookup[episode.id!] = episode;
+      }
+    }
+
+    final requiredIds = <String>{};
+    for (final vocab in _savedVocabularies) {
+      if (vocab.bbcEpisodeId.isNotEmpty) {
+        requiredIds.add(vocab.bbcEpisodeId);
+      }
+    }
+    for (final grammar in _savedGrammarItems) {
+      if (grammar.episodeId.isNotEmpty) {
+        requiredIds.add(grammar.episodeId);
+      }
+    }
+    requiredIds.removeWhere((id) => lookup.containsKey(id));
+
+    if (requiredIds.isNotEmpty) {
+      try {
+        final remote = await _apiDailyCacheService
+            .episodesMatchingFavouriteIds(requiredIds.toList());
+        for (final episode in remote) {
+          final id = episode.id ?? '';
+          if (id.isNotEmpty) {
+            lookup[id] = episode;
+          }
+        }
+      } catch (e) {
+        debugPrint('Cannot build full episode lookup: $e');
+      }
+    }
+
+    if (mounted) {
       setState(() {
-        _isLoadingVocabularies = false;
+        _episodeLookup
+          ..clear()
+          ..addAll(lookup);
       });
     }
   }
 
-  void _navigateToEpisodeDetail(FavouriteEpisode favouriteEpisode) {
-    // Convert FavouriteEpisode to Episode for navigation
-    final episode = favouriteEpisode.toEpisode();
-    final episodes = _favouriteEpisodes.map((fe) => fe.toEpisode()).toList();
-    
+  void _navigateToEpisode(Episode episode) {
+    final categoryEpisodes = _episodeLookup.values.toList();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EpisodeDetailScreen(
           episode: episode,
-          categoryEpisodes: episodes,
+          categoryEpisodes: categoryEpisodes.isNotEmpty ? categoryEpisodes : [episode],
         ),
       ),
     );
   }
 
+  void _openEpisodeById(String episodeId) {
+    final episode = _episodeLookup[episodeId];
+    if (episode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_languageManager.getText('episodeDataUnavailable'))),
+      );
+      return;
+    }
+    _navigateToEpisode(episode);
+  }
+
   Future<void> _removeVocabulary(String vocab) async {
     try {
       await _vocabularyService.removeVocabulary(vocab);
-      
-      // Reload vocabulary list
       await _loadSavedVocabularies();
-      
+      await _buildEpisodeLookup();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: LocalizedText('removedFromVocabularies'),
+          content: Text(_languageManager.getText('removedFromVocabularies')),
           duration: const Duration(seconds: 2),
         ),
       );
-    } catch (e) {
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_languageManager.getText('errorOccurred')),
@@ -165,26 +247,44 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _togglePinGrammar(SavedGrammarItem item) async {
+    await _savedGrammarService.setPinned(item.id, !item.isPinned);
+    await _analyticsService.trackEvent('rule_saved');
+    await _loadSavedGrammar();
+    await _buildEpisodeLookup();
+  }
+
+  Future<void> _removeSavedGrammar(SavedGrammarItem item) async {
+    await _savedGrammarService.removeById(item.id);
+    await _loadSavedGrammar();
+    await _buildEpisodeLookup();
+  }
+
+  Future<void> _markGrammarReviewed(SavedGrammarItem item) async {
+    await _savedGrammarService.markReviewed(item.id);
+    await _analyticsService.trackEvent('review_done');
+    await _loadSavedGrammar();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([_languageManager, _vocabularyService]),
+      listenable: Listenable.merge(
+        [_languageManager, _vocabularyService, _savedGrammarService],
+      ),
       builder: (context, child) {
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.background,
           body: Column(
             children: [
-              // Custom Header
               _buildHeader(),
-
               const SizedBox(height: 16),
-              // TabBar với shadow
               _buildTabBar(),
-              // TabBarView content
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
+                    _buildSavedGrammarTab(),
                     _buildFavouriteEpisodesTab(),
                     _buildVocabulariesTab(),
                   ],
@@ -200,23 +300,6 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   Widget _buildHeader() {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final now = DateTime.now();
-    final hour = now.hour;
-    
-    String greeting;
-    String emoji;
-    
-    if (hour < 12) {
-      greeting = _languageManager.getText('goodMorning');
-      emoji = '🌅';
-    } else if (hour < 17) {
-      greeting = _languageManager.getText('goodAfternoon');
-      emoji = '☀️';
-    } else {
-      greeting = _languageManager.getText('goodEvening');
-      emoji = '🌙';
-    }
-
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -243,7 +326,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _languageManager.getText('saved'),
+                  _languageManager.getText('myLearning'),
                   style: theme.textTheme.headlineSmall!.copyWith(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
@@ -251,7 +334,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _languageManager.getText('savedDesc'),
+                  _languageManager.getText('myLearningDesc'),
                   style: theme.textTheme.bodyMedium!.copyWith(
                     color: colorScheme.onSurface.withOpacity(0.8),
                   ),
@@ -267,7 +350,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               color: colorScheme.surfaceVariant,
             ),
             child: Icon(
-              Icons.favorite,
+              Icons.auto_stories,
               color: colorScheme.onSurface,
               size: 20,
             ),
@@ -279,7 +362,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
@@ -314,28 +397,219 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         ),
         dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         tabs: [
-          Tab(
-            icon: const Icon(Icons.favorite, size: 20),
-            text: _languageManager.getText('favouriteEpisodes'),
-          ),
-          Tab(
-            icon: const Icon(Icons.book, size: 20),
-            text: _languageManager.getText('vocabularies'),
-          ),
+          Tab(icon: const Icon(Icons.lightbulb_outline, size: 20), text: _languageManager.getText('grammar')),
+          Tab(icon: const Icon(Icons.favorite, size: 20), text: _languageManager.getText('episodes')),
+          Tab(icon: const Icon(Icons.book, size: 20), text: _languageManager.getText('vocabularies')),
         ],
       ),
     );
   }
 
+  Widget _buildSavedGrammarTab() {
+    if (_isLoadingSavedGrammar) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_savedGrammarError != null) {
+      return Center(child: Text('${_languageManager.getText('errorOccurred')}: $_savedGrammarError'));
+    }
+    if (_savedGrammarItems.isEmpty) {
+      return Center(
+        child: Text(
+          _languageManager.getText('noSavedGrammar'),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65)),
+        ),
+      );
+    }
+
+    final dueItems = _savedGrammarService.dueReviewItems;
+    final widgets = <Widget>[];
+    if (dueItems.isNotEmpty) {
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.alarm, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_languageManager.getText('reviewQueueLabel')}: ${dueItems.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    for (final item in _savedGrammarItems) {
+      final hasEpisode =
+          item.episodeId.isNotEmpty && _episodeLookup.containsKey(item.episodeId);
+      final isDue = item.nextReviewAt != null &&
+          !item.nextReviewAt!.isAfter(DateTime.now()) &&
+          item.isPinned;
+      widgets.add(
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              _analyticsService.trackEvent('grammar_opened');
+              showDialog(
+                context: context,
+                builder: (dialogContext) => GrammarExplanationDialog(
+                  explanation: item.toGrammarExplanation(),
+                  category: item.category,
+                  isSaved: item.isPinned,
+                  onToggleSaved: () async {
+                    await _togglePinGrammar(item);
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
+                  },
+                  onQuizChecked: (_) async {
+                    await _analyticsService.trackEvent('quiz_answered');
+                  },
+                  onOpenEpisode:
+                      hasEpisode ? () => _openEpisodeById(item.episodeId) : null,
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        item.isPinned ? Icons.bookmark : Icons.history,
+                        color: item.isPinned
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.tertiary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.grammarPoint,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              item.sentence,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.episodeName.isNotEmpty
+                                  ? item.episodeName
+                                  : item.episodeId,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.65),
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (item.isPinned && item.nextReviewAt != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  isDue
+                                      ? _languageManager.getText('reviewDueNow')
+                                      : '${_languageManager.getText('nextReviewLabel')}: ${item.nextReviewAt!.toLocal().toString().split(' ').first}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDue
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                    fontWeight:
+                                        isDue ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      _buildInlineAction(
+                        icon: item.isPinned
+                            ? Icons.bookmark_remove_outlined
+                            : Icons.bookmark_add_outlined,
+                        label: item.isPinned
+                            ? _languageManager.getText('unsave')
+                            : _languageManager.getText('save'),
+                        color: Theme.of(context).colorScheme.secondary,
+                        onTap: () => _togglePinGrammar(item),
+                      ),
+                      if (item.isPinned)
+                        _buildInlineAction(
+                          icon: Icons.check_circle_outline,
+                          label: _languageManager.getText('markReviewedLabel'),
+                          color: Theme.of(context).colorScheme.primary,
+                          onTap: () => _markGrammarReviewed(item),
+                        ),
+                      if (hasEpisode)
+                        _buildInlineAction(
+                          icon: Icons.open_in_new,
+                          label: _languageManager.getText('openEpisode'),
+                          color: Theme.of(context).colorScheme.primary,
+                          onTap: () => _openEpisodeById(item.episodeId),
+                        ),
+                      _buildInlineAction(
+                        icon: Icons.delete_outline,
+                        label: _languageManager.getText('remove'),
+                        color: Theme.of(context).colorScheme.error,
+                        onTap: () => _removeSavedGrammar(item),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadSavedGrammar();
+        await _buildEpisodeLookup();
+      },
+      child: ListView(children: widgets),
+    );
+  }
+
   Widget _buildFavouriteEpisodesTab() {
     if (_isLoadingFavourites) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            LocalizedText('loadingFavourites'),
+            Text(_languageManager.getText('loadingFavourites')),
           ],
         ),
       );
@@ -358,7 +632,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadFavouriteEpisodes,
-                child: LocalizedText('retry'),
+                child: Text(_languageManager.getText('retry')),
               ),
             ],
           ),
@@ -377,16 +651,16 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               size: 60,
             ),
             const SizedBox(height: 16),
-            LocalizedText(
-              'noFavouriteEpisodes',
+            Text(
+              _languageManager.getText('noFavouriteEpisodes'),
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
               ),
             ),
             const SizedBox(height: 8),
-            LocalizedText(              
-              'addToFavouritesDesc',
+            Text(
+              _languageManager.getText('addToFavouritesDesc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -407,7 +681,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           final episode = favouriteEpisode.toEpisode();
           return EpisodeRow(
             episode: episode,
-            onTap: () => _navigateToEpisodeDetail(favouriteEpisode),
+            onTap: () => _navigateToEpisode(episode),
             languageManager: _languageManager,
           );
         },
@@ -417,13 +691,13 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
 
   Widget _buildVocabulariesTab() {
     if (_isLoadingVocabularies) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            LocalizedText('loadingVocabularies'),
+            Text(_languageManager.getText('loadingVocabularies')),
           ],
         ),
       );
@@ -446,7 +720,7 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadSavedVocabularies,
-                child: LocalizedText('retry'),
+                child: Text(_languageManager.getText('retry')),
               ),
             ],
           ),
@@ -465,16 +739,16 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
               size: 60,
             ),
             const SizedBox(height: 16),
-            LocalizedText(
-              'noSavedVocabularies',
+            Text(
+              _languageManager.getText('noSavedVocabularies'),
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
               ),
             ),
             const SizedBox(height: 8),
-            LocalizedText(
-              'addToVocabulariesDesc',
+            Text(
+              _languageManager.getText('addToVocabulariesDesc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -493,9 +767,9 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         itemBuilder: (context, index) {
           final vocabulary = _savedVocabularies[index];
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -517,12 +791,6 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => _removeVocabulary(vocabulary.vocab),
-                        icon: const Icon(Icons.delete_outline),
-                        color: Theme.of(context).colorScheme.error.withOpacity(0.85),
-                        tooltip: 'removeFromVocabularies',
-                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -535,11 +803,66 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
                     ),
                   ),
                   const SizedBox(height: 8),
+                  if (vocabulary.bbcEpisodeId.isNotEmpty)
+                    Text(
+                      'Episode: ${vocabulary.bbcEpisodeId}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      if (vocabulary.bbcEpisodeId.isNotEmpty)
+                        _buildInlineAction(
+                          icon: Icons.open_in_new,
+                          label: _languageManager.getText('openEpisode'),
+                          color: Theme.of(context).colorScheme.primary,
+                          onTap: () => _openEpisodeById(vocabulary.bbcEpisodeId),
+                        ),
+                      _buildInlineAction(
+                        icon: Icons.delete_outline,
+                        label: _languageManager.getText('remove'),
+                        color: Theme.of(context).colorScheme.error,
+                        onTap: () => _removeVocabulary(vocabulary.vocab),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInlineAction({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 15),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

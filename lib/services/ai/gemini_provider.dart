@@ -1,6 +1,5 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
 import 'ai_provider.dart';
 import 'exceptions.dart';
 import 'rate_limiter.dart';
@@ -189,7 +188,7 @@ class GeminiProvider implements AIProvider {
     
     if (isVocabulary) {
       // For vocabulary: only translate the word, ignore context examples
-      contextPart = context != null ? '\n\n$context' : '';
+      contextPart = '\n\n$context';
       instruction = '''
 Translate ONLY the English word below to $targetLanguage.
 The word is: "$text"
@@ -315,18 +314,31 @@ IMPORTANT:
     String targetLanguage,
   ) async {
     final prompt = '''
-Analyze this English sentence and explain the grammar.
+Analyze this English sentence for learning purposes.
 You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
 
 Sentence: "$sentence"
 
 Return format (JSON object only):
 {
-  "grammarPoint": "name of grammar rule",
-  "explanation": "simple explanation in $targetLanguage",
-  "highlightedWords": ["word1", "word2"]
+  "grammarPoint": "name of grammar rule (short)",
+  "rulePattern": "concise pattern, e.g. Subject + have/has + V3",
+  "whyThisForm": "why this form is used in this sentence, in $targetLanguage",
+  "explanation": "clear explanation in $targetLanguage",
+  "highlightedWords": ["word_or_phrase_1", "word_or_phrase_2"],
+  "commonMistakes": ["mistake 1 in $targetLanguage", "mistake 2 in $targetLanguage"],
+  "miniQuiz": {
+    "question": "one multiple-choice grammar question in $targetLanguage",
+    "options": ["A ...", "B ...", "C ...", "D ..."],
+    "correctAnswer": "A",
+    "explanation": "short reason in $targetLanguage"
+  }
 }
 
+Rules:
+- Keep explanations practical and concise.
+- "highlightedWords" must be exact fragments from the input sentence.
+- If uncertain, still return best-effort pedagogical output.
 Important: Return ONLY the JSON object, nothing else.''';
     
     final response = await _callGemini(prompt);
@@ -335,6 +347,63 @@ Important: Return ONLY the JSON object, nothing else.''';
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse grammar explanation JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassage(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Passage: "$passage"
+
+Return format (JSON object only):
+{
+  "overall": {
+    "grammarTheme": "main grammar theme in this passage",
+    "usageSummary": "concise summary in $targetLanguage",
+    "keyStructures": ["structure1", "structure2"]
+  },
+  "sentenceAnalyses": [
+    {
+      "sentenceText": "exact sentence from passage",
+      "mainStructure": "main grammar structure",
+      "usageInContext": "contextual usage in $targetLanguage",
+      "phraseBreakdown": [
+        {
+          "phrase": "exact phrase from sentence",
+          "structure": "phrase structure",
+          "usage": "phrase usage in $targetLanguage"
+        }
+      ],
+      "examples": ["example 1", "example 2"],
+      "commonMistakes": ["mistake 1", "mistake 2"],
+      "rewriteExercise": "rewrite prompt in $targetLanguage",
+      "miniQuiz": {
+        "question": "one MCQ in $targetLanguage",
+        "options": ["A ...", "B ...", "C ...", "D ..."],
+        "correctAnswer": "A",
+        "explanation": "short answer explanation in $targetLanguage"
+      }
+    }
+  ]
+}
+
+Rules:
+- sentenceAnalyses should cover each meaningful sentence.
+- phraseBreakdown includes only grammar-bearing phrases.
+- Keep all explanations learner-friendly and in $targetLanguage.
+Important: Return ONLY the JSON object, nothing else.''';
+
+    final response = await _callGemini(prompt);
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage grammar JSON: $e');
     }
   }
   

@@ -274,7 +274,6 @@ class AIFirebaseCacheService {
         }
       } else {
         // Create new translation entry with this single line and correct lineNumber
-        final translations = {originalText: translatedText};
         // Create a list with proper lineNumber structure
         final translationsArray = [
           {
@@ -320,9 +319,21 @@ class AIFirebaseCacheService {
   }
 
   /// Get grammar explanation from Firebase cache
-  Future<Map<String, dynamic>?> getGrammar(String sentence, String languageCode) async {
+  Future<Map<String, dynamic>?> getGrammar(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
     try {
-      final sentenceHash = CacheKeyHelper.hashString(sentence);
+      final sentenceHash = CacheKeyHelper.grammarKey(
+        sentence,
+        languageCode,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      ).replaceFirst('grammar_', '');
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
       final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
       
@@ -354,9 +365,19 @@ class AIFirebaseCacheService {
     String sentence,
     String languageCode,
     Map<String, dynamic> grammarData,
-  ) async {
+    {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
     try {
-      final sentenceHash = CacheKeyHelper.hashString(sentence);
+      final sentenceHash = CacheKeyHelper.grammarKey(
+        sentence,
+        languageCode,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      ).replaceFirst('grammar_', '');
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
       final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
       
@@ -376,6 +397,85 @@ class AIFirebaseCacheService {
       debugPrint('Saved grammar to Firebase cache: $sentenceHash');
     } catch (e) {
       debugPrint('Error saving grammar to Firebase: $e');
+    }
+  }
+
+  /// Get passage grammar explanation from Firebase cache (new namespace)
+  Future<Map<String, dynamic>?> getGrammarPassage(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    try {
+      final passageHash = CacheKeyHelper.grammarPassageKey(
+        passage,
+        languageCode,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+        schemaVersion: schemaVersion,
+      ).replaceFirst('grammar_passage_', '');
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url =
+          '$_baseUrl/$_cachePath/grammar_passage/$passageHash/$safeLanguageCode.json';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+        if (cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+          return cacheEntry.data;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting grammar passage from Firebase: $e');
+      return null;
+    }
+  }
+
+  /// Save passage grammar explanation to Firebase cache (new namespace)
+  Future<void> saveGrammarPassage(
+    String passage,
+    String languageCode,
+    Map<String, dynamic> grammarData, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    try {
+      final passageHash = CacheKeyHelper.grammarPassageKey(
+        passage,
+        languageCode,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+        schemaVersion: schemaVersion,
+      ).replaceFirst('grammar_passage_', '');
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final url =
+          '$_baseUrl/$_cachePath/grammar_passage/$passageHash/$safeLanguageCode.json';
+
+      final cacheEntry = AICacheEntry(
+        data: grammarData,
+        createdAt: DateTime.now(),
+        version: _cacheVersion,
+        ttlDays: _defaultTtlDays,
+      );
+      await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(cacheEntry.toJson()),
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('Error saving grammar passage to Firebase: $e');
     }
   }
 

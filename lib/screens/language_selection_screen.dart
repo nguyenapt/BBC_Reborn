@@ -291,8 +291,6 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 16),
             ],
           ),
         ),

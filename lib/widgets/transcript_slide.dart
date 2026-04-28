@@ -12,9 +12,11 @@ import '../models/grammar_explanation.dart';
 import '../services/language_manager.dart';
 import '../services/admob_service.dart';
 import '../services/heart_service.dart';
+import '../services/saved_grammar_service.dart';
+import '../services/learning_analytics_service.dart';
+import '../config/ai_config.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
-import 'translation_language_picker.dart';
 import 'episode_tab_skeleton.dart';
 
 class TranscriptSlide extends StatefulWidget {
@@ -54,6 +56,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
+  final SavedGrammarService _savedGrammarService = SavedGrammarService();
+  final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
   final Map<String, GrammarExplanation> _grammarCache = {};
   late final AnimationController _breathController;
   
@@ -676,9 +680,27 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   }
 
   Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
+    final normalizedPassage = sentence.trim();
+    if (normalizedPassage.isEmpty) return;
+    if (!AIConfig.enableGrammar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('grammarFeatureDisabled')),
+        ),
+      );
+      return;
+    }
+
     // Check cache first
-    if (_grammarCache.containsKey(sentence)) {
-      _showGrammarDialog(context, _grammarCache[sentence]!);
+    final cacheKey = 'passage::$normalizedPassage';
+    if (_grammarCache.containsKey(cacheKey)) {
+      final cached = _grammarCache[cacheKey]!;
+      await _savedGrammarService.recordViewed(
+        explanation: cached,
+        episode: widget.episode,
+      );
+      await _analyticsService.trackEvent('grammar_opened');
+      _showGrammarDialog(context, cached);
       return;
     }
 
@@ -709,9 +731,17 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
     try {
       final episodeId = widget.episode.id ?? '';
-      final explanation = await _grammarService.explainSentence(sentence, episodeId);
+      final explanation = await _grammarService.explainPassage(
+        normalizedPassage,
+        episodeId,
+      );
       
-      _grammarCache[sentence] = explanation;
+      _grammarCache[cacheKey] = explanation;
+      await _savedGrammarService.recordViewed(
+        explanation: explanation,
+        episode: widget.episode,
+      );
+      await _analyticsService.trackEvent('grammar_opened');
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -724,18 +754,47 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _showErrorSnackBar(
           context,
           e,
-          onRetry: () => _showGrammarExplanation(context, sentence),
+          onRetry: () => _showGrammarExplanation(context, normalizedPassage),
         );
       }
     }
   }
 
   void _showGrammarDialog(BuildContext context, GrammarExplanation explanation) {
+    final savedItem =
+        _savedGrammarService.getBySentence(explanation.sentence, widget.episode.id ?? '');
     showDialog(
       context: context,
       builder: (context) => GrammarExplanationDialog(
         explanation: explanation,
         category: widget.episode.category,
+        isSaved: savedItem?.isPinned == true,
+        onQuizChecked: (isCorrect) async {
+          await _analyticsService.trackEvent('quiz_answered');
+          if (isCorrect) {
+            await _analyticsService.trackEvent('quiz_answered_correct');
+          }
+        },
+        onToggleSaved: () async {
+          final isSaved = await _savedGrammarService.togglePinnedForExplanation(
+            explanation: explanation,
+            episode: widget.episode,
+          );
+          await _analyticsService.trackEvent('rule_saved');
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isSaved
+                    ? _languageManager.getText('savedToMyLearning')
+                    : _languageManager.getText('removedFromSavedGrammar'),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          _showGrammarDialog(context, explanation);
+        },
       ),
     );
   }

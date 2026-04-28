@@ -18,7 +18,7 @@ class OpenAIProvider implements AIProvider {
   
   void _initialize() {
     try {
-      if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_OPENAI_API_KEY') {
+      if (_apiKey == null || _apiKey.isEmpty || _apiKey == 'YOUR_OPENAI_API_KEY') {
         debugPrint('❌ Warning: OpenAI API key not configured');
         _initialized = false;
         return;
@@ -114,7 +114,7 @@ class OpenAIProvider implements AIProvider {
     
     if (isVocabulary) {
       // For vocabulary: only translate the word, ignore context examples
-      contextPart = context != null ? '\n\n$context' : '';
+      contextPart = '\n\n$context';
       instruction = '''
 Translate ONLY the English word below to $targetLanguage.
 The word is: "$text"
@@ -243,29 +243,105 @@ IMPORTANT:
     String targetLanguage,
   ) async {
     final prompt = '''
-Analyze this English sentence and explain the grammar.
-Return ONLY a valid JSON object, no other text.
+Analyze this English sentence for learning purposes.
+Return ONLY a valid JSON object, no markdown, no comments.
 
 Sentence: "$sentence"
 
 Return JSON format:
 {
-  "grammarPoint": "name of grammar rule",
-  "explanation": "simple explanation in $targetLanguage",
-  "highlightedWords": ["word1", "word2"]
+  "grammarPoint": "name of grammar rule (short)",
+  "rulePattern": "concise pattern, e.g. Subject + have/has + V3",
+  "whyThisForm": "why this form is used in this sentence, in $targetLanguage",
+  "explanation": "clear explanation in $targetLanguage",
+  "highlightedWords": ["word_or_phrase_1", "word_or_phrase_2"],
+  "commonMistakes": ["mistake 1 in $targetLanguage", "mistake 2 in $targetLanguage"],
+  "miniQuiz": {
+    "question": "one multiple-choice grammar question in $targetLanguage",
+    "options": ["A ...", "B ...", "C ...", "D ..."],
+    "correctAnswer": "A",
+    "explanation": "short reason in $targetLanguage"
+  }
 }
 
+Rules:
+- Keep explanations practical and short.
+- "highlightedWords" must be exact fragments from the input sentence.
+- If unsure, still provide best-effort pedagogical output.
 JSON:''';
     
     final response = await _callOpenAI(
       prompt,
-      systemPrompt: 'You are a helpful English grammar teacher. Always return valid JSON only.',
+      systemPrompt:
+          'You are an English grammar coach for language learners. Always return strict JSON only.',
     );
     
     try {
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse grammar explanation JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassage(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+Return ONLY a valid JSON object, no markdown, no additional text.
+
+Passage: "$passage"
+
+Return JSON format:
+{
+  "overall": {
+    "grammarTheme": "main grammar theme in this passage",
+    "usageSummary": "concise summary in $targetLanguage",
+    "keyStructures": ["structure1", "structure2"]
+  },
+  "sentenceAnalyses": [
+    {
+      "sentenceText": "exact sentence from passage",
+      "mainStructure": "main grammar structure",
+      "usageInContext": "contextual usage in $targetLanguage",
+      "phraseBreakdown": [
+        {
+          "phrase": "exact phrase from sentence",
+          "structure": "phrase structure",
+          "usage": "phrase usage in $targetLanguage"
+        }
+      ],
+      "examples": ["example 1", "example 2"],
+      "commonMistakes": ["mistake 1", "mistake 2"],
+      "rewriteExercise": "rewrite prompt in $targetLanguage",
+      "miniQuiz": {
+        "question": "one MCQ in $targetLanguage",
+        "options": ["A ...", "B ...", "C ...", "D ..."],
+        "correctAnswer": "A",
+        "explanation": "short answer explanation in $targetLanguage"
+      }
+    }
+  ]
+}
+
+Rules:
+- sentenceAnalyses must cover every meaningful sentence in the passage.
+- phraseBreakdown focuses on important grammar-bearing phrases only.
+- Keep wording learner-friendly for the target language.
+JSON:''';
+
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You are a multilingual English grammar coach. Always return strict JSON only and write explanations in the requested target language.',
+    );
+
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage grammar JSON: $e');
     }
   }
   
