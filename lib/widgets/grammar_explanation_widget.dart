@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/grammar_explanation.dart';
 import '../services/language_manager.dart';
+import 'transcript_native_ad_widget.dart';
 
 /// Dialog widget for displaying grammar explanation
 class GrammarExplanationDialog extends StatefulWidget {
   final GrammarExplanation explanation;
+  final Future<GrammarExplanation>? progressiveUpdate;
   final String? category;
   final bool isSaved;
   final VoidCallback? onToggleSaved;
@@ -14,6 +16,7 @@ class GrammarExplanationDialog extends StatefulWidget {
   const GrammarExplanationDialog({
     super.key,
     required this.explanation,
+    this.progressiveUpdate,
     this.category,
     this.isSaved = false,
     this.onToggleSaved,
@@ -29,11 +32,13 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
   final LanguageManager _languageManager = LanguageManager();
   String? _selectedQuizOption;
   bool _quizSubmitted = false;
+  late GrammarExplanation _explanation;
+  bool _isUpdating = false;
 
   @override
   Widget build(BuildContext context) {
     final categoryColor = Theme.of(context).colorScheme.primary;
-    final explanation = widget.explanation;
+    final explanation = _explanation;
 
     return Dialog.fullscreen(
       child: SafeArea(
@@ -126,6 +131,34 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
                     if (explanation.isPassageMode) ...[
                       _buildPassageOverview(context, explanation),
                       const SizedBox(height: 12),
+                      TranscriptNativeAdWidget(
+                        category: widget.category ?? 'grammar',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (_isUpdating) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Loading sentence details…',
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                     Text(
                       _languageManager.getText('sentenceLabel'),
@@ -371,6 +404,29 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _explanation = widget.explanation;
+
+    final future = widget.progressiveUpdate;
+    if (future != null) {
+      _isUpdating = true;
+      future.then((updated) {
+        if (!mounted) return;
+        setState(() {
+          _explanation = updated;
+          _isUpdating = false;
+        });
+      }).catchError((_) {
+        if (!mounted) return;
+        setState(() {
+          _isUpdating = false;
+        });
+      });
+    }
   }
 
   bool _isQuizAnswerCorrect(String? selectedOption, GrammarMiniQuiz quiz) {

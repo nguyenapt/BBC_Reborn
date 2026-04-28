@@ -49,6 +49,11 @@ class AppKo {
     'save': '저장',
     'delete': '삭제',
     'edit': '편집',
+    'later': '나중에',
+    'allow': '허용',
+    'enableReviewRemindersTitle': '복습 알림을 켤까요?',
+    'enableReviewRemindersDesc':
+        '알림을 켜면 저장한 문법을 복습할 시간에 맞춰 알려드릴게요.',
     
     // Audio Controls
     'play': '재생',

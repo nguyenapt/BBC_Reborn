@@ -49,6 +49,11 @@ class AppAr {
     'save': 'حفظ',
     'delete': 'حذف',
     'edit': 'تعديل',
+    'later': 'لاحقًا',
+    'allow': 'سماح',
+    'enableReviewRemindersTitle': 'تفعيل تذكيرات المراجعة؟',
+    'enableReviewRemindersDesc':
+        'فعّل الإشعارات لنذكّرك عندما يحين وقت مراجعة القواعد المحفوظة.',
     
     // Audio Controls
     'play': 'تشغيل',

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../config/ai_config.dart';
 import '../models/grammar_explanation.dart';
+import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
@@ -160,6 +161,18 @@ class AIGrammarService {
     String passage,
     String episodeId,
   ) async {
+    final progressive = await explainPassageProgressive(passage, episodeId);
+    return await progressive.full;
+  }
+
+  /// Progressive passage analysis:
+  /// - Call 1: overall (fast) -> return immediately for UI
+  /// - Call 2: sentence analyses (slower) -> completes later
+  /// IMPORTANT: Only 1 heart is consumed for both calls.
+  Future<GrammarPassageProgressiveResult> explainPassageProgressive(
+    String passage,
+    String episodeId,
+  ) async {
     if (!AIConfig.enableGrammar) {
       throw APIException('Grammar feature is temporarily disabled.');
     }
@@ -173,8 +186,9 @@ class AIGrammarService {
     final languageCode = _languageManager.currentLocale.languageCode;
     final modelVersion =
         '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
-    const promptVersion = '${AIConfig.grammarPromptVersion}_passage_v1';
-    const schemaVersion = '${AIConfig.grammarSchemaVersion}_passage_v1';
+    // Slim schema (no rewrite/quiz) + progressive mode.
+    const promptVersion = '${AIConfig.grammarPromptVersion}_passage_v2_slim_progressive';
+    const schemaVersion = '${AIConfig.grammarSchemaVersion}_passage_v2_slim_progressive';
 
     final cachedData = await _cache.getGrammarPassageFromCache(
       normalizedPassage,
@@ -185,7 +199,16 @@ class AIGrammarService {
       schemaVersion: schemaVersion,
     );
     if (cachedData != null) {
-      return _mapPassageResponseToModel(normalizedPassage, cachedData);
+      try {
+        final cached = _mapPassageResponseToModel(normalizedPassage, cachedData);
+        return GrammarPassageProgressiveResult(
+          initial: cached,
+          full: Future.value(cached),
+        );
+      } catch (e) {
+        // Cache might contain older/partial schema. Ignore and continue to API/fallback.
+        debugPrint('⚠️ Failed to map cached passage grammar, ignoring cache: $e');
+      }
     }
 
     final heartService = HeartService();
@@ -200,42 +223,146 @@ class AIGrammarService {
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
 
+    // Call 1 (overall) - fast with short timeout, no retry.
+    final overallMap = await _callPassageOverallFast(
+      normalizedPassage,
+      targetLanguage,
+      primaryProvider: primaryProvider,
+      backupProvider: backupProvider,
+    );
+    final overallOnly = _mapPassageOverallToModel(normalizedPassage, overallMap);
+
+    // Call 2 (sentences) - async continuation, still no extra heart.
+    final fullFuture = _callPassageSentencesAndMerge(
+      normalizedPassage,
+      episodeId,
+      languageCode,
+      targetLanguage,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+      primaryProvider: primaryProvider,
+      backupProvider: backupProvider,
+      overallOnly: overallOnly,
+    );
+
+    return GrammarPassageProgressiveResult(initial: overallOnly, full: fullFuture);
+  }
+
+  Future<Map<String, dynamic>> _callPassageOverallFast(
+    String passage,
+    String targetLanguage, {
+    required dynamic primaryProvider,
+    required dynamic backupProvider,
+  }) async {
     try {
-      Map<String, dynamic>? response;
-      try {
-        response = await AIErrorHandler.withRetry(
-          () => primaryProvider.explainGrammarPassage(normalizedPassage, targetLanguage),
-          maxRetries: 1,
-        );
-      } catch (_) {
-        if (await backupProvider.isAvailable()) {
-          response = await backupProvider.explainGrammarPassage(
-            normalizedPassage,
-            targetLanguage,
-          );
-        } else {
-          rethrow;
-        }
-      }
-
-      if (response == null || !_isValidPassageSchema(response)) {
-        return _fallbackPassageFromSentences(normalizedPassage, episodeId);
-      }
-
-      final mapped = _mapPassageResponseToModel(normalizedPassage, response);
-      await _cache.saveGrammarPassageToCache(
-        normalizedPassage,
-        languageCode,
-        mapped.toJson(),
-        episodeId: episodeId,
-        modelVersion: modelVersion,
-        promptVersion: promptVersion,
-        schemaVersion: schemaVersion,
+      final res = await AIErrorHandler.withRetry(
+        () => primaryProvider
+            .explainGrammarPassageOverall(passage, targetLanguage)
+            .timeout(const Duration(seconds: 7)),
+        maxRetries: 0,
       );
-      return mapped;
-    } catch (_) {
-      return _fallbackPassageFromSentences(normalizedPassage, episodeId);
+      return res;
+    } catch (e) {
+      if (await backupProvider.isAvailable()) {
+        return await backupProvider.explainGrammarPassageOverall(passage, targetLanguage);
+      }
+      rethrow;
     }
+  }
+
+  Future<GrammarExplanation> _callPassageSentencesAndMerge(
+    String passage,
+    String episodeId,
+    String languageCode,
+    String targetLanguage, {
+    required String modelVersion,
+    required String promptVersion,
+    required String schemaVersion,
+    required dynamic primaryProvider,
+    required dynamic backupProvider,
+    required GrammarExplanation overallOnly,
+  }) async {
+    Map<String, dynamic>? sentencesMap;
+    try {
+      sentencesMap = await AIErrorHandler.withRetry(
+        () => primaryProvider
+            .explainGrammarPassageSentences(passage, targetLanguage)
+            .timeout(const Duration(seconds: 10)),
+        maxRetries: 0,
+      );
+    } catch (e) {
+      if (await backupProvider.isAvailable()) {
+        sentencesMap = await backupProvider.explainGrammarPassageSentences(passage, targetLanguage);
+      }
+    }
+
+    if (sentencesMap == null || !_isValidPassageSentencesSchema(sentencesMap)) {
+      // Fallback to sentence-level explainSentence (still no extra heart; it will use hearts internally,
+      // but we avoid calling it here to honor 1-heart rule for this progressive flow).
+      // Return overall-only as "full" to avoid blocking UI.
+      return overallOnly;
+    }
+
+    final merged = _mergeOverallAndSentences(overallOnly, sentencesMap);
+    await _cache.saveGrammarPassageToCache(
+      passage,
+      languageCode,
+      merged.toJson(),
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    return merged;
+  }
+
+  GrammarExplanation _mapPassageOverallToModel(String passage, Map<String, dynamic> response) {
+    final overallMap = response['overall'] as Map<String, dynamic>? ?? {};
+    final overall = GrammarPassageOverall(
+      grammarTheme: overallMap['grammarTheme']?.toString().trim().isNotEmpty == true
+          ? overallMap['grammarTheme'].toString().trim()
+          : 'Grammar Overview',
+      usageSummary: overallMap['usageSummary']?.toString() ?? '',
+      keyStructures: (overallMap['keyStructures'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          [],
+    );
+    return GrammarExplanation(
+      sentence: passage,
+      passageText: passage,
+      grammarPoint: overall.grammarTheme,
+      explanation: overall.usageSummary,
+      highlightedWords: const [],
+      overall: overall,
+      sentenceAnalyses: const [],
+      commonMistakes: const [],
+    );
+  }
+
+  GrammarExplanation _mergeOverallAndSentences(
+    GrammarExplanation overallOnly,
+    Map<String, dynamic> sentencesMap,
+  ) {
+    final analyses = (sentencesMap['sentenceAnalyses'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(GrammarSentenceAnalysis.fromJson)
+        .toList();
+    final first = analyses.isNotEmpty ? analyses.first : null;
+    return GrammarExplanation(
+      sentence: overallOnly.sentence,
+      passageText: overallOnly.passageText,
+      grammarPoint: overallOnly.grammarPoint,
+      explanation: overallOnly.explanation,
+      highlightedWords: first?.phraseBreakdown.map((e) => e.phrase).toList() ?? const [],
+      overall: overallOnly.overall,
+      sentenceAnalyses: analyses,
+      rulePattern: first?.mainStructure,
+      whyThisForm: first?.usageInContext,
+      commonMistakes: first?.commonMistakes ?? const [],
+    );
   }
 
   GrammarExplanation _mapResponseToModel(
@@ -364,12 +491,13 @@ class AIGrammarService {
     );
   }
 
-  bool _isValidPassageSchema(Map<String, dynamic> response) {
-    final overall = response['overall'];
+  bool _isValidPassageSentencesSchema(Map<String, dynamic> response) {
     final analyses = response['sentenceAnalyses'];
-    return overall is Map<String, dynamic> && analyses is List && analyses.isNotEmpty;
+    return analyses is List && analyses.isNotEmpty;
   }
 
+  // Legacy fallback kept for potential future use (not used in progressive flow).
+  // ignore: unused_element
   Future<GrammarExplanation> _fallbackPassageFromSentences(
     String passage,
     String episodeId,

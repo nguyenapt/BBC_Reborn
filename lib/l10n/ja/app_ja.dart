@@ -49,6 +49,11 @@ class AppJa {
     'save': '保存',
     'delete': '削除',
     'edit': '編集',
+    'later': 'あとで',
+    'allow': '許可',
+    'enableReviewRemindersTitle': '復習リマインダーを有効にしますか？',
+    'enableReviewRemindersDesc':
+        '通知を有効にして、保存した文法を復習する時間になったらお知らせします。',
     
     // Audio Controls
     'play': '再生',

@@ -50,6 +50,10 @@ class AppEn {
     'delete': 'Delete',
     'edit': 'Edit',
     'later': 'Later',
+    'allow': 'Allow',
+    'enableReviewRemindersTitle': 'Enable review reminders?',
+    'enableReviewRemindersDesc':
+        'Turn on notifications so we can remind you when it’s time to review your saved grammar.',
     
     // Rate App
     'rateApp': 'Rate App',

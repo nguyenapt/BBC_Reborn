@@ -49,6 +49,11 @@ class AppEs {
     'save': 'Guardar',
     'delete': 'Eliminar',
     'edit': 'Editar',
+    'later': 'Más tarde',
+    'allow': 'Permitir',
+    'enableReviewRemindersTitle': '¿Activar recordatorios de repaso?',
+    'enableReviewRemindersDesc':
+        'Activa las notificaciones para que podamos recordarte cuándo repasar la gramática guardada.',
     
     // Audio Controls
     'play': 'Reproducir',

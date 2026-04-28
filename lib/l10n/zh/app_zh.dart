@@ -49,6 +49,11 @@ class AppZh {
     'save': '保存',
     'delete': '删除',
     'edit': '编辑',
+    'later': '稍后',
+    'allow': '允许',
+    'enableReviewRemindersTitle': '开启复习提醒？',
+    'enableReviewRemindersDesc':
+        '开启通知，我们会在需要复习已保存语法时提醒你。',
     
     // Audio Controls
     'play': '播放',
