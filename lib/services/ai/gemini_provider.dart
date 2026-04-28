@@ -355,13 +355,14 @@ Important: Return ONLY the JSON object, nothing else.''';
     String passage,
     String targetLanguage,
   ) async {
+    // Backward compatibility: keep this method, but use the slim schema.
     final prompt = '''
 Analyze this English passage for grammar learning.
 You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
 
 Passage: "$passage"
 
-Return format (JSON object only):
+Return format (JSON object only, slim):
 {
   "overall": {
     "grammarTheme": "main grammar theme in this passage",
@@ -381,22 +382,14 @@ Return format (JSON object only):
         }
       ],
       "examples": ["example 1", "example 2"],
-      "commonMistakes": ["mistake 1", "mistake 2"],
-      "rewriteExercise": "rewrite prompt in $targetLanguage",
-      "miniQuiz": {
-        "question": "one MCQ in $targetLanguage",
-        "options": ["A ...", "B ...", "C ...", "D ..."],
-        "correctAnswer": "A",
-        "explanation": "short answer explanation in $targetLanguage"
-      }
+      "commonMistakes": ["mistake 1", "mistake 2"]
     }
   ]
 }
 
 Rules:
-- sentenceAnalyses should cover each meaningful sentence.
-- phraseBreakdown includes only grammar-bearing phrases.
-- Keep all explanations learner-friendly and in $targetLanguage.
+- Keep output concise and learner-friendly in $targetLanguage.
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
 Important: Return ONLY the JSON object, nothing else.''';
 
     final response = await _callGemini(prompt);
@@ -404,6 +397,83 @@ Important: Return ONLY the JSON object, nothing else.''';
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse passage grammar JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageOverall(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Passage: "$passage"
+
+Return format (JSON object only):
+{
+  "overall": {
+    "grammarTheme": "main grammar theme in this passage",
+    "usageSummary": "concise summary in $targetLanguage",
+    "keyStructures": ["structure1", "structure2"]
+  }
+}
+
+Rules:
+- Keep it short.
+Important: Return ONLY the JSON object, nothing else.''';
+
+    final response = await _callGemini(prompt);
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage overall JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageSentences(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Passage: "$passage"
+
+Return format (JSON object only):
+{
+  "sentenceAnalyses": [
+    {
+      "sentenceText": "exact sentence from passage",
+      "mainStructure": "main grammar structure",
+      "usageInContext": "contextual usage in $targetLanguage",
+      "phraseBreakdown": [
+        {
+          "phrase": "exact phrase from sentence",
+          "structure": "phrase structure",
+          "usage": "phrase usage in $targetLanguage"
+        }
+      ],
+      "examples": ["example 1", "example 2"],
+      "commonMistakes": ["mistake 1", "mistake 2"]
+    }
+  ]
+}
+
+Rules:
+- Cover each meaningful sentence.
+- Keep output concise and learner-friendly in $targetLanguage.
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
+Important: Return ONLY the JSON object, nothing else.''';
+
+    final response = await _callGemini(prompt);
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage sentences JSON: $e');
     }
   }
   

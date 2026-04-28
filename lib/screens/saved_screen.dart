@@ -12,8 +12,10 @@ import '../services/saved_grammar_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../services/vocabulary_service.dart';
+import '../services/review_reminder_service.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/grammar_explanation_widget.dart';
+import '../widgets/transcript_native_ad_widget.dart';
 import 'episode_detail_screen.dart';
 
 class MyLearningScreen extends StatefulWidget {
@@ -33,6 +35,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   final AuthService _authService = AuthService();
   final VocabularyService _vocabularyService = VocabularyService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
+  final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
   final ApiDailyCacheService _apiDailyCacheService = ApiDailyCacheService();
 
@@ -248,10 +251,42 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   }
 
   Future<void> _togglePinGrammar(SavedGrammarItem item) async {
+    if (!item.isPinned) {
+      await _maybeAskReviewReminderPermission();
+    }
     await _savedGrammarService.setPinned(item.id, !item.isPinned);
     await _analyticsService.trackEvent('rule_saved');
     await _loadSavedGrammar();
     await _buildEpisodeLookup();
+  }
+
+  Future<void> _maybeAskReviewReminderPermission() async {
+    final alreadyAsked = await _reviewReminderService.hasAskedPermission();
+    if (alreadyAsked) return;
+    if (!mounted) return;
+
+    final allow = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_languageManager.getText('enableReviewRemindersTitle')),
+        content: Text(_languageManager.getText('enableReviewRemindersDesc')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_languageManager.getText('later')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_languageManager.getText('allow')),
+          ),
+        ],
+      ),
+    );
+
+    await _reviewReminderService.markAskedPermission();
+    if (allow == true) {
+      await _reviewReminderService.requestNotificationPermission();
+    }
   }
 
   Future<void> _removeSavedGrammar(SavedGrammarItem item) async {
@@ -448,6 +483,13 @@ class _MyLearningScreenState extends State<MyLearningScreen>
       );
     }
 
+    // Insert a native ad at:
+    // - position #5 (after 5 items) if total items > 5
+    // - otherwise at the end
+    final shouldInsertAfterFive = _savedGrammarItems.length > 5;
+    final insertAfterItemIndex = 4; // 0-based -> 5th item
+    var insertedAd = false;
+
     for (final item in _savedGrammarItems) {
       final hasEpisode =
           item.episodeId.isNotEmpty && _episodeLookup.containsKey(item.episodeId);
@@ -588,6 +630,27 @@ class _MyLearningScreenState extends State<MyLearningScreen>
               ),
             ),
           ),
+        ),
+      );
+
+      if (!insertedAd &&
+          shouldInsertAfterFive &&
+          _savedGrammarItems.indexOf(item) == insertAfterItemIndex) {
+        insertedAd = true;
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+            child: TranscriptNativeAdWidget(category: item.category),
+          ),
+        );
+      }
+    }
+
+    if (!insertedAd) {
+      widgets.add(
+        const Padding(
+          padding: EdgeInsets.fromLTRB(8, 2, 8, 6),
+          child: TranscriptNativeAdWidget(category: 'grammar'),
         ),
       );
     }

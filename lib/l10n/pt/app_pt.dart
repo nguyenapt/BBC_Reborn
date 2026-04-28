@@ -49,6 +49,11 @@ class AppPt {
     'save': 'Salvar',
     'delete': 'Excluir',
     'edit': 'Editar',
+    'later': 'Mais tarde',
+    'allow': 'Permitir',
+    'enableReviewRemindersTitle': 'Ativar lembretes de revisão?',
+    'enableReviewRemindersDesc':
+        'Ative as notificações para lembrarmos você quando for hora de revisar a gramática salva.',
     
     // Audio Controls
     'play': 'Reproduzir',

@@ -25,6 +25,18 @@ abstract class AIProvider {
     String passage,
     String targetLanguage,
   );
+
+  /// Explain overall grammar theme for a passage (fast path)
+  Future<Map<String, dynamic>> explainGrammarPassageOverall(
+    String passage,
+    String targetLanguage,
+  );
+
+  /// Explain sentence-level analyses for a passage (detailed path)
+  Future<Map<String, dynamic>> explainGrammarPassageSentences(
+    String passage,
+    String targetLanguage,
+  );
   
   /// Generate questions from transcript
   Future<List<Map<String, dynamic>>> generateQuestions(

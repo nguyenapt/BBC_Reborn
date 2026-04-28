@@ -14,6 +14,7 @@ import '../services/admob_service.dart';
 import '../services/heart_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/learning_analytics_service.dart';
+import '../services/review_reminder_service.dart';
 import '../config/ai_config.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
@@ -57,6 +58,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
+  final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
   final Map<String, GrammarExplanation> _grammarCache = {};
   late final AnimationController _breathController;
@@ -731,21 +733,30 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
     try {
       final episodeId = widget.episode.id ?? '';
-      final explanation = await _grammarService.explainPassage(
-        normalizedPassage,
-        episodeId,
-      );
-      
-      _grammarCache[cacheKey] = explanation;
+      final progressive =
+          await _grammarService.explainPassageProgressive(normalizedPassage, episodeId);
+
+      _grammarCache[cacheKey] = progressive.initial;
       await _savedGrammarService.recordViewed(
-        explanation: explanation,
+        explanation: progressive.initial,
         episode: widget.episode,
       );
       await _analyticsService.trackEvent('grammar_opened');
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        _showGrammarDialog(context, explanation);
+        _showGrammarDialog(
+          context,
+          progressive.initial,
+          progressiveUpdate: progressive.full.then((full) async {
+            _grammarCache[cacheKey] = full;
+            await _savedGrammarService.recordViewed(
+              explanation: full,
+              episode: widget.episode,
+            );
+            return full;
+          }),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -760,15 +771,21 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
-  void _showGrammarDialog(BuildContext context, GrammarExplanation explanation) {
+  void _showGrammarDialog(
+    BuildContext context,
+    GrammarExplanation explanation, {
+    Future<GrammarExplanation>? progressiveUpdate,
+  }) {
     final savedItem =
         _savedGrammarService.getBySentence(explanation.sentence, widget.episode.id ?? '');
+    final wasSaved = savedItem?.isPinned == true;
     showDialog(
       context: context,
       builder: (context) => GrammarExplanationDialog(
         explanation: explanation,
+        progressiveUpdate: progressiveUpdate,
         category: widget.episode.category,
-        isSaved: savedItem?.isPinned == true,
+        isSaved: wasSaved,
         onQuizChecked: (isCorrect) async {
           await _analyticsService.trackEvent('quiz_answered');
           if (isCorrect) {
@@ -776,6 +793,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
           }
         },
         onToggleSaved: () async {
+          if (!wasSaved) {
+            await _maybeAskReviewReminderPermission(context);
+          }
           final isSaved = await _savedGrammarService.togglePinnedForExplanation(
             explanation: explanation,
             episode: widget.episode,
@@ -797,6 +817,35 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         },
       ),
     );
+  }
+
+  Future<void> _maybeAskReviewReminderPermission(BuildContext context) async {
+    final alreadyAsked = await _reviewReminderService.hasAskedPermission();
+    if (alreadyAsked) return;
+    if (!context.mounted) return;
+
+    final allow = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_languageManager.getText('enableReviewRemindersTitle')),
+        content: Text(_languageManager.getText('enableReviewRemindersDesc')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_languageManager.getText('later')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_languageManager.getText('allow')),
+          ),
+        ],
+      ),
+    );
+
+    await _reviewReminderService.markAskedPermission();
+    if (allow == true) {
+      await _reviewReminderService.requestNotificationPermission();
+    }
   }
 
   Future<void> _translateLine(BuildContext context, String lineText, int lineIndex) async {

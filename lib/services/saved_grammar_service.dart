@@ -181,7 +181,11 @@ class SavedGrammarService extends ChangeNotifier {
 
   Future<void> _saveAndNotify() async {
     await _storageService.saveSavedGrammarItems(_items);
-    await _reviewReminderService.syncReviewNotifications(_items);
+    try {
+      await _reviewReminderService.syncReviewNotifications(_items);
+    } catch (e) {
+      debugPrint('syncReviewNotifications failed: $e');
+    }
     notifyListeners();
   }
 

@@ -50,6 +50,10 @@ class AppVi {
     'delete': 'Xóa',
     'edit': 'Sửa',
     'later': 'Để sau',
+    'allow': 'Cho phép',
+    'enableReviewRemindersTitle': 'Bật nhắc ôn tập?',
+    'enableReviewRemindersDesc':
+        'Bật thông báo để app nhắc bạn ôn lại các mục ngữ pháp đã lưu đúng lúc.',
     
     // Rate App
     'rateApp': 'Đánh giá ứng dụng',

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -16,7 +17,30 @@ class ReviewReminderService {
       FlutterLocalNotificationsPlugin();
   static const String _channelId = 'grammar_review_reminders';
   static const String _scheduledIdsKey = 'review_scheduled_notification_ids';
+  static const String _askedPermissionKey =
+      'review_reminders_permission_asked_v1';
   bool _initialized = false;
+
+  Future<bool> hasAskedPermission() async {
+    if (kIsWeb) return true;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_askedPermissionKey) ?? false;
+  }
+
+  Future<void> markAskedPermission() async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_askedPermissionKey, true);
+  }
+
+  /// Best-effort request for notification permission (Android 13+/iOS).
+  /// Returns true if permission is granted after the request.
+  Future<bool> requestNotificationPermission() async {
+    if (kIsWeb) return false;
+    if (!Platform.isAndroid && !Platform.isIOS) return false;
+    final status = await Permission.notification.request();
+    return status.isGranted;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;

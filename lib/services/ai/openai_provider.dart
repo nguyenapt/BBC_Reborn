@@ -288,13 +288,14 @@ JSON:''';
     String passage,
     String targetLanguage,
   ) async {
+    // Backward compatibility: keep this method, but use the slim schema.
     final prompt = '''
 Analyze this English passage for grammar learning.
 Return ONLY a valid JSON object, no markdown, no additional text.
 
 Passage: "$passage"
 
-Return JSON format:
+Return JSON format (slim):
 {
   "overall": {
     "grammarTheme": "main grammar theme in this passage",
@@ -314,22 +315,14 @@ Return JSON format:
         }
       ],
       "examples": ["example 1", "example 2"],
-      "commonMistakes": ["mistake 1", "mistake 2"],
-      "rewriteExercise": "rewrite prompt in $targetLanguage",
-      "miniQuiz": {
-        "question": "one MCQ in $targetLanguage",
-        "options": ["A ...", "B ...", "C ...", "D ..."],
-        "correctAnswer": "A",
-        "explanation": "short answer explanation in $targetLanguage"
-      }
+      "commonMistakes": ["mistake 1", "mistake 2"]
     }
   ]
 }
 
 Rules:
-- sentenceAnalyses must cover every meaningful sentence in the passage.
-- phraseBreakdown focuses on important grammar-bearing phrases only.
-- Keep wording learner-friendly for the target language.
+- Keep output concise and learner-friendly in $targetLanguage.
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
 JSON:''';
 
     final response = await _callOpenAI(
@@ -342,6 +335,91 @@ JSON:''';
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse passage grammar JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageOverall(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+Return ONLY a valid JSON object, no markdown, no additional text.
+
+Passage: "$passage"
+
+Return JSON format:
+{
+  "overall": {
+    "grammarTheme": "main grammar theme in this passage",
+    "usageSummary": "concise summary in $targetLanguage",
+    "keyStructures": ["structure1", "structure2"]
+  }
+}
+
+Rules:
+- Keep it short.
+JSON:''';
+
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You are a multilingual English grammar coach. Always return strict JSON only and write explanations in the requested target language.',
+    );
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage overall JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageSentences(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final prompt = '''
+Analyze this English passage for grammar learning.
+Return ONLY a valid JSON object, no markdown, no additional text.
+
+Passage: "$passage"
+
+Return JSON format:
+{
+  "sentenceAnalyses": [
+    {
+      "sentenceText": "exact sentence from passage",
+      "mainStructure": "main grammar structure",
+      "usageInContext": "contextual usage in $targetLanguage",
+      "phraseBreakdown": [
+        {
+          "phrase": "exact phrase from sentence",
+          "structure": "phrase structure",
+          "usage": "phrase usage in $targetLanguage"
+        }
+      ],
+      "examples": ["example 1", "example 2"],
+      "commonMistakes": ["mistake 1", "mistake 2"]
+    }
+  ]
+}
+
+Rules:
+- Cover each meaningful sentence.
+- Keep output concise and learner-friendly in $targetLanguage.
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
+JSON:''';
+
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You are a multilingual English grammar coach. Always return strict JSON only and write explanations in the requested target language.',
+    );
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse passage sentences JSON: $e');
     }
   }
   
