@@ -12,11 +12,13 @@ import '../services/saved_grammar_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../services/vocabulary_service.dart';
+import '../services/vocabulary_practice_service.dart';
+import '../services/episode_detail_open_helper.dart';
 import '../services/review_reminder_service.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/grammar_explanation_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
-import 'episode_detail_screen.dart';
+import 'vocabulary_practice_screen.dart';
 
 class MyLearningScreen extends StatefulWidget {
   const MyLearningScreen({super.key});
@@ -34,6 +36,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   final LanguageManager _languageManager = LanguageManager();
   final AuthService _authService = AuthService();
   final VocabularyService _vocabularyService = VocabularyService();
+  final VocabularyPracticeService _vocabularyPracticeService = VocabularyPracticeService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
   final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
@@ -82,6 +85,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   }
 
   Future<void> _loadData() async {
+    await _vocabularyPracticeService.initialize();
     await _loadFavouriteEpisodes();
     await _loadSavedVocabularies();
     await _loadSavedGrammar();
@@ -206,14 +210,10 @@ class _MyLearningScreenState extends State<MyLearningScreen>
 
   void _navigateToEpisode(Episode episode) {
     final categoryEpisodes = _episodeLookup.values.toList();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpisodeDetailScreen(
-          episode: episode,
-          categoryEpisodes: categoryEpisodes.isNotEmpty ? categoryEpisodes : [episode],
-        ),
-      ),
+    EpisodeDetailOpenHelper.open(
+      context: context,
+      episode: episode,
+      categoryEpisodes: categoryEpisodes.isNotEmpty ? categoryEpisodes : [episode],
     );
   }
 
@@ -248,6 +248,25 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         ),
       );
     }
+  }
+
+  void _openVocabularyPractice({List<VocabularyItem>? initialWords}) {
+    if (_savedVocabularies.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_languageManager.getText('noVocabularyToPractice'))),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VocabularyPracticeScreen(
+          allWords: _savedVocabularies,
+          initialWords: initialWords,
+        ),
+      ),
+    );
   }
 
   Future<void> _togglePinGrammar(SavedGrammarItem item) async {
@@ -432,9 +451,9 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         ),
         dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         tabs: [
-          Tab(icon: const Icon(Icons.lightbulb_outline, size: 20), text: _languageManager.getText('grammar')),
-          Tab(icon: const Icon(Icons.favorite, size: 20), text: _languageManager.getText('episodes')),
-          Tab(icon: const Icon(Icons.book, size: 20), text: _languageManager.getText('vocabularies')),
+          Tab(text: _languageManager.getText('grammar')),
+          Tab(text: _languageManager.getText('episodes')),
+          Tab(text: _languageManager.getText('vocabularies')),
         ],
       ),
     );
@@ -823,82 +842,217 @@ class _MyLearningScreenState extends State<MyLearningScreen>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadSavedVocabularies,
-      child: ListView.builder(
-        itemCount: _savedVocabularies.length,
-        itemBuilder: (context, index) {
-          final vocabulary = _savedVocabularies[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.bookmark,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          vocabulary.vocab,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+    final wotd = VocabularyPracticeService.pickWordOfTheDay(_savedVocabularies);
+    final widgets = <Widget>[
+      if (wotd != null) _buildWordOfTheDayCard(wotd),
+    ];
+
+    for (final vocabulary in _savedVocabularies) {
+      widgets.add(
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.bookmark,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        vocabulary.vocab,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    vocabulary.mean,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.78),
-                      height: 1.4,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (vocabulary.bbcEpisodeId.isNotEmpty)
-                    Text(
-                      'Episode: ${vocabulary.bbcEpisodeId}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      if (vocabulary.bbcEpisodeId.isNotEmpty)
-                        _buildInlineAction(
-                          icon: Icons.open_in_new,
-                          label: _languageManager.getText('openEpisode'),
+                    if (vocabulary.bbcEpisodeId.isNotEmpty)
+                      IconButton(
+                        tooltip: _languageManager.getText('openEpisode'),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                        icon: Icon(
+                          Icons.open_in_new,
                           color: Theme.of(context).colorScheme.primary,
-                          onTap: () => _openEpisodeById(vocabulary.bbcEpisodeId),
+                          size: 22,
                         ),
-                      _buildInlineAction(
-                        icon: Icons.delete_outline,
-                        label: _languageManager.getText('remove'),
-                        color: Theme.of(context).colorScheme.error,
-                        onTap: () => _removeVocabulary(vocabulary.vocab),
+                        onPressed: () => _openEpisodeById(vocabulary.bbcEpisodeId),
                       ),
-                    ],
+                    IconButton(
+                      tooltip: _languageManager.getText('remove'),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: Theme.of(context).colorScheme.error,
+                        size: 22,
+                      ),
+                      onPressed: () => _removeVocabulary(vocabulary.vocab),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  vocabulary.mean,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.78),
+                    height: 1.4,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    widgets.add(const SizedBox(height: 96));
+
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _loadSavedVocabularies,
+          child: ListView(children: widgets),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Center(
+              child: _buildFloatingPracticeButton(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWordOfTheDayCard(VocabularyItem item) {
+    const backgroundTop = Color(0xFF0D5D85);
+    const backgroundBottom = Color(0xFF0A4B6B);
+    const exploreGreen = Color(0xFF66C95B);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [backgroundTop, backgroundBottom],
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _languageManager.getText('wordOfTheDay'),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 1.08,
               ),
             ),
-          );
-        },
+            const SizedBox(height: 10),
+            Text(
+              item.vocab,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              item.mean,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.35,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: () => _openVocabularyPractice(initialWords: [item]),
+              style: FilledButton.styleFrom(
+                backgroundColor: exploreGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: Text(_languageManager.getText('explore').toUpperCase()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingPracticeButton() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color(0xFF0D5D85),
+            Color(0xFF0A4B6B),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0D5D85).withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => _openVocabularyPractice(),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(160, 52),
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+        label: Text(
+          _languageManager.getText('practiceShort'),
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }

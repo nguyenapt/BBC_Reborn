@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
+import '../services/episode_detail_open_helper.dart';
 import '../utils/category_names.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
-import 'episode_detail_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialTab;
@@ -225,14 +225,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       categoryEpisodes = _episodesData[currentCategory] ?? [];
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpisodeDetailScreen(
-          episode: episode,
-          categoryEpisodes: categoryEpisodes,
-        ),
-      ),
+    EpisodeDetailOpenHelper.open(
+      context: context,
+      episode: episode,
+      categoryEpisodes: categoryEpisodes,
     );
   }
 

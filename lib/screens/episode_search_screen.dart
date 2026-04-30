@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
+import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
-import 'episode_detail_screen.dart';
 
 class EpisodeSearchScreen extends StatefulWidget {
   const EpisodeSearchScreen({super.key});
@@ -70,14 +70,10 @@ class _EpisodeSearchScreenState extends State<EpisodeSearchScreen> {
   }
 
   void _openEpisode(Episode episode) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EpisodeDetailScreen(
-          episode: episode,
-          categoryEpisodes: _results,
-        ),
-      ),
+    EpisodeDetailOpenHelper.open(
+      context: context,
+      episode: episode,
+      categoryEpisodes: _results,
     );
   }
 

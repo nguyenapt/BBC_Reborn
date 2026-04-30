@@ -5,9 +5,9 @@ import '../models/episode.dart';
 import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
+import '../services/episode_detail_open_helper.dart';
 import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
-import 'episode_detail_screen.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
@@ -105,25 +105,17 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (episodeCategory != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EpisodeDetailScreen(
-            episode: episode,
-            categoryEpisodes: episodeCategory!.episodes,
-          ),
-        ),
+      EpisodeDetailOpenHelper.open(
+        context: context,
+        episode: episode,
+        categoryEpisodes: episodeCategory!.episodes,
       );
     } else {
       // Fallback nếu không tìm thấy category
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EpisodeDetailScreen(
-            episode: episode,
-            categoryEpisodes: [episode],
-          ),
-        ),
+      EpisodeDetailOpenHelper.open(
+        context: context,
+        episode: episode,
+        categoryEpisodes: [episode],
       );
     }
   }
