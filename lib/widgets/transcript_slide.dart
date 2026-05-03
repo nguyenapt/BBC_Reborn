@@ -682,8 +682,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   }
 
   Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
-    final normalizedPassage = sentence.trim();
-    if (normalizedPassage.isEmpty) return;
+    final normalizedSentence = sentence.trim();
+    if (normalizedSentence.isEmpty) return;
     if (!AIConfig.enableGrammar) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -693,8 +693,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
       return;
     }
 
-    // Check cache first
-    final cacheKey = 'passage::$normalizedPassage';
+    // Sentence-level grammar (explainSentence + ai_cache/grammar/…), not passage progressive.
+    final cacheKey = 'sentence::$normalizedSentence';
     if (_grammarCache.containsKey(cacheKey)) {
       final cached = _grammarCache[cacheKey]!;
       await _savedGrammarService.recordViewed(
@@ -733,30 +733,19 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
     try {
       final episodeId = widget.episode.id ?? '';
-      final progressive =
-          await _grammarService.explainPassageProgressive(normalizedPassage, episodeId);
+      final explanation =
+          await _grammarService.explainSentence(normalizedSentence, episodeId);
 
-      _grammarCache[cacheKey] = progressive.initial;
+      _grammarCache[cacheKey] = explanation;
       await _savedGrammarService.recordViewed(
-        explanation: progressive.initial,
+        explanation: explanation,
         episode: widget.episode,
       );
       await _analyticsService.trackEvent('grammar_opened');
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        _showGrammarDialog(
-          context,
-          progressive.initial,
-          progressiveUpdate: progressive.full.then((full) async {
-            _grammarCache[cacheKey] = full;
-            await _savedGrammarService.recordViewed(
-              explanation: full,
-              episode: widget.episode,
-            );
-            return full;
-          }),
-        );
+        _showGrammarDialog(context, explanation);
       }
     } catch (e) {
       if (context.mounted) {
@@ -765,7 +754,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _showErrorSnackBar(
           context,
           e,
-          onRetry: () => _showGrammarExplanation(context, normalizedPassage),
+          onRetry: () => _showGrammarExplanation(context, normalizedSentence),
         );
       }
     }
@@ -786,12 +775,6 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         progressiveUpdate: progressiveUpdate,
         category: widget.episode.category,
         isSaved: wasSaved,
-        onQuizChecked: (isCorrect) async {
-          await _analyticsService.trackEvent('quiz_answered');
-          if (isCorrect) {
-            await _analyticsService.trackEvent('quiz_answered_correct');
-          }
-        },
         onToggleSaved: () async {
           if (!wasSaved) {
             await _maybeAskReviewReminderPermission(context);

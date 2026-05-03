@@ -60,3 +60,6 @@ tools/FirestoreMigration/**/*export*.json
 tools/FirestoreMigration/appsettings.Local.json
 database - 17042026.json
 database-list-17042026.json
+playMP3/bin/
+playMP3/obj/
+playMP3/packages/

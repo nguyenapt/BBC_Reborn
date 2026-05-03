@@ -32,6 +32,7 @@ class AdMobService {
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
+  bool _isLoadingInterstitial = false;
   DateTime? _lastInterstitialShownAt;
   int _interstitialShownCount = 0;
   AppOpenAd? _appOpenAd;
@@ -47,7 +48,7 @@ class AdMobService {
 
   static const Duration _appOpenAdCooldown = Duration(hours: 3); // 3 giờ mới hiển thị lại
   static const Duration _interstitialCooldown = Duration(seconds: 90);
-  static const int _interstitialFallbackEvery = 3;
+  static const int _interstitialFallbackEvery = 5;
   static const Duration _maxAppOpenAdAge = Duration(hours: 4);
   static const int _maxAppOpenShowsPerSession = 2;
   static const String _appOpenLastShownPrefKey = 'admob.app_open.last_shown_iso';
@@ -133,28 +134,55 @@ class AdMobService {
     );
   }
 
-  // Tạo Interstitial Ad
+  /// Đang có interstitial sẵn sàng để show (không null sau onAdLoaded).
+  bool get hasInterstitialReady => _interstitialAd != null;
+
+  // Tạo Interstitial Ad (preload). Bỏ qua nếu đã có ad hoặc đang load.
   void createInterstitialAd() {
     if (kIsWeb) {
       print('Interstitial ads không được hỗ trợ trên web');
       return;
     }
+    if (_interstitialAd != null) {
+      return;
+    }
+    if (_isLoadingInterstitial) {
+      return;
+    }
+    _isLoadingInterstitial = true;
     final adUnitId = _getInterstitialAdUnitId();
-    
+
     InterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _interstitialAd = ad;
+          _isLoadingInterstitial = false;
           print('Interstitial ad loaded');
         },
         onAdFailedToLoad: (error) {
           print('Interstitial ad failed to load: $error');
           _interstitialAd = null;
+          _isLoadingInterstitial = false;
         },
       ),
     );
+  }
+
+  /// Chờ interstitial load (tối đa [timeout]). Gọi [createInterstitialAd] nếu chưa có và chưa đang load.
+  Future<void> ensureInterstitialLoaded({
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    if (kIsWeb) return;
+    if (_interstitialAd != null) return;
+    createInterstitialAd();
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (_interstitialAd != null) return;
+      if (!_isLoadingInterstitial) return;
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
   }
 
   bool _shouldShowFallbackNotice() {

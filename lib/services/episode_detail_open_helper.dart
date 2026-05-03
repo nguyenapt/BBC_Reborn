@@ -7,12 +7,12 @@ import 'admob_service.dart';
 class EpisodeDetailOpenHelper {
   static bool _isOpeningEpisodeDetail = false;
 
-  static void open({
+  static Future<void> open({
     required BuildContext context,
     required Episode episode,
     required List<Episode> categoryEpisodes,
     bool replace = false,
-  }) {
+  }) async {
     if (_isOpeningEpisodeDetail) return;
     _isOpeningEpisodeDetail = true;
 
@@ -24,8 +24,15 @@ class EpisodeDetailOpenHelper {
       ),
     );
 
-    AdMobService().createInterstitialAd();
-    AdMobService().showInterstitialAd(
+    final admob = AdMobService();
+    admob.createInterstitialAd();
+    await admob.ensureInterstitialLoaded();
+    if (!context.mounted) {
+      _isOpeningEpisodeDetail = false;
+      return;
+    }
+
+    admob.showInterstitialAd(
       context: context,
       onDismissedOrUnavailable: () {
         if (!context.mounted) {

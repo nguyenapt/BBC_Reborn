@@ -255,18 +255,13 @@ Return JSON format:
   "whyThisForm": "why this form is used in this sentence, in $targetLanguage",
   "explanation": "clear explanation in $targetLanguage",
   "highlightedWords": ["word_or_phrase_1", "word_or_phrase_2"],
-  "commonMistakes": ["mistake 1 in $targetLanguage", "mistake 2 in $targetLanguage"],
-  "miniQuiz": {
-    "question": "one multiple-choice grammar question in $targetLanguage",
-    "options": ["A ...", "B ...", "C ...", "D ..."],
-    "correctAnswer": "A",
-    "explanation": "short reason in $targetLanguage"
-  }
+  "commonMistakes": ["mistake 1 in $targetLanguage", "mistake 2 in $targetLanguage"]
 }
 
 Rules:
 - Keep explanations practical and short.
 - "highlightedWords" must be exact fragments from the input sentence.
+- Do NOT include quizzes, exercises, or multiple-choice questions.
 - If unsure, still provide best-effort pedagogical output.
 JSON:''';
     
