@@ -533,9 +533,6 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                     if (!dialogContext.mounted) return;
                     Navigator.of(dialogContext).pop();
                   },
-                  onQuizChecked: (_) async {
-                    await _analyticsService.trackEvent('quiz_answered');
-                  },
                   onOpenEpisode:
                       hasEpisode ? () => _openEpisodeById(item.episodeId) : null,
                 ),

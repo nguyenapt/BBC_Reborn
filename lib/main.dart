@@ -86,8 +86,9 @@ void main() async {
     await LearningAnalyticsService().initialize();
     debugPrint('✅ LearningAnalyticsService initialized');
     
-    // Preload rewarded ad for hearts
+    // Preload ads (interstitial dùng trước khi vào episode detail; rewarded cho hearts)
     if (!kIsWeb && consentService.canRequestAds) {
+      AdMobService().createInterstitialAd();
       AdMobService().createRewardedAd();
     }
     
@@ -261,6 +262,9 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     // - Cold start: thử hiển thị sau khi UI ổn định.
     // - Resume: chỉ thử khi app ở background đủ lâu.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!kIsWeb && mounted) {
+        AdMobService().createInterstitialAd();
+      }
       Future.delayed(_appOpenStartupDelay, () {
         if (mounted) {
           _tryShowAppOpenAd(trigger: 'startup');

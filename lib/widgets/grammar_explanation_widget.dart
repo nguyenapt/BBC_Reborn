@@ -11,7 +11,6 @@ class GrammarExplanationDialog extends StatefulWidget {
   final bool isSaved;
   final VoidCallback? onToggleSaved;
   final VoidCallback? onOpenEpisode;
-  final void Function(bool isCorrect)? onQuizChecked;
 
   const GrammarExplanationDialog({
     super.key,
@@ -21,7 +20,6 @@ class GrammarExplanationDialog extends StatefulWidget {
     this.isSaved = false,
     this.onToggleSaved,
     this.onOpenEpisode,
-    this.onQuizChecked,
   });
 
   @override
@@ -30,8 +28,6 @@ class GrammarExplanationDialog extends StatefulWidget {
 
 class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
   final LanguageManager _languageManager = LanguageManager();
-  String? _selectedQuizOption;
-  bool _quizSubmitted = false;
   late GrammarExplanation _explanation;
   bool _isUpdating = false;
 
@@ -244,10 +240,6 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
                         ),
                       ),
                     ],
-                    if (explanation.miniQuiz != null) ...[
-                      const SizedBox(height: 12),
-                      _buildMiniQuiz(context, explanation.miniQuiz!),
-                    ],
                     const SizedBox(height: 12),
                   ],
                 ),
@@ -272,80 +264,6 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
           ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMiniQuiz(BuildContext context, GrammarMiniQuiz quiz) {
-    final isCorrect = _isQuizAnswerCorrect(_selectedQuizOption, quiz);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _languageManager.getText('quickQuizLabel'),
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(quiz.question),
-          const SizedBox(height: 8),
-          ...quiz.options.map(
-            (option) => RadioListTile<String>(
-              value: option,
-              groupValue: _selectedQuizOption,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(option),
-              onChanged: (value) {
-                setState(() {
-                  _selectedQuizOption = value;
-                  _quizSubmitted = false;
-                });
-              },
-            ),
-          ),
-          ElevatedButton(
-            onPressed: _selectedQuizOption == null
-                ? null
-                : () {
-                    final currentIsCorrect =
-                        _isQuizAnswerCorrect(_selectedQuizOption, quiz);
-                    setState(() {
-                      _quizSubmitted = true;
-                    });
-                    widget.onQuizChecked?.call(currentIsCorrect);
-                  },
-            child: Text(_languageManager.getText('checkLabel')),
-          ),
-          if (_quizSubmitted) ...[
-            const SizedBox(height: 6),
-            Text(
-              isCorrect
-                  ? _languageManager.getText('quizCorrect')
-                  : _languageManager.getText('quizTryAgain'),
-              style: TextStyle(
-                color: isCorrect ? Colors.green : Theme.of(context).colorScheme.error,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (quiz.explanation.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  quiz.explanation,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
-                  ),
-                ),
-              ),
-          ],
-        ],
       ),
     );
   }
@@ -427,50 +345,6 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
         });
       });
     }
-  }
-
-  bool _isQuizAnswerCorrect(String? selectedOption, GrammarMiniQuiz quiz) {
-    if (selectedOption == null) return false;
-    final selected = selectedOption.trim();
-    final correctRaw = quiz.correctAnswer.trim();
-    if (selected.isEmpty || correctRaw.isEmpty) return false;
-
-    // Case 1: Provider returns full option text ("B. Hi")
-    if (_normalizeOptionText(selected) == _normalizeOptionText(correctRaw)) {
-      return true;
-    }
-
-    // Case 2: Provider returns option key only ("B")
-    final correctKey = _extractOptionKey(correctRaw);
-    if (correctKey != null) {
-      final selectedKey = _extractOptionKey(selected);
-      if (selectedKey != null) {
-        return selectedKey == correctKey;
-      }
-
-      // Case 3: selected text without key, fallback by option position
-      final selectedIndex = quiz.options.indexWhere(
-        (option) => _normalizeOptionText(option) == _normalizeOptionText(selected),
-      );
-      if (selectedIndex >= 0) {
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        if (selectedIndex < alphabet.length) {
-          return alphabet[selectedIndex] == correctKey;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  String _normalizeOptionText(String text) {
-    return text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-  }
-
-  String? _extractOptionKey(String value) {
-    final match = RegExp(r'^\s*([A-Da-d])(?:[\.\):\-\s]|$)').firstMatch(value);
-    if (match == null) return null;
-    return match.group(1)?.toUpperCase();
   }
 
   Widget _buildAnalysisDetails(BuildContext context, GrammarSentenceAnalysis analysis) {

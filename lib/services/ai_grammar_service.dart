@@ -388,25 +388,6 @@ class AIGrammarService {
             .toList() ??
         [];
 
-    GrammarMiniQuiz? quiz;
-    final miniQuizMap = response['miniQuiz'];
-    if (miniQuizMap is Map<String, dynamic>) {
-      final question = miniQuizMap['question']?.toString().trim() ?? '';
-      final options = (miniQuizMap['options'] as List<dynamic>?)
-              ?.map((e) => e.toString().trim())
-              .where((e) => e.isNotEmpty)
-              .toList() ??
-          [];
-      if (question.isNotEmpty && options.isNotEmpty) {
-        quiz = GrammarMiniQuiz(
-          question: question,
-          options: options,
-          correctAnswer: miniQuizMap['correctAnswer']?.toString().trim() ?? '',
-          explanation: miniQuizMap['explanation']?.toString().trim() ?? '',
-        );
-      }
-    }
-
     return GrammarExplanation(
       sentence: sentence,
       grammarPoint: grammarPoint,
@@ -415,7 +396,6 @@ class AIGrammarService {
       rulePattern: response['rulePattern']?.toString(),
       whyThisForm: response['whyThisForm']?.toString(),
       commonMistakes: commonMistakes,
-      miniQuiz: quiz,
     );
   }
 
@@ -451,13 +431,11 @@ class AIGrammarService {
                 .toList(),
             commonMistakes: single.commonMistakes,
             rewriteExercise: '',
-            miniQuiz: single.miniQuiz,
           ),
         ],
         rulePattern: single.rulePattern,
         whyThisForm: single.whyThisForm,
         commonMistakes: single.commonMistakes,
-        miniQuiz: single.miniQuiz,
       );
     }
 
@@ -487,7 +465,6 @@ class AIGrammarService {
       rulePattern: firstAnalysis?.mainStructure,
       whyThisForm: firstAnalysis?.usageInContext,
       commonMistakes: firstAnalysis?.commonMistakes ?? const [],
-      miniQuiz: firstAnalysis?.miniQuiz,
     );
   }
 
@@ -519,7 +496,6 @@ class AIGrammarService {
             examples: const [],
             commonMistakes: explained.commonMistakes,
             rewriteExercise: '',
-            miniQuiz: explained.miniQuiz,
           ),
         );
       } catch (_) {

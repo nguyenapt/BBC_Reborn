@@ -69,6 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
         debugPrint('📱 Initializing AdMob in splash...');
         await AdMobService.initialize();
         debugPrint('✅ AdMob initialized in splash');
+        AdMobService().createInterstitialAd();
       } catch (e) {
         debugPrint('❌ Error initializing AdMob: $e');
         // Tiếp tục chạy app ngay cả khi AdMob lỗi
