@@ -16,6 +16,21 @@ class AIFirebaseCacheService {
   static const int _cacheVersion = 1;
   static const int _defaultTtlDays = 90;
   static const int _vocabularyTtlDays = 180; // Vocabulary changes less frequently
+  static const int _grammarSchemaVersion = 2;
+
+  String _normalizeSentenceForCacheLookup(String text) {
+    var s = text.trim().toLowerCase();
+    s = s.replaceAll(RegExp(r'\s+'), ' ');
+    // Remove wrapping quotes that may appear in UI text selections/logs.
+    const quoteChars = ['"', "'", '‘', '’', '“', '”'];
+    while (s.isNotEmpty && quoteChars.contains(s[0])) {
+      s = s.substring(1).trimLeft();
+    }
+    while (s.isNotEmpty && quoteChars.contains(s[s.length - 1])) {
+      s = s.substring(0, s.length - 1).trimRight();
+    }
+    return s.trim();
+  }
 
   /// Get translation from Firebase cache
   Future<Map<String, String>?> getTranslation(
@@ -68,8 +83,8 @@ class AIFirebaseCacheService {
     }
   }
 
-  /// Get translation for a specific line from Firebase cache
-  /// Checks if lineNumber and original text match
+  /// Get translation for a specific line from Firebase cache.
+  /// Language is encoded in [languageCode] (URL segment). List entries match [lineNumber] first.
   Future<String?> getLineTranslation(
     String episodeId,
     String languageCode,
@@ -92,16 +107,26 @@ class AIFirebaseCacheService {
         // Check if cache is still valid
         if (cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
           final translationsData = cacheEntry.data['translations'];
-          
+
           if (translationsData is List) {
-            // Search for matching line
             final translation = CacheKeyHelper.findLineTranslation(
               translationsData,
               originalText,
               lineNumber,
             );
             if (translation != null) {
-              debugPrint('Firebase cache HIT for line translation: $episodeId/$languageCode (lineNumber: $lineNumber)');
+              debugPrint(
+                  'Firebase cache HIT for line translation: $episodeId/$languageCode (lineNumber: $lineNumber)');
+              return translation;
+            }
+          } else if (translationsData is Map) {
+            final translation = CacheKeyHelper.lookupTranslationFlexible(
+              translationsData,
+              originalText,
+            );
+            if (translation != null) {
+              debugPrint(
+                  'Firebase cache HIT for line translation (map schema): $episodeId/$languageCode');
               return translation;
             }
           }
@@ -325,8 +350,79 @@ class AIFirebaseCacheService {
     String? episodeId,
     String? modelVersion,
     String? promptVersion,
+    int? lineNumber,
   }) async {
     try {
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      if (episodeId != null && episodeId.trim().isNotEmpty) {
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId.trim());
+        final lineKey =
+            CacheKeyHelper.grammarEpisodeLineKey(sentence, lineNumber: lineNumber);
+        final byEpisodeUrl =
+            '$_baseUrl/$_cachePath/grammar_by_episode/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
+        debugPrint('[FirebaseGrammar] try grammar_by_episode url=$byEpisodeUrl');
+        final byEpisodeResponse = await http.get(
+          Uri.parse(byEpisodeUrl),
+          headers: {'Accept': 'application/json'},
+        ).timeout(const Duration(seconds: 5));
+
+        if (byEpisodeResponse.statusCode == 200 && byEpisodeResponse.body != 'null') {
+          final cacheEntry = AICacheEntry.fromJson(json.decode(byEpisodeResponse.body));
+          if (cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+            debugPrint('Firebase cache HIT for grammar_by_episode: $episodeId/$lineKey');
+            return cacheEntry.data;
+          }
+          debugPrint('[FirebaseGrammar] grammar_by_episode EXPIRED: $episodeId/$lineKey');
+        }
+        if (byEpisodeResponse.statusCode == 200 && byEpisodeResponse.body == 'null') {
+          debugPrint('[FirebaseGrammar] grammar_by_episode MISS (null): $episodeId/$lineKey');
+        } else if (byEpisodeResponse.statusCode != 200) {
+          debugPrint('[FirebaseGrammar] grammar_by_episode status=${byEpisodeResponse.statusCode}');
+        }
+
+        // Fallback for prefilled caches where line key might differ by sentence normalization.
+        final byEpisodeRootUrl =
+            '$_baseUrl/$_cachePath/grammar_by_episode/$safeEpisodeId.json';
+        debugPrint('[FirebaseGrammar] fallback scan by sourceSentence url=$byEpisodeRootUrl');
+        final byEpisodeRootResponse = await http.get(
+          Uri.parse(byEpisodeRootUrl),
+          headers: {'Accept': 'application/json'},
+        ).timeout(const Duration(seconds: 5));
+        if (byEpisodeRootResponse.statusCode == 200 &&
+            byEpisodeRootResponse.body != 'null') {
+          final decoded = json.decode(byEpisodeRootResponse.body);
+          if (decoded is Map<String, dynamic>) {
+            final normalizedNeedle = _normalizeSentenceForCacheLookup(sentence);
+            for (final lineEntry in decoded.entries) {
+              final lineNode = lineEntry.value;
+              if (lineNode is! Map<String, dynamic>) continue;
+              final langNode = lineNode[safeLanguageCode];
+              if (langNode is! Map<String, dynamic>) continue;
+              try {
+                final cacheEntry = AICacheEntry.fromJson(langNode);
+                if (!cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+                  continue;
+                }
+                final sourceSentence =
+                    cacheEntry.data['sourceSentence']?.toString() ?? '';
+                final normalizedSource =
+                    _normalizeSentenceForCacheLookup(sourceSentence);
+                if (normalizedSource == normalizedNeedle) {
+                  debugPrint(
+                    '[FirebaseGrammar] grammar_by_episode HIT via sourceSentence scan: '
+                    '$episodeId/${lineEntry.key}/$safeLanguageCode',
+                  );
+                  return cacheEntry.data;
+                }
+              } catch (_) {
+                // Ignore malformed node and continue scanning.
+              }
+            }
+            debugPrint('[FirebaseGrammar] sourceSentence scan MISS for episode=$episodeId');
+          }
+        }
+      }
+
       final sentenceHash = CacheKeyHelper.grammarKey(
         sentence,
         languageCode,
@@ -334,8 +430,8 @@ class AIFirebaseCacheService {
         modelVersion: modelVersion,
         promptVersion: promptVersion,
       ).replaceFirst('grammar_', '');
-      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
       final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
+      debugPrint('[FirebaseGrammar] fallback legacy url=$url');
       
       final response = await http.get(
         Uri.parse(url),
@@ -369,8 +465,21 @@ class AIFirebaseCacheService {
     String? episodeId,
     String? modelVersion,
     String? promptVersion,
+    int? lineNumber,
   }) async {
     try {
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final normalizedEpisodeId = episodeId?.trim();
+      final lineKey =
+          CacheKeyHelper.grammarEpisodeLineKey(sentence, lineNumber: lineNumber);
+      final normalizedGrammarData = Map<String, dynamic>.from(grammarData);
+      if ((normalizedEpisodeId ?? '').isNotEmpty) {
+        normalizedGrammarData['episodeId'] = normalizedEpisodeId;
+      }
+      normalizedGrammarData['lineKey'] = lineKey;
+      normalizedGrammarData['sourceSentence'] = sentence.trim();
+      normalizedGrammarData['schemaVersion'] = _grammarSchemaVersion;
+
       final sentenceHash = CacheKeyHelper.grammarKey(
         sentence,
         languageCode,
@@ -378,11 +487,10 @@ class AIFirebaseCacheService {
         modelVersion: modelVersion,
         promptVersion: promptVersion,
       ).replaceFirst('grammar_', '');
-      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
       final url = '$_baseUrl/$_cachePath/grammar/$sentenceHash/$safeLanguageCode.json';
       
       final cacheEntry = AICacheEntry(
-        data: grammarData,
+        data: normalizedGrammarData,
         createdAt: DateTime.now(),
         version: _cacheVersion,
         ttlDays: _defaultTtlDays,
@@ -393,6 +501,17 @@ class AIFirebaseCacheService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(cacheEntry.toJson()),
       ).timeout(const Duration(seconds: 5));
+
+      if ((normalizedEpisodeId ?? '').isNotEmpty) {
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(normalizedEpisodeId!);
+        final byEpisodeUrl =
+            '$_baseUrl/$_cachePath/grammar_by_episode/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
+        await http.put(
+          Uri.parse(byEpisodeUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(cacheEntry.toJson()),
+        ).timeout(const Duration(seconds: 5));
+      }
       
       debugPrint('Saved grammar to Firebase cache: $sentenceHash');
     } catch (e) {
@@ -485,7 +604,8 @@ class AIFirebaseCacheService {
     int count,
   ) async {
     try {
-      final url = '$_baseUrl/$_cachePath/questions/$episodeId/$count.json';
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final url = '$_baseUrl/$_cachePath/questions/$safeEpisodeId/$count.json';
       
       final response = await http.get(
         Uri.parse(url),
@@ -520,7 +640,8 @@ class AIFirebaseCacheService {
     List<Map<String, dynamic>> questions,
   ) async {
     try {
-      final url = '$_baseUrl/$_cachePath/questions/$episodeId/$count.json';
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final url = '$_baseUrl/$_cachePath/questions/$safeEpisodeId/$count.json';
       
       final cacheEntry = AICacheEntry(
         data: {
@@ -545,10 +666,49 @@ class AIFirebaseCacheService {
   }
 
   /// Get vocabulary enhancement from Firebase cache
-  Future<Map<String, dynamic>?> getVocabulary(String word, String languageCode) async {
+  Future<Map<String, dynamic>?> getVocabulary(
+    String word,
+    String languageCode, {
+    String? episodeId,
+  }) async {
     try {
       final wordHash = CacheKeyHelper.hashString(word.toLowerCase().trim());
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      if (episodeId != null && episodeId.trim().isNotEmpty) {
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId.trim());
+        final byEpisodeUrl =
+            '$_baseUrl/$_cachePath/vocabulary_by_episode/$safeEpisodeId/$wordHash.json';
+        final byEpisodeResponse = await http.get(
+          Uri.parse(byEpisodeUrl),
+          headers: {'Accept': 'application/json'},
+        ).timeout(const Duration(seconds: 5));
+        if (byEpisodeResponse.statusCode == 200 && byEpisodeResponse.body != 'null') {
+          final cacheEntry = AICacheEntry.fromJson(json.decode(byEpisodeResponse.body));
+          if (cacheEntry.isValid(defaultTtlDays: _vocabularyTtlDays)) {
+            debugPrint('Firebase cache HIT for vocabulary_by_episode: ${episodeId.trim()}/$wordHash');
+            final byEpisodeData = cacheEntry.data;
+            final vocabData = (byEpisodeData['data'] is Map<String, dynamic>)
+                ? Map<String, dynamic>.from(byEpisodeData['data'] as Map<String, dynamic>)
+                : <String, dynamic>{};
+            final translation = byEpisodeData['translation'];
+            if (translation is Map<String, dynamic>) {
+              final localizedMeaning = translation[safeLanguageCode]?.toString() ?? '';
+              if (localizedMeaning.isNotEmpty) {
+                vocabData['meaning'] = localizedMeaning;
+              }
+            }
+
+            if (vocabData.isNotEmpty) {
+              return vocabData;
+            }
+          } else {
+            debugPrint('Firebase cache EXPIRED for vocabulary_by_episode: ${episodeId.trim()}/$wordHash');
+          }
+        } else {
+          debugPrint('Firebase cache MISS for vocabulary_by_episode: ${episodeId.trim()}/$wordHash');
+        }
+      }
+
       final url = '$_baseUrl/$_cachePath/vocabulary/$wordHash/$safeLanguageCode.json';
       
       final response = await http.get(
@@ -579,6 +739,7 @@ class AIFirebaseCacheService {
     String word,
     String languageCode,
     Map<String, dynamic> vocabularyData,
+    {String? episodeId}
   ) async {
     try {
       final wordHash = CacheKeyHelper.hashString(word.toLowerCase().trim());
@@ -597,6 +758,49 @@ class AIFirebaseCacheService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(cacheEntry.toJson()),
       ).timeout(const Duration(seconds: 5));
+
+      if (episodeId != null && episodeId.trim().isNotEmpty) {
+        final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId.trim());
+        final byEpisodeUrl =
+            '$_baseUrl/$_cachePath/vocabulary_by_episode/$safeEpisodeId/$wordHash.json';
+        Map<String, dynamic> existingTranslation = <String, dynamic>{};
+        try {
+          final existingResponse = await http.get(
+            Uri.parse(byEpisodeUrl),
+            headers: {'Accept': 'application/json'},
+          ).timeout(const Duration(seconds: 5));
+          if (existingResponse.statusCode == 200 && existingResponse.body != 'null') {
+            final existingEntry = AICacheEntry.fromJson(json.decode(existingResponse.body));
+            final existing = existingEntry.data['translation'];
+            if (existing is Map<String, dynamic>) {
+              existingTranslation = Map<String, dynamic>.from(existing);
+            }
+          }
+        } catch (_) {}
+
+        final byEpisodeData = Map<String, dynamic>.from(vocabularyData);
+        final meaning = byEpisodeData.remove('meaning')?.toString() ?? '';
+        existingTranslation[safeLanguageCode] = meaning;
+
+        final byEpisodeEntry = AICacheEntry(
+          data: {
+            'word': word.trim(),
+            'wordHash': wordHash,
+            'episodeId': episodeId.trim(),
+            'data': byEpisodeData,
+            'translation': existingTranslation,
+            'schemaVersion': 2,
+          },
+          createdAt: DateTime.now(),
+          version: _cacheVersion,
+          ttlDays: _vocabularyTtlDays,
+        );
+        await http.put(
+          Uri.parse(byEpisodeUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(byEpisodeEntry.toJson()),
+        ).timeout(const Duration(seconds: 5));
+      }
       
       debugPrint('Saved vocabulary to Firebase cache: $wordHash');
     } catch (e) {
@@ -631,7 +835,8 @@ class AIFirebaseCacheService {
   /// Invalidate questions cache for an episode
   Future<void> invalidateQuestions(String episodeId) async {
     try {
-      final url = '$_baseUrl/$_cachePath/questions/$episodeId.json';
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final url = '$_baseUrl/$_cachePath/questions/$safeEpisodeId.json';
       await http.delete(Uri.parse(url)).timeout(const Duration(seconds: 5));
       debugPrint('Invalidated questions cache for episode: $episodeId');
     } catch (e) {

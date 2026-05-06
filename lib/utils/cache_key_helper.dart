@@ -26,6 +26,14 @@ class CacheKeyHelper {
     return 'grammar_${hash}_$languageCode';
   }
 
+  /// Stable line key for episode-scoped grammar namespace.
+  static String grammarEpisodeLineKey(String sentence, {int? lineNumber}) {
+    if (lineNumber != null && lineNumber >= 0) {
+      return 'line_${lineNumber + 1}';
+    }
+    return 's_${hashString(sentence.trim())}';
+  }
+
   /// Generate passage grammar cache key with isolated namespace
   static String grammarPassageKey(
     String passage,
@@ -107,6 +115,18 @@ class CacheKeyHelper {
     }).toList();
   }
 
+  /// Trim and collapse inner whitespace so UI vs Firebase strings still match.
+  static String normalizeTranslationOriginal(String s) {
+    return s.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  static int? parseLineNumber(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
   /// Convert Firebase format back to translations map
   static Map<String, String> translationsFromFirebaseFormat(List<dynamic> firebaseData) {
     final translations = <String, String>{};
@@ -122,26 +142,69 @@ class CacheKeyHelper {
     return translations;
   }
 
-  /// Find translation for a specific line from Firebase format
-  /// Returns translation if lineNumber and original text match
+  /// Resolve one line from Firebase array format.
+  /// Target language is selected by URL/path; here we match [lineNumber] first,
+  /// then fall back to normalized [original] text if indices are missing or wrong.
   static String? findLineTranslation(
     List<dynamic> firebaseData,
     String originalText,
     int? lineNumber,
   ) {
+    if (lineNumber != null) {
+      for (final item in firebaseData) {
+        if (item is Map<String, dynamic>) {
+          final translated = item['translated']?.toString() ?? '';
+          if (translated.isEmpty) continue;
+          final ln = parseLineNumber(item['lineNumber']);
+          if (ln == lineNumber) return translated;
+        }
+      }
+    }
+
+    final wantNorm = normalizeTranslationOriginal(originalText);
+    String? relaxedMatch;
     for (final item in firebaseData) {
       if (item is Map<String, dynamic>) {
         final original = item['original']?.toString() ?? '';
         final translated = item['translated']?.toString() ?? '';
-        final itemLineNumber = item['lineNumber'] as int?;
-        
-        // Match by original text first (most reliable)
-        if (original == originalText && translated.isNotEmpty) {
-          // If lineNumber is provided, also check it matches
-          if (lineNumber == null || itemLineNumber == null || itemLineNumber == lineNumber) {
-            return translated;
-          }
+        final itemLineNumber = parseLineNumber(item['lineNumber']);
+
+        if (translated.isEmpty) continue;
+        if (normalizeTranslationOriginal(original) != wantNorm) continue;
+
+        if (lineNumber == null ||
+            itemLineNumber == null ||
+            itemLineNumber == lineNumber) {
+          return translated;
         }
+        relaxedMatch ??= translated;
+      }
+    }
+    return relaxedMatch;
+  }
+
+  /// Full-document lookup: exact key, normalized key, and legacy map shape.
+  static String? lookupTranslationFlexible(
+    dynamic translationsData,
+    String originalText,
+  ) {
+    Map<String, String>? map;
+    if (translationsData is List) {
+      map = translationsFromFirebaseFormat(translationsData);
+    } else if (translationsData is Map) {
+      map = (translationsData as Map).map(
+        (k, v) => MapEntry(k.toString(), v.toString()),
+      );
+    } else {
+      return null;
+    }
+    if (map.isEmpty) return null;
+    final direct = map[originalText];
+    if (direct != null && direct.isNotEmpty) return direct;
+    final wantNorm = normalizeTranslationOriginal(originalText);
+    for (final e in map.entries) {
+      if (normalizeTranslationOriginal(e.key) == wantNorm && e.value.isNotEmpty) {
+        return e.value;
       }
     }
     return null;

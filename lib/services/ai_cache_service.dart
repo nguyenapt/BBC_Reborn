@@ -182,9 +182,22 @@ class AICacheService {
     // 2. Check local cache (fallback to text matching)
     final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
     final localCache = await getCachedMap(localKey);
-    if (localCache != null && localCache.containsKey(originalText)) {
-      debugPrint('Local cache HIT for line translation: $episodeId/$languageCode');
-      return localCache[originalText];
+    if (localCache != null) {
+      if (localCache.containsKey(originalText)) {
+        debugPrint(
+            'Local cache HIT for line translation: $episodeId/$languageCode');
+        return localCache[originalText];
+      }
+      final wantNorm =
+          CacheKeyHelper.normalizeTranslationOriginal(originalText);
+      for (final e in localCache.entries) {
+        if (CacheKeyHelper.normalizeTranslationOriginal(e.key) == wantNorm &&
+            e.value.isNotEmpty) {
+          debugPrint(
+              'Local cache HIT (normalized key) for line translation: $episodeId/$languageCode');
+          return e.value;
+        }
+      }
     }
 
     return null;
@@ -238,14 +251,21 @@ class AICacheService {
     String? episodeId,
     String? modelVersion,
     String? promptVersion,
+    int? lineNumber,
   }) async {
+    final normalizedEpisodeId = (episodeId ?? '').trim();
     final localKey = CacheKeyHelper.grammarKey(
       sentence,
       languageCode,
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
-    );
+    ) + (lineNumber != null ? '::line_${lineNumber + 1}' : '');
+    final lineKey =
+        CacheKeyHelper.grammarEpisodeLineKey(sentence, lineNumber: lineNumber);
+    debugPrint('[GrammarCache] lookup start');
+    debugPrint('[GrammarCache] episodeId=$normalizedEpisodeId lang=$languageCode lineKey=$lineKey');
+    debugPrint('[GrammarCache] localKey=$localKey');
     
     // 1. Check local cache first
     final localCache = await getCached<Map<String, dynamic>>(
@@ -256,6 +276,7 @@ class AICacheService {
       debugPrint('Local cache HIT for grammar: $localKey');
       return localCache;
     }
+    debugPrint('[GrammarCache] local MISS');
 
     // 2. Check Firebase cache
     final firebaseCache = await _firebaseCache.getGrammar(
@@ -264,8 +285,10 @@ class AICacheService {
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
+      lineNumber: lineNumber,
     );
     if (firebaseCache != null) {
+      debugPrint('[GrammarCache] firebase HIT -> promote to local');
       // Save to local cache
       await cacheData<Map<String, dynamic>>(
         localKey,
@@ -274,6 +297,7 @@ class AICacheService {
       );
       return firebaseCache;
     }
+    debugPrint('[GrammarCache] firebase MISS -> will fallback to AI provider');
 
     return null;
   }
@@ -287,6 +311,7 @@ class AICacheService {
     String? episodeId,
     String? modelVersion,
     String? promptVersion,
+    int? lineNumber,
   }) async {
     final localKey = CacheKeyHelper.grammarKey(
       sentence,
@@ -294,7 +319,7 @@ class AICacheService {
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
-    );
+    ) + (lineNumber != null ? '::line_${lineNumber + 1}' : '');
     
     // Save to local cache
     await cacheData<Map<String, dynamic>>(
@@ -312,6 +337,7 @@ class AICacheService {
           episodeId: episodeId,
           modelVersion: modelVersion,
           promptVersion: promptVersion,
+          lineNumber: lineNumber,
         )
         .catchError((e) => debugPrint('Error saving grammar to Firebase: $e'));
   }
@@ -486,8 +512,14 @@ class AICacheService {
   }
 
   /// Get vocabulary enhancement with priority: Local → Firebase → null
-  Future<Map<String, dynamic>?> getVocabularyFromCache(String word, String languageCode) async {
-    final localKey = CacheKeyHelper.vocabularyKey(word, languageCode);
+  Future<Map<String, dynamic>?> getVocabularyFromCache(
+    String word,
+    String languageCode, {
+    String? episodeId,
+  }) async {
+    final normalizedEpisodeId = (episodeId ?? '').trim();
+    final localKey = CacheKeyHelper.vocabularyKey(word, languageCode) +
+        (normalizedEpisodeId.isNotEmpty ? '::ep_$normalizedEpisodeId' : '');
     
     // 1. Check local cache first
     final localCache = await getCached<Map<String, dynamic>>(
@@ -500,7 +532,11 @@ class AICacheService {
     }
 
     // 2. Check Firebase cache
-    final firebaseCache = await _firebaseCache.getVocabulary(word, languageCode);
+    final firebaseCache = await _firebaseCache.getVocabulary(
+      word,
+      languageCode,
+      episodeId: normalizedEpisodeId.isNotEmpty ? normalizedEpisodeId : null,
+    );
     if (firebaseCache != null) {
       // Save to local cache
       await cacheData<Map<String, dynamic>>(
@@ -518,9 +554,13 @@ class AICacheService {
   Future<void> saveVocabularyToCache(
     String word,
     String languageCode,
-    Map<String, dynamic> vocabularyData,
+    Map<String, dynamic> vocabularyData, {
+    String? episodeId,
+  }
   ) async {
-    final localKey = CacheKeyHelper.vocabularyKey(word, languageCode);
+    final normalizedEpisodeId = (episodeId ?? '').trim();
+    final localKey = CacheKeyHelper.vocabularyKey(word, languageCode) +
+        (normalizedEpisodeId.isNotEmpty ? '::ep_$normalizedEpisodeId' : '');
     
     // Save to local cache
     await cacheData<Map<String, dynamic>>(
@@ -530,7 +570,12 @@ class AICacheService {
     );
     
     // Save to Firebase cache (async)
-    _firebaseCache.saveVocabulary(word, languageCode, vocabularyData)
+    _firebaseCache.saveVocabulary(
+      word,
+      languageCode,
+      vocabularyData,
+      episodeId: normalizedEpisodeId.isNotEmpty ? normalizedEpisodeId : null,
+    )
         .catchError((e) => debugPrint('Error saving vocabulary to Firebase: $e'));
   }
 

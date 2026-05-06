@@ -48,6 +48,7 @@ class AIGrammarService {
   Future<GrammarExplanation> explainSentence(
     String sentence,
     String episodeId,
+    {int? lineNumber}
   ) async {
     if (!AIConfig.enableGrammar) {
       throw APIException('Grammar feature is temporarily disabled.');
@@ -65,24 +66,16 @@ class AIGrammarService {
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
+      lineNumber: lineNumber,
     );
     
     if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
+      await HeartService().consumeHeartOrThrow();
       return _mapResponseToModel(sentence, cachedData);
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -147,6 +140,7 @@ class AIGrammarService {
         episodeId: episodeId,
         modelVersion: modelVersion,
         promptVersion: promptVersion,
+        lineNumber: lineNumber,
       );
 
       return explanationObj;
@@ -201,6 +195,7 @@ class AIGrammarService {
     if (cachedData != null) {
       try {
         final cached = _mapPassageResponseToModel(normalizedPassage, cachedData);
+        await HeartService().consumeHeartOrThrow();
         return GrammarPassageProgressiveResult(
           initial: cached,
           full: Future.value(cached),
@@ -211,14 +206,7 @@ class AIGrammarService {
       }
     }
 
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();

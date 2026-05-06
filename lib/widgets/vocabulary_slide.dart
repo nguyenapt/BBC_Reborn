@@ -393,7 +393,10 @@ class _VocabularySlideState extends State<VocabularySlide> {
       }
       
       // Batch translate all words in one request
-      final translations = await _translationService.translateVocabularyBatch(vocabularyList);
+      final translations = await _translationService.translateVocabularyBatch(
+        vocabularyList,
+        episodeId: widget.episode.id ?? '',
+      );
       
       // Update translations map
       _vocabTranslations.addAll(translations);

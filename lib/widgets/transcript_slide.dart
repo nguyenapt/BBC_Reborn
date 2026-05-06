@@ -572,7 +572,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     ),
                                   ),
                                   InkWell(
-                                    onTap: () => _showGrammarExplanation(context, line.text),
+                                    onTap: () => _showGrammarExplanation(
+                                      context,
+                                      line.text,
+                                      transcriptIndex,
+                                    ),
                                     borderRadius: BorderRadius.circular(999),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -681,9 +685,19 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
-  Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
+  Future<void> _showGrammarExplanation(
+    BuildContext context,
+    String sentence,
+    int lineNumber,
+  ) async {
     final normalizedSentence = sentence.trim();
     if (normalizedSentence.isEmpty) return;
+    final episodeId = (widget.episode.id ?? '').trim();
+    final nodeKey = (widget.episode.nodeKey ?? '').trim();
+    final langCode = _languageManager.currentLocale.languageCode;
+    debugPrint('[GrammarTap] tapped');
+    debugPrint('[GrammarTap] episodeId=$episodeId nodeKey=$nodeKey lang=$langCode');
+    debugPrint('[GrammarTap] sentence="$normalizedSentence" lineNumber=${lineNumber + 1}');
     if (!AIConfig.enableGrammar) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -694,8 +708,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
 
     // Sentence-level grammar (explainSentence + ai_cache/grammar/…), not passage progressive.
-    final cacheKey = 'sentence::$normalizedSentence';
+    final cacheKey = 'sentence::$normalizedSentence::line_${lineNumber + 1}';
     if (_grammarCache.containsKey(cacheKey)) {
+      debugPrint('[GrammarTap] in-memory cache HIT key=$cacheKey');
       final cached = _grammarCache[cacheKey]!;
       await _savedGrammarService.recordViewed(
         explanation: cached,
@@ -732,9 +747,13 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     );
 
     try {
-      final episodeId = widget.episode.id ?? '';
+      debugPrint('[GrammarTap] calling AIGrammarService.explainSentence...');
       final explanation =
-          await _grammarService.explainSentence(normalizedSentence, episodeId);
+          await _grammarService.explainSentence(
+            normalizedSentence,
+            episodeId,
+            lineNumber: lineNumber,
+          );
 
       _grammarCache[cacheKey] = explanation;
       await _savedGrammarService.recordViewed(
@@ -754,7 +773,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _showErrorSnackBar(
           context,
           e,
-          onRetry: () => _showGrammarExplanation(context, normalizedSentence),
+          onRetry: () => _showGrammarExplanation(context, normalizedSentence, lineNumber),
         );
       }
     }

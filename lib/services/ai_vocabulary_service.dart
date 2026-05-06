@@ -25,25 +25,29 @@ class AIVocabularyService {
     final languageCode = _languageManager.currentLocale.languageCode;
     
     // Check cache with priority: Local → Firebase → null
-    final cachedData = await _cache.getVocabularyFromCache(item.vocab, languageCode);
+    final cachedData = await _cache.getVocabularyFromCache(
+      item.vocab,
+      languageCode,
+      episodeId: item.bbcEpisodeId,
+    );
 
     if (cachedData != null) {
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
-      // Convert cached data to EnhancedVocabulary
-      return EnhancedVocabulary.fromAIResponse(item, cachedData);
+      // Tool RTDB upload may include locale gloss in `meaning` (see playMP3 UploadVocabularyAiCachesAsync).
+      final cachedMean = cachedData['meaning']?.toString().trim();
+      final effectiveItem = (cachedMean != null && cachedMean.isNotEmpty)
+          ? VocabularyItem(
+              id: item.id,
+              bbcEpisodeId: item.bbcEpisodeId,
+              vocab: item.vocab,
+              mean: cachedMean,
+            )
+          : item;
+      await HeartService().consumeHeartOrThrow();
+      return EnhancedVocabulary.fromAIResponse(effectiveItem, cachedData);
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -114,7 +118,12 @@ class AIVocabularyService {
       final enhanced = EnhancedVocabulary.fromAIResponse(item, response);
 
       // Save to both local and Firebase cache
-      await _cache.saveVocabularyToCache(item.vocab, languageCode, response);
+      await _cache.saveVocabularyToCache(
+        item.vocab,
+        languageCode,
+        response,
+        episodeId: item.bbcEpisodeId,
+      );
 
       return enhanced;
     } catch (e) {

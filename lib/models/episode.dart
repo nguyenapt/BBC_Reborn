@@ -7,6 +7,7 @@ class Episode {
   final String transcript;
   final String thumbImage;
   final String? id; // ID của episode trong Firebase
+  final String? nodeKey; // Key node trên RTDB (có thể là số/path), dùng cho truy vấn legacy
   final String? fileUrl;
   final String? secondFileUrl;
   final String? summary;
@@ -24,6 +25,7 @@ class Episode {
     required this.transcript,
     required this.thumbImage,
     this.id,
+    this.nodeKey,
     this.fileUrl,
     this.secondFileUrl,
     this.summary,
@@ -34,8 +36,11 @@ class Episode {
   });
 
   factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
+    final payloadId = json['Id']?.toString().trim() ?? '';
+    final resolvedId = payloadId.isNotEmpty ? payloadId : episodeId;
     return Episode(
-      id: episodeId,
+      id: resolvedId,
+      nodeKey: episodeId,
       actor: json['Actor']?.toString() ?? '',
       category: json['Category']?.toString() ?? '',
       duration: _formatDuration(json['Duration']),
@@ -107,6 +112,7 @@ class Episode {
       'fileUrl': fileUrl,
       'secondFileUrl': secondFileUrl,
       'id': id,
+      'nodeKey': nodeKey,
     };
   }
 

@@ -6,7 +6,6 @@ import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
 import 'heart_service.dart';
-import '../utils/cache_key_helper.dart';
 
 /// Service for AI-powered translation
 class AITranslationService {
@@ -64,20 +63,11 @@ class AITranslationService {
     final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
     if (cached != null && cached.isNotEmpty) {
       debugPrint('Using cached translations for episode $episodeId');
+      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
     
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -161,11 +151,13 @@ class AITranslationService {
   /// Returns a map of word -> translation
   Future<Map<String, String>> translateVocabularyBatch(
     List<Map<String, String>> vocabularyList, // List of {word, meaning, context?}
+    {String? episodeId}
   ) async {
     if (vocabularyList.isEmpty) return {};
     
     final targetLanguage = _getTargetLanguage();
     final languageCode = _getTargetLanguageCode();
+    final normalizedEpisodeId = (episodeId ?? '').trim();
     
     // Check cache for all words first
     final cachedTranslations = <String, String>{};
@@ -177,6 +169,25 @@ class AITranslationService {
       final cached = await _cache.getCachedString(cacheKey);
       if (cached != null) {
         cachedTranslations[word] = cached;
+        continue;
+      }
+
+      if (normalizedEpisodeId.isNotEmpty) {
+        final vocabCache = await _cache.getVocabularyFromCache(
+          word,
+          languageCode,
+          episodeId: normalizedEpisodeId,
+        );
+        final localizedMeaning = vocabCache?['meaning']?.toString().trim() ?? '';
+        if (localizedMeaning.isNotEmpty) {
+          cachedTranslations[word] = localizedMeaning;
+          await _cache.cacheString(cacheKey, localizedMeaning);
+          continue;
+        }
+      }
+
+      if (word.trim().isEmpty) {
+        continue;
       } else {
         wordsToTranslate.add(vocab);
       }
@@ -185,20 +196,11 @@ class AITranslationService {
     // If all words are cached, return immediately
     if (wordsToTranslate.isEmpty) {
       debugPrint('✅ All vocabulary translations found in cache');
+      await HeartService().consumeHeartOrThrow();
       return cachedTranslations;
     }
-    
-    // Check hearts before calling AI (only if not all cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
 
-    // Use a heart (only 1 heart for batch translation)
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get both providers for fallback
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -368,20 +370,11 @@ class AITranslationService {
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
+      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -441,20 +434,11 @@ class AITranslationService {
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
+      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -511,22 +495,13 @@ class AITranslationService {
     );
     if (cached != null) {
       debugPrint('✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)');
+      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
-    // 2. Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
-    // 3. Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
-
-    // 4. Get providers (primary and backup)
+    // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
 

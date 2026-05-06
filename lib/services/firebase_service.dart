@@ -180,8 +180,9 @@ class FirebaseService {
   /// Thử `GET /{category}/{year}/{id}.json` hoặc `/{category}/{id}.json`; nếu không có (array layout),
   /// fallback tải cả năm / cả category **không** qua `List/`.
   static Future<Episode?> fetchEpisodeFull(Episode partial) async {
-    final id = partial.id;
-    if (id == null || id.isEmpty) return null;
+    final guidId = partial.id?.trim() ?? '';
+    final nodeKey = partial.nodeKey?.trim() ?? guidId;
+    if (nodeKey.isEmpty) return null;
 
     final category = partial.category;
     var yearParsed = int.tryParse(partial.year ?? '');
@@ -192,7 +193,7 @@ class FirebaseService {
     if (yearParsed != null && yearParsed > 1800) {
       try {
         final direct = await http.get(
-          Uri.parse('$_baseUrl/$category/$yearParsed/$id.json'),
+          Uri.parse('$_baseUrl/$category/$yearParsed/$nodeKey.json'),
           headers: {'Accept': 'application/json'},
         );
         if (direct.statusCode == 200 &&
@@ -200,7 +201,7 @@ class FirebaseService {
             direct.body != 'null') {
           final decoded = json.decode(direct.body);
           if (decoded is Map<String, dynamic>) {
-            return Episode.fromJson(decoded, id);
+            return Episode.fromJson(decoded, nodeKey);
           }
         }
       } catch (_) {}
@@ -208,14 +209,14 @@ class FirebaseService {
       try {
         final bulk = await getCategoryDataLegacyFull(category, yearParsed);
         for (final e in bulk) {
-          if (e.id == id) return e;
+          if ((guidId.isNotEmpty && e.id == guidId) || e.nodeKey == nodeKey) return e;
         }
       } catch (_) {}
     }
 
     try {
       final direct = await http.get(
-        Uri.parse('$_baseUrl/$category/$id.json'),
+        Uri.parse('$_baseUrl/$category/$nodeKey.json'),
         headers: {'Accept': 'application/json'},
       );
       if (direct.statusCode == 200 &&
@@ -223,7 +224,7 @@ class FirebaseService {
           direct.body != 'null') {
         final decoded = json.decode(direct.body);
         if (decoded is Map<String, dynamic>) {
-          return Episode.fromJson(decoded, id);
+          return Episode.fromJson(decoded, nodeKey);
         }
       }
     } catch (_) {}
@@ -231,7 +232,7 @@ class FirebaseService {
     try {
       final bulk = await getCategoryDataWithoutYearLegacyFull(category);
       for (final e in bulk) {
-        if (e.id == id) return e;
+        if ((guidId.isNotEmpty && e.id == guidId) || e.nodeKey == nodeKey) return e;
       }
     } catch (_) {}
 

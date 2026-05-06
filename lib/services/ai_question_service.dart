@@ -36,21 +36,12 @@ class AIQuestionService {
         }
       }
       if (questions.isNotEmpty) {
+        await HeartService().consumeHeartOrThrow();
         return questions;
       }
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
+    await HeartService().consumeHeartOrThrow();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
