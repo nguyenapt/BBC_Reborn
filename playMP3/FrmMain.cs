@@ -79,6 +79,22 @@ namespace playMP3
             cbType.DataSource = this.ConfigModel.EpisodeTypes;
             cbType.DisplayMember = "Name";
             cbType.ValueMember = "Name";
+
+            // UI: only show AS-series child field when category == "AS".
+            // (Designer does not wire cbCategory.SelectedIndexChanged.)
+            if (cbCategory != null)
+                cbCategory.SelectedIndexChanged += (_, __) => UpdateASSeriesChildVisibility();
+            if (cbType != null)
+                cbType.SelectedIndexChanged += (_, __) => UpdateASSeriesChildVisibility();
+
+            UpdateASSeriesChildVisibility();
+        }
+
+        private void UpdateASSeriesChildVisibility()
+        {
+            var isAs = string.Equals((cbCategory?.Text ?? string.Empty).Trim(), "AS", StringComparison.OrdinalIgnoreCase);
+            if (lblASSeriesChild != null) lblASSeriesChild.Visible = isAs;
+            if (txtASSeriesChild != null) txtASSeriesChild.Visible = isAs;
         }
 
         private void btnBrowse_Click(object sender, EventArgs e)
@@ -477,6 +493,12 @@ namespace playMP3
                 AuthTokenAsyncFactory = () => Task.FromResult(txtSecret.Text)
             });
 
+            var exportEpisodeDetail = cbExportEpisodeDetail != null && cbExportEpisodeDetail.Checked;
+            var exportTranslation = cbExportTranslation != null && cbExportTranslation.Checked;
+            var exportQuestions = cbExportQuestions != null && cbExportQuestions.Checked;
+            var exportVocabulary = cbExportVocabulary != null && cbExportVocabulary.Checked;
+            var exportGrammar = cbExportGrammar != null && cbExportGrammar.Checked;
+
             var episode = new Episode();
             if (!string.IsNullOrEmpty(txtId.Text))
             {
@@ -534,41 +556,48 @@ namespace playMP3
                 .Contains(cbCategory.Text);
             string categoryPath = cbCategory.Text + (isSupportYear ? "/" + cbYear.Text : "");
 
-            await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-
-            var listEpisode = new
+            if (exportEpisodeDetail)
             {
-                episode.Category,
-                episode.EpisodeName,
-                episode.FileUrl,
-                episode.Id,
-                episode.IsNew,
-                episode.PublishedDate,
-                episode.GrammarVocabularyCacheKeys,
-                episode.Summary,
-                episode.ThumbImage,
-                episode.Year
-            };
+                await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
 
-            await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+                var listEpisode = new
+                {
+                    episode.Category,
+                    episode.EpisodeName,
+                    episode.FileUrl,
+                    episode.Id,
+                    episode.IsNew,
+                    episode.PublishedDate,
+                    episode.GrammarVocabularyCacheKeys,
+                    episode.Summary,
+                    episode.ThumbImage,
+                    episode.Year
+                };
 
-            if (!string.IsNullOrEmpty(txtHomeNumber.Text))
-            {
-                if (cbType.Text == "BBC")
+                await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+
+                if (!string.IsNullOrEmpty(txtHomeNumber.Text))
                 {
-                    await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                    await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-                }
-                if (cbType.Text == "VOA")
-                {
-                    await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                    if (cbType.Text == "BBC")
+                    {
+                        await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                        await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+                    }
+                    if (cbType.Text == "VOA")
+                    {
+                        await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                    }
                 }
             }
 
-            await UploadGrammarAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
-            await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
-            await UploadTranslationsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
-            await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+            if (exportTranslation)
+                await UploadTranslationsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+            if (exportGrammar)
+                await UploadGrammarAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+            if (exportVocabulary)
+                await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+            if (exportQuestions)
+                await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
         }
 
         private void cbType_SelectedIndexChanged(object sender, EventArgs e)
@@ -593,7 +622,12 @@ namespace playMP3
         {
             FileStream stream = new FileStream(txtFilePath.Text, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
-            var url = upload(Path.GetFileName(txtFilePath.Text), stream);
+            var fileName = Path.GetFileName(txtFilePath.Text);
+            var subNode = (txtASSeriesChild?.Text ?? string.Empty).Trim().Trim('/');
+            if (!string.IsNullOrWhiteSpace(subNode))
+                fileName = subNode + "/" + fileName;
+
+            var url = upload(fileName, stream);
         }
 
         private void btnImageLink_Click(object sender, EventArgs e)
@@ -604,7 +638,12 @@ namespace playMP3
                 {
                     FileStream stream = new FileStream(openFileDialog.FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
-                    var url = uploadThumb(Path.GetFileName(openFileDialog.FileName), stream);
+                    var fileName = Path.GetFileName(openFileDialog.FileName);
+                    var subNode = (txtASSeriesChild?.Text ?? string.Empty).Trim().Trim('/');
+                    if (!string.IsNullOrWhiteSpace(subNode))
+                        fileName = subNode + "/" + fileName;
+
+                    var url = uploadThumb(fileName, stream);
                 }
             }
         }

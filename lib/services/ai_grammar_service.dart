@@ -5,6 +5,7 @@ import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
+import 'ai_cache_lookup.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
 import 'heart_service.dart';
@@ -71,8 +72,10 @@ class AIGrammarService {
     
     if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
-      await HeartService().consumeHeartOrThrow();
-      return _mapResponseToModel(sentence, cachedData);
+      if (cachedData.source == AiCacheSource.firebase) {
+        await HeartService().consumeHeartOrThrow();
+      }
+      return _mapResponseToModel(sentence, cachedData.value);
     }
 
     await HeartService().consumeHeartOrThrow();
@@ -194,8 +197,11 @@ class AIGrammarService {
     );
     if (cachedData != null) {
       try {
-        final cached = _mapPassageResponseToModel(normalizedPassage, cachedData);
-        await HeartService().consumeHeartOrThrow();
+        final cached =
+            _mapPassageResponseToModel(normalizedPassage, cachedData.value);
+        if (cachedData.source == AiCacheSource.firebase) {
+          await HeartService().consumeHeartOrThrow();
+        }
         return GrammarPassageProgressiveResult(
           initial: cached,
           full: Future.value(cached),

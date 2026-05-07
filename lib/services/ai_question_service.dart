@@ -3,6 +3,7 @@ import '../models/question.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
+import 'ai_cache_lookup.dart';
 import 'ai_cache_service.dart';
 import 'heart_service.dart';
 
@@ -23,20 +24,22 @@ class AIQuestionService {
     // Check cache with priority: Local → Firebase → null
     final cachedData = await _cache.getQuestionsFromCache(episodeId, count);
 
-    if (cachedData != null && cachedData.isNotEmpty) {
+    if (cachedData != null && cachedData.value.isNotEmpty) {
       debugPrint('Using cached questions for episode $episodeId');
-      // Convert cached data to Question objects
+      final rows = cachedData.value;
       final questions = <Question>[];
-      for (int i = 0; i < cachedData.length; i++) {
+      for (int i = 0; i < rows.length; i++) {
         try {
-          final question = Question.fromAIResponse(cachedData[i], i);
+          final question = Question.fromAIResponse(rows[i], i);
           questions.add(question);
         } catch (e) {
           debugPrint('Error parsing cached question $i: $e');
         }
       }
       if (questions.isNotEmpty) {
-        await HeartService().consumeHeartOrThrow();
+        if (cachedData.source == AiCacheSource.firebase) {
+          await HeartService().consumeHeartOrThrow();
+        }
         return questions;
       }
     }

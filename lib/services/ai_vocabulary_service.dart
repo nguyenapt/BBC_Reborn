@@ -4,6 +4,7 @@ import '../models/enhanced_vocabulary.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
+import 'ai_cache_lookup.dart';
 import 'ai_cache_service.dart';
 import 'heart_service.dart';
 import 'language_manager.dart';
@@ -33,8 +34,9 @@ class AIVocabularyService {
 
     if (cachedData != null) {
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
+      final payload = cachedData.value;
       // Tool RTDB upload may include locale gloss in `meaning` (see playMP3 UploadVocabularyAiCachesAsync).
-      final cachedMean = cachedData['meaning']?.toString().trim();
+      final cachedMean = payload['meaning']?.toString().trim();
       final effectiveItem = (cachedMean != null && cachedMean.isNotEmpty)
           ? VocabularyItem(
               id: item.id,
@@ -43,8 +45,10 @@ class AIVocabularyService {
               mean: cachedMean,
             )
           : item;
-      await HeartService().consumeHeartOrThrow();
-      return EnhancedVocabulary.fromAIResponse(effectiveItem, cachedData);
+      if (cachedData.source == AiCacheSource.firebase) {
+        await HeartService().consumeHeartOrThrow();
+      }
+      return EnhancedVocabulary.fromAIResponse(effectiveItem, payload);
     }
 
     await HeartService().consumeHeartOrThrow();

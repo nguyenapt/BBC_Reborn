@@ -1,0 +1,16 @@
+{
+  "data": {
+    "translations": [
+      {
+        "lineNumber": 0,
+        "original": "Hello world.",
+        "translated": "Xin chào thế giới."
+      }
+    ],
+    "originalEpisodeId": "00000000-0000-0000-0000-000000000001",
+    "originalLanguageCode": "vi"
+  },
+  "createdAt": "2026-05-06T12:00:00.000",
+  "version": 1,
+  "ttlDays": 90
+}

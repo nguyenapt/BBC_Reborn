@@ -1,0 +1,17 @@
+{
+  "data": {
+    "grammarPoint": "Present simple",
+    "explanation": "Example explanation for staging fixture.",
+    "rulePattern": "S + V",
+    "highlightedWords": [],
+    "commonMistakes": [],
+    "miniQuiz": null,
+    "episodeId": "00000000-0000-0000-0000-000000000001",
+    "lineKey": "line_1",
+    "sourceSentence": "Hello world.",
+    "schemaVersion": "1"
+  },
+  "createdAt": "2026-05-06T12:00:00.000",
+  "version": 1,
+  "ttlDays": 90
+}

@@ -1,0 +1,18 @@
+{
+  "data": {
+    "word": "example",
+    "wordHash": "abcdef0123456789",
+    "episodeId": "00000000-0000-0000-0000-000000000001",
+    "data": {
+      "synonyms": [],
+      "exampleSentences": []
+    },
+    "translation": {
+      "vi": "Ví dụ nghĩa tiếng Việt cho fixture."
+    },
+    "schemaVersion": 2
+  },
+  "createdAt": "2026-05-06T12:00:00.000",
+  "version": 1,
+  "ttlDays": 90
+}

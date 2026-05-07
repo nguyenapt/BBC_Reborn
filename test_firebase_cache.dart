@@ -63,7 +63,8 @@ void testFirebaseCache() async {
     
     if (cachedFromService != null) {
       debugPrint('✅ Successfully read through AICacheService!');
-      debugPrint('   Cached translations: $cachedFromService');
+      debugPrint('   Source: ${cachedFromService.source}');
+      debugPrint('   Cached translations: ${cachedFromService.value}');
     } else {
       debugPrint('❌ Failed to read through AICacheService');
     }

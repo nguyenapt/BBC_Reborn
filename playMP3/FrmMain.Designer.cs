@@ -42,7 +42,6 @@
             this.FirstDuration = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.RowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.LastDuration = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Group = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.GrammarExplainationEn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.txtResult = new System.Windows.Forms.TextBox();
             this.btnConvertGridToResult = new System.Windows.Forms.Button();
@@ -67,6 +66,13 @@
             this.btnConfig = new System.Windows.Forms.Button();
             this.cbCloudService = new System.Windows.Forms.ComboBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.cbExportTranslation = new System.Windows.Forms.CheckBox();
+            this.cbExportGrammar = new System.Windows.Forms.CheckBox();
+            this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
+            this.cbExportQuestions = new System.Windows.Forms.CheckBox();
+            this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
+            this.txtASSeriesChild = new System.Windows.Forms.TextBox();
+            this.lblASSeriesChild = new System.Windows.Forms.Label();
             this.btnGetQuestions = new System.Windows.Forms.Button();
             this.label12 = new System.Windows.Forms.Label();
             this.grvQuestions = new System.Windows.Forms.DataGridView();
@@ -319,7 +325,7 @@
             this.txtTranscript.Name = "txtTranscript";
             this.txtTranscript.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtTranscript.Size = new System.Drawing.Size(1043, 187);
-            this.txtTranscript.TabIndex = 9;
+            this.txtTranscript.TabIndex = 1;
             this.txtTranscript.Leave += new System.EventHandler(this.txtTranscript_Leave);
             // 
             // grvRow
@@ -331,12 +337,11 @@
             this.FirstDuration,
             this.RowContent,
             this.LastDuration,
-            this.Group,
             this.GrammarExplainationEn});
             this.grvRow.Location = new System.Drawing.Point(8, 220);
             this.grvRow.Name = "grvRow";
             this.grvRow.Size = new System.Drawing.Size(1046, 663);
-            this.grvRow.TabIndex = 11;
+            this.grvRow.TabIndex = 2;
             // 
             // FirstDuration
             // 
@@ -359,19 +364,12 @@
             this.LastDuration.HeaderText = "End Pos";
             this.LastDuration.Name = "LastDuration";
             // 
-            // Group
-            // 
-            this.Group.DataPropertyName = "Group";
-            this.Group.HeaderText = "Group";
-            this.Group.Name = "Group";
-            this.Group.Width = 50;
-            // 
             // GrammarExplainationEn
             // 
             this.GrammarExplainationEn.DataPropertyName = "GrammarExplanationSummary";
             this.GrammarExplainationEn.HeaderText = "Grammar Explaination";
             this.GrammarExplainationEn.Name = "GrammarExplainationEn";
-            this.GrammarExplainationEn.Width = 200;
+            this.GrammarExplainationEn.Width = 300;
             // 
             // txtResult
             // 
@@ -471,7 +469,7 @@
             this.btnReward.Location = new System.Drawing.Point(36, 19);
             this.btnReward.Name = "btnReward";
             this.btnReward.Size = new System.Drawing.Size(59, 68);
-            this.btnReward.TabIndex = 4;
+            this.btnReward.TabIndex = 24;
             this.btnReward.UseVisualStyleBackColor = false;
             this.btnReward.Click += new System.EventHandler(this.btnReward_Click);
             // 
@@ -483,7 +481,7 @@
             this.btnPlay.Location = new System.Drawing.Point(107, 19);
             this.btnPlay.Name = "btnPlay";
             this.btnPlay.Size = new System.Drawing.Size(145, 68);
-            this.btnPlay.TabIndex = 2;
+            this.btnPlay.TabIndex = 25;
             this.btnPlay.UseVisualStyleBackColor = false;
             this.btnPlay.Click += new System.EventHandler(this.btnPlay_Click);
             // 
@@ -494,7 +492,7 @@
             this.btnForward.Location = new System.Drawing.Point(265, 19);
             this.btnForward.Name = "btnForward";
             this.btnForward.Size = new System.Drawing.Size(59, 67);
-            this.btnForward.TabIndex = 4;
+            this.btnForward.TabIndex = 26;
             this.btnForward.UseVisualStyleBackColor = false;
             this.btnForward.Click += new System.EventHandler(this.btnForward_Click);
             // 
@@ -597,6 +595,13 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.cbExportTranslation);
+            this.groupBox3.Controls.Add(this.cbExportGrammar);
+            this.groupBox3.Controls.Add(this.cbExportVocabulary);
+            this.groupBox3.Controls.Add(this.cbExportQuestions);
+            this.groupBox3.Controls.Add(this.cbExportEpisodeDetail);
+            this.groupBox3.Controls.Add(this.txtASSeriesChild);
+            this.groupBox3.Controls.Add(this.lblASSeriesChild);
             this.groupBox3.Controls.Add(this.btnGetQuestions);
             this.groupBox3.Controls.Add(this.label12);
             this.groupBox3.Controls.Add(this.grvQuestions);
@@ -634,17 +639,83 @@
             this.groupBox3.Controls.Add(this.label11);
             this.groupBox3.Location = new System.Drawing.Point(1573, 101);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(629, 921);
+            this.groupBox3.Size = new System.Drawing.Size(629, 993);
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Firebase";
             // 
+            // cbExportTranslation
+            // 
+            this.cbExportTranslation.AutoSize = true;
+            this.cbExportTranslation.Location = new System.Drawing.Point(132, 888);
+            this.cbExportTranslation.Name = "cbExportTranslation";
+            this.cbExportTranslation.Size = new System.Drawing.Size(111, 17);
+            this.cbExportTranslation.TabIndex = 46;
+            this.cbExportTranslation.Text = "Export Translation";
+            this.cbExportTranslation.UseVisualStyleBackColor = true;
+            // 
+            // cbExportGrammar
+            // 
+            this.cbExportGrammar.AutoSize = true;
+            this.cbExportGrammar.Location = new System.Drawing.Point(270, 888);
+            this.cbExportGrammar.Name = "cbExportGrammar";
+            this.cbExportGrammar.Size = new System.Drawing.Size(101, 17);
+            this.cbExportGrammar.TabIndex = 45;
+            this.cbExportGrammar.Text = "Export Grammar";
+            this.cbExportGrammar.UseVisualStyleBackColor = true;
+            // 
+            // cbExportVocabulary
+            // 
+            this.cbExportVocabulary.AutoSize = true;
+            this.cbExportVocabulary.Location = new System.Drawing.Point(511, 888);
+            this.cbExportVocabulary.Name = "cbExportVocabulary";
+            this.cbExportVocabulary.Size = new System.Drawing.Size(112, 17);
+            this.cbExportVocabulary.TabIndex = 44;
+            this.cbExportVocabulary.Text = "Export Vocabulary";
+            this.cbExportVocabulary.UseVisualStyleBackColor = true;
+            // 
+            // cbExportQuestions
+            // 
+            this.cbExportQuestions.AutoSize = true;
+            this.cbExportQuestions.Location = new System.Drawing.Point(399, 888);
+            this.cbExportQuestions.Name = "cbExportQuestions";
+            this.cbExportQuestions.Size = new System.Drawing.Size(106, 17);
+            this.cbExportQuestions.TabIndex = 43;
+            this.cbExportQuestions.Text = "Export Questions";
+            this.cbExportQuestions.UseVisualStyleBackColor = true;
+            // 
+            // cbExportEpisodeDetail
+            // 
+            this.cbExportEpisodeDetail.AutoSize = true;
+            this.cbExportEpisodeDetail.Location = new System.Drawing.Point(17, 888);
+            this.cbExportEpisodeDetail.Name = "cbExportEpisodeDetail";
+            this.cbExportEpisodeDetail.Size = new System.Drawing.Size(86, 17);
+            this.cbExportEpisodeDetail.TabIndex = 42;
+            this.cbExportEpisodeDetail.Text = "Export Detail";
+            this.cbExportEpisodeDetail.UseVisualStyleBackColor = true;
+            // 
+            // txtASSeriesChild
+            // 
+            this.txtASSeriesChild.Location = new System.Drawing.Point(404, 55);
+            this.txtASSeriesChild.Name = "txtASSeriesChild";
+            this.txtASSeriesChild.Size = new System.Drawing.Size(217, 20);
+            this.txtASSeriesChild.TabIndex = 41;
+            // 
+            // lblASSeriesChild
+            // 
+            this.lblASSeriesChild.AutoSize = true;
+            this.lblASSeriesChild.Location = new System.Drawing.Point(322, 58);
+            this.lblASSeriesChild.Name = "lblASSeriesChild";
+            this.lblASSeriesChild.Size = new System.Drawing.Size(76, 13);
+            this.lblASSeriesChild.TabIndex = 40;
+            this.lblASSeriesChild.Text = "Another Series";
+            // 
             // btnGetQuestions
             // 
-            this.btnGetQuestions.Location = new System.Drawing.Point(476, 351);
+            this.btnGetQuestions.Location = new System.Drawing.Point(476, 381);
             this.btnGetQuestions.Name = "btnGetQuestions";
             this.btnGetQuestions.Size = new System.Drawing.Size(145, 31);
-            this.btnGetQuestions.TabIndex = 40;
+            this.btnGetQuestions.TabIndex = 14;
             this.btnGetQuestions.Text = "Get Questions";
             this.btnGetQuestions.UseVisualStyleBackColor = true;
             this.btnGetQuestions.Click += new System.EventHandler(this.btnGetQuestions_Click);
@@ -652,7 +723,7 @@
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(14, 234);
+            this.label12.Location = new System.Drawing.Point(14, 264);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(54, 13);
             this.label12.TabIndex = 39;
@@ -663,17 +734,17 @@
             this.grvQuestions.AllowUserToAddRows = false;
             this.grvQuestions.AllowUserToDeleteRows = false;
             this.grvQuestions.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.grvQuestions.Location = new System.Drawing.Point(92, 234);
+            this.grvQuestions.Location = new System.Drawing.Point(92, 264);
             this.grvQuestions.Name = "grvQuestions";
             this.grvQuestions.Size = new System.Drawing.Size(529, 111);
             this.grvQuestions.TabIndex = 19;
             // 
             // btnGetVocabTransLateAndObject
             // 
-            this.btnGetVocabTransLateAndObject.Location = new System.Drawing.Point(462, 758);
+            this.btnGetVocabTransLateAndObject.Location = new System.Drawing.Point(462, 788);
             this.btnGetVocabTransLateAndObject.Name = "btnGetVocabTransLateAndObject";
             this.btnGetVocabTransLateAndObject.Size = new System.Drawing.Size(161, 39);
-            this.btnGetVocabTransLateAndObject.TabIndex = 20;
+            this.btnGetVocabTransLateAndObject.TabIndex = 16;
             this.btnGetVocabTransLateAndObject.Text = "Get Vocab Translate && Object";
             this.btnGetVocabTransLateAndObject.UseVisualStyleBackColor = true;
             this.btnGetVocabTransLateAndObject.Click += new System.EventHandler(this.btnGetVocabTransLateAndObject_Click);
@@ -689,7 +760,7 @@
             this.tabControl2.Controls.Add(this.tabPage16);
             this.tabControl2.Controls.Add(this.tabPage17);
             this.tabControl2.Controls.Add(this.tabPage18);
-            this.tabControl2.Location = new System.Drawing.Point(6, 509);
+            this.tabControl2.Location = new System.Drawing.Point(6, 539);
             this.tabControl2.Name = "tabControl2";
             this.tabControl2.SelectedIndex = 0;
             this.tabControl2.Size = new System.Drawing.Size(616, 243);
@@ -718,7 +789,7 @@
             this.grvVocabEn.Location = new System.Drawing.Point(7, 6);
             this.grvVocabEn.Name = "grvVocabEn";
             this.grvVocabEn.Size = new System.Drawing.Size(595, 205);
-            this.grvVocabEn.TabIndex = 18;
+            this.grvVocabEn.TabIndex = 16;
             // 
             // colVocabEnText
             // 
@@ -1111,17 +1182,17 @@
             // 
             // btnSubmitAndAddNew
             // 
-            this.btnSubmitAndAddNew.Location = new System.Drawing.Point(267, 858);
+            this.btnSubmitAndAddNew.Location = new System.Drawing.Point(270, 927);
             this.btnSubmitAndAddNew.Name = "btnSubmitAndAddNew";
             this.btnSubmitAndAddNew.Size = new System.Drawing.Size(189, 59);
-            this.btnSubmitAndAddNew.TabIndex = 37;
+            this.btnSubmitAndAddNew.TabIndex = 19;
             this.btnSubmitAndAddNew.Text = "Submit and Add New";
             this.btnSubmitAndAddNew.UseVisualStyleBackColor = true;
             this.btnSubmitAndAddNew.Click += new System.EventHandler(this.btnSubmitAndAddNew_Click);
             // 
             // txtDuration
             // 
-            this.txtDuration.Location = new System.Drawing.Point(92, 134);
+            this.txtDuration.Location = new System.Drawing.Point(92, 164);
             this.txtDuration.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -1129,31 +1200,31 @@
             0});
             this.txtDuration.Name = "txtDuration";
             this.txtDuration.Size = new System.Drawing.Size(122, 20);
-            this.txtDuration.TabIndex = 36;
+            this.txtDuration.TabIndex = 11;
             // 
             // btnGetLink
             // 
-            this.btnGetLink.Location = new System.Drawing.Point(540, 106);
+            this.btnGetLink.Location = new System.Drawing.Point(540, 136);
             this.btnGetLink.Name = "btnGetLink";
             this.btnGetLink.Size = new System.Drawing.Size(83, 23);
-            this.btnGetLink.TabIndex = 35;
+            this.btnGetLink.TabIndex = 20;
             this.btnGetLink.Text = "Get link";
             this.btnGetLink.UseVisualStyleBackColor = true;
             this.btnGetLink.Click += new System.EventHandler(this.btnGetLink_Click);
             // 
             // txtThumb
             // 
-            this.txtThumb.Location = new System.Drawing.Point(93, 80);
+            this.txtThumb.Location = new System.Drawing.Point(93, 110);
             this.txtThumb.Name = "txtThumb";
             this.txtThumb.Size = new System.Drawing.Size(441, 20);
-            this.txtThumb.TabIndex = 34;
+            this.txtThumb.TabIndex = 9;
             // 
             // btnImageLink
             // 
-            this.btnImageLink.Location = new System.Drawing.Point(540, 78);
+            this.btnImageLink.Location = new System.Drawing.Point(540, 108);
             this.btnImageLink.Name = "btnImageLink";
             this.btnImageLink.Size = new System.Drawing.Size(82, 23);
-            this.btnImageLink.TabIndex = 0;
+            this.btnImageLink.TabIndex = 9;
             this.btnImageLink.Text = "Browse";
             this.btnImageLink.UseVisualStyleBackColor = true;
             this.btnImageLink.Click += new System.EventHandler(this.btnImageLink_Click);
@@ -1161,7 +1232,7 @@
             // label20
             // 
             this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(13, 83);
+            this.label20.Location = new System.Drawing.Point(13, 113);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(72, 13);
             this.label20.TabIndex = 33;
@@ -1169,16 +1240,16 @@
             // 
             // txtGrammar
             // 
-            this.txtGrammar.Location = new System.Drawing.Point(383, 161);
+            this.txtGrammar.Location = new System.Drawing.Point(383, 191);
             this.txtGrammar.Multiline = true;
             this.txtGrammar.Name = "txtGrammar";
             this.txtGrammar.Size = new System.Drawing.Size(240, 67);
-            this.txtGrammar.TabIndex = 32;
+            this.txtGrammar.TabIndex = 13;
             // 
             // label15
             // 
             this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(328, 161);
+            this.label15.Location = new System.Drawing.Point(328, 191);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(49, 13);
             this.label15.TabIndex = 31;
@@ -1186,25 +1257,25 @@
             // 
             // btnSubmit
             // 
-            this.btnSubmit.Location = new System.Drawing.Point(462, 858);
+            this.btnSubmit.Location = new System.Drawing.Point(462, 927);
             this.btnSubmit.Name = "btnSubmit";
             this.btnSubmit.Size = new System.Drawing.Size(159, 60);
-            this.btnSubmit.TabIndex = 30;
+            this.btnSubmit.TabIndex = 20;
             this.btnSubmit.Text = "Submit to Firebase";
             this.btnSubmit.UseVisualStyleBackColor = true;
             this.btnSubmit.Click += new System.EventHandler(this.btnSubmit_Click);
             // 
             // txtHomeNumber
             // 
-            this.txtHomeNumber.Location = new System.Drawing.Point(93, 832);
+            this.txtHomeNumber.Location = new System.Drawing.Point(93, 862);
             this.txtHomeNumber.Name = "txtHomeNumber";
             this.txtHomeNumber.Size = new System.Drawing.Size(530, 20);
-            this.txtHomeNumber.TabIndex = 29;
+            this.txtHomeNumber.TabIndex = 18;
             // 
             // label38
             // 
             this.label38.AutoSize = true;
-            this.label38.Location = new System.Drawing.Point(13, 832);
+            this.label38.Location = new System.Drawing.Point(13, 862);
             this.label38.Name = "label38";
             this.label38.Size = new System.Drawing.Size(73, 13);
             this.label38.TabIndex = 28;
@@ -1212,15 +1283,15 @@
             // 
             // txtNumber
             // 
-            this.txtNumber.Location = new System.Drawing.Point(93, 806);
+            this.txtNumber.Location = new System.Drawing.Point(93, 836);
             this.txtNumber.Name = "txtNumber";
             this.txtNumber.Size = new System.Drawing.Size(530, 20);
-            this.txtNumber.TabIndex = 27;
+            this.txtNumber.TabIndex = 17;
             // 
             // label19
             // 
             this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(13, 809);
+            this.label19.Location = new System.Drawing.Point(13, 839);
             this.label19.Name = "label19";
             this.label19.Size = new System.Drawing.Size(44, 13);
             this.label19.TabIndex = 26;
@@ -1228,16 +1299,16 @@
             // 
             // txtSummary
             // 
-            this.txtSummary.Location = new System.Drawing.Point(93, 161);
+            this.txtSummary.Location = new System.Drawing.Point(93, 191);
             this.txtSummary.Multiline = true;
             this.txtSummary.Name = "txtSummary";
             this.txtSummary.Size = new System.Drawing.Size(229, 67);
-            this.txtSummary.TabIndex = 25;
+            this.txtSummary.TabIndex = 12;
             // 
             // label14
             // 
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(13, 161);
+            this.label14.Location = new System.Drawing.Point(13, 191);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(50, 13);
             this.label14.TabIndex = 24;
@@ -1245,18 +1316,18 @@
             // 
             // txtVocab
             // 
-            this.txtVocab.Location = new System.Drawing.Point(92, 388);
+            this.txtVocab.Location = new System.Drawing.Point(92, 418);
             this.txtVocab.Multiline = true;
             this.txtVocab.Name = "txtVocab";
             this.txtVocab.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtVocab.Size = new System.Drawing.Size(530, 115);
-            this.txtVocab.TabIndex = 23;
+            this.txtVocab.TabIndex = 15;
             this.txtVocab.Leave += new System.EventHandler(this.txtVocab_Leave);
             // 
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(12, 391);
+            this.label13.Location = new System.Drawing.Point(12, 421);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(38, 13);
             this.label13.TabIndex = 22;
@@ -1265,7 +1336,7 @@
             // label22
             // 
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(12, 133);
+            this.label22.Location = new System.Drawing.Point(12, 163);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(47, 13);
             this.label22.TabIndex = 20;
@@ -1273,15 +1344,15 @@
             // 
             // dpPublishDate
             // 
-            this.dpPublishDate.Location = new System.Drawing.Point(92, 54);
+            this.dpPublishDate.Location = new System.Drawing.Point(92, 84);
             this.dpPublishDate.Name = "dpPublishDate";
             this.dpPublishDate.Size = new System.Drawing.Size(217, 20);
-            this.dpPublishDate.TabIndex = 19;
+            this.dpPublishDate.TabIndex = 7;
             // 
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(12, 58);
+            this.label10.Location = new System.Drawing.Point(12, 88);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(65, 13);
             this.label10.TabIndex = 18;
@@ -1293,7 +1364,7 @@
             this.cbYear.Location = new System.Drawing.Point(560, 28);
             this.cbYear.Name = "cbYear";
             this.cbYear.Size = new System.Drawing.Size(61, 21);
-            this.cbYear.TabIndex = 17;
+            this.cbYear.TabIndex = 6;
             // 
             // cbType
             // 
@@ -1304,7 +1375,7 @@
             this.cbType.Location = new System.Drawing.Point(404, 28);
             this.cbType.Name = "cbType";
             this.cbType.Size = new System.Drawing.Size(82, 21);
-            this.cbType.TabIndex = 13;
+            this.cbType.TabIndex = 4;
             this.cbType.SelectedIndexChanged += new System.EventHandler(this.cbType_SelectedIndexChanged);
             // 
             // cbCategory
@@ -1313,26 +1384,26 @@
             this.cbCategory.Location = new System.Drawing.Point(492, 28);
             this.cbCategory.Name = "cbCategory";
             this.cbCategory.Size = new System.Drawing.Size(62, 21);
-            this.cbCategory.TabIndex = 14;
+            this.cbCategory.TabIndex = 5;
             // 
             // txtFileUrl
             // 
-            this.txtFileUrl.Location = new System.Drawing.Point(93, 108);
+            this.txtFileUrl.Location = new System.Drawing.Point(93, 138);
             this.txtFileUrl.Name = "txtFileUrl";
             this.txtFileUrl.Size = new System.Drawing.Size(441, 20);
-            this.txtFileUrl.TabIndex = 16;
+            this.txtFileUrl.TabIndex = 20;
             // 
             // txtEpisodeName
             // 
-            this.txtEpisodeName.Location = new System.Drawing.Point(404, 54);
+            this.txtEpisodeName.Location = new System.Drawing.Point(404, 84);
             this.txtEpisodeName.Name = "txtEpisodeName";
             this.txtEpisodeName.Size = new System.Drawing.Size(218, 20);
-            this.txtEpisodeName.TabIndex = 15;
+            this.txtEpisodeName.TabIndex = 8;
             // 
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(13, 111);
+            this.label8.Location = new System.Drawing.Point(13, 141);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(37, 13);
             this.label8.TabIndex = 7;
@@ -1343,12 +1414,12 @@
             this.txtId.Location = new System.Drawing.Point(92, 28);
             this.txtId.Name = "txtId";
             this.txtId.Size = new System.Drawing.Size(217, 20);
-            this.txtId.TabIndex = 12;
+            this.txtId.TabIndex = 3;
             // 
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(324, 58);
+            this.label9.Location = new System.Drawing.Point(324, 88);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(74, 13);
             this.label9.TabIndex = 8;
@@ -1861,10 +1932,10 @@
             // 
             // btngetGrammarExplaimation
             // 
-            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 943);
+            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1008);
             this.btngetGrammarExplaimation.Name = "btngetGrammarExplaimation";
             this.btngetGrammarExplaimation.Size = new System.Drawing.Size(164, 79);
-            this.btngetGrammarExplaimation.TabIndex = 19;
+            this.btngetGrammarExplaimation.TabIndex = 23;
             this.btngetGrammarExplaimation.Text = "Get Grammar Explaination";
             this.btngetGrammarExplaimation.UseVisualStyleBackColor = true;
             this.btngetGrammarExplaimation.Click += new System.EventHandler(this.btngetGrammarExplaimation_Click);
@@ -1874,7 +1945,7 @@
             this.statusStripGrammar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripProgressGrammar,
             this.toolStripStatusLabelGrammar});
-            this.statusStripGrammar.Location = new System.Drawing.Point(0, 1078);
+            this.statusStripGrammar.Location = new System.Drawing.Point(0, 1097);
             this.statusStripGrammar.Name = "statusStripGrammar";
             this.statusStripGrammar.Size = new System.Drawing.Size(2214, 22);
             this.statusStripGrammar.SizingGrip = false;
@@ -1900,18 +1971,18 @@
             this.groupBox4.Controls.Add(this.btnPlay);
             this.groupBox4.Controls.Add(this.btnForward);
             this.groupBox4.Controls.Add(this.btnReward);
-            this.groupBox4.Location = new System.Drawing.Point(874, 933);
+            this.groupBox4.Location = new System.Drawing.Point(855, 929);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(359, 100);
             this.groupBox4.TabIndex = 101;
             this.groupBox4.TabStop = false;
-            this.groupBox4.Text = "groupBox4";
+            this.groupBox4.Text = "Action";
             // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(2214, 1100);
+            this.ClientSize = new System.Drawing.Size(2214, 1119);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.btngetGrammarExplaimation);
             this.Controls.Add(this.tabControl1);
@@ -1926,10 +1997,8 @@
             this.Controls.Add(this.statusStripGrammar);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimizeBox = false;
             this.Name = "frmMain";
             this.Text = "Play MP3";
-            this.TopMost = true;
             ((System.ComponentModel.ISupportInitialize)(this.grvRow)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
@@ -2096,11 +2165,6 @@
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;
-        private System.Windows.Forms.DataGridViewTextBoxColumn FirstDuration;
-        private System.Windows.Forms.DataGridViewTextBoxColumn RowContent;
-        private System.Windows.Forms.DataGridViewTextBoxColumn LastDuration;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Group;
-        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationEn;
         private System.Windows.Forms.TabControl tabControl2;
         private System.Windows.Forms.TabPage tabPage10;
         private System.Windows.Forms.DataGridView grvVocabEn;
@@ -2173,6 +2237,17 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn colQuestionExplanation;
         private System.Windows.Forms.Button btnGetQuestions;
         private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.DataGridViewTextBoxColumn FirstDuration;
+        private System.Windows.Forms.DataGridViewTextBoxColumn RowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn LastDuration;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationEn;
+        private System.Windows.Forms.TextBox txtASSeriesChild;
+        private System.Windows.Forms.Label lblASSeriesChild;
+        private System.Windows.Forms.CheckBox cbExportGrammar;
+        private System.Windows.Forms.CheckBox cbExportVocabulary;
+        private System.Windows.Forms.CheckBox cbExportQuestions;
+        private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
+        private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }
 

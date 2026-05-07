@@ -3,6 +3,7 @@ import '../models/transcript_line.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
+import 'ai_cache_lookup.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
 import 'heart_service.dart';
@@ -61,10 +62,12 @@ class AITranslationService {
 
     // Check cache with priority: Local → Firebase → null
     final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
-    if (cached != null && cached.isNotEmpty) {
+    if (cached != null && cached.value.isNotEmpty) {
       debugPrint('Using cached translations for episode $episodeId');
-      await HeartService().consumeHeartOrThrow();
-      return cached;
+      if (cached.source == AiCacheSource.firebase) {
+        await HeartService().consumeHeartOrThrow();
+      }
+      return cached.value;
     }
 
     await HeartService().consumeHeartOrThrow();
@@ -162,7 +165,8 @@ class AITranslationService {
     // Check cache for all words first
     final cachedTranslations = <String, String>{};
     final wordsToTranslate = <Map<String, String>>[];
-    
+    var batchUsedFirebase = false;
+
     for (final vocab in vocabularyList) {
       final word = vocab['word'] ?? '';
       final cacheKey = 'vocab_translation_${word}_$languageCode';
@@ -173,16 +177,22 @@ class AITranslationService {
       }
 
       if (normalizedEpisodeId.isNotEmpty) {
-        final vocabCache = await _cache.getVocabularyFromCache(
+        final vocabCached = await _cache.getVocabularyFromCache(
           word,
           languageCode,
           episodeId: normalizedEpisodeId,
         );
-        final localizedMeaning = vocabCache?['meaning']?.toString().trim() ?? '';
-        if (localizedMeaning.isNotEmpty) {
-          cachedTranslations[word] = localizedMeaning;
-          await _cache.cacheString(cacheKey, localizedMeaning);
-          continue;
+        if (vocabCached != null) {
+          final localizedMeaning =
+              vocabCached.value['meaning']?.toString().trim() ?? '';
+          if (localizedMeaning.isNotEmpty) {
+            cachedTranslations[word] = localizedMeaning;
+            await _cache.cacheString(cacheKey, localizedMeaning);
+            if (vocabCached.source == AiCacheSource.firebase) {
+              batchUsedFirebase = true;
+            }
+            continue;
+          }
         }
       }
 
@@ -192,11 +202,12 @@ class AITranslationService {
         wordsToTranslate.add(vocab);
       }
     }
-    
-    // If all words are cached, return immediately
+
     if (wordsToTranslate.isEmpty) {
       debugPrint('✅ All vocabulary translations found in cache');
-      await HeartService().consumeHeartOrThrow();
+      if (batchUsedFirebase) {
+        await HeartService().consumeHeartOrThrow();
+      }
       return cachedTranslations;
     }
 
@@ -370,7 +381,6 @@ class AITranslationService {
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
-      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
@@ -434,7 +444,6 @@ class AITranslationService {
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
-      await HeartService().consumeHeartOrThrow();
       return cached;
     }
 
@@ -463,7 +472,7 @@ class AITranslationService {
   }
 
   /// Translate a single transcript line with caching
-  /// Checks Firebase cache first (with lineNumber matching), then local cache, then AI API
+  /// Local → Firebase (promote) → AI; tim chỉ khi Firebase hoặc AI.
   Future<String> translateTranscriptLine(
     String lineText,
     String episodeId,
@@ -495,8 +504,10 @@ class AITranslationService {
     );
     if (cached != null) {
       debugPrint('✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)');
-      await HeartService().consumeHeartOrThrow();
-      return cached;
+      if (cached.source == AiCacheSource.firebase) {
+        await HeartService().consumeHeartOrThrow();
+      }
+      return cached.value;
     }
 
     await HeartService().consumeHeartOrThrow();
