@@ -97,6 +97,36 @@ namespace playMP3
             if (txtASSeriesChild != null) txtASSeriesChild.Visible = isAs;
         }
 
+        private bool IsAnotherSeriesCategorySelected()
+        {
+            return string.Equals((cbCategory?.Text ?? string.Empty).Trim(), "AS", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Khi Category = AS (Another Series), field Category của episode và nhánh RTDB phải là mã con (OF, EIM…),
+        /// không phải chữ "AS". Đường dẫn đầy đủ thêm năm nếu category có IsSupportYear.
+        /// </summary>
+        private void ResolveCategoryForEpisodeAndFirebasePaths(out string episodeCategory, out string firebaseCategoryPathRoot)
+        {
+            var sel = (cbCategory?.Text ?? string.Empty).Trim();
+            if (IsAnotherSeriesCategorySelected())
+            {
+                var sub = (txtASSeriesChild?.Text ?? string.Empty).Trim().Trim('/');
+                if (string.IsNullOrEmpty(sub))
+                {
+                    throw new InvalidOperationException(
+                        "Khi Category = AS, hãy nhập mã series con (ví dụ OF, EIM) vào ô AS series.");
+                }
+
+                episodeCategory = sub;
+                firebaseCategoryPathRoot = "AS/" + sub;
+                return;
+            }
+
+            episodeCategory = sel;
+            firebaseCategoryPathRoot = sel;
+        }
+
         private void btnBrowse_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
@@ -278,6 +308,18 @@ namespace playMP3
             FillGridFromTranscriptText(txtTranscript.Text, grvRow);
         }
 
+        /// <summary>
+        /// Một số layout grid không có cột Group — không được indexer Cells["Group"] khi cột không tồn tại.
+        /// </summary>
+        private int GetRowGroupValue(DataGridViewRow row)
+        {
+            if (!grvRow.Columns.Contains("Group"))
+                return 0;
+            var val = row.Cells["Group"].Value;
+            if (val == null)
+                return 0;
+            return int.TryParse(val.ToString(), out var g) ? g : 0;
+        }
 
         private void btnConvertGridToResult_Click(object sender, EventArgs e)
         {
@@ -294,7 +336,7 @@ namespace playMP3
 
             foreach (DataGridViewRow row in grvRow.Rows)
             {
-                var group = int.Parse(row.Cells["Group"].Value.ToString());
+                var group = GetRowGroupValue(row);
                 if (!dics.ContainsKey(group))
                 {
                     var lstRowTemp = new List<DataGridViewRow>();
@@ -511,7 +553,8 @@ namespace playMP3
                 episode.Id = Guid.NewGuid();
             }
             txtId.Text = episode.Id.ToString();
-            episode.Category = cbCategory.Text;
+            ResolveCategoryForEpisodeAndFirebasePaths(out var episodeCategory, out var firebaseCategoryPathRoot);
+            episode.Category = episodeCategory;
             episode.Year = cbYear.Text;
             episode.PublishedDate = dpPublishDate.Value;
             episode.ThumbImage = txtThumb.Text;
@@ -554,7 +597,7 @@ namespace playMP3
                 .Where(x => x.IsSupportYear)
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
-            string categoryPath = cbCategory.Text + (isSupportYear ? "/" + cbYear.Text : "");
+            string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
 
             if (exportEpisodeDetail)
             {
