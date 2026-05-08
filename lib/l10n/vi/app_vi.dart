@@ -18,6 +18,7 @@ class AppVi {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Tìm kiếm episode',
     'searchHint': 'Tìm theo tên, tóm tắt, hoặc transcript',
     'searching': 'Đang tìm kiếm...',

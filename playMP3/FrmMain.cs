@@ -180,6 +180,19 @@ namespace playMP3
             grvRow.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
         }
 
+        /// <summary>
+        /// Một số bản UI bỏ cột "Group" (vd. chỉ còn Grammar…). Không được gọi row.Cells["Group"] khi cột không tồn tại.
+        /// </summary>
+        private int GetRowGroupValue(DataGridViewRow row)
+        {
+            if (!grvRow.Columns.Contains("Group"))
+                return 0;
+            var val = row.Cells["Group"].Value;
+            if (val == null)
+                return 0;
+            return int.TryParse(val.ToString(), out var g) ? g : 0;
+        }
+
 
         private void btnConvertGridToResult_Click(object sender, EventArgs e)
         {
@@ -196,7 +209,7 @@ namespace playMP3
 
             foreach (DataGridViewRow row in grvRow.Rows)
             {
-                var group = int.Parse(row.Cells["Group"].Value.ToString());
+                var group = GetRowGroupValue(row);
                 if (!dics.ContainsKey(group))
                 {
                     var lstRowTemp = new List<DataGridViewRow>();

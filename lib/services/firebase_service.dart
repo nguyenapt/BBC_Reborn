@@ -332,4 +332,127 @@ class FirebaseService {
       throw Exception('Error fetching category data: $e');
     }
   }
+
+  // =========================
+  // Another Series (AS) helpers
+  // =========================
+
+  /// `List` (slim) parent path cho AS.
+  /// - Home: `List/HomePage/AS` (hoặc legacy `HomePage/AS`)
+  /// - Other: `List/AS` (hoặc legacy `AS`)
+  static String anotherSeriesListParentPath({required bool forHomePage}) {
+    if (RtdbListConfig.useSlimListPaths) {
+      return forHomePage ? 'List/HomePage/AS' : 'List/AS';
+    }
+    return forHomePage ? 'HomePage/AS' : 'AS';
+  }
+
+  static bool _holdsAnotherSeriesEpisodePayload(dynamic v) {
+    if (v == null) return false;
+    if (v is List) return v.isNotEmpty;
+    if (v is Map) return v.isNotEmpty;
+    return false;
+  }
+
+  /// Parse các key sub (OF, EIM, …) từ JSON node cha AS.
+  static List<String> parseAnotherSeriesSubKeys(String responseBody) {
+    try {
+      final decoded = json.decode(responseBody);
+      if (decoded is! Map<String, dynamic>) return [];
+      final keys = <String>[];
+      decoded.forEach((k, v) {
+        if (_holdsAnotherSeriesEpisodePayload(v)) keys.add(k);
+      });
+      keys.sort();
+      return keys;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Lấy danh sách sub key của AS cho Home/Other.
+  /// Lưu ý: phiên bản "cũ" chỉ đọc đúng 1 nhánh theo [forHomePage].
+  static Future<List<String>> fetchAnotherSeriesSubKeys({
+    required bool forHomePage,
+  }) async {
+    final parent = anotherSeriesListParentPath(forHomePage: forHomePage);
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/$parent.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
+        return [];
+      }
+      return parseAnotherSeriesSubKeys(res.body);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static List<Episode> _forceEpisodesCategory(
+    List<Episode> episodes,
+    String category,
+  ) {
+    if (episodes.isEmpty) return episodes;
+    return episodes
+        .map(
+          (e) => Episode(
+            actor: e.actor,
+            category: category,
+            duration: e.duration,
+            publishedDate: e.publishedDate,
+            episodeName: e.episodeName,
+            transcript: e.transcript,
+            thumbImage: e.thumbImage,
+            id: e.id,
+            fileUrl: e.fileUrl,
+            secondFileUrl: e.secondFileUrl,
+            summary: e.summary,
+            year: e.year,
+            transcriptHtml: e.transcriptHtml,
+            vocabulary: e.vocabulary,
+            vocabularies: e.vocabularies,
+          ),
+        )
+        .toList();
+  }
+
+  /// Lấy list episode (payload mỏng) của 1 sub trong AS.
+  static Future<List<Episode>> getAnotherSeriesListEpisodes(
+    String sub, {
+    required bool forHomePage,
+  }) async {
+    final parent = anotherSeriesListParentPath(forHomePage: forHomePage);
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/$parent/$sub.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
+        return [];
+      }
+      final dynamic data = json.decode(res.body);
+      return _forceEpisodesCategory(_parseCategoryYearPayload(data), sub);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Lấy bulk đầy đủ cho Another Series từ tree `AS/{sub}`.
+  static Future<List<Episode>> getAnotherSeriesFullBulk(String sub) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/AS/$sub.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
+        return [];
+      }
+      final dynamic data = json.decode(res.body);
+      return _forceEpisodesCategory(_parseCategoryYearPayload(data), sub);
+    } catch (_) {
+      return [];
+    }
+  }
 }

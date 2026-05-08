@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/episode_cache_service.dart';
+import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
-import '../utils/category_names.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
@@ -51,6 +51,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   };
   // Data cho Other Programs (map category name -> episodes)
   Map<String, List<Episode>> _otherProgramsData = {};
+  /// Thứ tự hiển thị: AS động trước, sau đó 6MGB…
+  List<String> _otherProgramsDisplayOrder = [];
 
   @override
   void initState() {
@@ -252,32 +254,61 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     });
 
     try {
-      final categories = ['6MGB', '6MGI', '6MVB', '6MVI', 'DRM', 'EAW'];
-      
-      print('Loading data for categories: $categories');
-      
+      final asSubs =
+          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: false);
+      const fixedCategories = [
+        '6MGB',
+        '6MGI',
+        '6MVB',
+        '6MVI',
+        'DRM',
+        'EAW',
+      ];
+
+      print(
+        'Loading Other Programs: AS subs=$asSubs, fixed=$fixedCategories',
+      );
+
       final Map<String, List<Episode>> allData = {};
-      
-      // Load data cho từng category (không có year parameter)
-      for (final category in categories) {
+
+      for (final sub in asSubs) {
+        try {
+          print('Loading Another Series list branch: $sub...');
+          final episodes =
+              await _episodeCacheService.getAnotherSeriesSubEpisodes(
+            sub,
+            forHomePage: false,
+          );
+          print('$sub - Total: ${episodes.length} episodes');
+          allData[sub] = episodes;
+        } catch (e) {
+          print('Error loading Another Series $sub: $e');
+          allData[sub] = [];
+        }
+      }
+
+      for (final category in fixedCategories) {
         try {
           print('Loading $category...');
-          final episodes = await _episodeCacheService.getCategoryEpisodesWithoutYear(category);
-          
+          final episodes =
+              await _episodeCacheService.getCategoryEpisodesWithoutYear(category);
+
           print('$category - Total: ${episodes.length} episodes');
-          
+
           allData[category] = episodes;
         } catch (e) {
-          // Nếu một category lỗi, vẫn tiếp tục với các category khác
           print('Error loading $category: $e');
           allData[category] = [];
         }
       }
-      
-      print('Other Programs data loaded. Total categories with data: ${allData.values.where((list) => list.isNotEmpty).length}');
-      
+
+      print(
+        'Other Programs data loaded. Total categories with data: ${allData.values.where((list) => list.isNotEmpty).length}',
+      );
+
       setState(() {
         _otherProgramsData = allData;
+        _otherProgramsDisplayOrder = [...asSubs, ...fixedCategories];
         _loadingStates['OTHER'] = false;
       });
     } catch (e) {
@@ -608,7 +639,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                     )
                   : ElevatedButton(
                       onPressed: () => _loadMoreYears(category),
-                      child: Text(_languageManager.getText('loadMore') ?? 'Load More'),
+                      child: Text(_languageManager.getText('loadMore')),
                     ),
             );
           }
@@ -722,12 +753,12 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       );
     }
 
-    // Hiển thị các category lần lượt: 6MGB, 6MGI, 6MVB, 6MVI, DRM, EAW
-    final categories = ['6MGB', '6MGI', '6MVB', '6MVI', 'DRM', 'EAW'];
+    final categories = _otherProgramsDisplayOrder;
 
     return RefreshIndicator(
       onRefresh: () {
         _otherProgramsData.clear();
+        _otherProgramsDisplayOrder.clear();
         return _loadOtherProgramsData();
       },
       child: ListView.builder(

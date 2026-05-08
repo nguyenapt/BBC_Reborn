@@ -10,12 +10,21 @@ class CategoryNames {
     'DRM': 'Drama',
     'EAW': 'English at Work',
     'EG': 'English Grammar',
+    'OF': 'Office English',
+    'EIM': 'English In Minute',
   };
+
+  /// Sub-category codes under RTDB `AS` (Another Series). Thêm mã mới khi có series mới.
+  static const Set<String> anotherSeriesSubcategoryCodes = {'OF', 'EIM'};
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category
   /// Nếu không tìm thấy mapping, trả về mã category gốc
   static String getDisplayName(String categoryCode) {
     return _categoryMapping[categoryCode] ?? categoryCode;
+  }
+
+  static bool isAnotherSeriesSubcategory(String categoryCode) {
+    return anotherSeriesSubcategoryCodes.contains(categoryCode);
   }
 
   /// Kiểm tra xem category có mapping hay không
