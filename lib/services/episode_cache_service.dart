@@ -111,16 +111,20 @@ class EpisodeCacheService {
         'Category',
         '$cacheCategory (Another Series) | Web — RTDB (no SQLite)',
       );
-      return FirebaseService.getAnotherSeriesListEpisodes(
+      final slim = await FirebaseService.getAnotherSeriesListEpisodes(
         sub,
         forHomePage: forHomePage,
       );
+      // Nếu node List/AS chưa sẵn sàng hoặc rỗng, fallback sang tree đầy đủ AS/{sub}.
+      if (slim.isNotEmpty) return slim;
+      return FirebaseService.getAnotherSeriesFullBulk(sub);
     }
 
-    final year = LocalDatabaseService.noYear;
-    final cached = await _db.getEpisodesByCategoryYear(cacheCategory, year);
-    final lastFetched = await _db.getCategoryLastFetched(cacheCategory, year);
+    // Lưu entity episode theo `id` một lần (episodes table),
+    // và lưu membership + thứ tự theo collection_key (collection tables).
+    final lastFetched = await _db.getCollectionLastFetched(cacheCategory);
     final fetchedToday = _isFetchedToday(lastFetched);
+    final cached = await _db.getEpisodesByCollectionKey(cacheCategory);
 
     if (cached.isNotEmpty && fetchedToday) {
       debugLogDataSource(
@@ -130,7 +134,7 @@ class EpisodeCacheService {
       return cached;
     }
 
-    if (!fetchedToday) {
+    if (!fetchedToday || cached.isEmpty) {
       try {
         debugLogDataSource(
           'Category',
@@ -140,18 +144,31 @@ class EpisodeCacheService {
           sub,
           forHomePage: forHomePage,
         );
+        final resolved = apiEpisodes.isNotEmpty
+            ? apiEpisodes
+            : await FirebaseService.getAnotherSeriesFullBulk(sub);
         // Tránh negative-cache: nếu API trả rỗng (do lỗi mạng/timeout/đang migrate dữ liệu),
         // không đánh dấu fetchedToday để lần sau còn retry.
-        if (apiEpisodes.isNotEmpty) {
-          await _db.insertEpisodesIfMissing(cacheCategory, year, apiEpisodes);
-          await _db.upsertCategoryFetch(cacheCategory, year, DateTime.now());
+        if (resolved.isNotEmpty) {
+          await _db.upsertEpisodes(
+            category: sub,
+            year: LocalDatabaseService.noYear,
+            episodes: resolved,
+          );
+          await _db.replaceCollectionItems(
+            collectionKey: cacheCategory,
+            episodeIds: resolved.map((e) => e.resolvedStorageId).toList(),
+          );
+          await _db.upsertCollectionFetch(cacheCategory, DateTime.now());
+          final refreshedNow = await _db.getEpisodesByCollectionKey(cacheCategory);
+          return refreshedNow.isNotEmpty ? refreshedNow : resolved;
         }
       } catch (e) {
         debugPrint('Error fetching Another Series $cacheCategory: $e');
       }
     }
 
-    final refreshed = await _db.getEpisodesByCategoryYear(cacheCategory, year);
+    final refreshed = await _db.getEpisodesByCollectionKey(cacheCategory);
     return refreshed.isNotEmpty ? refreshed : cached;
   }
 

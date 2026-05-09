@@ -175,6 +175,33 @@ class FirebaseService {
     return episodes;
   }
 
+  /// Parse payload của `AS/{sub}` nơi key thường là số (0,1,2...) nhưng GUID nằm ở field `Id`.
+  /// Cần ưu tiên field `Id` để EpisodeDetail hydrate theo guid.
+  static List<Episode> _parseAnotherSeriesPayload(dynamic data) {
+    final List<Episode> episodes = [];
+    if (data is Map<String, dynamic>) {
+      data.forEach((key, value) {
+        if (value is Map<String, dynamic>) {
+          final guid = value['Id']?.toString();
+          final resolvedId = (guid != null && guid.isNotEmpty) ? guid : key;
+          episodes.add(Episode.fromJson(value, resolvedId));
+        }
+      });
+    } else if (data is List) {
+      for (int i = 0; i < data.length; i++) {
+        final episodeData = data[i];
+        if (episodeData is Map<String, dynamic>) {
+          final guid = episodeData['Id']?.toString();
+          final resolvedId =
+              (guid != null && guid.isNotEmpty) ? guid : i.toString();
+          episodes.add(Episode.fromJson(episodeData, resolvedId));
+        }
+      }
+    }
+    episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+    return episodes;
+  }
+
   /// Lấy episode đầy đủ (transcript/vocab) từ tree gốc — dùng sau khi list chỉ có bản mỏng.
   ///
   /// Thử `GET /{category}/{year}/{id}.json` hoặc `/{category}/{id}.json`; nếu không có (array layout),
@@ -205,6 +232,22 @@ class FirebaseService {
         }
       } catch (_) {}
 
+      // Another Series full tree: `/AS/{sub}/{year}/{id}.json`
+      try {
+        final asYear = await http.get(
+          Uri.parse('$_baseUrl/AS/$category/$yearParsed/$id.json'),
+          headers: {'Accept': 'application/json'},
+        );
+        if (asYear.statusCode == 200 &&
+            asYear.body.isNotEmpty &&
+            asYear.body != 'null') {
+          final decoded = json.decode(asYear.body);
+          if (decoded is Map<String, dynamic>) {
+            return Episode.fromJson(decoded, id);
+          }
+        }
+      } catch (_) {}
+
       try {
         final bulk = await getCategoryDataLegacyFull(category, yearParsed);
         for (final e in bulk) {
@@ -228,9 +271,33 @@ class FirebaseService {
       }
     } catch (_) {}
 
+    // Another Series full tree: `/AS/{sub}/{id}.json`
+    try {
+      final asDirect = await http.get(
+        Uri.parse('$_baseUrl/AS/$category/$id.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (asDirect.statusCode == 200 &&
+          asDirect.body.isNotEmpty &&
+          asDirect.body != 'null') {
+        final decoded = json.decode(asDirect.body);
+        if (decoded is Map<String, dynamic>) {
+          return Episode.fromJson(decoded, id);
+        }
+      }
+    } catch (_) {}
+
     try {
       final bulk = await getCategoryDataWithoutYearLegacyFull(category);
       for (final e in bulk) {
+        if (e.id == id) return e;
+      }
+    } catch (_) {}
+
+    // Another Series: fallback bulk `/AS/{sub}.json` rồi match theo guid.
+    try {
+      final asBulk = await getAnotherSeriesFullBulk(category);
+      for (final e in asBulk) {
         if (e.id == id) return e;
       }
     } catch (_) {}
@@ -370,21 +437,95 @@ class FirebaseService {
     }
   }
 
-  /// Lấy danh sách sub key của AS cho Home/Other.
-  /// Lưu ý: phiên bản "cũ" chỉ đọc đúng 1 nhánh theo [forHomePage].
-  static Future<List<String>> fetchAnotherSeriesSubKeys({
-    required bool forHomePage,
-  }) async {
-    final parent = anotherSeriesListParentPath(forHomePage: forHomePage);
+  /// Dùng RTDB `?shallow=true` để chỉ lấy key (nhẹ), tránh tải cả payload lớn.
+  static Future<List<String>> _fetchShallowKeys(String path) async {
     try {
       final res = await http.get(
-        Uri.parse('$_baseUrl/$parent.json'),
+        Uri.parse('$_baseUrl/$path.json?shallow=true'),
         headers: {'Accept': 'application/json'},
       );
       if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
         return [];
       }
-      return parseAnotherSeriesSubKeys(res.body);
+      final decoded = json.decode(res.body);
+      if (decoded is! Map<String, dynamic>) return [];
+      final keys = decoded.keys.map((e) => e.toString()).toList()..sort();
+      return keys;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Lấy danh sách sub key của AS cho Home/Other.
+  /// Lưu ý: phiên bản "cũ" chỉ đọc đúng 1 nhánh theo [forHomePage].
+  static Future<List<String>> fetchAnotherSeriesSubKeys({
+    required bool forHomePage,
+  }) async {
+    // Luôn ưu tiên `List/...` vì payload mỏng, đúng chuẩn sub keys (OF/EIM/...)
+    // Kể cả khi build tắt RTDB_SLIM_LIST, Android vẫn nên thử `List/AS` trước.
+    final preferredListParent = forHomePage ? 'List/HomePage/AS' : 'List/AS';
+    final legacyParent = anotherSeriesListParentPath(forHomePage: forHomePage);
+    try {
+      // Ưu tiên shallow để giảm payload (List/* trước)
+      final shallowPreferred = await _fetchShallowKeys(preferredListParent);
+      if (shallowPreferred.isNotEmpty) return shallowPreferred;
+
+      // Nếu List/* không có, thử theo config hiện tại
+      final shallowLegacy = await _fetchShallowKeys(legacyParent);
+      if (shallowLegacy.isNotEmpty) return shallowLegacy;
+
+      // Fallback: GET JSON thường (List/* trước)
+      final resPreferred = await http.get(
+        Uri.parse('$_baseUrl/$preferredListParent.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (resPreferred.statusCode == 200 &&
+          resPreferred.body.isNotEmpty &&
+          resPreferred.body != 'null') {
+        final keys = parseAnotherSeriesSubKeys(resPreferred.body);
+        if (keys.isNotEmpty) return keys;
+      }
+
+      final resLegacy = await http.get(
+        Uri.parse('$_baseUrl/$legacyParent.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (resLegacy.statusCode == 200 &&
+          resLegacy.body.isNotEmpty &&
+          resLegacy.body != 'null') {
+        final keys = parseAnotherSeriesSubKeys(resLegacy.body);
+        if (keys.isNotEmpty) return keys;
+      }
+
+      // Fallback: nếu node `List/AS` chưa có/đã đổi, thử đọc key trực tiếp từ tree đầy đủ `/AS.json`.
+      return _fetchAnotherSeriesSubKeysFromFullTree();
+    } catch (_) {
+      return _fetchAnotherSeriesSubKeysFromFullTree();
+    }
+  }
+
+  static Future<List<String>> _fetchAnotherSeriesSubKeysFromFullTree() async {
+    // Thử lấy key theo shallow ở tree đầy đủ trước (nhanh và nhẹ)
+    final shallow = await _fetchShallowKeys('AS');
+    if (shallow.isNotEmpty) return shallow;
+
+    // Fallback cuối: tải payload đầy đủ (có thể lớn)
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/AS.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
+        return [];
+      }
+      final decoded = json.decode(res.body);
+      if (decoded is! Map<String, dynamic>) return [];
+      final keys = <String>[];
+      decoded.forEach((k, v) {
+        if (_holdsAnotherSeriesEpisodePayload(v)) keys.add(k);
+      });
+      keys.sort();
+      return keys;
     } catch (_) {
       return [];
     }
@@ -418,25 +559,67 @@ class FirebaseService {
         .toList();
   }
 
-  /// Lấy list episode (payload mỏng) của 1 sub trong AS.
-  static Future<List<Episode>> getAnotherSeriesListEpisodes(
-    String sub, {
-    required bool forHomePage,
-  }) async {
-    final parent = anotherSeriesListParentPath(forHomePage: forHomePage);
+  /// Parse body JSON của một nhánh AS (List/AS/{sub} hoặc legacy) thành danh sách episode.
+  static List<Episode> _parseAnotherSeriesListBody(String body, String sub) {
+    if (body.isEmpty || body == 'null') return [];
+    try {
+      final dynamic data = json.decode(body);
+      final parsed = _parseAnotherSeriesPayload(data);
+      return _forceEpisodesCategory(
+        parsed.isNotEmpty ? parsed : _parseCategoryYearPayload(data),
+        sub,
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// GET một path RTDB và parse thành episodes (Another Series).
+  static Future<List<Episode>> _fetchAnotherSeriesListAtPath(
+    String pathWithoutJson,
+    String sub,
+  ) async {
     try {
       final res = await http.get(
-        Uri.parse('$_baseUrl/$parent/$sub.json'),
+        Uri.parse('$_baseUrl/$pathWithoutJson.json'),
         headers: {'Accept': 'application/json'},
       );
       if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
         return [];
       }
-      final dynamic data = json.decode(res.body);
-      return _forceEpisodesCategory(_parseCategoryYearPayload(data), sub);
+      return _parseAnotherSeriesListBody(res.body, sub);
     } catch (_) {
       return [];
     }
+  }
+
+  /// Lấy list episode (payload mỏng) của 1 sub trong AS.
+  ///
+  /// Luôn ưu tiên `List/AS/{sub}` hoặc `List/HomePage/AS/{sub}` trước (bất kể [RtdbListConfig]),
+  /// sau đó fallback theo [anotherSeriesListParentPath], cuối cùng bulk `AS/{sub}`.
+  static Future<List<Episode>> getAnotherSeriesListEpisodes(
+    String sub, {
+    required bool forHomePage,
+  }) async {
+    final preferredListParent =
+        forHomePage ? 'List/HomePage/AS' : 'List/AS';
+    final legacyParent = anotherSeriesListParentPath(forHomePage: forHomePage);
+
+    final fromList = await _fetchAnotherSeriesListAtPath(
+      '$preferredListParent/$sub',
+      sub,
+    );
+    if (fromList.isNotEmpty) return fromList;
+
+    if (legacyParent != preferredListParent) {
+      final fromLegacy = await _fetchAnotherSeriesListAtPath(
+        '$legacyParent/$sub',
+        sub,
+      );
+      if (fromLegacy.isNotEmpty) return fromLegacy;
+    }
+
+    return getAnotherSeriesFullBulk(sub);
   }
 
   /// Lấy bulk đầy đủ cho Another Series từ tree `AS/{sub}`.
@@ -450,7 +633,8 @@ class FirebaseService {
         return [];
       }
       final dynamic data = json.decode(res.body);
-      return _forceEpisodesCategory(_parseCategoryYearPayload(data), sub);
+      // AS/{sub} dùng key số, GUID nằm trong field `Id`.
+      return _forceEpisodesCategory(_parseAnotherSeriesPayload(data), sub);
     } catch (_) {
       return [];
     }

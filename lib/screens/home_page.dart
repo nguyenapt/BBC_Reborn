@@ -158,12 +158,12 @@ class _HomePageState extends State<HomePage> {
   void _navigateToCategory(String categoryName) {
     if (_anotherSeriesCategories.any((c) => c.name == categoryName)) {
       if (widget.onNavigateToCategory != null) {
-        widget.onNavigateToCategory!('OTHER');
+        widget.onNavigateToCategory!('AS');
       } else {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const CategoriesScreen(initialTab: 'OTHER'),
+            builder: (context) => const CategoriesScreen(initialTab: 'AS'),
           ),
         );
       }
@@ -529,12 +529,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   _buildCategoryCard(
                     width: constraints.maxWidth,
-                    letter: 'O',
-                    title: _languageManager.getText('categoryOther'),
-                    subtitle: _languageManager.getText('categoryPrograms'),
+                    letter: 'A',
+                    title: 'Another',
+                    subtitle: 'Series',
                     color: cardColor,
                     badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('OTHER'),
+                    onTap: () => _navigateToCategory('AS'),
                   ),
                 ],
               );
