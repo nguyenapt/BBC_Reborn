@@ -3,11 +3,13 @@ import 'dart:math';
 import '../models/category.dart';
 import '../models/episode.dart';
 import '../services/firebase_service.dart';
+import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
+import '../widgets/other_programs_category_widget.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
@@ -24,8 +26,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
+  final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LanguageManager _languageManager = LanguageManager();
   List<Category> _categories = [];
+  List<Category> _anotherSeriesCategories = [];
   bool _isLoading = true;
   String? _error;
   late final String _heroImageAsset;
@@ -56,13 +60,14 @@ class _HomePageState extends State<HomePage> {
 
       print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
-      print('Loaded ${categories.length} categories');
-      
-      // Preload images for better performance
-      _preloadImages(categories);
-      
+      final anotherSeries = await _loadAnotherSeriesCategories();
+      print('Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}');
+
+      _preloadImages(categories, anotherSeries);
+
       setState(() {
         _categories = categories;
+        _anotherSeriesCategories = anotherSeries;
         _isLoading = false;
       });
     } catch (e) {
@@ -74,12 +79,33 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<List<Category>> _loadAnotherSeriesCategories() async {
+    try {
+      final subKeys =
+          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: true);
+      final list = <Category>[];
+      for (final sub in subKeys) {
+        final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
+          sub,
+          forHomePage: true,
+        );
+        if (episodes.isNotEmpty) {
+          list.add(Category(name: sub, episodes: episodes));
+        }
+      }
+      return list;
+    } catch (e) {
+      print('Another Series (home) load error: $e');
+      return [];
+    }
+  }
+
   /// Preload images for better performance
-  void _preloadImages(List<Category> categories) {
+  void _preloadImages(List<Category> categories, List<Category> anotherSeries) {
     final imageUrls = <String>[];
     
     // Collect all image URLs from first few episodes of each category
-    for (final category in categories) {
+    for (final category in [...categories, ...anotherSeries]) {
       final episodes = category.episodes.take(3); // Only preload first 3 episodes
       for (final episode in episodes) {
         if (episode.thumbImage.isNotEmpty) {
@@ -103,12 +129,21 @@ class _HomePageState extends State<HomePage> {
         break;
       }
     }
+    if (episodeCategory == null) {
+      for (final category in _anotherSeriesCategories) {
+        if (category.name == episode.category) {
+          episodeCategory = category;
+          break;
+        }
+      }
+    }
 
-    if (episodeCategory != null) {
+    final resolvedCategory = episodeCategory;
+    if (resolvedCategory != null) {
       EpisodeDetailOpenHelper.open(
         context: context,
         episode: episode,
-        categoryEpisodes: episodeCategory!.episodes,
+        categoryEpisodes: resolvedCategory.episodes,
       );
     } else {
       // Fallback nếu không tìm thấy category
@@ -121,6 +156,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToCategory(String categoryName) {
+    if (_anotherSeriesCategories.any((c) => c.name == categoryName)) {
+      if (widget.onNavigateToCategory != null) {
+        widget.onNavigateToCategory!('AS');
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CategoriesScreen(initialTab: 'AS'),
+          ),
+        );
+      }
+      return;
+    }
+
     // Kiểm tra nếu là category EG (English Grammar) thì navigate đến Grammar screen
     if (categoryName == 'EG') {
       if (widget.onNavigateToGrammar != null) {
@@ -230,7 +279,7 @@ class _HomePageState extends State<HomePage> {
 
   Episode? _getLatestEpisode() {
     Episode? latest;
-    for (final category in _categories) {
+    for (final category in [..._categories, ..._anotherSeriesCategories]) {
       for (final episode in category.episodes) {
         if (latest == null || episode.publishedDate.isAfter(latest.publishedDate)) {
           latest = episode;
@@ -332,6 +381,94 @@ class _HomePageState extends State<HomePage> {
     return assets[index];
   }
 
+  Widget _buildAnotherSeriesSection() {
+    if (_anotherSeriesCategories.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withOpacity(0.35),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                for (int i = 0; i < _anotherSeriesCategories.length; i++) ...[
+                  OtherProgramsCategoryWidget(
+                    categoryName: _anotherSeriesCategories[i].name,
+                    episodes: _anotherSeriesCategories[i].episodes,
+                    onEpisodeTap: _navigateToEpisodeDetail,
+                    languageManager: _languageManager,
+                  ),
+                  if (i != _anotherSeriesCategories.length - 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Divider(
+                        height: 18,
+                        thickness: 1.2,
+                        color: colorScheme.outlineVariant.withOpacity(0.55),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+          Positioned(
+            top: -10,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withOpacity(0.55),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _languageManager.getText('homeAnotherSeriesSection'),
+                  style: theme.textTheme.labelMedium!.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: strongAccent,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategorySection() {
     final theme = Theme.of(context);
     final cardColor = theme.colorScheme.surface;
@@ -392,12 +529,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   _buildCategoryCard(
                     width: constraints.maxWidth,
-                    letter: 'O',
-                    title: _languageManager.getText('categoryOther'),
-                    subtitle: _languageManager.getText('categoryPrograms'),
+                    letter: 'A',
+                    title: 'Another',
+                    subtitle: 'Series',
                     color: cardColor,
                     badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('OTHER'),
+                    onTap: () => _navigateToCategory('AS'),
                   ),
                 ],
               );
@@ -542,7 +679,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (_categories.isEmpty) {
+    if (_categories.isEmpty && _anotherSeriesCategories.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -584,18 +721,49 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Categories
+          // Priority sections: 6M -> TEWS -> REE
+          SliverList(
+            delegate: SliverChildListDelegate(
+              [
+                for (final name in const ['6M', 'TEWS', 'REE'])
+                  ..._categories
+                      .where((c) => c.name == name)
+                      .map(
+                        (category) => CategoryGroupBox(
+                          category: category,
+                          onEpisodeTap: _navigateToEpisodeDetail,
+                          onViewAllTap: _navigateToCategory,
+                        ),
+                      ),
+              ],
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: _buildAnotherSeriesSection(),
+          ),
+
+          // Remaining categories (HomePage slim)
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                final category = _categories[index];
+                final remaining = _categories
+                    .where(
+                      (c) => c.name != '6M' && c.name != 'TEWS' && c.name != 'REE',
+                    )
+                    .toList();
+                final category = remaining[index];
                 return CategoryGroupBox(
                   category: category,
                   onEpisodeTap: _navigateToEpisodeDetail,
                   onViewAllTap: _navigateToCategory,
                 );
               },
-              childCount: _categories.length,
+              childCount: _categories
+                  .where(
+                    (c) => c.name != '6M' && c.name != 'TEWS' && c.name != 'REE',
+                  )
+                  .length,
             ),
           ),          
           

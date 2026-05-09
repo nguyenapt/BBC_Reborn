@@ -21,7 +21,9 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     if (episodes.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -29,16 +31,36 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category Title
+        // Category Title (match CategoryGroupBox style)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text(
-            CategoryNames.getDisplayName(categoryName),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.primary,
-            ),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: CategoryColors.getCategoryBackgroundColor(categoryName),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getCategoryIcon(categoryName),
+                  color: strongAccent,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  CategoryNames.getDisplayName(categoryName),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: strongAccent,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
@@ -206,6 +228,27 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String code) {
+    switch (code) {
+      case '6M':
+      case '6MGB':
+      case '6MGI':
+        return Icons.timer;
+      case 'OF':
+        return Icons.business_center_outlined;
+      case 'EIM':
+        return Icons.flash_on_outlined;
+      case 'TEWS':
+        return Icons.chat_bubble_outline;
+      case 'REE':
+        return Icons.record_voice_over;
+      case 'EG':
+        return Icons.menu_book;
+      default:
+        return Icons.category;
+    }
   }
 }
 
