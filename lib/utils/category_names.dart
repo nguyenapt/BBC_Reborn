@@ -3,6 +3,7 @@ class CategoryNames {
     '6M': '6 Minutes Conversation',
     'TEWS': 'The English We Speak',
     'REE': 'Real Easy English',
+    'BSA': 'Beating Speaking Anxiety',
     '6MGB': '6 Minutes Grammar Basic',
     '6MGI': '6 Minutes Grammar Intermediate',
     '6MVB': '6 Minutes Vocabulary Basic',
@@ -16,6 +17,24 @@ class CategoryNames {
 
   /// Sub-category codes under RTDB `AS` (Another Series). Thêm mã mới khi có series mới.
   static const Set<String> anotherSeriesSubcategoryCodes = {'OF', 'EIM'};
+
+  /// Top-level programme codes trong UI Another Series (sau subs AS, trước [6MGB…]).
+  /// **BSA** lưu theo năm `BSA/{year}`; các mã khác thường là `/CAT.json` phẳng.
+  static const List<String> anotherSeriesFixedProgramCodes = [
+    'BSA',
+    '6MGB',
+    '6MGI',
+    '6MVB',
+    '6MVI',
+    'DRM',
+    'EAW',
+  ];
+
+  /// Opening these categories from Home should select the Another Series tab (`AS`).
+  static bool opensAnotherSeriesTab(String categoryCode) {
+    return anotherSeriesSubcategoryCodes.contains(categoryCode) ||
+        anotherSeriesFixedProgramCodes.contains(categoryCode);
+  }
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category
   /// Nếu không tìm thấy mapping, trả về mã category gốc

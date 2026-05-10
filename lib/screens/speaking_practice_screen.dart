@@ -195,16 +195,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
   Widget _speakingTranscriptNativeAdSlot() {
     if (kIsWeb) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: TranscriptNativeAdWidget(
-        category: widget.episode.category,
-      ),
+    return TranscriptNativeAdWidget(
+      category: widget.episode.category,
+      slot: TranscriptNativeAdSlot.speakingListTile,
     );
   }
 

@@ -98,6 +98,41 @@ class EpisodeCacheService {
     return refreshed.isNotEmpty ? refreshed : cached;
   }
 
+  /// Gộp `/{category}/{year}.json` cho năm hiện tại và [yearsBack] năm trước (trùng id gộp một).
+  Future<List<Episode>> getCategoryEpisodesYearMerged(
+    String category, {
+    int yearsBack = 1,
+  }) async {
+    final currentYear = DateTime.now().year;
+    final unique = <String, Episode>{};
+    for (var i = 0; i <= yearsBack; i++) {
+      final year = currentYear - i;
+      try {
+        final list = await getCategoryEpisodes(category, year);
+        for (final e in list) {
+          final key =
+              e.id ?? '${e.episodeName}-${e.publishedDate.toIso8601String()}';
+          unique[key] = e;
+        }
+      } catch (e) {
+        debugPrint('getCategoryEpisodesYearMerged $category/$year: $e');
+      }
+    }
+    final merged = unique.values.toList()
+      ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+    return merged;
+  }
+
+  /// Slot cố định trên Another Series: hầu hết dùng `/CAT.json`; **BSA** dùng `/BSA/{year}.json`.
+  Future<List<Episode>> getAnotherSeriesFixedCategoryEpisodes(
+    String category,
+  ) async {
+    if (category == 'BSA') {
+      return getCategoryEpisodesYearMerged(category);
+    }
+    return getCategoryEpisodesWithoutYear(category);
+  }
+
   /// Another Series: slim `List/HomePage/AS/{sub}` vs `List/AS/{sub}` — cache tách biệt.
   Future<List<Episode>> getAnotherSeriesSubEpisodes(
     String sub, {

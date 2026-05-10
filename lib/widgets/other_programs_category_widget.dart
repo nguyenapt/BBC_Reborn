@@ -11,13 +11,51 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
   final Function(Episode) onEpisodeTap;
   final LanguageManager languageManager;
 
+  /// When true and [episodes] is empty, still show the category header (Another Series fixed slots).
+  final bool showPlaceholderWhenEmpty;
+
   const OtherProgramsCategoryWidget({
     super.key,
     required this.categoryName,
     required this.episodes,
     required this.onEpisodeTap,
     required this.languageManager,
+    this.showPlaceholderWhenEmpty = false,
   });
+
+  Widget _titleRow(BuildContext context, Color strongAccent) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: CategoryColors.getCategoryBackgroundColor(categoryName),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _getCategoryIcon(categoryName),
+              color: strongAccent,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              CategoryNames.getDisplayName(categoryName),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: strongAccent,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,44 +63,31 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     if (episodes.isEmpty) {
-      return const SizedBox.shrink();
+      if (!showPlaceholderWhenEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _titleRow(context, strongAccent),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+            child: Text(
+              languageManager.getText('noData'),
+              style: TextStyle(
+                fontSize: 14,
+                color: colorScheme.onSurface.withOpacity(0.62),
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category Title (match CategoryGroupBox style)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: CategoryColors.getCategoryBackgroundColor(categoryName),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _getCategoryIcon(categoryName),
-                  color: strongAccent,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  CategoryNames.getDisplayName(categoryName),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: strongAccent,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _titleRow(context, strongAccent),
         const SizedBox(height: 8),
         // Episode đầu tiên - UI giống các tab khác
         if (episodes.isNotEmpty)
@@ -242,6 +267,8 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         return Icons.flash_on_outlined;
       case 'TEWS':
         return Icons.chat_bubble_outline;
+      case 'BSA':
+        return Icons.record_voice_over_outlined;
       case 'REE':
         return Icons.record_voice_over;
       case 'EG':

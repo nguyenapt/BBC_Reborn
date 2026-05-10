@@ -312,9 +312,11 @@ class AppPt {
     'speakingHistorySessionSubtitle': '{attempts} tentativas · Média {avg}',
     'speakingHistoryModeLabel': 'Modo',
 
+    'adAttributionLabel': 'Anúncio',
     'adsInterstitialTitle': 'Obrigado por apoiar um aplicativo gratuito',
     'adsInterstitialBodyLine1': 'Desculpe se os anúncios às vezes incomodam.',
     'adsInterstitialBodyLine2': 'Os anúncios nos ajudam a manter o produto gratuito para todos.',
+    'adsInterstitialCta': 'Começar a aprender',
 
     'loadMore': 'Carregar mais',
 

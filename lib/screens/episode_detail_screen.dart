@@ -671,8 +671,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   bool _isOtherProgramsCategory(String category) {
-    const otherProgramsCategories = ['6MGB', '6MGI', '6MVB', '6MVI', 'DRM', 'EAW'];
-    return otherProgramsCategories.contains(category) ||
+    return CategoryNames.anotherSeriesFixedProgramCodes.contains(category) ||
         CategoryNames.isAnotherSeriesSubcategory(category);
   }
 

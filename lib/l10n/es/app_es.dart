@@ -312,9 +312,11 @@ class AppEs {
     'speakingHistorySessionSubtitle': '{attempts} intentos · Media {avg}',
     'speakingHistoryModeLabel': 'Modo',
 
+    'adAttributionLabel': 'Anuncio',
     'adsInterstitialTitle': 'Gracias por apoyar una app gratuita',
     'adsInterstitialBodyLine1': 'Perdón si los anuncios a veces resultan molestos.',
     'adsInterstitialBodyLine2': 'Los anuncios nos ayudan a mantener el producto gratis para todos.',
+    'adsInterstitialCta': 'Empezar a aprender',
 
     'loadMore': 'Cargar más',
 
