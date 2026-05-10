@@ -252,6 +252,7 @@ class AppVi {
     
     // Advertisement
     'advertisementNotice': 'Thông báo quảng cáo',
+    'adAttributionLabel': 'Quảng cáo',
     'advertisementMessage': 'Chúng tôi hiển thị quảng cáo để duy trì dịch vụ miễn phí — mong bạn thông cảm và tiếp tục ủng hộ!',
     'loadingAd': 'Đang tải quảng cáo...',
     'adNotAvailable': 'Quảng cáo không khả dụng',

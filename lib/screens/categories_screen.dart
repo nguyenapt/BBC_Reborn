@@ -7,6 +7,7 @@ import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
+import '../utils/category_names.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialTab;
@@ -19,14 +20,6 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen>
     with SingleTickerProviderStateMixin {
-  static const List<String> _fixedAnotherSeriesSections = [
-    '6MGB',
-    '6MGI',
-    '6MVB',
-    '6MVI',
-    'DRM',
-    'EAW',
-  ];
   late TabController _tabController;
   final LanguageManager _languageManager = LanguageManager();
   final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
@@ -247,9 +240,12 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       return;
     }
 
-    // Kiểm tra xem đã có data chưa (có ít nhất 1 sub có episodes)
+    // Đã load đủ map (gồm mọi mục cố định như BSA) và có ít nhất một list episode?
+    final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
+    final hasAllFixedSlots =
+        fixedCodes.every((c) => _anotherSeriesData.containsKey(c));
     final hasData = _anotherSeriesData.values.any((episodes) => episodes.isNotEmpty);
-    if (hasData) {
+    if (hasData && hasAllFixedSlots) {
       print('Another Series tab data already loaded');
       return;
     }
@@ -286,11 +282,11 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         }
       }
 
-      for (final category in _fixedAnotherSeriesSections) {
+      for (final category in CategoryNames.anotherSeriesFixedProgramCodes) {
         try {
           print('Loading fixed section $category...');
-          final episodes =
-              await _episodeCacheService.getCategoryEpisodesWithoutYear(category);
+          final episodes = await _episodeCacheService
+              .getAnotherSeriesFixedCategoryEpisodes(category);
           print('$category - Total: ${episodes.length} episodes');
           allData[category] = episodes;
         } catch (e) {
@@ -299,9 +295,14 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         }
       }
 
+      final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
+      final fixedSet = fixedCodes.toSet();
+      final subsOrdered =
+          subsWithData.where((s) => !fixedSet.contains(s)).toList();
+
       setState(() {
         _anotherSeriesData = allData;
-        _anotherSeriesDisplayOrder = [...subsWithData, ..._fixedAnotherSeriesSections];
+        _anotherSeriesDisplayOrder = [...subsOrdered, ...fixedCodes];
         _loadingStates['AS'] = false;
       });
     } catch (e) {
@@ -776,8 +777,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
 
           final sub = subs[index];
           final episodes = _anotherSeriesData[sub] ?? [];
+          final fixedSlots =
+              CategoryNames.anotherSeriesFixedProgramCodes.toSet();
 
-          if (episodes.isEmpty) {
+          if (episodes.isEmpty && !fixedSlots.contains(sub)) {
             return const SizedBox.shrink();
           }
 
@@ -786,6 +789,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
             episodes: episodes,
             onEpisodeTap: (episode) => _navigateToEpisodeDetail(episode),
             languageManager: _languageManager,
+            showPlaceholderWhenEmpty: fixedSlots.contains(sub),
           );
         },
       ),

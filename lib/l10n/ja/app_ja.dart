@@ -309,9 +309,11 @@ class AppJa {
     'speakingHistorySessionSubtitle': '{attempts} 回 · 平均 {avg}',
     'speakingHistoryModeLabel': 'モード',
 
+    'adAttributionLabel': '広告',
     'adsInterstitialTitle': '無料アプリへのご支援ありがとうございます',
     'adsInterstitialBodyLine1': '広告がときどき煩わしく感じられる場合は申し訳ありません。',
     'adsInterstitialBodyLine2': '広告により、このサービスを誰でも無料で利用できます。',
+    'adsInterstitialCta': '学習を始める',
 
 
     'appUpdateTitle': 'Update available',

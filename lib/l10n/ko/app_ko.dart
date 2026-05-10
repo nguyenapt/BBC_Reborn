@@ -309,9 +309,11 @@ class AppKo {
     'speakingHistorySessionSubtitle': '{attempts}회 · 평균 {avg}',
     'speakingHistoryModeLabel': '모드',
 
+    'adAttributionLabel': '광고',
     'adsInterstitialTitle': '무료 앱을 지원해 주셔서 감사합니다',
     'adsInterstitialBodyLine1': '광고가 때때로 불편하게 느껴지실 수 있어 죄송합니다.',
     'adsInterstitialBodyLine2': '광고 수익으로 누구나 무료로 서비스를 이용할 수 있습니다.',
+    'adsInterstitialCta': '학습 시작',
 
     'loadMore': '더 읽기',
 

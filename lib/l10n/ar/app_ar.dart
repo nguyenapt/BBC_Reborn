@@ -310,9 +310,11 @@ class AppAr {
     'speakingHistorySessionSubtitle': '{attempts} محاولات · المعدل {avg}',
     'speakingHistoryModeLabel': 'الوضع',
 
+    'adAttributionLabel': 'إعلان',
     'adsInterstitialTitle': 'شكرا لدعمك تطبيقا مجانيا',
     'adsInterstitialBodyLine1': 'نعتذر إذا كانت الإعلانات مزعجة أحيانا.',
     'adsInterstitialBodyLine2': 'الإعلانات تساعدنا على إبقاء التطبيق مجانيا للجميع.',
+    'adsInterstitialCta': 'ابدأ التعلم',
 
     'loadMore': 'تحميل المزيد',
 

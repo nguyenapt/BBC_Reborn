@@ -245,6 +245,7 @@ class AppEn {
     
     // Advertisement
     'advertisementNotice': 'Advertisement Notice',
+    'adAttributionLabel': 'Ad',
     'advertisementMessage': 'We display advertisements to maintain our free service — we hope you understand and continue to support us!',
     'loadingAd': 'Loading advertisement...',
     'adNotAvailable': 'Advertisement not available',

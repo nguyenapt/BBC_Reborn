@@ -10,6 +10,7 @@ import '../services/episode_detail_open_helper.dart';
 import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
+import '../utils/category_names.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
@@ -30,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   final LanguageManager _languageManager = LanguageManager();
   List<Category> _categories = [];
   List<Category> _anotherSeriesCategories = [];
+  Category? _bsaCategory;
   bool _isLoading = true;
   String? _error;
   late final String _heroImageAsset;
@@ -61,13 +63,18 @@ class _HomePageState extends State<HomePage> {
       print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
       final anotherSeries = await _loadAnotherSeriesCategories();
+      final bsaEpisodes =
+          await _episodeCacheService.getAnotherSeriesFixedCategoryEpisodes('BSA');
+      final bsaCategory =
+          bsaEpisodes.isNotEmpty ? Category(name: 'BSA', episodes: bsaEpisodes) : null;
       print('Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}');
 
-      _preloadImages(categories, anotherSeries);
+      _preloadImages(categories, anotherSeries, bsaCategory: bsaCategory);
 
       setState(() {
         _categories = categories;
         _anotherSeriesCategories = anotherSeries;
+        _bsaCategory = bsaCategory;
         _isLoading = false;
       });
     } catch (e) {
@@ -101,11 +108,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// Preload images for better performance
-  void _preloadImages(List<Category> categories, List<Category> anotherSeries) {
+  void _preloadImages(
+    List<Category> categories,
+    List<Category> anotherSeries, {
+    Category? bsaCategory,
+  }) {
     final imageUrls = <String>[];
     
     // Collect all image URLs from first few episodes of each category
-    for (final category in [...categories, ...anotherSeries]) {
+    for (final category in [
+      ...categories,
+      ...anotherSeries,
+      if (bsaCategory != null) bsaCategory,
+    ]) {
       final episodes = category.episodes.take(3); // Only preload first 3 episodes
       for (final episode in episodes) {
         if (episode.thumbImage.isNotEmpty) {
@@ -137,6 +152,11 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
+    if (episodeCategory == null && _bsaCategory != null) {
+      if (_bsaCategory!.name == episode.category) {
+        episodeCategory = _bsaCategory;
+      }
+    }
 
     final resolvedCategory = episodeCategory;
     if (resolvedCategory != null) {
@@ -156,7 +176,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToCategory(String categoryName) {
-    if (_anotherSeriesCategories.any((c) => c.name == categoryName)) {
+    if (CategoryNames.opensAnotherSeriesTab(categoryName)) {
       if (widget.onNavigateToCategory != null) {
         widget.onNavigateToCategory!('AS');
       } else {
@@ -279,7 +299,11 @@ class _HomePageState extends State<HomePage> {
 
   Episode? _getLatestEpisode() {
     Episode? latest;
-    for (final category in [..._categories, ..._anotherSeriesCategories]) {
+    for (final category in [
+      ..._categories,
+      ..._anotherSeriesCategories,
+      if (_bsaCategory != null) _bsaCategory!,
+    ]) {
       for (final episode in category.episodes) {
         if (latest == null || episode.publishedDate.isAfter(latest.publishedDate)) {
           latest = episode;
@@ -679,7 +703,9 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (_categories.isEmpty && _anotherSeriesCategories.isEmpty) {
+    if (_categories.isEmpty &&
+        _anotherSeriesCategories.isEmpty &&
+        _bsaCategory == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -735,6 +761,12 @@ class _HomePageState extends State<HomePage> {
                           onViewAllTap: _navigateToCategory,
                         ),
                       ),
+                if (_bsaCategory != null)
+                  CategoryGroupBox(
+                    category: _bsaCategory!,
+                    onEpisodeTap: _navigateToEpisodeDetail,
+                    onViewAllTap: _navigateToCategory,
+                  ),
               ],
             ),
           ),

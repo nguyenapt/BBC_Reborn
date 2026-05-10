@@ -303,9 +303,11 @@ class AppZh {
     'speakingHistorySessionSubtitle': '{attempts} 次 · 平均 {avg}',
     'speakingHistoryModeLabel': '模式',
 
+    'adAttributionLabel': '广告',
     'adsInterstitialTitle': '感谢你支持我们的免费应用',
     'adsInterstitialBodyLine1': '如果广告偶尔让你感到打扰，我们深感抱歉。',
     'adsInterstitialBodyLine2': '广告收入帮助我们把产品持续免费提供给所有人。',
+    'adsInterstitialCta': '开始学习',
 
     'loadMore': '加载更多',
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/grammar_explanation.dart';
 import '../services/language_manager.dart';
+import 'passage_panel_decoration.dart';
 import 'transcript_native_ad_widget.dart';
 
 /// Dialog widget for displaying grammar explanation
@@ -129,6 +130,7 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
                       const SizedBox(height: 12),
                       TranscriptNativeAdWidget(
                         category: widget.category ?? 'grammar',
+                        slot: TranscriptNativeAdSlot.grammarPassagePanel,
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -277,10 +279,7 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.35),
-      ),
+      decoration: passageOverviewPanelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
