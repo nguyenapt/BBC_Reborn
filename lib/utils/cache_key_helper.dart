@@ -57,6 +57,14 @@ class CacheKeyHelper {
     return 'vocab_${hash}_$languageCode';
   }
 
+  /// RTDB key under `vocabulary_by_episode/{episodeId}/{key}`.
+  static String vocabularyByEpisodeItemKey(String word, {String? itemId}) {
+    if (itemId != null && itemId.trim().isNotEmpty) {
+      return sanitizeFirebaseKey(itemId.trim());
+    }
+    return hashString(word.toLowerCase().trim());
+  }
+
   /// Hash a string to create unique identifier
   static String hashString(String input) {
     final bytes = utf8.encode(input);
@@ -122,29 +130,32 @@ class CacheKeyHelper {
     return translations;
   }
 
-  /// Find translation for a specific line from Firebase format
-  /// Returns translation if lineNumber and original text match
+  static int? _lineNumberFromJson(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  /// Find translation by [lineNumber] only (transcript text may vary).
   static String? findLineTranslation(
     List<dynamic> firebaseData,
-    String originalText,
     int? lineNumber,
   ) {
+    if (lineNumber == null || lineNumber < 0) return null;
+
+    String? match;
     for (final item in firebaseData) {
-      if (item is Map<String, dynamic>) {
-        final original = item['original']?.toString() ?? '';
-        final translated = item['translated']?.toString() ?? '';
-        final itemLineNumber = item['lineNumber'] as int?;
-        
-        // Match by original text first (most reliable)
-        if (original == originalText && translated.isNotEmpty) {
-          // If lineNumber is provided, also check it matches
-          if (lineNumber == null || itemLineNumber == null || itemLineNumber == lineNumber) {
-            return translated;
-          }
-        }
+      if (item is! Map<String, dynamic>) continue;
+
+      final translated = item['translated']?.toString() ?? '';
+      if (translated.isEmpty) continue;
+
+      final itemLineNumber = _lineNumberFromJson(item['lineNumber']);
+      if (itemLineNumber == lineNumber) {
+        match = translated;
       }
     }
-    return null;
+    return match;
   }
 
   /// Generate episode-specific cache key

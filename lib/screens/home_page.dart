@@ -405,6 +405,16 @@ class _HomePageState extends State<HomePage> {
     return assets[index];
   }
 
+  /// Categories từ [getHomePageData] chưa render ở block ưu tiên / Another Series.
+  /// BSA bỏ qua khi đã có [_bsaCategory] (tránh trùng key `BSA` trong List/HomePage.json).
+  List<Category> _remainingHomeCategories() {
+    return _categories.where((c) {
+      if (c.name == '6M' || c.name == 'TEWS' || c.name == 'REE') return false;
+      if (c.name == 'BSA' && _bsaCategory != null) return false;
+      return true;
+    }).toList();
+  }
+
   Widget _buildAnotherSeriesSection() {
     if (_anotherSeriesCategories.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
@@ -441,6 +451,7 @@ class _HomePageState extends State<HomePage> {
                     episodes: _anotherSeriesCategories[i].episodes,
                     onEpisodeTap: _navigateToEpisodeDetail,
                     languageManager: _languageManager,
+                    onViewAllTap: _navigateToCategory,
                   ),
                   if (i != _anotherSeriesCategories.length - 1)
                     Padding(
@@ -779,11 +790,7 @@ class _HomePageState extends State<HomePage> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                final remaining = _categories
-                    .where(
-                      (c) => c.name != '6M' && c.name != 'TEWS' && c.name != 'REE',
-                    )
-                    .toList();
+                final remaining = _remainingHomeCategories();
                 final category = remaining[index];
                 return CategoryGroupBox(
                   category: category,
@@ -791,11 +798,7 @@ class _HomePageState extends State<HomePage> {
                   onViewAllTap: _navigateToCategory,
                 );
               },
-              childCount: _categories
-                  .where(
-                    (c) => c.name != '6M' && c.name != 'TEWS' && c.name != 'REE',
-                  )
-                  .length,
+              childCount: _remainingHomeCategories().length,
             ),
           ),          
           

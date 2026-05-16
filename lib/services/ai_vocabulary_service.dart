@@ -21,28 +21,25 @@ class AIVocabularyService {
   Future<EnhancedVocabulary> enhanceVocabulary(
     VocabularyItem item, {
     String? context,
+    String? episodeId,
   }) async {
     final languageCode = _languageManager.currentLocale.languageCode;
+    final resolvedEpisodeId =
+        (episodeId?.trim().isNotEmpty == true ? episodeId! : item.bbcEpisodeId);
+
+    await HeartService().consumeForAIFeature();
     
-    // Check cache with priority: Local → Firebase → null
-    final cachedData = await _cache.getVocabularyFromCache(item.vocab, languageCode);
+    final cachedData = await _cache.getVocabularyFromCache(
+      item.vocab,
+      languageCode,
+      episodeId: resolvedEpisodeId,
+      vocabItemId: item.id,
+    );
 
     if (cachedData != null) {
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
       // Convert cached data to EnhancedVocabulary
       return EnhancedVocabulary.fromAIResponse(item, cachedData);
-    }
-
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get providers (primary and backup)
@@ -114,7 +111,13 @@ class AIVocabularyService {
       final enhanced = EnhancedVocabulary.fromAIResponse(item, response);
 
       // Save to both local and Firebase cache
-      await _cache.saveVocabularyToCache(item.vocab, languageCode, response);
+      await _cache.saveVocabularyToCache(
+        item.vocab,
+        languageCode,
+        response,
+        episodeId: resolvedEpisodeId,
+        vocabItemId: item.id,
+      );
 
       return enhanced;
     } catch (e) {

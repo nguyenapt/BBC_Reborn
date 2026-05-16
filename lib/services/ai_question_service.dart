@@ -20,6 +20,8 @@ class AIQuestionService {
     String episodeId, {
     int count = 5,
   }) async {
+    await HeartService().consumeForAIFeature();
+
     // Check cache with priority: Local → Firebase → null
     final cachedData = await _cache.getQuestionsFromCache(episodeId, count);
 
@@ -38,18 +40,6 @@ class AIQuestionService {
       if (questions.isNotEmpty) {
         return questions;
       }
-    }
-
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get providers (primary and backup)

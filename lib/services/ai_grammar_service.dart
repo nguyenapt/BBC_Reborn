@@ -47,8 +47,9 @@ class AIGrammarService {
   /// Explain grammar in a sentence
   Future<GrammarExplanation> explainSentence(
     String sentence,
-    String episodeId,
-  ) async {
+    String episodeId, {
+    int? lineNumber,
+  }) async {
     if (!AIConfig.enableGrammar) {
       throw APIException('Grammar feature is temporarily disabled.');
     }
@@ -58,11 +59,15 @@ class AIGrammarService {
     final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
     const promptVersion = AIConfig.grammarPromptVersion;
 
+    await HeartService().consumeForAIFeature();
+
     // Check cache with priority: Local → Firebase → null
+    // [lineNumber] = transcript line index (0-based); RTDB key is line_{index+1}.
     final cachedData = await _cache.getGrammarFromCache(
       sentence,
       languageCode,
       episodeId: episodeId,
+      lineNumber: lineNumber,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
     );
@@ -70,18 +75,6 @@ class AIGrammarService {
     if (cachedData != null) {
       debugPrint('Using cached grammar explanation for sentence');
       return _mapResponseToModel(sentence, cachedData);
-    }
-
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get providers (primary and backup)
@@ -145,6 +138,7 @@ class AIGrammarService {
         languageCode,
         explanationObj.toJson(),
         episodeId: episodeId,
+        lineNumber: lineNumber,
         modelVersion: modelVersion,
         promptVersion: promptVersion,
       );
@@ -190,6 +184,8 @@ class AIGrammarService {
     const promptVersion = '${AIConfig.grammarPromptVersion}_passage_v2_slim_progressive';
     const schemaVersion = '${AIConfig.grammarSchemaVersion}_passage_v2_slim_progressive';
 
+    await HeartService().consumeForAIFeature();
+
     final cachedData = await _cache.getGrammarPassageFromCache(
       normalizedPassage,
       languageCode,
@@ -209,15 +205,6 @@ class AIGrammarService {
         // Cache might contain older/partial schema. Ignore and continue to API/fallback.
         debugPrint('⚠️ Failed to map cached passage grammar, ignoring cache: $e');
       }
-    }
-
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();

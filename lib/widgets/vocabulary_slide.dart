@@ -454,6 +454,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
       final enhanced = await _vocabEnhanceService.enhanceVocabulary(
         item,
         context: widget.episode.transcript,
+        episodeId: widget.episode.id,
       );
 
       _enhancedVocab[item.vocab] = enhanced;

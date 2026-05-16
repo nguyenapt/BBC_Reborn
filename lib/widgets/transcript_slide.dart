@@ -564,7 +564,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     ),
                                   ),
                                   InkWell(
-                                    onTap: () => _showGrammarExplanation(context, line.text),
+                                    onTap: () => _showGrammarExplanation(
+                                          context,
+                                          line.text,
+                                          transcriptIndex,
+                                        ),
                                     borderRadius: BorderRadius.circular(999),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -673,7 +677,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
-  Future<void> _showGrammarExplanation(BuildContext context, String sentence) async {
+  Future<void> _showGrammarExplanation(
+    BuildContext context,
+    String sentence,
+    int lineNumber,
+  ) async {
     final normalizedSentence = sentence.trim();
     if (normalizedSentence.isEmpty) return;
     if (!AIConfig.enableGrammar) {
@@ -685,8 +693,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
       return;
     }
 
-    // Sentence-level grammar (explainSentence + ai_cache/grammar/…), not passage progressive.
-    final cacheKey = 'sentence::$normalizedSentence';
+    // Sentence-level: grammar_by_episode → ai_cache/grammar → AI.
+    final cacheKey = 'line::$lineNumber';
     if (_grammarCache.containsKey(cacheKey)) {
       final cached = _grammarCache[cacheKey]!;
       await _savedGrammarService.recordViewed(
@@ -725,8 +733,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
     try {
       final episodeId = widget.episode.id ?? '';
-      final explanation =
-          await _grammarService.explainSentence(normalizedSentence, episodeId);
+      final explanation = await _grammarService.explainSentence(
+        normalizedSentence,
+        episodeId,
+        lineNumber: lineNumber,
+      );
 
       _grammarCache[cacheKey] = explanation;
       await _savedGrammarService.recordViewed(
@@ -746,7 +757,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _showErrorSnackBar(
           context,
           e,
-          onRetry: () => _showGrammarExplanation(context, normalizedSentence),
+          onRetry: () => _showGrammarExplanation(
+                context,
+                normalizedSentence,
+                lineNumber,
+              ),
         );
       }
     }

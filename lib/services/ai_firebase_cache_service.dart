@@ -13,6 +13,8 @@ class AIFirebaseCacheService {
 
   static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
   static const String _cachePath = 'ai_cache';
+  static const String _grammarByEpisodePath = 'grammar_by_episode';
+  static const String _vocabularyByEpisodePath = 'vocabulary_by_episode';
   static const int _cacheVersion = 1;
   static const int _defaultTtlDays = 90;
   static const int _vocabularyTtlDays = 180; // Vocabulary changes less frequently
@@ -68,12 +70,10 @@ class AIFirebaseCacheService {
     }
   }
 
-  /// Get translation for a specific line from Firebase cache
-  /// Checks if lineNumber and original text match
+  /// Get translation for a specific line from Firebase cache (by [lineNumber] only).
   Future<String?> getLineTranslation(
     String episodeId,
     String languageCode,
-    String originalText,
     int? lineNumber,
   ) async {
     try {
@@ -97,7 +97,6 @@ class AIFirebaseCacheService {
             // Search for matching line
             final translation = CacheKeyHelper.findLineTranslation(
               translationsData,
-              originalText,
               lineNumber,
             );
             if (translation != null) {
@@ -224,20 +223,22 @@ class AIFirebaseCacheService {
       final existingWithLineNumbers = await getTranslationsWithLineNumbers(episodeId, languageCode);
       
       if (existingWithLineNumbers != null && existingWithLineNumbers.isNotEmpty) {
-        // Merge with existing translations, preserving lineNumbers
         bool found = false;
         for (final item in existingWithLineNumbers) {
-          if (item['original']?.toString() == originalText) {
-            // Update existing translation
+          final itemLine = item['lineNumber'];
+          final sameLineNumber = itemLine == lineNumber ||
+              (itemLine is num && itemLine.toInt() == lineNumber);
+
+          if (sameLineNumber) {
+            item['original'] = originalText;
             item['translated'] = translatedText;
-            item['lineNumber'] = lineNumber; // Update lineNumber if changed
+            item['lineNumber'] = lineNumber;
             found = true;
             break;
           }
         }
-        
+
         if (!found) {
-          // Add new translation with correct lineNumber
           existingWithLineNumbers.add({
             'original': originalText,
             'translated': translatedText,
@@ -315,6 +316,102 @@ class AIFirebaseCacheService {
       debugPrint('   EpisodeId: $episodeId, LanguageCode: $languageCode, LineNumber: $lineNumber');
       debugPrint('   Stack trace: $stackTrace');
       // Don't rethrow - line translation is not critical, but log the error
+    }
+  }
+
+  /// RTDB path key 1-based: transcript index 0 → `line_1` (trong `data`, `lineNumber` = 0).
+  static String grammarByEpisodeLineKey(int transcriptLineIndex) =>
+      'line_${transcriptLineIndex + 1}';
+
+  Future<Map<String, dynamic>?> _fetchGrammarByEpisodeAtLineKey(
+    String safeEpisodeId,
+    String lineKey,
+    String safeLanguageCode,
+  ) async {
+    final url =
+        '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode != 200 || response.body == 'null') return null;
+
+    final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+    if (!cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
+      debugPrint('grammar_by_episode EXPIRED: $safeEpisodeId/$lineKey/$safeLanguageCode');
+      return null;
+    }
+    debugPrint('grammar_by_episode HIT: $safeEpisodeId/$lineKey/$safeLanguageCode');
+    return cacheEntry.data;
+  }
+
+  /// Grammar pre-generated per episode line: `grammar_by_episode/{episodeId}/line_{n}/{lang}`.
+  Future<Map<String, dynamic>?> getGrammarByEpisode(
+    String episodeId,
+    int transcriptLineIndex,
+    String languageCode,
+  ) async {
+    if (episodeId.isEmpty || transcriptLineIndex < 0) return null;
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+
+      final primaryKey = grammarByEpisodeLineKey(transcriptLineIndex);
+      final primary = await _fetchGrammarByEpisodeAtLineKey(
+        safeEpisodeId,
+        primaryKey,
+        safeLanguageCode,
+      );
+      if (primary != null) return primary;
+
+      // Legacy: vài bản app từng ghi nhầm `line_0`, `line_1` (0-based key).
+      final legacyKey = 'line_$transcriptLineIndex';
+      if (legacyKey != primaryKey) {
+        return _fetchGrammarByEpisodeAtLineKey(
+          safeEpisodeId,
+          legacyKey,
+          safeLanguageCode,
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting grammar_by_episode: $e');
+      return null;
+    }
+  }
+
+  /// Save to `grammar_by_episode` (shared pre-generated grammar per line).
+  Future<void> saveGrammarByEpisode(
+    String episodeId,
+    int transcriptLineIndex,
+    String languageCode,
+    Map<String, dynamic> grammarData,
+  ) async {
+    if (episodeId.isEmpty || transcriptLineIndex < 0) return;
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final lineKey = grammarByEpisodeLineKey(transcriptLineIndex);
+      final url =
+          '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
+
+      final cacheEntry = AICacheEntry(
+        data: grammarData,
+        createdAt: DateTime.now(),
+        version: _cacheVersion,
+        ttlDays: _defaultTtlDays,
+      );
+
+      await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(cacheEntry.toJson()),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('Saved grammar_by_episode: $episodeId/$lineKey/$languageCode');
+    } catch (e) {
+      debugPrint('Error saving grammar_by_episode: $e');
     }
   }
 
@@ -541,6 +638,69 @@ class AIFirebaseCacheService {
       debugPrint('Saved questions to Firebase cache: $episodeId/$count');
     } catch (e) {
       debugPrint('Error saving questions to Firebase: $e');
+    }
+  }
+
+  /// Pre-generated vocabulary: `vocabulary_by_episode/{episodeId}/{itemKey}`.
+  Future<Map<String, dynamic>?> getVocabularyByEpisode(
+    String episodeId,
+    String itemKey,
+  ) async {
+    if (episodeId.isEmpty || itemKey.isEmpty) return null;
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeItemKey = CacheKeyHelper.sanitizeFirebaseKey(itemKey);
+      final url =
+          '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+        if (cacheEntry.isValid(defaultTtlDays: _vocabularyTtlDays)) {
+          debugPrint('vocabulary_by_episode HIT: $episodeId/$itemKey');
+          return cacheEntry.data;
+        }
+        debugPrint('vocabulary_by_episode EXPIRED: $episodeId/$itemKey');
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting vocabulary_by_episode: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveVocabularyByEpisode(
+    String episodeId,
+    String itemKey,
+    Map<String, dynamic> vocabularyData,
+  ) async {
+    if (episodeId.isEmpty || itemKey.isEmpty) return;
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeItemKey = CacheKeyHelper.sanitizeFirebaseKey(itemKey);
+      final url =
+          '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json';
+
+      final cacheEntry = AICacheEntry(
+        data: vocabularyData,
+        createdAt: DateTime.now(),
+        version: _cacheVersion,
+        ttlDays: _vocabularyTtlDays,
+      );
+
+      await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(cacheEntry.toJson()),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('Saved vocabulary_by_episode: $episodeId/$itemKey');
+    } catch (e) {
+      debugPrint('Error saving vocabulary_by_episode: $e');
     }
   }
 
