@@ -1381,6 +1381,10 @@ namespace playMP3
             return string.Join(",", parts);
         }
 
+        /// <summary>
+        /// Upload grammar_by_episode với <paramref name="lineNumber"/> 0-based (i trong vòng lặp = line_0 cho dòng đầu).
+        /// RTDB cũ dùng line_1 cho dòng đầu cần re-upload hoặc chạy script migrate trước khi phát hành app mới.
+        /// </summary>
         private async Task UploadGrammarAiCachesAsync(string episodeId)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
@@ -1535,7 +1539,7 @@ namespace playMP3
         /// <summary>
         /// Firebase RTDB <c>ai_cache/translations/{episodeId}/{lang}.json</c> — khớp Flutter <c>AIFirebaseCacheService.saveTranslation</c>.
         /// Dữ liệu lưu trong <c>data.translations</c> là mảng item có
-        /// <c>original</c>, <c>translated</c>, <c>lineNumber</c>.
+        /// <c>original</c>, <c>translated</c>, <c>lineNumber</c> (0-based, khớp transcript row index).
         /// </summary>
         private async Task UploadTranslationsAiCachesAsync(string episodeId)
         {

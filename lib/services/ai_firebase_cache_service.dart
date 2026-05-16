@@ -478,6 +478,9 @@ class AIFirebaseCacheService {
       }
       normalizedGrammarData['lineKey'] = lineKey;
       normalizedGrammarData['sourceSentence'] = sentence.trim();
+      if (lineNumber != null && lineNumber >= 0) {
+        normalizedGrammarData['lineNumber'] = lineNumber;
+      }
       normalizedGrammarData['schemaVersion'] = _grammarSchemaVersion;
 
       final sentenceHash = CacheKeyHelper.grammarKey(

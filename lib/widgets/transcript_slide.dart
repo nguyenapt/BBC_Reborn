@@ -697,7 +697,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     final langCode = _languageManager.currentLocale.languageCode;
     debugPrint('[GrammarTap] tapped');
     debugPrint('[GrammarTap] episodeId=$episodeId nodeKey=$nodeKey lang=$langCode');
-    debugPrint('[GrammarTap] sentence="$normalizedSentence" lineNumber=${lineNumber + 1}');
+    debugPrint('[GrammarTap] sentence="$normalizedSentence" lineNumber=$lineNumber');
     if (!AIConfig.enableGrammar) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -708,7 +708,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
 
     // Sentence-level grammar (explainSentence + ai_cache/grammar/…), not passage progressive.
-    final cacheKey = 'sentence::$normalizedSentence::line_${lineNumber + 1}';
+    final cacheKey = 'sentence::$normalizedSentence::line_$lineNumber';
     if (_grammarCache.containsKey(cacheKey)) {
       debugPrint('[GrammarTap] in-memory cache HIT key=$cacheKey');
       final cached = _grammarCache[cacheKey]!;

@@ -272,7 +272,7 @@ class AICacheService {
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
-    ) + (lineNumber != null ? '::line_${lineNumber + 1}' : '');
+    ) + (lineNumber != null ? '::line_$lineNumber' : '');
     final lineKey =
         CacheKeyHelper.grammarEpisodeLineKey(sentence, lineNumber: lineNumber);
     debugPrint('[GrammarCache] lookup start');
@@ -329,7 +329,7 @@ class AICacheService {
       episodeId: episodeId,
       modelVersion: modelVersion,
       promptVersion: promptVersion,
-    ) + (lineNumber != null ? '::line_${lineNumber + 1}' : '');
+    ) + (lineNumber != null ? '::line_$lineNumber' : '');
     
     // Save to local cache
     await cacheData<Map<String, dynamic>>(

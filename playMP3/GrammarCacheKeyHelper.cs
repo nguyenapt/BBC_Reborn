@@ -54,12 +54,12 @@ namespace playMP3
         }
 
         /// <summary>
-        /// Episode-based grammar line key used by ai_cache/grammar_by_episode/{episodeId}/{lineKey}/{lang}.
+        /// Episode grammar RTDB segment — 0-based (line_0 = first transcript row). MUST_SYNC Flutter grammarEpisodeLineKey.
         /// </summary>
         public static string GrammarEpisodeLineKey(string sentence, int lineNumber = -1)
         {
             if (lineNumber >= 0)
-                return "line_" + (lineNumber + 1);
+                return "line_" + lineNumber;
             return "s_" + GrammarSentenceContentHash(sentence);
         }
 

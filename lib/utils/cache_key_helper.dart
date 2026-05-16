@@ -26,10 +26,10 @@ class CacheKeyHelper {
     return 'grammar_${hash}_$languageCode';
   }
 
-  /// Stable line key for episode-scoped grammar namespace.
+  /// RTDB segment under `grammar_by_episode/{episodeId}/…` — 0-based (`line_0` = first transcript line).
   static String grammarEpisodeLineKey(String sentence, {int? lineNumber}) {
     if (lineNumber != null && lineNumber >= 0) {
-      return 'line_${lineNumber + 1}';
+      return 'line_$lineNumber';
     }
     return 's_${hashString(sentence.trim())}';
   }

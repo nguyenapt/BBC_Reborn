@@ -23,6 +23,9 @@ namespace playMP3
         public const string GrammarByEpisodePath = "grammar_by_episode";
         public const string VocabularyByEpisodePath = "vocabulary_by_episode";
 
+        /// <summary>transcriptLineIndex / lineNumber / lineKey are 0-based (line_0 = first line). Re-upload RTDB after changing from old 1-based keys.</summary>
+        public const string LineIndexConvention = "0-based";
+
         public const int AiCacheEntryVersion = 1;
         public const int GrammarByEpisodeSchemaVersion = 2;
 
