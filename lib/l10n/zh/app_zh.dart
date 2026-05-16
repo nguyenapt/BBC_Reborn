@@ -1,11 +1,11 @@
 class AppZh {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC英语学习',
-    'welcomeMessage': '欢迎来到「6分钟学习英语」！',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': '欢迎来到 Speak British: English Voice！',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
@@ -18,6 +18,7 @@ class AppZh {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Search episodes',
     'searchHint': 'Search by name, summary, or transcript',
     'searching': 'Searching...',
@@ -302,9 +303,11 @@ class AppZh {
     'speakingHistorySessionSubtitle': '{attempts} 次 · 平均 {avg}',
     'speakingHistoryModeLabel': '模式',
 
+    'adAttributionLabel': '广告',
     'adsInterstitialTitle': '感谢你支持我们的免费应用',
     'adsInterstitialBodyLine1': '如果广告偶尔让你感到打扰，我们深感抱歉。',
     'adsInterstitialBodyLine2': '广告收入帮助我们把产品持续免费提供给所有人。',
+    'adsInterstitialCta': '开始学习',
 
     'loadMore': '加载更多',
 

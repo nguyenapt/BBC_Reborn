@@ -654,9 +654,9 @@ class _MyLearningScreenState extends State<MyLearningScreen>
           _savedGrammarItems.indexOf(item) == insertAfterItemIndex) {
         insertedAd = true;
         widgets.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
-            child: TranscriptNativeAdWidget(category: item.category),
+          TranscriptNativeAdWidget(
+            category: item.category,
+            slot: TranscriptNativeAdSlot.savedGrammarCard,
           ),
         );
       }
@@ -664,9 +664,9 @@ class _MyLearningScreenState extends State<MyLearningScreen>
 
     if (!insertedAd) {
       widgets.add(
-        const Padding(
-          padding: EdgeInsets.fromLTRB(8, 2, 8, 6),
-          child: TranscriptNativeAdWidget(category: 'grammar'),
+        const TranscriptNativeAdWidget(
+          category: 'grammar',
+          slot: TranscriptNativeAdSlot.savedGrammarCard,
         ),
       );
     }

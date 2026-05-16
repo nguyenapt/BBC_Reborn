@@ -1,11 +1,11 @@
 class AppRu {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Изучение Английского',
-    'welcomeMessage': 'Добро пожаловать на курс изучения английского языка - 6 минут!',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'Добро пожаловать в Speak British: English Voice!',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
@@ -18,6 +18,7 @@ class AppRu {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Search episodes',
     'searchHint': 'Search by name, summary, or transcript',
     'searching': 'Searching...',
@@ -311,9 +312,11 @@ class AppRu {
     'speakingHistorySessionSubtitle': '{attempts} попыток · Ср. {avg}',
     'speakingHistoryModeLabel': 'Режим',
 
+    'adAttributionLabel': 'Реклама',
     'adsInterstitialTitle': 'Спасибо за поддержку бесплатного приложения',
     'adsInterstitialBodyLine1': 'Извините, если реклама иногда мешает.',
     'adsInterstitialBodyLine2': 'Реклама помогает нам поддерживать продукт бесплатным для всех.',
+    'adsInterstitialCta': 'Начать обучение',
 
     'loadMore': 'Загрузить больше',
 

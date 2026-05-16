@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/language_manager.dart';
+import 'native_ad_theme.dart';
+
+enum NativeAdLayout {
+  /// Tab content style with visible attribution header (e.g. vocabulary empty state).
+  embedded,
+
+  /// Minimal chrome; ad fills remaining space (interstitial fallback route).
+  interstitialFallback,
+}
 
 class NativeAdWidget extends StatefulWidget {
   final String category;
   final String? adUnitId;
+  final NativeAdLayout layout;
 
   const NativeAdWidget({
     super.key,
     required this.category,
     this.adUnitId,
+    this.layout = NativeAdLayout.embedded,
   });
 
   @override
@@ -21,74 +33,72 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _isAdLoaded = false;
   bool _isAdLoading = false;
 
-  // Test Ad Unit IDs - Thay thế bằng Ad Unit IDs thực tế của bạn
-  static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110'; // Test Native Ad Unit ID
-  
-  // Production Ad Unit IDs (thay thế bằng Ad Unit IDs thực tế của bạn)
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891'; // Production Native Ad Unit ID
-  
-  // Method để lấy ad unit ID phù hợp
+  static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
+  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891';
+
+  final LanguageManager _languageManager = LanguageManager();
+
+  static const double _minAttributionPx = 18;
+
   String _getAdUnitId() {
-    // Nếu có adUnitId được truyền vào, sử dụng nó
     if (widget.adUnitId != null) {
       return widget.adUnitId!;
     }
-    
-    // Nếu không, sử dụng test ad unit cho debug, production cho release
     return kDebugMode ? _testAdUnitId : _productionAdUnitId;
   }
 
   @override
   void initState() {
     super.initState();
-    _loadNativeAd();
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleLoadAd());
+    }
   }
 
-  void _loadNativeAd() {
-    // Không load ads trên web
-    if (kIsWeb) {
-      return;
+  @override
+  void didUpdateWidget(NativeAdWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.layout != widget.layout ||
+        oldWidget.adUnitId != widget.adUnitId) {
+      _nativeAd?.dispose();
+      _nativeAd = null;
+      _isAdLoaded = false;
+      _isAdLoading = false;
+      if (!kIsWeb && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleLoadAd());
+      }
     }
-    
+  }
+
+  void _scheduleLoadAd() {
+    if (!mounted || kIsWeb) return;
+    final scheme = Theme.of(context).colorScheme;
+    _loadNativeAd(
+      nativeTemplateStyleForColorScheme(
+        scheme,
+        templateType: TemplateType.medium,
+        cornerRadius: 12,
+      ),
+    );
+  }
+
+  void _loadNativeAd(NativeTemplateStyle templateStyle) {
     if (_isAdLoading) return;
-    
+
     setState(() {
       _isAdLoading = true;
     });
 
+    _nativeAd?.dispose();
     _nativeAd = NativeAd(
       adUnitId: _getAdUnitId(),
-      nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.medium,
-        mainBackgroundColor: Colors.white,
-        cornerRadius: 12.0,
-        callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: Colors.blue,
-          style: NativeTemplateFontStyle.bold,
-          size: 16.0,
-        ),
-        primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black,
-          style: NativeTemplateFontStyle.bold,
-          size: 16.0,
-        ),
-        secondaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.grey,
-          style: NativeTemplateFontStyle.normal,
-          size: 14.0,
-        ),
-        tertiaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.grey,
-          style: NativeTemplateFontStyle.normal,
-          size: 12.0,
-        ),
-      ),
+      nativeTemplateStyle: templateStyle,
       listener: NativeAdListener(
         onAdLoaded: (ad) {
           if (kDebugMode) {
             print('Native Ad loaded successfully with ID: ${_getAdUnitId()}');
           }
+          if (!mounted) return;
           setState(() {
             _isAdLoaded = true;
             _isAdLoading = false;
@@ -96,9 +106,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         },
         onAdFailedToLoad: (ad, error) {
           if (kDebugMode) {
-            print('Native Ad failed to load with ID: ${_getAdUnitId()}, Error: $error');
+            print(
+              'Native Ad failed to load with ID: ${_getAdUnitId()}, Error: $error',
+            );
           }
+          ad.dispose();
+          if (!mounted) return;
           setState(() {
+            _nativeAd = null;
             _isAdLoaded = false;
             _isAdLoading = false;
           });
@@ -126,20 +141,68 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _adBody(ColorScheme colorScheme) {
+    return _isAdLoaded && _nativeAd != null
+        ? AdWidget(ad: _nativeAd!)
+        : _isAdLoading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _languageManager.getText('loadingAd'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.ads_click_outlined,
+                      size: 48,
+                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _languageManager.getText('adNotAvailable'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => _scheduleLoadAd(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                      ),
+                      child: Text(_languageManager.getText('retry')),
+                    ),
+                  ],
+                ),
+              );
+  }
+
+  Widget _embeddedBuild(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Không hiển thị ads trên web
-    if (kIsWeb) {
-      return const SizedBox.shrink();
-    }
-    
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header với icon quảng cáo
           Row(
             children: [
               Icon(
@@ -148,15 +211,22 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Sponsored Content',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: _minAttributionPx),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _languageManager.getText('adAttributionLabel'),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
               if (_isAdLoading)
                 SizedBox(
                   width: 16,
@@ -171,76 +241,105 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
             ],
           ),
           const SizedBox(height: 16),
-          
-          // Native Ad Content
           Expanded(
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  color: colorScheme.outline.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
-              child: _isAdLoaded && _nativeAd != null
-                  ? AdWidget(ad: _nativeAd!)
-                  : _isAdLoading
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Loading ad...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.ads_click_outlined,
-                                size: 48,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Ad not available',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: _loadNativeAd,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary,
-                                  foregroundColor: colorScheme.onPrimary,
-                                ),
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
+              child: _adBody(colorScheme),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _interstitialFallbackBuild(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.ads_click, color: colorScheme.primary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: _minAttributionPx),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _languageManager.getText('adAttributionLabel'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface.withValues(alpha: 0.92),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (_isAdLoading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.primary,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.28),
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: _adBody(colorScheme),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const SizedBox.shrink();
+    }
+
+    return ListenableBuilder(
+      listenable: _languageManager,
+      builder: (context, child) {
+        switch (widget.layout) {
+          case NativeAdLayout.embedded:
+            return _embeddedBuild(context);
+          case NativeAdLayout.interstitialFallback:
+            return _interstitialFallbackBuild(context);
+        }
+      },
     );
   }
 }

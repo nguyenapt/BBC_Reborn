@@ -179,6 +179,8 @@ class CategoryGroupBox extends StatelessWidget {
         return Icons.record_voice_over;
       case 'TEWS':
         return Icons.chat_bubble_outline;
+      case 'BSA':
+        return Icons.record_voice_over_outlined;
       case 'Grammar':
         return Icons.menu_book;
       case 'Vocabulary':
@@ -194,6 +196,7 @@ class CategoryGroupBox extends StatelessWidget {
     return categoryName == '6M' ||
         categoryName == 'TEWS' ||
         categoryName == 'REE' ||
+        categoryName == 'BSA' ||
         categoryName == 'EG';
   }
 

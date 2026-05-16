@@ -312,17 +312,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                       }
                       
                       if (matchingAdPosition != null) {
-                        // Chèn native ad với style giống transcript items
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: TranscriptNativeAdWidget(
-                            category: widget.episode.category,
-                          ),
+                        return TranscriptNativeAdWidget(
+                          category: widget.episode.category,
+                          slot: TranscriptNativeAdSlot.episodeTranscript,
                         );
                       }
                       

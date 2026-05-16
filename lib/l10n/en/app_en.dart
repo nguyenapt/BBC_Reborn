@@ -1,11 +1,11 @@
 class AppEn {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Learning English 6 minutes',
-    'welcomeMessage': 'Welcome to Learning English 6 minutes!',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'Welcome to Speak British: English Voice!',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
@@ -18,6 +18,7 @@ class AppEn {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Search episodes',
     'searchHint': 'Search by name, summary, or transcript',
     'searching': 'Searching...',
@@ -244,6 +245,7 @@ class AppEn {
     
     // Advertisement
     'advertisementNotice': 'Advertisement Notice',
+    'adAttributionLabel': 'Ad',
     'advertisementMessage': 'We display advertisements to maintain our free service — we hope you understand and continue to support us!',
     'loadingAd': 'Loading advertisement...',
     'adNotAvailable': 'Advertisement not available',

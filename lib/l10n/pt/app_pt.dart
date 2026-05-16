@@ -1,11 +1,11 @@
 class AppPt {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Aprenda Inglês',
-    'welcomeMessage': 'Bem-vindo ao Learning English - 6 minutos!',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'Bem-vindo ao Speak British: English Voice!',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
@@ -18,6 +18,7 @@ class AppPt {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Search episodes',
     'searchHint': 'Search by name, summary, or transcript',
     'searching': 'Searching...',
@@ -311,9 +312,11 @@ class AppPt {
     'speakingHistorySessionSubtitle': '{attempts} tentativas · Média {avg}',
     'speakingHistoryModeLabel': 'Modo',
 
+    'adAttributionLabel': 'Anúncio',
     'adsInterstitialTitle': 'Obrigado por apoiar um aplicativo gratuito',
     'adsInterstitialBodyLine1': 'Desculpe se os anúncios às vezes incomodam.',
     'adsInterstitialBodyLine2': 'Os anúncios nos ajudam a manter o produto gratuito para todos.',
+    'adsInterstitialCta': 'Começar a aprender',
 
     'loadMore': 'Carregar mais',
 

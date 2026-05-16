@@ -1,11 +1,11 @@
 class AppJa {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC英語学習',
-    'welcomeMessage': '「6分で英語を学ぶ」へようこそ！',
-    'homeTitleMain': 'Learning English',
+    'appTitle': 'Speak British: English Voice',
+    'welcomeMessage': 'Speak British: English Voiceへようこそ！',
+    'homeTitleMain': 'Speak British: English Voice',
     'homeTitleSub': '6 minutes',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Speak British: English Voice',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
@@ -18,6 +18,7 @@ class AppJa {
     'categoryGrammar': 'Grammar',
     'categoryOther': 'Other',
     'categoryPrograms': 'Programs',
+    'homeAnotherSeriesSection': 'Another Series',
     'searchEpisodes': 'Search episodes',
     'searchHint': 'Search by name, summary, or transcript',
     'searching': 'Searching...',
@@ -224,6 +225,7 @@ class AppJa {
     'loadingFavouritesErrorDesc': 'エラーが発生しました: {error}',
     'loadingVocabulariesErrorDesc': 'エラーが発生しました: {error}',
     'doubleBackExit': '戻るボタンを再度押して退出',
+    'loadMore': 'もっと読み込む',
     'adPrivacyOptionsTitle': '広告プライバシー設定',
     'privacyOptionsStatusLabel': 'プライバシー設定の状態: {status}',
     'privacyOptionsStatusRequired': '表示が必要',
@@ -234,7 +236,6 @@ class AppJa {
     'privacyOptionsOpenError': 'プライバシー設定を開けませんでした: {error}',
     'privacyOptionsNotRequiredInfo':
         '現在の地域ではプライバシー設定の表示は不要です。',
-
     // Speaking practice
     'speakingPracticeTitle': 'スピーキング練習',
     'speakingTabRepeat': 'リピート',
@@ -308,11 +309,12 @@ class AppJa {
     'speakingHistorySessionSubtitle': '{attempts} 回 · 平均 {avg}',
     'speakingHistoryModeLabel': 'モード',
 
+    'adAttributionLabel': '広告',
     'adsInterstitialTitle': '無料アプリへのご支援ありがとうございます',
     'adsInterstitialBodyLine1': '広告がときどき煩わしく感じられる場合は申し訳ありません。',
     'adsInterstitialBodyLine2': '広告により、このサービスを誰でも無料で利用できます。',
+    'adsInterstitialCta': '学習を始める',
 
-    'loadMore': 'さらに読み込む',
 
     'appUpdateTitle': 'Update available',
     'appUpdateMessageSoft':

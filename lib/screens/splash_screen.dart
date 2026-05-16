@@ -181,14 +181,11 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Text(
-                            'L.E.O',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/images/app_icon_source.png',
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
@@ -203,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: const Text(
-                  'Learning English - 6 minutes',
+                  'Speak British: English Voice',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,

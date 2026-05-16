@@ -112,7 +112,7 @@ class BBCLearningApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: NavigationService.navigatorKey,
-          title: 'Learning English 6 minutes',
+          title: 'Speak British: English Voice',
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -145,6 +145,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
 
   int currentPageIndex = 0;
   String? categoriesInitialTab;
+  String? categoriesInitialAnotherSeriesSub;
   String? grammarInitialTab;
   DateTime? _lastBackgroundAt;
   bool _didShowReviewReminderThisSession = false;
@@ -152,7 +153,16 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   void navigateToCategoriesWithTab(String tabName) {
     setState(() {
       categoriesInitialTab = tabName;
+      categoriesInitialAnotherSeriesSub = null;
       currentPageIndex = 1; // Categories tab index
+    });
+  }
+
+  void navigateToAnotherSeriesSub(String subCategory) {
+    setState(() {
+      categoriesInitialTab = 'AS';
+      categoriesInitialAnotherSeriesSub = subCategory;
+      currentPageIndex = 1;
     });
   }
 
@@ -381,6 +391,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
         /// Home page
         HomePage(
           onNavigateToCategory: navigateToCategoriesWithTab,
+          onNavigateToAnotherSeriesSub: navigateToAnotherSeriesSub,
           onNavigateToGrammar: navigateToGrammarWithTab,
         ),
 
@@ -388,16 +399,21 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
         Builder(
           builder: (context) {
             // Reset categoriesInitialTab sau khi CategoriesScreen được tạo
-            if (categoriesInitialTab != null) {
+            if (categoriesInitialTab != null ||
+                categoriesInitialAnotherSeriesSub != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   setState(() {
                     categoriesInitialTab = null;
+                    categoriesInitialAnotherSeriesSub = null;
                   });
                 }
               });
             }
-            return CategoriesScreen(initialTab: categoriesInitialTab);
+            return CategoriesScreen(
+              initialTab: categoriesInitialTab,
+              initialAnotherSeriesSub: categoriesInitialAnotherSeriesSub,
+            );
           },
         ),
 

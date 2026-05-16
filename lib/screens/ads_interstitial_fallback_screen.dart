@@ -13,59 +13,91 @@ class AdsInterstitialFallbackScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final lm = LanguageManager();
+    final dimBackdrop = Color.alphaBlend(
+      cs.onSurface.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.12 : 0.06,
+      ),
+      cs.surface,
+    );
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: dimBackdrop,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  tooltip: lm.getText('close'),
-                  onPressed: onClose,
-                  icon: const Icon(Icons.close),
-                ),
-              ),
-              Text(
-                lm.getText('adsInterstitialTitle'),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurface,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                lm.getText('adsInterstitialBodyLine1'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurface.withOpacity(0.82),
-                      height: 1.45,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                lm.getText('adsInterstitialBodyLine2'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurface.withOpacity(0.75),
-                      height: 1.45,
-                    ),
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: Center(
-                  child: SizedBox(
-                    height: 360,
-                    width: 420,
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      child: const NativeAdWidget(category: 'sponsored'),
+              Row(
+                children: [
+                  IconButton(
+                    tooltip: lm.getText('close'),
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close),
+                  ),
+                  Expanded(
+                    child: Text(
+                      lm.getText('adsInterstitialTitle'),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface.withValues(alpha: 0.82),
+                          ) ??
+                          TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: cs.onSurface.withValues(alpha: 0.82),
+                          ),
                     ),
                   ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      lm.getText('adsInterstitialBodyLine1'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                            height: 1.4,
+                            color: cs.onSurface.withValues(alpha: 0.78),
+                          ) ??
+                          TextStyle(
+                            height: 1.4,
+                            fontSize: 13,
+                            color: cs.onSurface.withValues(alpha: 0.78),
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      lm.getText('adsInterstitialBodyLine2'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                            height: 1.4,
+                            color: cs.onSurface.withValues(alpha: 0.64),
+                          ) ??
+                          TextStyle(
+                            height: 1.4,
+                            fontSize: 12,
+                            color: cs.onSurface.withValues(alpha: 0.64),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: NativeAdWidget(
+                  category: 'sponsored',
+                  layout: NativeAdLayout.interstitialFallback,
                 ),
               ),
             ],

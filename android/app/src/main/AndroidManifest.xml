@@ -17,9 +17,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     
     <application
-        android:label="Learning English - 6 minutes"
+        android:label="Speak British: English Voice"
         android:name="${applicationName}"
-        android:icon="@mipmap/logo">
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -51,7 +51,7 @@
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2189112136936277~4661463686"/>
+            android:value="ca-app-pub-2189112136936277~6977387178"/>
             
         <!-- Media Notification Receiver -->
         <receiver

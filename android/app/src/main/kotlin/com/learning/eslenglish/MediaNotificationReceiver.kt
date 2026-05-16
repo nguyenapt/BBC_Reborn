@@ -1,4 +1,4 @@
-package com.learningenglish.studyingbbc.bbc_reborn
+package com.learning.eslenglish
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -36,21 +36,3 @@ class MediaNotificationReceiver : BroadcastReceiver() {
         methodChannel?.invokeMethod("onMediaAction", data)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

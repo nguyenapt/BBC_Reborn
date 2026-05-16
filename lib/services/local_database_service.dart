@@ -16,7 +16,7 @@ class LocalDatabaseService {
   LocalDatabaseService._internal();
 
   static const String _dbName = 'learning_english_cache.db';
-  static const int _dbVersion = 4;
+  static const int _dbVersion = 5;
   static const int noYear = -1;
 
   Database? _db;
@@ -101,6 +101,7 @@ class LocalDatabaseService {
       )
     ''');
 
+    await _createEpisodeCollectionTables(db);
     await _createSpeakingTables(db);
   }
 
@@ -120,6 +121,29 @@ class LocalDatabaseService {
         )
       ''');
     }
+    if (oldVersion < 5) {
+      await _createEpisodeCollectionTables(db);
+    }
+  }
+
+  Future<void> _createEpisodeCollectionTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS episode_collections (
+        collection_key TEXT PRIMARY KEY,
+        last_fetched TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS episode_collection_items (
+        collection_key TEXT NOT NULL,
+        episode_id TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        PRIMARY KEY (collection_key, episode_id)
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_collection_items_key_pos ON episode_collection_items(collection_key, position)',
+    );
   }
 
   Future<void> _upgradeSpeakingToV3(Database db) async {
@@ -214,6 +238,95 @@ class LocalDatabaseService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<DateTime?> getCollectionLastFetched(String collectionKey) async {
+    final db = await database;
+    final rows = await db.query(
+      'episode_collections',
+      where: 'collection_key = ?',
+      whereArgs: [collectionKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final value = rows.first['last_fetched']?.toString();
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  Future<void> upsertCollectionFetch(String collectionKey, DateTime fetchedAt) async {
+    final db = await database;
+    await db.insert(
+      'episode_collections',
+      {
+        'collection_key': collectionKey,
+        'last_fetched': fetchedAt.toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Replace toàn bộ items của 1 collection để giữ đúng thứ tự (position 0..n).
+  Future<void> replaceCollectionItems({
+    required String collectionKey,
+    required List<String> episodeIds,
+  }) async {
+    final db = await database;
+    final batch = db.batch();
+    batch.delete(
+      'episode_collection_items',
+      where: 'collection_key = ?',
+      whereArgs: [collectionKey],
+    );
+    for (var i = 0; i < episodeIds.length; i++) {
+      final id = episodeIds[i];
+      batch.insert(
+        'episode_collection_items',
+        {
+          'collection_key': collectionKey,
+          'episode_id': id,
+          'position': i,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Upsert episodes theo `id` (entity), tránh bị ignore khi payload thay đổi.
+  Future<void> upsertEpisodes({
+    required String category,
+    required int year,
+    required List<Episode> episodes,
+  }) async {
+    if (episodes.isEmpty) return;
+    final db = await database;
+    final batch = db.batch();
+    for (final episode in episodes) {
+      final row = _episodeToRow(category, year, episode);
+      batch.insert(
+        'episodes',
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Lấy episodes theo collection_key, join từ `episode_collection_items` sang `episodes`.
+  Future<List<Episode>> getEpisodesByCollectionKey(String collectionKey) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''
+      SELECT e.*
+      FROM episode_collection_items i
+      JOIN episodes e ON e.id = i.episode_id
+      WHERE i.collection_key = ?
+      ORDER BY i.position ASC
+      ''',
+      [collectionKey],
+    );
+    return rows.map(_episodeFromRow).toList();
   }
 
   /// Cache JSON theo key, tối đa một lần fetch mỗi ngày (dùng cho HomePage, Grammar list, …).
