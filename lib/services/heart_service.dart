@@ -75,7 +75,8 @@ class HeartService extends ChangeNotifier {
     }
   }
 
-  /// Trừ 1 heart khi user dùng tính năng AI (kể cả kết quả từ ai_cache / local cache).
+  /// Trừ 1 heart khi gọi AI API hoặc đọc từ Firebase ai_cache.
+  /// Không gọi khi kết quả chỉ lấy từ local cache (SharedPreferences).
   Future<void> consumeForAIFeature() async {
     if (!hasHearts) {
       throw NoHeartsException();

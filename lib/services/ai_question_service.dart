@@ -20,18 +20,15 @@ class AIQuestionService {
     String episodeId, {
     int count = 5,
   }) async {
-    await HeartService().consumeForAIFeature();
+    final cacheHit = await _cache.lookupQuestions(episodeId, count);
 
-    // Check cache with priority: Local → Firebase → null
-    final cachedData = await _cache.getQuestionsFromCache(episodeId, count);
-
-    if (cachedData != null && cachedData.isNotEmpty) {
+    if (cacheHit != null) {
+      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
       debugPrint('Using cached questions for episode $episodeId');
-      // Convert cached data to Question objects
       final questions = <Question>[];
-      for (int i = 0; i < cachedData.length; i++) {
+      for (int i = 0; i < cacheHit.data.length; i++) {
         try {
-          final question = Question.fromAIResponse(cachedData[i], i);
+          final question = Question.fromAIResponse(cacheHit.data[i], i);
           questions.add(question);
         } catch (e) {
           debugPrint('Error parsing cached question $i: $e');
@@ -41,6 +38,8 @@ class AIQuestionService {
         return questions;
       }
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
