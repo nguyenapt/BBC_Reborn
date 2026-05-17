@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace playMP3.Base
 {
+    /// <summary>
+    /// Episode vocabulary row for Firebase. Enhancement JSON (synonyms, etc.) per locale may be added later to align with Flutter/tool grids.
+    /// </summary>
     public class Vocabulary
     {
         public Guid Id { get; set; }

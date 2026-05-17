@@ -1,0 +1,61 @@
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace playMP3
+{
+    public static class GrammarFirebaseCacheWriter
+    {
+        private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+
+        public static async Task PutGrammarCacheAsync(
+            string sentence,
+            string languageCode,
+            string episodeId,
+            JObject grammarDataMap,
+            int lineNumber = -1)
+        {
+            if (string.IsNullOrWhiteSpace(episodeId))
+                throw new ArgumentException("episodeId required.", nameof(episodeId));
+
+            var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
+            var modelVersion = GrammarCacheConstants.GrammarModelVersion;
+            var promptVersion = GrammarCacheConstants.GrammarPromptVersion;
+            var sentenceHash = GrammarCacheKeyHelper.GrammarSentenceHashPathSegment(
+                sentence, languageCode, episodeId, modelVersion, promptVersion);
+            var sentenceLineKey = GrammarCacheKeyHelper.GrammarEpisodeLineKey(sentence, lineNumber);
+            var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
+            var legacyUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+                            + "/grammar/" + sentenceHash + "/" + safeLang + ".json";
+            var byEpisodeUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+                               + "/" + GrammarCacheConstants.GrammarByEpisodePath + "/" + safeEpisodeId + "/" + sentenceLineKey + "/" + safeLang + ".json";
+
+            var normalizedData = (grammarDataMap ?? new JObject()).DeepClone() as JObject ?? new JObject();
+            normalizedData["episodeId"] = episodeId.Trim();
+            normalizedData["lineKey"] = sentenceLineKey;
+            normalizedData["sourceSentence"] = (sentence ?? string.Empty).Trim();
+            if (lineNumber >= 0)
+                normalizedData["lineNumber"] = lineNumber;
+            normalizedData["schemaVersion"] = GrammarCacheConstants.GrammarByEpisodeSchemaVersion;
+
+            var dto = GrammarAiCacheEntryDto.FromGrammarMap(
+                normalizedData,
+                GrammarCacheConstants.AiCacheEntryVersion,
+                GrammarCacheConstants.AiCacheTtlDays);
+            var json = JsonConvert.SerializeObject(dto);
+
+            var legacyResp = await Http.PutAsync(legacyUrl, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+            var legacyBody = await legacyResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!legacyResp.IsSuccessStatusCode)
+                throw new InvalidOperationException("Firebase PUT " + (int)legacyResp.StatusCode + " " + legacyUrl + " " + legacyBody);
+
+            var byEpisodeResp = await Http.PutAsync(byEpisodeUrl, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+            var byEpisodeBody = await byEpisodeResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!byEpisodeResp.IsSuccessStatusCode)
+                throw new InvalidOperationException("Firebase PUT " + (int)byEpisodeResp.StatusCode + " " + byEpisodeUrl + " " + byEpisodeBody);
+        }
+    }
+}

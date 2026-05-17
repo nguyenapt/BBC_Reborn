@@ -8,6 +8,19 @@ class CacheKeyHelper {
     return 'translation_${episodeId}_$languageCode';
   }
 
+  /// 0-based transcript index → RTDB path `grammar_by_episode/.../line_0/...`.
+  /// MUST_SYNC playMP3 upload tools when present.
+  static String grammarByEpisodeLineKey(int transcriptLineIndex) =>
+      'line_$transcriptLineIndex';
+
+  /// Local / auxiliary key: prefer [lineNumber] when set, else sentence hash.
+  static String grammarEpisodeLineKey(String sentence, {int? lineNumber}) {
+    if (lineNumber != null && lineNumber >= 0) {
+      return grammarByEpisodeLineKey(lineNumber);
+    }
+    return 's_${hashString(sentence.trim())}';
+  }
+
   /// Generate grammar cache key from sentence hash and language code
   static String grammarKey(
     String sentence,

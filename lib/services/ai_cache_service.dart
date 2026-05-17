@@ -310,7 +310,7 @@ class AICacheService {
       );
       if (byEpisode != null) {
         debugPrint(
-          'grammar_by_episode cache HIT: $episodeId transcriptIndex=$lineNumber → line_${lineNumber + 1}/$languageCode',
+          'grammar_by_episode cache HIT: $episodeId transcriptIndex=$lineNumber → line_$lineNumber/$languageCode',
         );
         await cacheData<Map<String, dynamic>>(
           localKey,

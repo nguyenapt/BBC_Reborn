@@ -62,7 +62,7 @@ class AIGrammarService {
     await HeartService().consumeForAIFeature();
 
     // Check cache with priority: Local → Firebase → null
-    // [lineNumber] = transcript line index (0-based); RTDB key is line_{index+1}.
+    // [lineNumber] = transcript line index (0-based); RTDB path is line_{index}.
     final cachedData = await _cache.getGrammarFromCache(
       sentence,
       languageCode,

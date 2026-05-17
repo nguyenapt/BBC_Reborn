@@ -319,10 +319,6 @@ class AIFirebaseCacheService {
     }
   }
 
-  /// RTDB path key 1-based: transcript index 0 → `line_1` (trong `data`, `lineNumber` = 0).
-  static String grammarByEpisodeLineKey(int transcriptLineIndex) =>
-      'line_${transcriptLineIndex + 1}';
-
   Future<Map<String, dynamic>?> _fetchGrammarByEpisodeAtLineKey(
     String safeEpisodeId,
     String lineKey,
@@ -357,24 +353,13 @@ class AIFirebaseCacheService {
       final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
 
-      final primaryKey = grammarByEpisodeLineKey(transcriptLineIndex);
-      final primary = await _fetchGrammarByEpisodeAtLineKey(
+      final lineKey =
+          CacheKeyHelper.grammarByEpisodeLineKey(transcriptLineIndex);
+      return _fetchGrammarByEpisodeAtLineKey(
         safeEpisodeId,
-        primaryKey,
+        lineKey,
         safeLanguageCode,
       );
-      if (primary != null) return primary;
-
-      // Legacy: vài bản app từng ghi nhầm `line_0`, `line_1` (0-based key).
-      final legacyKey = 'line_$transcriptLineIndex';
-      if (legacyKey != primaryKey) {
-        return _fetchGrammarByEpisodeAtLineKey(
-          safeEpisodeId,
-          legacyKey,
-          safeLanguageCode,
-        );
-      }
-      return null;
     } catch (e) {
       debugPrint('Error getting grammar_by_episode: $e');
       return null;
@@ -392,12 +377,17 @@ class AIFirebaseCacheService {
     try {
       final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
-      final lineKey = grammarByEpisodeLineKey(transcriptLineIndex);
+      final lineKey =
+          CacheKeyHelper.grammarByEpisodeLineKey(transcriptLineIndex);
       final url =
           '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
 
+      final enriched = Map<String, dynamic>.from(grammarData);
+      enriched['lineNumber'] = transcriptLineIndex;
+      enriched['lineKey'] = lineKey;
+
       final cacheEntry = AICacheEntry(
-        data: grammarData,
+        data: enriched,
         createdAt: DateTime.now(),
         version: _cacheVersion,
         ttlDays: _defaultTtlDays,
