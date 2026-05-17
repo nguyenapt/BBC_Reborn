@@ -19,6 +19,7 @@ import '../config/ai_config.dart';
 import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 import 'episode_tab_skeleton.dart';
+import 'episode_detail_tab_panel.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -28,6 +29,9 @@ class TranscriptSlide extends StatefulWidget {
   /// Đang tải transcript đầy đủ từ RTDB (list mỏng) — hiển thị skeleton thay vì "No transcript".
   final bool isAwaitingFullEpisode;
 
+  /// Clearance above floating player (from [EpisodeDetailScreen]).
+  final double scrollBottomInset;
+
   const TranscriptSlide({
     super.key,
     required this.episode,
@@ -35,6 +39,7 @@ class TranscriptSlide extends StatefulWidget {
     this.onPlayAtTime,
     this.scrollToActiveRequestId = 0,
     this.isAwaitingFullEpisode = false,
+    this.scrollBottomInset = 0,
   });
 
   @override
@@ -261,7 +266,6 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
     final primaryColor = Theme.of(context).colorScheme.primary;
     final tertiaryColor = Theme.of(context).colorScheme.tertiary;
-    final panelBg = categoryColor.withOpacity(0.12);
 
     Widget emptyOrList() {
       if (widget.isAwaitingFullEpisode && transcriptLines.isEmpty) {
@@ -291,7 +295,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
       return ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                    padding: EpisodeDetailTabPanel.scrollPadding(
+                      widget.scrollBottomInset,
+                    ),
                     itemCount: transcriptLines.length + _adPositions.length,
                     itemBuilder: (context, index) {
                       // Kiểm tra xem có cần chèn native ad ở vị trí này không
@@ -341,22 +347,33 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                           curve: Curves.easeOutCubic,
                           decoration: BoxDecoration(
                             color: isActive
-                                ? Theme.of(context).colorScheme.surface
+                                ? Color.alphaBlend(
+                                    categoryColor.withOpacity(0.08),
+                                    Theme.of(context).colorScheme.surface,
+                                  )
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
+                            border: isActive
+                                ? Border.all(
+                                    color: categoryColor.withOpacity(0.14),
+                                    width: 1,
+                                  )
+                                : isPassed
+                                    ? Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outline
+                                            .withOpacity(0.2),
+                                      )
+                                    : null,
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.06),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      color: categoryColor.withOpacity(0.06),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 1),
                                     ),
                                   ]
-                                : null,
-                            border: isPassed && !isActive
-                                ? Border.all(
-                                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                                  )
                                 : null,
                           ),
                           padding: EdgeInsets.all(isActive ? 12 : 8),
@@ -410,11 +427,14 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                 style: TextStyle(
                                   fontSize: 14,
                                   height: 1.55,
-                                  fontStyle:
-                                      isActive ? FontStyle.italic : FontStyle.normal,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(
-                                        isPassed && !isActive ? 0.55 : 0.9,
-                                      ),
+                                  fontStyle: FontStyle.normal,
+                                  fontWeight:
+                                      isActive ? FontWeight.w600 : FontWeight.normal,
+                                  color: isActive
+                                      ? categoryColor
+                                      : Theme.of(context).colorScheme.onSurface.withOpacity(
+                                            isPassed ? 0.55 : 0.9,
+                                          ),
                                 ),
                                 contextMenuBuilder: (context, editableTextState) {
                                   return AdaptiveTextSelectionToolbar.buttonItems(
@@ -600,19 +620,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                   );
     }
 
-    // TranscriptSlide nằm trong PageView — không dùng Expanded (chỉ hợp lệ trong Row/Column).
-    // SizedBox.expand để nhận đủ chiều cao viewport; Android sẽ không còn vùng trống.
-    return SizedBox.expand(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(6, 0, 6, 4),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: ColoredBox(
-            color: panelBg,
-            child: emptyOrList(),
-          ),
-        ),
-      ),
+    return EpisodeDetailTabPanel(
+      child: emptyOrList(),
     );
   }
 

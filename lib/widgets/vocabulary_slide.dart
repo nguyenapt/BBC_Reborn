@@ -14,16 +14,19 @@ import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
 import 'translation_language_picker.dart';
 import 'episode_tab_skeleton.dart';
+import 'episode_detail_tab_panel.dart';
 
 class VocabularySlide extends StatefulWidget {
   final Episode episode;
   /// Đang tải vocab đầy đủ từ RTDB — skeleton thay vì ad/empty.
   final bool isAwaitingFullEpisode;
+  final double scrollBottomInset;
 
   const VocabularySlide({
     super.key,
     required this.episode,
     this.isAwaitingFullEpisode = false,
+    this.scrollBottomInset = 0,
   });
 
   @override
@@ -110,22 +113,33 @@ class _VocabularySlideState extends State<VocabularySlide> {
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
 
     if (widget.isAwaitingFullEpisode && vocabularyItems.isEmpty) {
-      return EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 8);
-    }
-
-    // Nếu không có vocabulary, hiển thị Native AdMob
-    if (vocabularyItems.isEmpty) {
-      return NativeAdWidget(
-        category: widget.episode.category,
-        // Có thể thêm adUnitId cụ thể cho từng category nếu cần
-        // adUnitId: _getAdUnitIdForCategory(widget.episode.category),
+      return EpisodeDetailTabPanel(
+        child: Padding(
+          padding: EpisodeDetailTabPanel.scrollPadding(widget.scrollBottomInset),
+          child: EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 8),
+        ),
       );
     }
 
-    // Nếu có vocabulary, hiển thị bình thường
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Column(
+    if (vocabularyItems.isEmpty) {
+      return EpisodeDetailTabPanel(
+        child: Column(
+          children: [
+            Expanded(
+              child: NativeAdWidget(
+                category: widget.episode.category,
+              ),
+            ),
+            SizedBox(height: widget.scrollBottomInset),
+          ],
+        ),
+      );
+    }
+
+    return EpisodeDetailTabPanel(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -227,6 +241,9 @@ class _VocabularySlideState extends State<VocabularySlide> {
                 listenable: _vocabularyService,
                 builder: (context, child) {
                   return ListView.builder(
+                    padding: EdgeInsets.only(
+                      bottom: widget.scrollBottomInset + 12,
+                    ),
                     itemCount: vocabularyItems.length,
                     itemBuilder: (context, index) {
                       final item = vocabularyItems[index];
@@ -355,6 +372,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

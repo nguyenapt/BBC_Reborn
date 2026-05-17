@@ -505,57 +505,66 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           ),
           _buildDetailTabs(context, categoryColor),
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: _contentBottomInset(context)),
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPageIndex = index;
-                  });
-                },
-                children: [
-                  ListenableBuilder(
-                    listenable: _audioService,
-                    builder: (context, child) {
-                      return TranscriptSlide(
-                        episode: _episode,
-                        isAwaitingFullEpisode: _hydratingFullEpisode,
-                        currentPositionMs: _audioService.currentPositionMs,
-                        scrollToActiveRequestId: _scrollToActiveTranscriptRequestId,
-                        onPlayAtTime: (startTimeMs) {
-                          _audioService.seekTo(Duration(milliseconds: startTimeMs));
-                          _audioService.play();
-                        },
-                      );
-                    },
-                  ),
-                  EpisodeInfoSlide(
-                    languageManager: _languageManager,
-                    episode: _episode,
-                    topEpisodes: widget.categoryEpisodes,
-                    onEpisodeTap: (episode) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EpisodeDetailScreen(
-                            episode: episode,
-                            categoryEpisodes: widget.categoryEpisodes,
+            child: Builder(
+              builder: (context) {
+                final scrollBottomInset = _contentBottomInset(context);
+                return PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPageIndex = index;
+                    });
+                  },
+                  children: [
+                    ListenableBuilder(
+                      listenable: _audioService,
+                      builder: (context, child) {
+                        return TranscriptSlide(
+                          episode: _episode,
+                          isAwaitingFullEpisode: _hydratingFullEpisode,
+                          scrollBottomInset: scrollBottomInset,
+                          currentPositionMs: _audioService.currentPositionMs,
+                          scrollToActiveRequestId:
+                              _scrollToActiveTranscriptRequestId,
+                          onPlayAtTime: (startTimeMs) {
+                            _audioService.seekTo(
+                              Duration(milliseconds: startTimeMs),
+                            );
+                            _audioService.play();
+                          },
+                        );
+                      },
+                    ),
+                    EpisodeInfoSlide(
+                      languageManager: _languageManager,
+                      episode: _episode,
+                      scrollBottomInset: scrollBottomInset,
+                      topEpisodes: widget.categoryEpisodes,
+                      onEpisodeTap: (episode) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EpisodeDetailScreen(
+                              episode: episode,
+                              categoryEpisodes: widget.categoryEpisodes,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  VocabularySlide(
-                    episode: _episode,
-                    isAwaitingFullEpisode: _hydratingFullEpisode,
-                  ),
-                  QuestionSlide(
-                    episode: _episode,
-                    isAwaitingFullEpisode: _hydratingFullEpisode,
-                  ),
-                ],
-              ),
+                        );
+                      },
+                    ),
+                    VocabularySlide(
+                      episode: _episode,
+                      isAwaitingFullEpisode: _hydratingFullEpisode,
+                      scrollBottomInset: scrollBottomInset,
+                    ),
+                    QuestionSlide(
+                      episode: _episode,
+                      isAwaitingFullEpisode: _hydratingFullEpisode,
+                      scrollBottomInset: scrollBottomInset,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
             ],

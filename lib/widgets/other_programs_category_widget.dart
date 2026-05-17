@@ -87,6 +87,9 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     }
 
     final sorted = _sortedByDateDesc(episodes);
+    final displayEpisodes = onViewAllTap != null
+        ? sorted.take(3).toList()
+        : sorted;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,13 +98,13 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _buildFirstEpisode(sorted.first, context),
+          child: _buildFirstEpisode(displayEpisodes.first, context),
         ),
         const SizedBox(height: 12),
-        if (sorted.length > 1 || onViewAllTap != null)
+        if (displayEpisodes.length > 1 || onViewAllTap != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildHorizontalEpisodeStrip(context, sorted),
+            child: _buildHorizontalEpisodeStrip(context, displayEpisodes),
           ),
         const SizedBox(height: 16),
       ],
@@ -114,29 +117,56 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     return sorted;
   }
 
-  Widget _buildHorizontalEpisodeStrip(BuildContext context, List<Episode> sorted) {
-    const itemWidth = 100.0;
-    const itemSpacing = 8.0;
-    final horizontalEpisodes = _getHorizontalEpisodes(sorted);
-    final itemCount =
-        horizontalEpisodes.length + (onViewAllTap != null ? 1 : 0);
+  static const double _horizontalItemWidth = 100.0;
+  static const double _horizontalItemSpacing = 8.0;
+  static const double _horizontalThumbHeight = 56.0;
+  static const double _horizontalStripHeight = 140.0;
 
-    return SizedBox(
-      height: 140,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: itemCount,
-        separatorBuilder: (_, __) => const SizedBox(width: itemSpacing),
-        itemBuilder: (context, index) {
-          if (onViewAllTap != null && index == horizontalEpisodes.length) {
-            return _buildViewAllItem(context, width: itemWidth);
-          }
-          return _buildHorizontalEpisodeItem(
-            horizontalEpisodes[index],
-            context,
-            width: itemWidth,
+  Widget _buildHorizontalEpisodeStrip(BuildContext context, List<Episode> sorted) {
+    final horizontalEpisodes = _getHorizontalEpisodes(sorted);
+
+    if (onViewAllTap != null) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final remainingWidth = (constraints.maxWidth -
+                  (horizontalEpisodes.length * _horizontalItemWidth) -
+                  (horizontalEpisodes.length * _horizontalItemSpacing))
+              .clamp(0.0, constraints.maxWidth);
+
+          return SizedBox(
+            height: _horizontalStripHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < horizontalEpisodes.length; i++) ...[
+                  if (i > 0) const SizedBox(width: _horizontalItemSpacing),
+                  _buildHorizontalEpisodeItem(
+                    horizontalEpisodes[i],
+                    context,
+                    width: _horizontalItemWidth,
+                  ),
+                ],
+                if (horizontalEpisodes.isNotEmpty)
+                  const SizedBox(width: _horizontalItemSpacing),
+                _buildViewAllItem(context, width: remainingWidth),
+              ],
+            ),
           );
         },
+      );
+    }
+
+    return SizedBox(
+      height: _horizontalStripHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: horizontalEpisodes.length,
+        separatorBuilder: (_, __) => const SizedBox(width: _horizontalItemSpacing),
+        itemBuilder: (context, index) => _buildHorizontalEpisodeItem(
+          horizontalEpisodes[index],
+          context,
+          width: _horizontalItemWidth,
+        ),
       ),
     );
   }
@@ -245,7 +275,11 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   List<Episode> _getHorizontalEpisodes(List<Episode> sortedNewestFirst) {
     if (sortedNewestFirst.length <= 1) return [];
-    return sortedNewestFirst.sublist(1);
+    final rest = sortedNewestFirst.sublist(1);
+    if (onViewAllTap != null && rest.length > 2) {
+      return rest.sublist(0, 2);
+    }
+    return rest;
   }
 
   Widget _buildViewAllItem(BuildContext context, {required double width}) {
@@ -254,7 +288,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     return SizedBox(
       width: width,
-      height: 56,
+      height: _horizontalThumbHeight,
       child: InkWell(
         onTap: () => onViewAllTap!(categoryName),
         borderRadius: BorderRadius.circular(8),
@@ -268,10 +302,12 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
             ),
           ),
           alignment: Alignment.center,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text(
             languageManager.getText('viewAll'),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -301,8 +337,8 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
-                width: 100,
-                height: 56,
+                width: _horizontalItemWidth,
+                height: _horizontalThumbHeight,
                 fit: BoxFit.cover,
                 showWatermark: true,
               ),
