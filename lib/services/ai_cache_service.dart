@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import '../models/ai_cache_tier.dart';
 import 'storage_service.dart';
 import 'ai_firebase_cache_service.dart';
 import '../utils/cache_key_helper.dart';
+import 'heart_service.dart';
 
 /// Service for caching AI responses
 /// Priority order: Local Cache → Firebase Cache → AI API
@@ -149,28 +151,63 @@ class AICacheService {
 
   // ========== Firebase Integration Methods ==========
 
+  /// Trừ heart nếu dữ liệu đến từ Firebase ai_cache (local thì miễn phí).
+  static Future<void> consumeHeartIfFirebase(AICacheTier tier) async {
+    if (tier == AICacheTier.firebase) {
+      await HeartService().consumeForAIFeature();
+    }
+  }
+
+  Future<Map<String, String>?> getTranslationFromLocalCache(
+    String episodeId,
+    String languageCode,
+  ) async {
+    final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
+    final localCache = await getCachedMap(localKey);
+    if (localCache != null) {
+      debugPrint('Local cache HIT for translation: $localKey');
+    }
+    return localCache;
+  }
+
+  Future<Map<String, String>?> getTranslationFromFirebaseCache(
+    String episodeId,
+    String languageCode,
+  ) async {
+    final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
+    final firebaseCache =
+        await _firebaseCache.getTranslation(episodeId, languageCode);
+    if (firebaseCache != null) {
+      debugPrint('Firebase cache HIT for translation: $episodeId/$languageCode');
+      await cacheMap(localKey, firebaseCache);
+    }
+    return firebaseCache;
+  }
+
+  /// Tra translation: local (miễn heart) → Firebase (trừ heart) → miss.
+  Future<({Map<String, String> data, AICacheTier tier})?> lookupTranslation(
+    String episodeId,
+    String languageCode,
+  ) async {
+    final local = await getTranslationFromLocalCache(episodeId, languageCode);
+    if (local != null && local.isNotEmpty) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase =
+        await getTranslationFromFirebaseCache(episodeId, languageCode);
+    if (firebase != null && firebase.isNotEmpty) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
+    return null;
+  }
+
   /// Get translation with priority: Local → Firebase → null
   Future<Map<String, String>?> getTranslationFromCache(
     String episodeId,
     String languageCode,
   ) async {
-    // 1. Check local cache first (fastest)
-    final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
-    final localCache = await getCachedMap(localKey);
-    if (localCache != null) {
-      debugPrint('Local cache HIT for translation: $localKey');
-      return localCache;
-    }
-
-    // 2. Check Firebase cache
-    final firebaseCache = await _firebaseCache.getTranslation(episodeId, languageCode);
-    if (firebaseCache != null) {
-      // Save to local cache for faster access next time
-      await cacheMap(localKey, firebaseCache);
-      return firebaseCache;
-    }
-
-    return null;
+    final hit = await lookupTranslation(episodeId, languageCode);
+    return hit?.data;
   }
 
   /// Save translation to both local and Firebase cache
@@ -197,26 +234,21 @@ class AICacheService {
         });
   }
 
-  /// Get translation for a specific line from cache
-  /// Checks Firebase cache first (with lineNumber matching), then local cache
-  Future<String?> getLineTranslationFromCache(
+  Future<String?> getLineTranslationFromLocalCache(
     String episodeId,
     String languageCode,
     String originalText,
     int? lineNumber,
   ) async {
-    // 1. Check Firebase cache first (has lineNumber support)
-    final firebaseTranslation = await _firebaseCache.getLineTranslation(
-      episodeId,
-      languageCode,
-      lineNumber,
-    );
-    if (firebaseTranslation != null) {
-      debugPrint('Firebase cache HIT for line translation: $episodeId/$languageCode');
-      return firebaseTranslation;
+    final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
+    final localMap = await getCachedMap(localKey);
+    if (localMap != null) {
+      final byText = localMap[originalText];
+      if (byText != null && byText.isNotEmpty) {
+        debugPrint('Local text-map cache HIT: $episodeId/$languageCode');
+        return byText;
+      }
     }
-
-    // 2. Local cache by line index only
     if (lineNumber != null && lineNumber >= 0) {
       final lineIndex =
           await _getTranslationLineIndex(episodeId, languageCode);
@@ -228,8 +260,83 @@ class AICacheService {
         return byLine;
       }
     }
-
     return null;
+  }
+
+  Future<String?> getLineTranslationFromFirebaseCache(
+    String episodeId,
+    String languageCode,
+    String originalText,
+    int? lineNumber,
+  ) async {
+    final firebaseTranslation = await _firebaseCache.getLineTranslation(
+      episodeId,
+      languageCode,
+      lineNumber,
+    );
+    if (firebaseTranslation == null) return null;
+
+    debugPrint(
+      'Firebase cache HIT for line translation: $episodeId/$languageCode',
+    );
+    final effectiveLineNumber = lineNumber ?? -1;
+    if (effectiveLineNumber >= 0) {
+      await _saveTranslationLineIndex(
+        episodeId,
+        languageCode,
+        effectiveLineNumber,
+        firebaseTranslation,
+      );
+    }
+    final localKey = CacheKeyHelper.translationKey(episodeId, languageCode);
+    final localCache = await getCachedMap(localKey) ?? <String, String>{};
+    localCache[originalText] = firebaseTranslation;
+    await cacheMap(localKey, localCache);
+    return firebaseTranslation;
+  }
+
+  /// Tra dòng transcript: local (miễn heart) → Firebase (trừ heart) → miss.
+  Future<({String data, AICacheTier tier})?> lookupLineTranslation(
+    String episodeId,
+    String languageCode,
+    String originalText,
+    int? lineNumber,
+  ) async {
+    final local = await getLineTranslationFromLocalCache(
+      episodeId,
+      languageCode,
+      originalText,
+      lineNumber,
+    );
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getLineTranslationFromFirebaseCache(
+      episodeId,
+      languageCode,
+      originalText,
+      lineNumber,
+    );
+    if (firebase != null) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
+    return null;
+  }
+
+  /// Get translation for a specific line from cache
+  Future<String?> getLineTranslationFromCache(
+    String episodeId,
+    String languageCode,
+    String originalText,
+    int? lineNumber,
+  ) async {
+    final hit = await lookupLineTranslation(
+      episodeId,
+      languageCode,
+      originalText,
+      lineNumber,
+    );
+    return hit?.data;
   }
 
   /// Save a single line translation to cache
@@ -281,9 +388,46 @@ class AICacheService {
     }
   }
 
-  /// Get grammar explanation with priority:
-  /// grammar_by_episode (episode + line) → Local → ai_cache/grammar (Firebase).
-  Future<Map<String, dynamic>?> getGrammarFromCache(
+  String _grammarLocalKey(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) =>
+      CacheKeyHelper.grammarKey(
+        sentence,
+        languageCode,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+
+  Future<Map<String, dynamic>?> getGrammarFromLocalCache(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
+    final localKey = _grammarLocalKey(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    final localCache = await getCached<Map<String, dynamic>>(
+      localKey,
+      (json) => json,
+    );
+    if (localCache != null) {
+      debugPrint('Local cache HIT for grammar: $localKey');
+    }
+    return localCache;
+  }
+
+  Future<Map<String, dynamic>?> getGrammarFromFirebaseCache(
     String sentence,
     String languageCode, {
     String? episodeId,
@@ -291,7 +435,7 @@ class AICacheService {
     String? modelVersion,
     String? promptVersion,
   }) async {
-    final localKey = CacheKeyHelper.grammarKey(
+    final localKey = _grammarLocalKey(
       sentence,
       languageCode,
       episodeId: episodeId,
@@ -310,7 +454,7 @@ class AICacheService {
       );
       if (byEpisode != null) {
         debugPrint(
-          'grammar_by_episode cache HIT: $episodeId transcriptIndex=$lineNumber → line_$lineNumber/$languageCode',
+          'grammar_by_episode cache HIT: $episodeId line_$lineNumber/$languageCode',
         );
         await cacheData<Map<String, dynamic>>(
           localKey,
@@ -320,18 +464,7 @@ class AICacheService {
         return byEpisode;
       }
     }
-    
-    // 1. Check local cache first
-    final localCache = await getCached<Map<String, dynamic>>(
-      localKey,
-      (json) => json,
-    );
-    if (localCache != null) {
-      debugPrint('Local cache HIT for grammar: $localKey');
-      return localCache;
-    }
 
-    // 2. Check Firebase cache
     final firebaseCache = await _firebaseCache.getGrammar(
       sentence,
       languageCode,
@@ -340,16 +473,65 @@ class AICacheService {
       promptVersion: promptVersion,
     );
     if (firebaseCache != null) {
-      // Save to local cache
       await cacheData<Map<String, dynamic>>(
         localKey,
         firebaseCache,
         (data) => data,
       );
-      return firebaseCache;
     }
+    return firebaseCache;
+  }
 
+  Future<({Map<String, dynamic> data, AICacheTier tier})?> lookupGrammar(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    int? lineNumber,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
+    final local = await getGrammarFromLocalCache(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getGrammarFromFirebaseCache(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (firebase != null) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
     return null;
+  }
+
+  /// Get grammar explanation with priority: Local → Firebase → null
+  Future<Map<String, dynamic>?> getGrammarFromCache(
+    String sentence,
+    String languageCode, {
+    String? episodeId,
+    int? lineNumber,
+    String? modelVersion,
+    String? promptVersion,
+  }) async {
+    final hit = await lookupGrammar(
+      sentence,
+      languageCode,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    return hit?.data;
   }
 
   /// Save grammar explanation to both local and Firebase cache
@@ -402,53 +584,11 @@ class AICacheService {
         .catchError((e) => debugPrint('Error saving grammar to Firebase: $e'));
   }
 
-  /// Get passage grammar with priority: Local -> Firebase -> legacy sentence cache
-  Future<Map<String, dynamic>?> getGrammarPassageFromCache(
+  Map<String, dynamic> _mapLegacySentenceGrammarToPassage(
     String passage,
-    String languageCode, {
-    String? episodeId,
-    String? modelVersion,
-    String? promptVersion,
-    String? schemaVersion,
-  }) async {
-    final localKey = CacheKeyHelper.grammarPassageKey(
-      passage,
-      languageCode,
-      episodeId: episodeId,
-      modelVersion: modelVersion,
-      promptVersion: promptVersion,
-      schemaVersion: schemaVersion,
-    );
-
-    final localCache = await getCached<Map<String, dynamic>>(localKey, (json) => json);
-    if (localCache != null) {
-      return localCache;
-    }
-
-    final firebaseCache = await _firebaseCache.getGrammarPassage(
-      passage,
-      languageCode,
-      episodeId: episodeId,
-      modelVersion: modelVersion,
-      promptVersion: promptVersion,
-      schemaVersion: schemaVersion,
-    );
-    if (firebaseCache != null) {
-      await cacheData<Map<String, dynamic>>(localKey, firebaseCache, (data) => data);
-      return firebaseCache;
-    }
-
-    // Backward-compatible fallback:
-    // if passage behaves as a single sentence, attempt old sentence cache and map.
-    final legacy = await getGrammarFromCache(
-      passage,
-      languageCode,
-      episodeId: episodeId,
-      modelVersion: modelVersion,
-      promptVersion: promptVersion,
-    );
-    if (legacy != null) {
-      return {
+    Map<String, dynamic> legacy,
+  ) =>
+      {
         'overall': {
           'grammarTheme': legacy['grammarPoint']?.toString() ?? 'Grammar Pattern',
           'usageSummary': legacy['explanation']?.toString() ?? '',
@@ -478,9 +618,139 @@ class AICacheService {
           },
         ],
       };
+
+  Future<Map<String, dynamic>?> getGrammarPassageFromLocalCache(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarPassageKey(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+
+    final localCache =
+        await getCached<Map<String, dynamic>>(localKey, (json) => json);
+    if (localCache != null) return localCache;
+
+    final legacyLocal = await getGrammarFromLocalCache(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (legacyLocal != null) {
+      return _mapLegacySentenceGrammarToPassage(passage, legacyLocal);
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> getGrammarPassageFromFirebaseCache(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final localKey = CacheKeyHelper.grammarPassageKey(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+
+    final firebaseCache = await _firebaseCache.getGrammarPassage(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    if (firebaseCache != null) {
+      await cacheData<Map<String, dynamic>>(
+        localKey,
+        firebaseCache,
+        (data) => data,
+      );
+      return firebaseCache;
     }
 
+    final legacyFirebase = await getGrammarFromFirebaseCache(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (legacyFirebase != null) {
+      return _mapLegacySentenceGrammarToPassage(passage, legacyFirebase);
+    }
     return null;
+  }
+
+  Future<({Map<String, dynamic> data, AICacheTier tier})?> lookupGrammarPassage(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final local = await getGrammarPassageFromLocalCache(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getGrammarPassageFromFirebaseCache(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    if (firebase != null) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
+    return null;
+  }
+
+  /// Get passage grammar with priority: Local -> Firebase -> legacy sentence cache
+  Future<Map<String, dynamic>?> getGrammarPassageFromCache(
+    String passage,
+    String languageCode, {
+    String? episodeId,
+    String? modelVersion,
+    String? promptVersion,
+    String? schemaVersion,
+  }) async {
+    final hit = await lookupGrammarPassage(
+      passage,
+      languageCode,
+      episodeId: episodeId,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+      schemaVersion: schemaVersion,
+    );
+    return hit?.data;
   }
 
   /// Save passage grammar to both local and Firebase cache (new namespace)
@@ -516,14 +786,11 @@ class AICacheService {
         .catchError((e) => debugPrint('Error saving grammar passage to Firebase: $e'));
   }
 
-  /// Get questions with priority: Local → Firebase → null
-  Future<List<Map<String, dynamic>>?> getQuestionsFromCache(
+  Future<List<Map<String, dynamic>>?> getQuestionsFromLocalCache(
     String episodeId,
     int count,
   ) async {
     final localKey = CacheKeyHelper.questionsKey(episodeId, count);
-    
-    // 1. Check local cache first
     final localCache = await getCached<List<Map<String, dynamic>>>(
       localKey,
       (json) {
@@ -535,20 +802,47 @@ class AICacheService {
       debugPrint('Local cache HIT for questions: $localKey');
       return localCache;
     }
+    return null;
+  }
 
-    // 2. Check Firebase cache
+  Future<List<Map<String, dynamic>>?> getQuestionsFromFirebaseCache(
+    String episodeId,
+    int count,
+  ) async {
+    final localKey = CacheKeyHelper.questionsKey(episodeId, count);
     final firebaseCache = await _firebaseCache.getQuestions(episodeId, count);
     if (firebaseCache != null && firebaseCache.isNotEmpty) {
-      // Save to local cache
       await cacheData<List<Map<String, dynamic>>>(
         localKey,
         firebaseCache,
         (data) => {'questions': data},
       );
-      return firebaseCache;
     }
+    return firebaseCache;
+  }
 
+  Future<({List<Map<String, dynamic>> data, AICacheTier tier})?> lookupQuestions(
+    String episodeId,
+    int count,
+  ) async {
+    final local = await getQuestionsFromLocalCache(episodeId, count);
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getQuestionsFromFirebaseCache(episodeId, count);
+    if (firebase != null && firebase.isNotEmpty) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
     return null;
+  }
+
+  /// Get questions with priority: Local → Firebase → null
+  Future<List<Map<String, dynamic>>?> getQuestionsFromCache(
+    String episodeId,
+    int count,
+  ) async {
+    final hit = await lookupQuestions(episodeId, count);
+    return hit?.data;
   }
 
   /// Save questions to both local and Firebase cache
@@ -571,9 +865,22 @@ class AICacheService {
         .catchError((e) => debugPrint('Error saving questions to Firebase: $e'));
   }
 
-  /// Get vocabulary enhancement with priority:
-  /// vocabulary_by_episode → Local → ai_cache/vocabulary (Firebase).
-  Future<Map<String, dynamic>?> getVocabularyFromCache(
+  Future<Map<String, dynamic>?> getVocabularyFromLocalCache(
+    String word,
+    String languageCode,
+  ) async {
+    final localKey = CacheKeyHelper.vocabularyKey(word, languageCode);
+    final localCache = await getCached<Map<String, dynamic>>(
+      localKey,
+      (json) => json,
+    );
+    if (localCache != null) {
+      debugPrint('Local cache HIT for vocabulary: $localKey');
+    }
+    return localCache;
+  }
+
+  Future<Map<String, dynamic>?> getVocabularyFromFirebaseCache(
     String word,
     String languageCode, {
     String? episodeId,
@@ -594,9 +901,7 @@ class AICacheService {
 
         final byEpisode =
             CacheKeyHelper.normalizeVocabularyByEpisodePayload(raw);
-        debugPrint(
-          'vocabulary_by_episode cache HIT: $episodeId/$itemKey',
-        );
+        debugPrint('vocabulary_by_episode cache HIT: $episodeId/$itemKey');
         await cacheData<Map<String, dynamic>>(
           localKey,
           byEpisode,
@@ -605,30 +910,55 @@ class AICacheService {
         return byEpisode;
       }
     }
-    
-    // 1. Check local cache first
-    final localCache = await getCached<Map<String, dynamic>>(
-      localKey,
-      (json) => json,
-    );
-    if (localCache != null) {
-      debugPrint('Local cache HIT for vocabulary: $localKey');
-      return localCache;
-    }
 
-    // 2. Check Firebase cache
-    final firebaseCache = await _firebaseCache.getVocabulary(word, languageCode);
+    final firebaseCache =
+        await _firebaseCache.getVocabulary(word, languageCode);
     if (firebaseCache != null) {
-      // Save to local cache
       await cacheData<Map<String, dynamic>>(
         localKey,
         firebaseCache,
         (data) => data,
       );
-      return firebaseCache;
     }
+    return firebaseCache;
+  }
 
+  Future<({Map<String, dynamic> data, AICacheTier tier})?> lookupVocabulary(
+    String word,
+    String languageCode, {
+    String? episodeId,
+    String? vocabItemId,
+  }) async {
+    final local = await getVocabularyFromLocalCache(word, languageCode);
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getVocabularyFromFirebaseCache(
+      word,
+      languageCode,
+      episodeId: episodeId,
+      vocabItemId: vocabItemId,
+    );
+    if (firebase != null) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
     return null;
+  }
+
+  /// Get vocabulary enhancement with priority: Local → Firebase → null
+  Future<Map<String, dynamic>?> getVocabularyFromCache(
+    String word,
+    String languageCode, {
+    String? episodeId,
+    String? vocabItemId,
+  }) async {
+    final hit = await lookupVocabulary(
+      word,
+      languageCode,
+      episodeId: episodeId,
+      vocabItemId: vocabItemId,
+    );
+    return hit?.data;
   }
 
   /// Save vocabulary enhancement to both local and Firebase cache

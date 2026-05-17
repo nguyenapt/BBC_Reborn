@@ -60,14 +60,15 @@ class AITranslationService {
     final targetLanguage = _getTargetLanguage();
     final languageCode = _getTargetLanguageCode();
 
-    await HeartService().consumeForAIFeature();
-
-    // Check cache with priority: Local → Firebase → null
-    final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
-    if (cached != null && cached.isNotEmpty) {
+    final cacheHit =
+        await _cache.lookupTranslation(episodeId, languageCode);
+    if (cacheHit != null) {
+      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
       debugPrint('Using cached translations for episode $episodeId');
-      return cached;
+      return cacheHit.data;
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -154,8 +155,6 @@ class AITranslationService {
   ) async {
     if (vocabularyList.isEmpty) return {};
 
-    await HeartService().consumeForAIFeature();
-    
     final targetLanguage = _getTargetLanguage();
     final languageCode = _getTargetLanguageCode();
     
@@ -179,6 +178,8 @@ class AITranslationService {
       debugPrint('✅ All vocabulary translations found in cache');
       return cachedTranslations;
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get both providers for fallback
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -345,13 +346,13 @@ class AITranslationService {
     // Use languageCode for cache key to ensure consistency
     final cacheKey = 'vocab_translation_${word}_$languageCode';
 
-    await HeartService().consumeForAIFeature();
-
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
       return cached;
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -408,13 +409,13 @@ class AITranslationService {
     final targetLanguage = _getTargetLanguage();
     final cacheKey = 'text_translation_${text.hashCode}_$targetLanguage';
 
-    await HeartService().consumeForAIFeature();
-
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
       return cached;
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -462,19 +463,21 @@ class AITranslationService {
       return lineText;
     }
 
-    await HeartService().consumeForAIFeature();
-    
-    // Check cache first (Firebase with lineNumber, then local)
-    final cached = await _cache.getLineTranslationFromCache(
+    final cacheHit = await _cache.lookupLineTranslation(
       episodeId,
       languageCode,
       lineText,
       lineNumber,
     );
-    if (cached != null) {
-      debugPrint('✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)');
-      return cached;
+    if (cacheHit != null) {
+      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      debugPrint(
+        '✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)',
+      );
+      return cacheHit.data;
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();

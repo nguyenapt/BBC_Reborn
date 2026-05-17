@@ -59,11 +59,8 @@ class AIGrammarService {
     final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
     const promptVersion = AIConfig.grammarPromptVersion;
 
-    await HeartService().consumeForAIFeature();
-
-    // Check cache with priority: Local → Firebase → null
     // [lineNumber] = transcript line index (0-based); RTDB path is line_{index}.
-    final cachedData = await _cache.getGrammarFromCache(
+    final cacheHit = await _cache.lookupGrammar(
       sentence,
       languageCode,
       episodeId: episodeId,
@@ -71,11 +68,14 @@ class AIGrammarService {
       modelVersion: modelVersion,
       promptVersion: promptVersion,
     );
-    
-    if (cachedData != null) {
+
+    if (cacheHit != null) {
+      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
       debugPrint('Using cached grammar explanation for sentence');
-      return _mapResponseToModel(sentence, cachedData);
+      return _mapResponseToModel(sentence, cacheHit.data);
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -184,9 +184,7 @@ class AIGrammarService {
     const promptVersion = '${AIConfig.grammarPromptVersion}_passage_v2_slim_progressive';
     const schemaVersion = '${AIConfig.grammarSchemaVersion}_passage_v2_slim_progressive';
 
-    await HeartService().consumeForAIFeature();
-
-    final cachedData = await _cache.getGrammarPassageFromCache(
+    final cacheHit = await _cache.lookupGrammarPassage(
       normalizedPassage,
       languageCode,
       episodeId: episodeId,
@@ -194,9 +192,11 @@ class AIGrammarService {
       promptVersion: promptVersion,
       schemaVersion: schemaVersion,
     );
-    if (cachedData != null) {
+    if (cacheHit != null) {
       try {
-        final cached = _mapPassageResponseToModel(normalizedPassage, cachedData);
+        final cached =
+            _mapPassageResponseToModel(normalizedPassage, cacheHit.data);
+        await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
         return GrammarPassageProgressiveResult(
           initial: cached,
           full: Future.value(cached),
@@ -206,6 +206,8 @@ class AIGrammarService {
         debugPrint('⚠️ Failed to map cached passage grammar, ignoring cache: $e');
       }
     }
+
+    await HeartService().consumeForAIFeature();
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();

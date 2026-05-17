@@ -27,20 +27,20 @@ class AIVocabularyService {
     final resolvedEpisodeId =
         (episodeId?.trim().isNotEmpty == true ? episodeId! : item.bbcEpisodeId);
 
-    await HeartService().consumeForAIFeature();
-    
-    final cachedData = await _cache.getVocabularyFromCache(
+    final cacheHit = await _cache.lookupVocabulary(
       item.vocab,
       languageCode,
       episodeId: resolvedEpisodeId,
       vocabItemId: item.id,
     );
 
-    if (cachedData != null) {
+    if (cacheHit != null) {
+      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
-      // Convert cached data to EnhancedVocabulary
-      return EnhancedVocabulary.fromAIResponse(item, cachedData);
+      return EnhancedVocabulary.fromAIResponse(item, cacheHit.data);
     }
+
+    await HeartService().consumeForAIFeature();
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
