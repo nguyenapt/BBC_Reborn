@@ -580,17 +580,20 @@ class AICacheService {
     String? vocabItemId,
   }) async {
     final localKey = CacheKeyHelper.vocabularyKey(word, languageCode);
-    final itemKey = CacheKeyHelper.vocabularyByEpisodeItemKey(
-      word,
-      itemId: vocabItemId,
-    );
 
     if (episodeId != null && episodeId.isNotEmpty) {
-      final byEpisode = await _firebaseCache.getVocabularyByEpisode(
-        episodeId,
-        itemKey,
-      );
-      if (byEpisode != null) {
+      for (final itemKey in CacheKeyHelper.vocabularyByEpisodeLookupKeys(
+        word,
+        itemId: vocabItemId,
+      )) {
+        final raw = await _firebaseCache.getVocabularyByEpisode(
+          episodeId,
+          itemKey,
+        );
+        if (raw == null) continue;
+
+        final byEpisode =
+            CacheKeyHelper.normalizeVocabularyByEpisodePayload(raw);
         debugPrint(
           'vocabulary_by_episode cache HIT: $episodeId/$itemKey',
         );
@@ -646,10 +649,7 @@ class AICacheService {
     );
 
     if (episodeId != null && episodeId.isNotEmpty) {
-      final itemKey = CacheKeyHelper.vocabularyByEpisodeItemKey(
-        word,
-        itemId: vocabItemId,
-      );
+      final itemKey = CacheKeyHelper.vocabularyWordHashKey(word);
       _firebaseCache
           .saveVocabularyByEpisode(episodeId, itemKey, vocabularyData)
           .catchError(

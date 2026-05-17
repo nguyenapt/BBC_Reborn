@@ -17,6 +17,69 @@ class AIFirebaseCacheService {
   static const String _vocabularyByEpisodePath = 'vocabulary_by_episode';
   static const int _cacheVersion = 1;
   static const int _defaultTtlDays = 90;
+
+  /// playMP3 upload path (primary); Flutter legacy used root without [_cachePath].
+  List<String> _grammarByEpisodeUrls(
+    String safeEpisodeId,
+    String lineKey,
+    String safeLanguageCode,
+  ) =>
+      [
+        '$_baseUrl/$_cachePath/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json',
+        '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json',
+      ];
+
+  List<String> _vocabularyByEpisodeUrls(
+    String safeEpisodeId,
+    String safeItemKey,
+  ) =>
+      [
+        '$_baseUrl/$_cachePath/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json',
+        '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json',
+      ];
+
+  Future<Map<String, dynamic>?> _fetchCacheEntryData(
+    String url,
+    int ttlDays, {
+    required String hitLogLabel,
+  }) async {
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode != 200 || response.body == 'null') return null;
+
+    final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
+    if (!cacheEntry.isValid(defaultTtlDays: ttlDays)) {
+      debugPrint('$hitLogLabel EXPIRED: $url');
+      return null;
+    }
+    debugPrint('$hitLogLabel HIT: $url');
+    return cacheEntry.data;
+  }
+
+  Future<void> _putCacheEntryToUrls(
+    List<String> urls,
+    AICacheEntry cacheEntry, {
+    required String logLabel,
+  }) async {
+    final body = json.encode(cacheEntry.toJson());
+    for (final url in urls) {
+      try {
+        await http
+            .put(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
+        debugPrint('Saved $logLabel: $url');
+      } catch (e) {
+        debugPrint('Error saving $logLabel ($url): $e');
+      }
+    }
+  }
   static const int _vocabularyTtlDays = 180; // Vocabulary changes less frequently
 
   /// Get translation from Firebase cache
@@ -324,22 +387,19 @@ class AIFirebaseCacheService {
     String lineKey,
     String safeLanguageCode,
   ) async {
-    final url =
-        '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {'Accept': 'application/json'},
-    ).timeout(const Duration(seconds: 5));
-
-    if (response.statusCode != 200 || response.body == 'null') return null;
-
-    final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
-    if (!cacheEntry.isValid(defaultTtlDays: _defaultTtlDays)) {
-      debugPrint('grammar_by_episode EXPIRED: $safeEpisodeId/$lineKey/$safeLanguageCode');
-      return null;
+    for (final url in _grammarByEpisodeUrls(
+      safeEpisodeId,
+      lineKey,
+      safeLanguageCode,
+    )) {
+      final data = await _fetchCacheEntryData(
+        url,
+        _defaultTtlDays,
+        hitLogLabel: 'grammar_by_episode',
+      );
+      if (data != null) return data;
     }
-    debugPrint('grammar_by_episode HIT: $safeEpisodeId/$lineKey/$safeLanguageCode');
-    return cacheEntry.data;
+    return null;
   }
 
   /// Grammar pre-generated per episode line: `grammar_by_episode/{episodeId}/line_{n}/{lang}`.
@@ -379,8 +439,6 @@ class AIFirebaseCacheService {
       final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
       final lineKey =
           CacheKeyHelper.grammarByEpisodeLineKey(transcriptLineIndex);
-      final url =
-          '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json';
 
       final enriched = Map<String, dynamic>.from(grammarData);
       enriched['lineNumber'] = transcriptLineIndex;
@@ -393,13 +451,11 @@ class AIFirebaseCacheService {
         ttlDays: _defaultTtlDays,
       );
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 10));
-
-      debugPrint('Saved grammar_by_episode: $episodeId/$lineKey/$languageCode');
+      await _putCacheEntryToUrls(
+        _grammarByEpisodeUrls(safeEpisodeId, lineKey, safeLanguageCode),
+        cacheEntry,
+        logLabel: 'grammar_by_episode $episodeId/$lineKey/$languageCode',
+      );
     } catch (e) {
       debugPrint('Error saving grammar_by_episode: $e');
     }
@@ -572,7 +628,8 @@ class AIFirebaseCacheService {
     int count,
   ) async {
     try {
-      final url = '$_baseUrl/$_cachePath/questions/$episodeId/$count.json';
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final url = '$_baseUrl/$_cachePath/questions/$safeEpisodeId/$count.json';
       
       final response = await http.get(
         Uri.parse(url),
@@ -607,7 +664,8 @@ class AIFirebaseCacheService {
     List<Map<String, dynamic>> questions,
   ) async {
     try {
-      final url = '$_baseUrl/$_cachePath/questions/$episodeId/$count.json';
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final url = '$_baseUrl/$_cachePath/questions/$safeEpisodeId/$count.json';
       
       final cacheEntry = AICacheEntry(
         data: {
@@ -640,21 +698,14 @@ class AIFirebaseCacheService {
     try {
       final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
       final safeItemKey = CacheKeyHelper.sanitizeFirebaseKey(itemKey);
-      final url =
-          '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json';
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200 && response.body != 'null') {
-        final cacheEntry = AICacheEntry.fromJson(json.decode(response.body));
-        if (cacheEntry.isValid(defaultTtlDays: _vocabularyTtlDays)) {
-          debugPrint('vocabulary_by_episode HIT: $episodeId/$itemKey');
-          return cacheEntry.data;
-        }
-        debugPrint('vocabulary_by_episode EXPIRED: $episodeId/$itemKey');
+      for (final url in _vocabularyByEpisodeUrls(safeEpisodeId, safeItemKey)) {
+        final data = await _fetchCacheEntryData(
+          url,
+          _vocabularyTtlDays,
+          hitLogLabel: 'vocabulary_by_episode',
+        );
+        if (data != null) return data;
       }
       return null;
     } catch (e) {
@@ -672,8 +723,6 @@ class AIFirebaseCacheService {
     try {
       final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
       final safeItemKey = CacheKeyHelper.sanitizeFirebaseKey(itemKey);
-      final url =
-          '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json';
 
       final cacheEntry = AICacheEntry(
         data: vocabularyData,
@@ -682,13 +731,11 @@ class AIFirebaseCacheService {
         ttlDays: _vocabularyTtlDays,
       );
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 10));
-
-      debugPrint('Saved vocabulary_by_episode: $episodeId/$itemKey');
+      await _putCacheEntryToUrls(
+        _vocabularyByEpisodeUrls(safeEpisodeId, safeItemKey),
+        cacheEntry,
+        logLabel: 'vocabulary_by_episode $episodeId/$itemKey',
+      );
     } catch (e) {
       debugPrint('Error saving vocabulary_by_episode: $e');
     }

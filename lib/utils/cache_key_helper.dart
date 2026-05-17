@@ -70,12 +70,43 @@ class CacheKeyHelper {
     return 'vocab_${hash}_$languageCode';
   }
 
-  /// RTDB key under `vocabulary_by_episode/{episodeId}/{key}`.
+  /// playMP3 RTDB segment: SHA256(lowercase word), first 16 hex chars.
+  static String vocabularyWordHashKey(String word) =>
+      hashString(word.toLowerCase().trim());
+
+  /// RTDB key under `vocabulary_by_episode/{episodeId}/{key}` (legacy Flutter: item id).
   static String vocabularyByEpisodeItemKey(String word, {String? itemId}) {
     if (itemId != null && itemId.trim().isNotEmpty) {
       return sanitizeFirebaseKey(itemId.trim());
     }
-    return hashString(word.toLowerCase().trim());
+    return vocabularyWordHashKey(word);
+  }
+
+  /// Keys to try when reading vocabulary_by_episode (playMP3 wordHash first).
+  static List<String> vocabularyByEpisodeLookupKeys(
+    String word, {
+    String? itemId,
+  }) {
+    final wordHash = vocabularyWordHashKey(word);
+    final keys = <String>[wordHash];
+    final legacyKey = vocabularyByEpisodeItemKey(word, itemId: itemId);
+    if (legacyKey != wordHash) {
+      keys.add(legacyKey);
+    }
+    return keys;
+  }
+
+  /// Unwrap playMP3 by-episode payload → flat map for [EnhancedVocabulary.fromAIResponse].
+  static Map<String, dynamic> normalizeVocabularyByEpisodePayload(
+    Map<String, dynamic> raw,
+  ) {
+    if (raw['schemaVersion'] == 2 || raw.containsKey('wordHash')) {
+      final enhancement = raw['data'];
+      if (enhancement is Map) {
+        return Map<String, dynamic>.from(enhancement);
+      }
+    }
+    return raw;
   }
 
   /// Hash a string to create unique identifier

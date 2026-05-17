@@ -528,8 +528,20 @@ namespace playMP3
         }
 
 
-        private async Task OnSubmitAsync()
+        private async Task<bool> OnSubmitAsync()
         {
+            if (string.IsNullOrWhiteSpace(txtResult.Text))
+            {
+                MessageBox.Show(
+                    this,
+                    "Result (Transcript HTML) is required before submit.",
+                    "Submit",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtResult.Focus();
+                return false;
+            }
+
             FirebaseClient firebaseClient = new FirebaseClient(txtUrl.Text, new FirebaseOptions
             {
                 AuthTokenAsyncFactory = () => Task.FromResult(txtSecret.Text)
@@ -641,6 +653,8 @@ namespace playMP3
                 await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
             if (exportQuestions)
                 await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+
+            return true;
         }
 
         private void cbType_SelectedIndexChanged(object sender, EventArgs e)
@@ -715,11 +729,13 @@ namespace playMP3
         {
             try
             {
-                await OnSubmitAsync().ConfigureAwait(true);
+                if (!await OnSubmitAsync().ConfigureAwait(true))
+                    return;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this, ex.Message, "Submit", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
             txtFilePath.Text = "";

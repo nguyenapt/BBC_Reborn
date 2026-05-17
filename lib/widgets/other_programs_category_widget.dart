@@ -86,65 +86,58 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
       );
     }
 
+    final sorted = _sortedByDateDesc(episodes);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _titleRow(context, strongAccent),
         const SizedBox(height: 8),
-        // Episode đầu tiên - UI giống các tab khác
-        if (episodes.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildFirstEpisode(episodes[0], context),
-          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _buildFirstEpisode(sorted.first, context),
+        ),
         const SizedBox(height: 12),
-        if (episodes.length > 1 || onViewAllTap != null)
+        if (sorted.length > 1 || onViewAllTap != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const itemWidth = 100.0;
-                const itemSpacing = 8.0;
-                final horizontalEpisodes = _getHorizontalEpisodes(episodes);
-                final items = <Widget>[];
-
-                for (final episode in horizontalEpisodes) {
-                  items.add(_buildHorizontalEpisodeItem(
-                    episode,
-                    context,
-                    width: itemWidth,
-                  ));
-                }
-
-                if (onViewAllTap != null) {
-                  final remainingWidth = (constraints.maxWidth -
-                          (horizontalEpisodes.length * itemWidth) -
-                          (horizontalEpisodes.length * itemSpacing))
-                      .clamp(0.0, constraints.maxWidth);
-
-                  items.add(_buildViewAllItem(
-                    context,
-                    width: remainingWidth,
-                  ));
-                }
-
-                return SizedBox(
-                  height: 140,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (int i = 0; i < items.length; i++) ...[
-                        if (i > 0) const SizedBox(width: itemSpacing),
-                        items[i],
-                      ],
-                    ],
-                  ),
-                );
-              },
-            ),
+            child: _buildHorizontalEpisodeStrip(context, sorted),
           ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  List<Episode> _sortedByDateDesc(List<Episode> source) {
+    final sorted = List<Episode>.from(source);
+    sorted.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+    return sorted;
+  }
+
+  Widget _buildHorizontalEpisodeStrip(BuildContext context, List<Episode> sorted) {
+    const itemWidth = 100.0;
+    const itemSpacing = 8.0;
+    final horizontalEpisodes = _getHorizontalEpisodes(sorted);
+    final itemCount =
+        horizontalEpisodes.length + (onViewAllTap != null ? 1 : 0);
+
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: itemCount,
+        separatorBuilder: (_, __) => const SizedBox(width: itemSpacing),
+        itemBuilder: (context, index) {
+          if (onViewAllTap != null && index == horizontalEpisodes.length) {
+            return _buildViewAllItem(context, width: itemWidth);
+          }
+          return _buildHorizontalEpisodeItem(
+            horizontalEpisodes[index],
+            context,
+            width: itemWidth,
+          );
+        },
+      ),
     );
   }
 
@@ -250,10 +243,9 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     );
   }
 
-  List<Episode> _getHorizontalEpisodes(List<Episode> allEpisodes) {
-    if (allEpisodes.length <= 1) return [];
-    final rest = allEpisodes.sublist(1);
-    return rest.length > 2 ? rest.sublist(0, 2) : rest;
+  List<Episode> _getHorizontalEpisodes(List<Episode> sortedNewestFirst) {
+    if (sortedNewestFirst.length <= 1) return [];
+    return sortedNewestFirst.sublist(1);
   }
 
   Widget _buildViewAllItem(BuildContext context, {required double width}) {
