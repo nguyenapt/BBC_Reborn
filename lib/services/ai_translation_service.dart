@@ -60,6 +60,8 @@ class AITranslationService {
     final targetLanguage = _getTargetLanguage();
     final languageCode = _getTargetLanguageCode();
 
+    await HeartService().consumeForAIFeature();
+
     // Check cache with priority: Local → Firebase → null
     final cached = await _cache.getTranslationFromCache(episodeId, languageCode);
     if (cached != null && cached.isNotEmpty) {
@@ -67,18 +69,6 @@ class AITranslationService {
       return cached;
     }
 
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
-    
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
 
@@ -163,6 +153,8 @@ class AITranslationService {
     List<Map<String, String>> vocabularyList, // List of {word, meaning, context?}
   ) async {
     if (vocabularyList.isEmpty) return {};
+
+    await HeartService().consumeForAIFeature();
     
     final targetLanguage = _getTargetLanguage();
     final languageCode = _getTargetLanguageCode();
@@ -186,18 +178,6 @@ class AITranslationService {
     if (wordsToTranslate.isEmpty) {
       debugPrint('✅ All vocabulary translations found in cache');
       return cachedTranslations;
-    }
-    
-    // Check hearts before calling AI (only if not all cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart (only 1 heart for batch translation)
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get both providers for fallback
@@ -365,22 +345,12 @@ class AITranslationService {
     // Use languageCode for cache key to ensure consistency
     final cacheKey = 'vocab_translation_${word}_$languageCode';
 
+    await HeartService().consumeForAIFeature();
+
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
       return cached;
-    }
-
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get provider with fallback
@@ -438,22 +408,12 @@ class AITranslationService {
     final targetLanguage = _getTargetLanguage();
     final cacheKey = 'text_translation_${text.hashCode}_$targetLanguage';
 
+    await HeartService().consumeForAIFeature();
+
     // Check cache first
     final cached = await _cache.getCachedString(cacheKey);
     if (cached != null) {
       return cached;
-    }
-
-    // Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
     }
 
     // Get provider with fallback
@@ -491,7 +451,7 @@ class AITranslationService {
     debugPrint('🔄 translateTranscriptLine called:');
     debugPrint('   Line text: $lineText');
     debugPrint('   EpisodeId: $episodeId');
-    debugPrint('   LineNumber: $lineNumber');
+    debugPrint('   LineNumber (0-based transcript index): $lineNumber');
     debugPrint('   Target language: $targetLanguage');
     debugPrint('   Language code: $languageCode');
     debugPrint('   Current locale: ${_languageManager.currentLocale.languageCode}');
@@ -501,8 +461,10 @@ class AITranslationService {
       debugPrint('⚠️ Target language is English, skipping translation');
       return lineText;
     }
+
+    await HeartService().consumeForAIFeature();
     
-    // 1. Check cache first (Firebase with lineNumber, then local)
+    // Check cache first (Firebase with lineNumber, then local)
     final cached = await _cache.getLineTranslationFromCache(
       episodeId,
       languageCode,
@@ -514,19 +476,7 @@ class AITranslationService {
       return cached;
     }
 
-    // 2. Check hearts before calling AI (only if not cached)
-    final heartService = HeartService();
-    if (!heartService.hasHearts) {
-      throw NoHeartsException();
-    }
-
-    // 3. Use a heart
-    final heartUsed = await heartService.useHeart();
-    if (!heartUsed) {
-      throw NoHeartsException();
-    }
-
-    // 4. Get providers (primary and backup)
+    // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
 

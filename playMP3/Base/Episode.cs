@@ -24,8 +24,9 @@ namespace playMP3.Base
         public bool IsNew { get; set; }
         public ICollection<Vocabulary> Vocabularies { get; set; }
         public string Grammar { get; set; }
+        /// <summary>CSV g:,v: prefixes — grammar scoped hashes + vocabulary word hashes for ai_cache lookup/testing.</summary>
+        public string GrammarVocabularyCacheKeys { get; set; }
         public string ThumbImage { get; set; }
-        public string SecondFileUrl { get; set; }
         public string Actor { get; set; }
         public int Duration { get; set; }
     }

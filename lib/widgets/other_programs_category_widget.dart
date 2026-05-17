@@ -10,6 +10,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
   final List<Episode> episodes;
   final Function(Episode) onEpisodeTap;
   final LanguageManager languageManager;
+  final Function(String)? onViewAllTap;
 
   /// When true and [episodes] is empty, still show the category header (Another Series fixed slots).
   final bool showPlaceholderWhenEmpty;
@@ -20,6 +21,7 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     required this.episodes,
     required this.onEpisodeTap,
     required this.languageManager,
+    this.onViewAllTap,
     this.showPlaceholderWhenEmpty = false,
   });
 
@@ -84,34 +86,88 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
       );
     }
 
+    final sorted = _sortedByDateDesc(episodes);
+    final displayEpisodes = onViewAllTap != null
+        ? sorted.take(3).toList()
+        : sorted;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _titleRow(context, strongAccent),
         const SizedBox(height: 8),
-        // Episode đầu tiên - UI giống các tab khác
-        if (episodes.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _buildFirstEpisode(displayEpisodes.first, context),
+        ),
+        const SizedBox(height: 12),
+        if (displayEpisodes.length > 1 || onViewAllTap != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildFirstEpisode(episodes[0], context),
-          ),
-        const SizedBox(height: 12),
-        // Các episode khác - List ngang
-        if (episodes.length > 1)
-          SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: episodes.length - 1, // Bỏ qua episode đầu tiên
-              itemBuilder: (context, index) {
-                final episode = episodes[index + 1]; // Bắt đầu từ index 1
-                return _buildHorizontalEpisodeItem(episode, context);
-              },
-            ),
+            child: _buildHorizontalEpisodeStrip(context, displayEpisodes),
           ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  List<Episode> _sortedByDateDesc(List<Episode> source) {
+    final sorted = List<Episode>.from(source);
+    sorted.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+    return sorted;
+  }
+
+  static const double _horizontalItemWidth = 100.0;
+  static const double _horizontalItemSpacing = 8.0;
+  static const double _horizontalThumbHeight = 56.0;
+  static const double _horizontalStripHeight = 140.0;
+
+  Widget _buildHorizontalEpisodeStrip(BuildContext context, List<Episode> sorted) {
+    final horizontalEpisodes = _getHorizontalEpisodes(sorted);
+
+    if (onViewAllTap != null) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final remainingWidth = (constraints.maxWidth -
+                  (horizontalEpisodes.length * _horizontalItemWidth) -
+                  (horizontalEpisodes.length * _horizontalItemSpacing))
+              .clamp(0.0, constraints.maxWidth);
+
+          return SizedBox(
+            height: _horizontalStripHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < horizontalEpisodes.length; i++) ...[
+                  if (i > 0) const SizedBox(width: _horizontalItemSpacing),
+                  _buildHorizontalEpisodeItem(
+                    horizontalEpisodes[i],
+                    context,
+                    width: _horizontalItemWidth,
+                  ),
+                ],
+                if (horizontalEpisodes.isNotEmpty)
+                  const SizedBox(width: _horizontalItemSpacing),
+                _buildViewAllItem(context, width: remainingWidth),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return SizedBox(
+      height: _horizontalStripHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: horizontalEpisodes.length,
+        separatorBuilder: (_, __) => const SizedBox(width: _horizontalItemSpacing),
+        itemBuilder: (context, index) => _buildHorizontalEpisodeItem(
+          horizontalEpisodes[index],
+          context,
+          width: _horizontalItemWidth,
+        ),
+      ),
     );
   }
 
@@ -217,10 +273,59 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHorizontalEpisodeItem(Episode episode, BuildContext context) {
-    return Container(
-      width: 100,
-      margin: const EdgeInsets.only(right: 12),
+  List<Episode> _getHorizontalEpisodes(List<Episode> sortedNewestFirst) {
+    if (sortedNewestFirst.length <= 1) return [];
+    final rest = sortedNewestFirst.sublist(1);
+    if (onViewAllTap != null && rest.length > 2) {
+      return rest.sublist(0, 2);
+    }
+    return rest;
+  }
+
+  Widget _buildViewAllItem(BuildContext context, {required double width}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final strongAccent =
+        Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
+    return SizedBox(
+      width: width,
+      height: _horizontalThumbHeight,
+      child: InkWell(
+        onTap: () => onViewAllTap!(categoryName),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: CategoryColors.getCategoryBackgroundColor(categoryName),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: CategoryColors.getCategoryBorderColor(categoryName),
+              width: 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            languageManager.getText('viewAll'),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: strongAccent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalEpisodeItem(
+    Episode episode,
+    BuildContext context, {
+    required double width,
+  }) {
+    return SizedBox(
+      width: width,
       child: InkWell(
         onTap: () => onEpisodeTap(episode),
         borderRadius: BorderRadius.circular(8),
@@ -232,8 +337,8 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: ImageCacheService().buildCachedImage(
                 imageUrl: episode.thumbImage,
-                width: 100,
-                height: 56,
+                width: _horizontalItemWidth,
+                height: _horizontalThumbHeight,
                 fit: BoxFit.cover,
                 showWatermark: true,
               ),

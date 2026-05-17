@@ -8,6 +8,19 @@ class CacheKeyHelper {
     return 'translation_${episodeId}_$languageCode';
   }
 
+  /// 0-based transcript index → RTDB path `grammar_by_episode/.../line_0/...`.
+  /// MUST_SYNC playMP3 upload tools when present.
+  static String grammarByEpisodeLineKey(int transcriptLineIndex) =>
+      'line_$transcriptLineIndex';
+
+  /// Local / auxiliary key: prefer [lineNumber] when set, else sentence hash.
+  static String grammarEpisodeLineKey(String sentence, {int? lineNumber}) {
+    if (lineNumber != null && lineNumber >= 0) {
+      return grammarByEpisodeLineKey(lineNumber);
+    }
+    return 's_${hashString(sentence.trim())}';
+  }
+
   /// Generate grammar cache key from sentence hash and language code
   static String grammarKey(
     String sentence,
@@ -55,6 +68,45 @@ class CacheKeyHelper {
   static String vocabularyKey(String word, String languageCode) {
     final hash = hashString(word.toLowerCase().trim());
     return 'vocab_${hash}_$languageCode';
+  }
+
+  /// playMP3 RTDB segment: SHA256(lowercase word), first 16 hex chars.
+  static String vocabularyWordHashKey(String word) =>
+      hashString(word.toLowerCase().trim());
+
+  /// RTDB key under `vocabulary_by_episode/{episodeId}/{key}` (legacy Flutter: item id).
+  static String vocabularyByEpisodeItemKey(String word, {String? itemId}) {
+    if (itemId != null && itemId.trim().isNotEmpty) {
+      return sanitizeFirebaseKey(itemId.trim());
+    }
+    return vocabularyWordHashKey(word);
+  }
+
+  /// Keys to try when reading vocabulary_by_episode (playMP3 wordHash first).
+  static List<String> vocabularyByEpisodeLookupKeys(
+    String word, {
+    String? itemId,
+  }) {
+    final wordHash = vocabularyWordHashKey(word);
+    final keys = <String>[wordHash];
+    final legacyKey = vocabularyByEpisodeItemKey(word, itemId: itemId);
+    if (legacyKey != wordHash) {
+      keys.add(legacyKey);
+    }
+    return keys;
+  }
+
+  /// Unwrap playMP3 by-episode payload → flat map for [EnhancedVocabulary.fromAIResponse].
+  static Map<String, dynamic> normalizeVocabularyByEpisodePayload(
+    Map<String, dynamic> raw,
+  ) {
+    if (raw['schemaVersion'] == 2 || raw.containsKey('wordHash')) {
+      final enhancement = raw['data'];
+      if (enhancement is Map) {
+        return Map<String, dynamic>.from(enhancement);
+      }
+    }
+    return raw;
   }
 
   /// Hash a string to create unique identifier
@@ -122,29 +174,32 @@ class CacheKeyHelper {
     return translations;
   }
 
-  /// Find translation for a specific line from Firebase format
-  /// Returns translation if lineNumber and original text match
+  static int? _lineNumberFromJson(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  /// Find translation by [lineNumber] only (transcript text may vary).
   static String? findLineTranslation(
     List<dynamic> firebaseData,
-    String originalText,
     int? lineNumber,
   ) {
+    if (lineNumber == null || lineNumber < 0) return null;
+
+    String? match;
     for (final item in firebaseData) {
-      if (item is Map<String, dynamic>) {
-        final original = item['original']?.toString() ?? '';
-        final translated = item['translated']?.toString() ?? '';
-        final itemLineNumber = item['lineNumber'] as int?;
-        
-        // Match by original text first (most reliable)
-        if (original == originalText && translated.isNotEmpty) {
-          // If lineNumber is provided, also check it matches
-          if (lineNumber == null || itemLineNumber == null || itemLineNumber == lineNumber) {
-            return translated;
-          }
-        }
+      if (item is! Map<String, dynamic>) continue;
+
+      final translated = item['translated']?.toString() ?? '';
+      if (translated.isEmpty) continue;
+
+      final itemLineNumber = _lineNumberFromJson(item['lineNumber']);
+      if (itemLineNumber == lineNumber) {
+        match = translated;
       }
     }
-    return null;
+    return match;
   }
 
   /// Generate episode-specific cache key

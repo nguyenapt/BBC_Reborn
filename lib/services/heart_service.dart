@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'ai/exceptions.dart';
 
 /// Service quản lý hearts (trái tim) cho AI features
 class HeartService extends ChangeNotifier {
@@ -71,6 +72,17 @@ class HeartService extends ChangeNotifier {
       _saveHearts();
       _saveLastResetDate();
       notifyListeners();
+    }
+  }
+
+  /// Trừ 1 heart khi user dùng tính năng AI (kể cả kết quả từ ai_cache / local cache).
+  Future<void> consumeForAIFeature() async {
+    if (!hasHearts) {
+      throw NoHeartsException();
+    }
+    final used = await useHeart();
+    if (!used) {
+      throw NoHeartsException();
     }
   }
 

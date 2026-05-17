@@ -9,16 +9,19 @@ import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../utils/category_colors.dart';
 import 'episode_tab_skeleton.dart';
+import 'episode_detail_tab_panel.dart';
 
 class QuestionSlide extends StatefulWidget {
   final Episode episode;
   /// Chờ transcript đầy đủ — tránh gọi AI / lỗi "no transcript" khi list RTDB mỏng.
   final bool isAwaitingFullEpisode;
+  final double scrollBottomInset;
 
   const QuestionSlide({
     super.key,
     required this.episode,
     this.isAwaitingFullEpisode = false,
+    this.scrollBottomInset = 0,
   });
 
   @override
@@ -145,143 +148,184 @@ class _QuestionSlideState extends State<QuestionSlide> {
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
 
     if (widget.isAwaitingFullEpisode) {
-      return Padding(
-        padding: const EdgeInsets.all(12),
-        child: EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 12),
+      return EpisodeDetailTabPanel(
+        child: Padding(
+          padding: EpisodeDetailTabPanel.scrollPadding(widget.scrollBottomInset),
+          child: EpisodeTabSkeleton(accentColor: categoryColor, lineCount: 12),
+        ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if ((_questions.isNotEmpty && !_showResults) || _showResults)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  if (_questions.isNotEmpty && !_showResults)
-                    TextButton.icon(
-                      onPressed: _checkAnswers,
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: Text(LanguageManager().getText('checkAnswers')),
-                      style: TextButton.styleFrom(
-                        foregroundColor: categoryColor,
-                      ),
-                    ),
-                  if (_showResults)
-                    TextButton.icon(
-                      onPressed: _resetQuiz,
-                      icon: const Icon(Icons.refresh),
-                      label: Text(LanguageManager().getText('reset')),
-                      style: TextButton.styleFrom(
-                        foregroundColor: categoryColor,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(categoryColor),
+    return EpisodeDetailTabPanel(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if ((_questions.isNotEmpty && !_showResults) || _showResults)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    if (_questions.isNotEmpty && !_showResults)
+                      TextButton.icon(
+                        onPressed: _checkAnswers,
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: Text(LanguageManager().getText('checkAnswers')),
+                        style: TextButton.styleFrom(
+                          foregroundColor: categoryColor,
                         ),
-                        const SizedBox(height: 16),
-                        Text(LanguageManager().getText('generatingQuestions')),
-                      ],
-                    ),
-                  )
-                : _hasError
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _errorMessage ?? 'Failed to load questions',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildErrorActionButton(context, categoryColor),
-                          ],
+                      ),
+                    if (_showResults)
+                      TextButton.icon(
+                        onPressed: _resetQuiz,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(LanguageManager().getText('reset')),
+                        style: TextButton.styleFrom(
+                          foregroundColor: categoryColor,
                         ),
-                      )
-                    : _questions.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.quiz_outlined,
-                                  size: 64,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  LanguageManager().getText('noQuestionsAvailable'),
-                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _questions.length,
-                            itemBuilder: (context, index) {
-                              return _buildQuestionCard(context, _questions[index], index, categoryColor);
-                            },
-                          ),
-          ),
-          
-          // Score (if results shown)
-          if (_showResults && _questions.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: categoryColor.withOpacity(0.3),
-                  width: 1,
+                      ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.emoji_events,
-                    color: categoryColor,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${LanguageManager().getText('score')}: ${_getScore()} / ${_questions.length}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: categoryColor,
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: _tabSurfaceDecoration(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildQuestionsBody(context, categoryColor),
                     ),
-                  ),
-                ],
+                    if (_showResults && _questions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildScoreFooter(context, categoryColor),
+                    ],
+                    SizedBox(height: widget.scrollBottomInset),
+                  ],
+                ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _tabSurfaceDecoration(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return BoxDecoration(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(EpisodeDetailTabPanel.panelBorderRadius),
+    );
+  }
+
+  Widget _buildScoreFooter(BuildContext context, Color categoryColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: categoryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: categoryColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.emoji_events, color: categoryColor, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            '${LanguageManager().getText('score')}: ${_getScore()} / ${_questions.length}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: categoryColor,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuestionsBody(BuildContext context, Color categoryColor) {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(categoryColor),
+            ),
+            const SizedBox(height: 16),
+            Text(LanguageManager().getText('generatingQuestions')),
+          ],
+        ),
+      );
+    }
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage ?? 'Failed to load questions',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildErrorActionButton(context, categoryColor),
+          ],
+        ),
+      );
+    }
+    if (_questions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.quiz_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              LanguageManager().getText('noQuestionsAvailable'),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 4),
+      itemCount: _questions.length,
+      itemBuilder: (context, index) {
+        return _buildQuestionCard(
+          context,
+          _questions[index],
+          index,
+          categoryColor,
+        );
+      },
     );
   }
 

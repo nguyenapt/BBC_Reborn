@@ -5,6 +5,7 @@ import '../models/speaking_stats.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import 'speaking_session_attempts_screen.dart';
+import '../widgets/episode_detail_tab_panel.dart';
 
 class SpeakingHistoryScreen extends StatefulWidget {
   const SpeakingHistoryScreen({super.key});
@@ -80,66 +81,54 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                 future: _loadStats(),
                 builder: (context, snapshot) {
                   final stats = snapshot.data ?? SpeakingStats.empty();
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 18,
-                            offset: const Offset(0, 6),
+                  return EpisodeDetailTabPanel.insetPanel(
+                    context: context,
+                    backgroundColor: cs.surface,
+                    elevated: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          lm.getText('speakingHistoryTitle'),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: heading,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _statLine(
+                          theme,
+                          heading,
+                          lm.getTextWithParams('speakingHistoryStatAttempts', {
+                            'count': '${stats.totalAttempts}',
+                          }),
+                        ),
+                        _statLine(
+                          theme,
+                          heading,
+                          lm.getTextWithParams('speakingHistoryStatAverage', {
+                            'score': stats.averageScore.toStringAsFixed(1),
+                          }),
+                        ),
+                        _statLine(
+                          theme,
+                          heading,
+                          lm.getTextWithParams('speakingHistoryStatSessions', {
+                            'count': '${stats.totalSessions}',
+                          }),
+                        ),
+                        if (stats.lastPracticedAt != null) ...[
+                          const SizedBox(height: 4),
+                          _statLine(
+                            theme,
+                            heading.withValues(alpha: 0.85),
+                            lm.getTextWithParams('speakingHistoryLastPracticed', {
+                              'date': _formatDate(lm, stats.lastPracticedAt!),
+                            }),
+                            small: true,
                           ),
                         ],
-                      ),
-                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            lm.getText('speakingHistoryTitle'),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: heading,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _statLine(
-                            theme,
-                            heading,
-                            lm.getTextWithParams('speakingHistoryStatAttempts', {
-                              'count': '${stats.totalAttempts}',
-                            }),
-                          ),
-                          _statLine(
-                            theme,
-                            heading,
-                            lm.getTextWithParams('speakingHistoryStatAverage', {
-                              'score': stats.averageScore.toStringAsFixed(1),
-                            }),
-                          ),
-                          _statLine(
-                            theme,
-                            heading,
-                            lm.getTextWithParams('speakingHistoryStatSessions', {
-                              'count': '${stats.totalSessions}',
-                            }),
-                          ),
-                          if (stats.lastPracticedAt != null) ...[
-                            const SizedBox(height: 4),
-                            _statLine(
-                              theme,
-                              heading.withValues(alpha: 0.85),
-                              lm.getTextWithParams('speakingHistoryLastPracticed', {
-                                'date': _formatDate(lm, stats.lastPracticedAt!),
-                              }),
-                              small: true,
-                            ),
-                          ],
-                        ],
-                      ),
+                      ],
                     ),
                   );
                 },
@@ -177,7 +166,7 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                       );
                     }
                     return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
                       itemCount: sessions.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
@@ -193,11 +182,15 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                         return Material(
                           color: cs.surface,
                           elevation: 0,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(
+                            EpisodeDetailTabPanel.panelBorderRadius,
+                          ),
                           shadowColor: Colors.black26,
                           child: ListTile(
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(
+                                EpisodeDetailTabPanel.panelBorderRadius,
+                              ),
                               side: BorderSide(
                                 color: cs.primary.withValues(alpha: 0.12),
                               ),

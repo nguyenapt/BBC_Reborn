@@ -12,6 +12,12 @@ namespace playMP3.Base
         public List<EpisodeTypeModel> EpisodeTypes { get; set; }
         public List<CloudService> CloudServices { get; set; }
 
+        /// <summary>Optional Gemini API key from service.config (Configurations/GeminiApiKey).</summary>
+        public string GeminiApiKey { get; set; }
+
+        /// <summary>Delay (ms) between grammar API calls; optional GeminiRequestDelayMs in service.config.</summary>
+        public int GeminiRequestDelayMs { get; set; } = 4500;
+
         private EpisodeTypeModel _selectedEpisodeType;
         private CloudService _selectedCloudService;
 

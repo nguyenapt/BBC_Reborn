@@ -3,6 +3,7 @@ import '../models/episode.dart';
 import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
 import 'banner_ad_widget.dart';
+import 'episode_detail_tab_panel.dart';
 
 class EpisodeInfoSlide extends StatelessWidget {
   static const double _mainThumbWidth = 150;
@@ -14,29 +15,31 @@ class EpisodeInfoSlide extends StatelessWidget {
   final List<Episode> topEpisodes;
   final Function(Episode) onEpisodeTap;
   final LanguageManager languageManager;
+  final double scrollBottomInset;
+
   const EpisodeInfoSlide({
     super.key,
     required this.episode,
     required this.topEpisodes,
     required this.onEpisodeTap,
     required this.languageManager,
+    this.scrollBottomInset = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Current Episode Section
-          _buildCurrentEpisodeSection(context),
-          const SizedBox(height: 24),
-          //Thêm 1 banner ads ở đây 
-          const BannerAdWidget(),
-          // Top Episodes Section
-          _buildTopEpisodesSection(context),
-        ],
+    return EpisodeDetailTabPanel(
+      child: SingleChildScrollView(
+        padding: EpisodeDetailTabPanel.scrollPadding(scrollBottomInset),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildCurrentEpisodeSection(context),
+            const SizedBox(height: 24),
+            const BannerAdWidget(),
+            _buildTopEpisodesSection(context),
+          ],
+        ),
       ),
     );
   }
