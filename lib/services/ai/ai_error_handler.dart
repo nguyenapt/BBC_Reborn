@@ -1,26 +1,90 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../language_manager.dart';
 import 'exceptions.dart';
 import 'ai_provider.dart';
 
 /// Error handler for AI operations
 class AIErrorHandler {
-  /// Get user-friendly error message
-  static String getErrorMessage(dynamic error) {
-    if (error is RateLimitException) {
-      return 'Too many requests. Please wait a moment.';
-    } else if (error is NetworkException) {
-      return 'Network error. Please check your connection.';
-    } else if (error is APIException) {
-      return error.message;
-    } else if (error is InvalidResponseException) {
-      return 'Invalid response from AI service. Please try again.';
-    } else if (error is NoHeartsException) {
-      return 'No hearts available. Watch an ad to earn more hearts.';
-    } else if (error is AIException) {
-      return error.message;
+  static final LanguageManager _languageManager = LanguageManager();
+
+  /// Thông báo chung cho người dùng (không lộ chi tiết API/JSON).
+  static String get genericUserMessage =>
+      _languageManager.getText('aiGenericError');
+
+  static String _rawMessage(dynamic error) {
+    if (error is AIException) return error.message;
+    return error?.toString() ?? '';
+  }
+
+  /// Ẩn JSON, status code, tên provider, API key, stack trace, v.v.
+  static bool _looksTechnical(String message) {
+    final m = message.trim();
+    if (m.isEmpty) return true;
+    if (m.length > 180) return true;
+
+    final lower = m.toLowerCase();
+    const markers = [
+      '{',
+      '"error"',
+      '"message"',
+      'api error',
+      'openai',
+      'gemini',
+      'azure stt',
+      'invalid_api',
+      'incorrect api key',
+      'backup:',
+      'translation failed',
+      'failed to generate',
+      'not initialized',
+      'api key',
+      'sk-proj',
+      'sk-',
+      'aiza',
+      'exception',
+      'stacktrace',
+      'dart:',
+      'http://',
+      'https://',
+      'statuscode',
+      'status code',
+    ];
+    for (final marker in markers) {
+      if (lower.contains(marker)) return true;
     }
-    return 'An error occurred. Please try again.';
+    if (RegExp(r'\b(401|403|404|429|500|502|503)\b').hasMatch(m)) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Get user-friendly error message (never expose raw API responses).
+  static String getErrorMessage(dynamic error) {
+    final raw = _rawMessage(error);
+    if (kDebugMode && raw.isNotEmpty) {
+      debugPrint('AI error (hidden from user): $raw');
+    }
+
+    if (error is NoHeartsException) {
+      return _languageManager.getText('noHeartsAvailable');
+    }
+    if (error is RateLimitException) {
+      return _languageManager.getText('aiRateLimitError');
+    }
+    if (error is NetworkException) {
+      return _languageManager.getText('aiNetworkError');
+    }
+    if (error is APIException || error is InvalidResponseException) {
+      return genericUserMessage;
+    }
+    if (error is AIException) {
+      return _looksTechnical(raw) ? genericUserMessage : raw;
+    }
+    if (_looksTechnical(raw)) {
+      return genericUserMessage;
+    }
+    return _languageManager.getText('errorOccurred');
   }
   
   /// Execute action with retry logic
@@ -93,13 +157,12 @@ class AIErrorHandler {
         try {
           return await action(backupProvider);
         } catch (backupError) {
-          final backupMsg = backupError is AIException
-              ? backupError.message
-              : backupError.toString();
-          throw AIException(
-            '${e.message} · Backup: $backupMsg',
-            backupError,
-          );
+          if (kDebugMode) {
+            debugPrint(
+              'AI provider fallback failed. primary=$e backup=$backupError',
+            );
+          }
+          throw AIException(genericUserMessage, backupError);
         }
       }
 

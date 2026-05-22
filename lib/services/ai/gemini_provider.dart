@@ -170,7 +170,8 @@ class GeminiProvider implements AIProvider {
         throw NetworkException('Network error connecting to Gemini', e);
       }
       
-      throw APIException('Gemini API error: ${e.toString()}', null, e);
+      debugPrint('Gemini API error: $e');
+      throw APIException('Gemini API error', null, e);
     }
   }
   
