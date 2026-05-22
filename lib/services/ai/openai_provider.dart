@@ -83,8 +83,11 @@ class OpenAIProvider implements AIProvider {
       } else if (response.statusCode == 429) {
         throw RateLimitException('OpenAI rate limit exceeded');
       } else {
-        throw APIException(
+        debugPrint(
           'OpenAI API error: ${response.statusCode} - ${response.body}',
+        );
+        throw APIException(
+          'OpenAI API error',
           response.statusCode,
         );
       }
@@ -96,7 +99,8 @@ class OpenAIProvider implements AIProvider {
         throw NetworkException('Network error connecting to OpenAI', e);
       }
       
-      throw APIException('OpenAI API error: ${e.toString()}', null, e);
+      debugPrint('OpenAI API error: $e');
+      throw APIException('OpenAI API error', null, e);
     }
   }
   
