@@ -7,6 +7,7 @@ import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/floating_bottom_nav_bar.dart';
 import 'grammar_detail_screen.dart';
 
 class GrammarScreen extends StatefulWidget {
@@ -515,7 +516,7 @@ class _GrammarScreenState extends State<GrammarScreen>
         return _loadEGData();
       },
       child: ListView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: FloatingBottomNavBar.scrollPadding(context),
         itemCount: _egEpisodes.length + 1 + (_canLoadMoreEG() ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
         itemBuilder: (context, index) {
           // Load More button (trước banner ad)
@@ -634,7 +635,7 @@ class _GrammarScreenState extends State<GrammarScreen>
     return RefreshIndicator(
       onRefresh: _loadGrammars,
       child: ListView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: FloatingBottomNavBar.scrollPadding(context),
         itemCount: _grammars.length,
         itemBuilder: (context, index) {
           final grammar = _grammars[index];

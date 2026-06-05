@@ -6,6 +6,7 @@ import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/floating_bottom_nav_bar.dart';
 import '../widgets/other_programs_category_widget.dart';
 import '../utils/category_names.dart';
 
@@ -601,7 +602,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         return _loadCategoryData(category);
       },
       child: ListView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: FloatingBottomNavBar.scrollPadding(context),
         itemCount: episodes.length + 1 + (_canLoadMore(category) ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
         itemBuilder: (context, index) {
           // Load More button (trước banner ad)
@@ -767,7 +768,13 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         return _loadAnotherSeriesTabData();
       },
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: FloatingBottomNavBar.scrollPadding(
+          context,
+          left: 0,
+          top: 8,
+          right: 0,
+          bottom: 8,
+        ),
         itemCount: subs.length + 1, // +1 for banner ad
         itemBuilder: (context, index) {
           // Banner ad ở cuối

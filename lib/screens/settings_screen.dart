@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/image_cache_service.dart';
 import '../services/rate_app_service.dart';
 import '../widgets/auth_dialog.dart';
+import '../widgets/floating_bottom_nav_bar.dart';
 import '../services/push_notification_service.dart';
 import '../services/consent_service.dart';
 
@@ -175,7 +176,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildBody() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: FloatingBottomNavBar.scrollPadding(
+        context,
+        left: 16,
+        top: 16,
+        right: 16,
+        bottom: 16,
+      ),
       children: [
         // Authentication Section
         _buildAuthSection(),

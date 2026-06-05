@@ -31,6 +31,7 @@ import 'services/consent_service.dart';
 import 'firebase_options.dart';
 import 'widgets/app_update_prompt.dart';
 import 'theme/app_theme.dart';
+import 'widgets/floating_bottom_nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -345,85 +346,93 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
         }
       },
       child: Scaffold(
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Theme.of(context).colorScheme.primary.withOpacity(0.32),
-        selectedIndex: currentPageIndex,
-        destinations: <Widget>[
-          NavigationDestination(
-            selectedIcon: const Icon(Icons.home),
-            icon: const Icon(Icons.home_outlined),
-            label: languageManager.getText('home'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.list_outlined),
-            label: languageManager.getText('categories'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.favorite),
-            label: languageManager.getText('myLearning'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.menu_book),
-            label: languageManager.getText('grammar'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings),
-            label: languageManager.getText('settings'),
-          ),
-        ],
-      ),
-      body: <Widget>[
-        /// Home page
-        HomePage(
-          onNavigateToCategory: navigateToCategoriesWithTab,
-          onNavigateToGrammar: navigateToGrammarWithTab,
+        // Stack overlay: content full-screen, navbar float trên — vùng quanh pill
+        // hiện nền của tab (trắng ở Categories), không còn dải #F7FAFF của shell.
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: <Widget>[
+                HomePage(
+                  onNavigateToCategory: navigateToCategoriesWithTab,
+                  onNavigateToGrammar: navigateToGrammarWithTab,
+                ),
+                Builder(
+                  builder: (context) {
+                    if (categoriesInitialTab != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            categoriesInitialTab = null;
+                          });
+                        }
+                      });
+                    }
+                    return CategoriesScreen(initialTab: categoriesInitialTab);
+                  },
+                ),
+                const MyLearningScreen(),
+                Builder(
+                  builder: (context) {
+                    if (grammarInitialTab != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            grammarInitialTab = null;
+                          });
+                        }
+                      });
+                    }
+                    return GrammarScreen(initialTab: grammarInitialTab);
+                  },
+                ),
+                const SettingsScreen(),
+              ][currentPageIndex],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: FloatingBottomNavBar(
+                  selectedIndex: currentPageIndex,
+                  onDestinationSelected: (int index) {
+                    setState(() {
+                      currentPageIndex = index;
+                    });
+                  },
+                  destinations: [
+                    FloatingNavDestination(
+                      icon: Icons.home_outlined,
+                      selectedIcon: Icons.home_rounded,
+                      label: languageManager.getText('home'),
+                    ),
+                    FloatingNavDestination(
+                      icon: Icons.list_outlined,
+                      selectedIcon: Icons.list_rounded,
+                      label: languageManager.getText('categories'),
+                    ),
+                    FloatingNavDestination(
+                      icon: Icons.favorite_border_rounded,
+                      selectedIcon: Icons.favorite_rounded,
+                      label: languageManager.getText('myLearning'),
+                    ),
+                    FloatingNavDestination(
+                      icon: Icons.menu_book_outlined,
+                      selectedIcon: Icons.menu_book_rounded,
+                      label: languageManager.getText('grammar'),
+                    ),
+                    FloatingNavDestination(
+                      icon: Icons.settings_outlined,
+                      selectedIcon: Icons.settings_rounded,
+                      label: languageManager.getText('settings'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-
-        /// Categories page
-        Builder(
-          builder: (context) {
-            // Reset categoriesInitialTab sau khi CategoriesScreen được tạo
-            if (categoriesInitialTab != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    categoriesInitialTab = null;
-                  });
-                }
-              });
-            }
-            return CategoriesScreen(initialTab: categoriesInitialTab);
-          },
-        ),
-
-        /// Saved page
-        const MyLearningScreen(),
-
-        /// Grammar page
-        Builder(
-          builder: (context) {
-            // Reset grammarInitialTab sau khi GrammarScreen được tạo
-            if (grammarInitialTab != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    grammarInitialTab = null;
-                  });
-                }
-              });
-            }
-            return GrammarScreen(initialTab: grammarInitialTab);
-          },
-        ),
-
-        /// Settings page
-        const SettingsScreen(),
-      ][currentPageIndex],
       ),
     );
   }

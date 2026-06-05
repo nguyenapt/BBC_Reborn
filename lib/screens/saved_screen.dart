@@ -19,6 +19,7 @@ import '../widgets/episode_row.dart';
 import '../widgets/grammar_explanation_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'vocabulary_practice_screen.dart';
+import '../widgets/floating_bottom_nav_bar.dart';
 
 class MyLearningScreen extends StatefulWidget {
   const MyLearningScreen({super.key});
@@ -676,7 +677,10 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         await _loadSavedGrammar();
         await _buildEpisodeLookup();
       },
-      child: ListView(children: widgets),
+      child: ListView(
+        padding: FloatingBottomNavBar.scrollPadding(context),
+        children: widgets,
+      ),
     );
   }
 
@@ -754,6 +758,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     return RefreshIndicator(
       onRefresh: _loadFavouriteEpisodes,
       child: ListView.builder(
+        padding: FloatingBottomNavBar.scrollPadding(context),
         itemCount: _favouriteEpisodes.length,
         itemBuilder: (context, index) {
           final favouriteEpisode = _favouriteEpisodes[index];
@@ -913,20 +918,27 @@ class _MyLearningScreenState extends State<MyLearningScreen>
       );
     }
 
-    widgets.add(const SizedBox(height: 96));
+    const practiceButtonHeight = 52.0;
+    const practiceButtonGap = 12.0;
 
     return Stack(
       children: [
         RefreshIndicator(
           onRefresh: _loadSavedVocabularies,
-          child: ListView(children: widgets),
+          child: ListView(
+            padding: FloatingBottomNavBar.scrollPadding(
+              context,
+              extraBottom: practiceButtonHeight + practiceButtonGap,
+            ),
+            children: widgets,
+          ),
         ),
         Positioned(
           left: 0,
           right: 0,
-          bottom: 0,
-          child: SafeArea(
-            minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          bottom: FloatingBottomNavBar.bottomInset(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, practiceButtonGap),
             child: Center(
               child: _buildFloatingPracticeButton(),
             ),
