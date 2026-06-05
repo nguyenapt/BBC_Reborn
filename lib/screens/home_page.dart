@@ -14,6 +14,7 @@ import '../utils/category_names.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
+import '../widgets/floating_bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
   final Function(String)? onNavigateToCategory;
@@ -802,9 +803,10 @@ class _HomePageState extends State<HomePage> {
             ),
           ),          
           
-          // Bottom padding
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 20),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: FloatingBottomNavBar.scrollPadding(context).bottom,
+            ),
           ),
         ],
       ),
