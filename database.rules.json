@@ -1,5 +1,9 @@
 {
   "rules": {
+    "ai_server_config": {
+      ".read": false,
+      ".write": false
+    },
     "ai_cache": {
       ".read": true,
       ".write": true,

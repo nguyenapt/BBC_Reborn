@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'ai_provider.dart';
+import 'cloud_ai_provider.dart';
 import 'gemini_provider.dart';
 import 'openai_provider.dart';
 import 'exceptions.dart';
@@ -7,47 +8,74 @@ import '../../config/ai_config.dart';
 
 /// Factory for creating AI providers with fallback logic
 class AIProviderFactory {
+  static AIProvider? _cloudProvider;
   static AIProvider? _primaryProvider;
   static AIProvider? _backupProvider;
-  
-  /// Create primary provider (Gemini)
+
+  static AIProvider _createCloudProvider() {
+    return CloudAIProvider();
+  }
+
+  /// Create primary provider (Gemini) — local dev only when [AIConfig.useCloudAI] is false
   static AIProvider _createPrimaryProvider() {
     try {
+      // ignore: deprecated_member_use_from_same_package
       return GeminiProvider();
     } catch (e) {
       debugPrint('Failed to create Gemini provider: $e');
       throw AIException('Failed to initialize primary AI provider', e);
     }
   }
-  
-  /// Create backup provider (OpenAI)
+
+  /// Create backup provider (OpenAI) — local dev only
   static AIProvider _createBackupProvider() {
     try {
+      // ignore: deprecated_member_use_from_same_package
       return OpenAIProvider();
     } catch (e) {
       debugPrint('Failed to create OpenAI provider: $e');
       throw AIException('Failed to initialize backup AI provider', e);
     }
   }
-  
+
+  static AIProvider getCloudProvider() {
+    _cloudProvider ??= _createCloudProvider();
+    return _cloudProvider!;
+  }
+
   /// Get primary provider (lazy initialization)
   static AIProvider getPrimaryProvider() {
+    if (AIConfig.effectiveUseCloudAI) {
+      return getCloudProvider();
+    }
     _primaryProvider ??= _createPrimaryProvider();
     return _primaryProvider!;
   }
-  
+
   /// Get backup provider (lazy initialization)
   static AIProvider getBackupProvider() {
+    if (AIConfig.effectiveUseCloudAI) {
+      return getCloudProvider();
+    }
     _backupProvider ??= _createBackupProvider();
     return _backupProvider!;
   }
-  
+
   /// Create provider with automatic fallback
-  /// Tries primary first, falls back to backup if primary fails
   static Future<AIProvider> createProviderWithFallback() async {
+    if (AIConfig.effectiveUseCloudAI) {
+      debugPrint('✅ Using Cloud AI provider (Firebase Function)');
+      return getCloudProvider();
+    }
+
+    if (kIsWeb) {
+      throw AIException(
+        'Tính năng AI chưa hỗ trợ trên trình duyệt. Vui lòng dùng app Android hoặc iOS.',
+      );
+    }
+
     debugPrint('🔄 AIProviderFactory: Creating provider with fallback...');
-    
-    // Try primary provider first
+
     try {
       debugPrint('📱 Trying primary provider (Gemini)...');
       final primary = getPrimaryProvider();
@@ -63,8 +91,7 @@ class AIProviderFactory {
       debugPrint('❌ Primary provider error: $e');
       debugPrint('   Stack trace: $stackTrace');
     }
-    
-    // Fallback to backup provider
+
     try {
       debugPrint('📱 Trying backup provider (OpenAI)...');
       final backup = getBackupProvider();
@@ -80,13 +107,16 @@ class AIProviderFactory {
       debugPrint('❌ Backup provider error: $e');
       debugPrint('   Stack trace: $stackTrace');
     }
-    
+
     debugPrint('❌ No AI provider available - both primary and backup failed');
     throw AIException('No AI provider available');
   }
-  
+
   /// Get specific provider by type
   static AIProvider getProvider(AIProviderType type) {
+    if (AIConfig.effectiveUseCloudAI) {
+      return getCloudProvider();
+    }
     switch (type) {
       case AIProviderType.gemini:
         return getPrimaryProvider();
@@ -94,11 +124,11 @@ class AIProviderFactory {
         return getBackupProvider();
     }
   }
-  
+
   /// Reset providers (useful for testing or re-initialization)
   static void reset() {
+    _cloudProvider = null;
     _primaryProvider = null;
     _backupProvider = null;
   }
 }
-

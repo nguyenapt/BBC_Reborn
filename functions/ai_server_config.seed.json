@@ -1,0 +1,24 @@
+{
+  "allowedPackages": "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning",
+  "enabled": true,
+  "routes": {
+    "translate": "gemini",
+    "translateVocabularyBatch": "gemini",
+    "explainGrammar": "gemini",
+    "explainGrammarPassageOverall": "gemini",
+    "explainGrammarPassageSentences": "gemini",
+    "enhanceVocabulary": "gemini",
+    "generateQuestions": "gemini",
+    "evaluateSpeech": "openai"
+  },
+  "fallback": {
+    "translate": "openai",
+    "explainGrammar": "openai"
+  },
+  "models": {
+    "gemini": "gemini-2.5-flash",
+    "openai": "gpt-4o-mini"
+  },
+  "grammarPromptVersion": "v2_detailed_learning_no_quiz",
+  "rateLimitPerMinute": 30
+}

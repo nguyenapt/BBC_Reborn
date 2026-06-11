@@ -46,7 +46,7 @@ class SpeechTranscriptionService {
     String filePath, {
     required String language,
   }) async {
-    final key = AIConfig.getOpenAIApiKey();
+    final key = AIConfig.getWhisperApiKey();
     if (key.isEmpty) {
       throw APIException(
         'Speech recognition is not configured. '
@@ -72,7 +72,7 @@ class SpeechTranscriptionService {
     Uint8List audioBytes, {
     required String language,
   }) async {
-    final key = AIConfig.getOpenAIApiKey();
+    final key = AIConfig.getWhisperApiKey();
     if (key.isEmpty) {
       throw APIException(
         'Speech recognition is not configured. '
