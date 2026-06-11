@@ -1,11 +1,11 @@
 {
-    "name": "Learning English with B.B.C",
-    "short_name": "BBC Learning",
+    "name": "VOA Learning English - ESL",
+    "short_name": "VOA ESL",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Learn English through listening with B.B.C Learning English",
+    "background_color": "#002060",
+    "theme_color": "#002060",
+    "description": "Learn English through listening with VOA Learning English - ESL",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

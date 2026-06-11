@@ -88,6 +88,73 @@ namespace playMP3
                 cbType.SelectedIndexChanged += (_, __) => UpdateASSeriesChildVisibility();
 
             UpdateASSeriesChildVisibility();
+            UpdateCbLevelEnabled();
+        }
+
+        private bool IsVoaCloudService()
+        {
+            return string.Equals(
+                ConfigModel.SelectedCloudService?.Name,
+                "VOA",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>RTDB base URL from selected CloudService (same as <c>txtUrl</c> used on submit).</summary>
+        private string GetFirebaseRtdbBaseUrl()
+        {
+            var url = !string.IsNullOrWhiteSpace(txtUrl.Text)
+                ? txtUrl.Text
+                : ConfigModel.SelectedCloudService?.Url;
+            return GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(url);
+        }
+
+        private void UpdateCbLevelEnabled()
+        {
+            if (cbLevel == null) return;
+            var enabled = IsVoaCloudService();
+            cbLevel.Enabled = enabled;
+            if (!enabled)
+            {
+                cbLevel.SelectedIndex = 0;
+            }
+        }
+
+        private void ApplyVoaLevelToEpisode(Episode episode)
+        {
+            if (!IsVoaCloudService() || cbLevel == null || !cbLevel.Enabled)
+            {
+                episode.Level = null;
+                return;
+            }
+
+            var selectedLevel = (cbLevel.Text ?? string.Empty).Trim();
+            episode.Level = string.IsNullOrEmpty(selectedLevel) || selectedLevel == "--Select--"
+                ? null
+                : selectedLevel;
+        }
+
+        private Dictionary<string, object> BuildListEpisodePayload(Episode episode)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["Category"] = episode.Category,
+                ["EpisodeName"] = episode.EpisodeName,
+                ["FileUrl"] = episode.FileUrl,
+                ["Id"] = episode.Id,
+                ["IsNew"] = episode.IsNew,
+                ["PublishedDate"] = episode.PublishedDate,
+                ["GrammarVocabularyCacheKeys"] = episode.GrammarVocabularyCacheKeys,
+                ["Summary"] = episode.Summary,
+                ["ThumbImage"] = episode.ThumbImage,
+                ["Year"] = episode.Year,
+            };
+
+            if (!string.IsNullOrEmpty(episode.Level))
+            {
+                payload["Level"] = episode.Level;
+            }
+
+            return payload;
         }
 
         private void UpdateASSeriesChildVisibility()
@@ -600,6 +667,7 @@ namespace playMP3
             episode.Vocabularies = listVocabulary;
             episode.Summary = txtSummary.Text;
             episode.Grammar = txtGrammar.Text;
+            ApplyVoaLevelToEpisode(episode);
 
             var canonicalEpisodeId = episode.Id.ToString();
             var episodeIdForCacheKeys = canonicalEpisodeId;
@@ -615,19 +683,7 @@ namespace playMP3
             {
                 await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
 
-                var listEpisode = new
-                {
-                    episode.Category,
-                    episode.EpisodeName,
-                    episode.FileUrl,
-                    episode.Id,
-                    episode.IsNew,
-                    episode.PublishedDate,
-                    episode.GrammarVocabularyCacheKeys,
-                    episode.Summary,
-                    episode.ThumbImage,
-                    episode.Year
-                };
+                var listEpisode = BuildListEpisodePayload(episode);
 
                 await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
 
@@ -640,19 +696,22 @@ namespace playMP3
                     }
                     if (cbType.Text == "VOA")
                     {
-                        await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                        await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                        await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
                     }
                 }
             }
 
+            var firebaseRtdbBaseUrl = GetFirebaseRtdbBaseUrl();
+
             if (exportTranslation)
-                await UploadTranslationsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadTranslationsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportGrammar)
-                await UploadGrammarAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadGrammarAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportVocabulary)
-                await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadVocabularyAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportQuestions)
-                await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadQuestionsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
 
             return true;
         }
@@ -672,6 +731,7 @@ namespace playMP3
             txtApiKey.Text = ((CloudService)(cbCloudService.SelectedItem)).ApiKey;
             txtSecret.Text = ((CloudService)(cbCloudService.SelectedItem)).Secret;
             ConfigModel.SelectedCloudService = ((CloudService)(cbCloudService.SelectedItem));
+            UpdateCbLevelEnabled();
             cbType.Focus();
         }
 
@@ -1401,7 +1461,7 @@ namespace playMP3
         /// Upload grammar_by_episode với <paramref name="lineNumber"/> 0-based (i trong vòng lặp = line_0 cho dòng đầu).
         /// RTDB cũ dùng line_1 cho dòng đầu cần re-upload hoặc chạy script migrate trước khi phát hành app mới.
         /// </summary>
-        private async Task UploadGrammarAiCachesAsync(string episodeId)
+        private async Task UploadGrammarAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -1455,7 +1515,7 @@ namespace playMP3
 
                     try
                     {
-                        await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(sentence, langCode, episodeId, data, i).ConfigureAwait(true);
+                        await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(firebaseRtdbBaseUrl, sentence, langCode, episodeId, data, i).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -1471,7 +1531,7 @@ namespace playMP3
         /// Đẩy lên Firebase RTDB giống Flutter <c>AIFirebaseCacheService</c>: mỗi từ × mỗi mã ngôn ngữ.
         /// <c>data</c> = object enhancement (synonyms, …) + <c>meaning</c> gloss theo tab (En hoặc đã dịch).
         /// </summary>
-        private async Task UploadVocabularyAiCachesAsync(string episodeId)
+        private async Task UploadVocabularyAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -1540,7 +1600,7 @@ namespace playMP3
 
                     try
                     {
-                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(lemma, langCode, payload, episodeId).ConfigureAwait(true);
+                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(firebaseRtdbBaseUrl, lemma, langCode, payload, episodeId).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -1557,7 +1617,7 @@ namespace playMP3
         /// Dữ liệu lưu trong <c>data.translations</c> là mảng item có
         /// <c>original</c>, <c>translated</c>, <c>lineNumber</c> (0-based, khớp transcript row index).
         /// </summary>
-        private async Task UploadTranslationsAiCachesAsync(string episodeId)
+        private async Task UploadTranslationsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -1606,7 +1666,7 @@ namespace playMP3
 
                 try
                 {
-                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(episodeId, langCode, arr).ConfigureAwait(true);
+                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(firebaseRtdbBaseUrl, episodeId, langCode, arr).ConfigureAwait(true);
                 }
                 catch
                 {
@@ -1620,7 +1680,7 @@ namespace playMP3
         /// <summary>
         /// Firebase RTDB <c>ai_cache/questions/{episodeId}/{count}.json</c> — khớp Flutter <c>AIFirebaseCacheService.saveQuestions</c>.
         /// </summary>
-        private async Task UploadQuestionsAiCachesAsync(string episodeId)
+        private async Task UploadQuestionsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -1635,7 +1695,7 @@ namespace playMP3
 
             try
             {
-                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(episodeId, count, arr).ConfigureAwait(true);
+                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(firebaseRtdbBaseUrl, episodeId, count, arr).ConfigureAwait(true);
             }
             catch
             {

@@ -151,12 +151,10 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
   }
 
   void _prepareTranscriptLines() {
-    final parsed = TranscriptLine.parseTranscriptHtml(widget.episode.transcriptHtml);
-    if (parsed.isNotEmpty) {
-      _lines = parsed;
-    } else {
-      _lines = _fallbackParseTranscript(widget.episode.transcript);
-    }
+    _lines = TranscriptLine.parseFromTranscript(
+      transcriptHtml: widget.episode.transcriptHtml,
+      transcript: widget.episode.transcript,
+    );
 
     final speakers = _lines
         .map((e) => e.speaker)
@@ -199,21 +197,6 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       category: widget.episode.category,
       slot: TranscriptNativeAdSlot.speakingListTile,
     );
-  }
-
-  List<TranscriptLine> _fallbackParseTranscript(String transcript) {
-    final cleaned = transcript.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (cleaned.isEmpty) return [];
-    final sentences = cleaned.split(RegExp(r'(?<=[.!?])\s+'));
-    return sentences
-        .where((s) => s.trim().isNotEmpty)
-        .map((s) => TranscriptLine(
-              startTime: 0,
-              endTime: 0,
-              speaker: '',
-              text: s.trim(),
-            ))
-        .toList();
   }
 
   Future<void> _ensureSession(String mode) async {

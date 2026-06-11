@@ -44,6 +44,37 @@ class EpisodeInfoSlide extends StatelessWidget {
     );
   }
 
+  Widget _buildLevelChip(BuildContext context, Color accentColor) {
+    return Row(
+      children: [
+        Text(
+          '${languageManager.getText('episodeLevel')}: ',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withOpacity(0.35)),
+          ),
+          child: Text(
+            episode.level!.trim(),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCurrentEpisodeSection(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final categoryColor = colorScheme.primary;
@@ -76,6 +107,10 @@ class EpisodeInfoSlide extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (episode.hasLevel) ...[
+                  _buildLevelChip(context, categoryColor),
+                  const SizedBox(height: 8),
+                ],
                 // Summary
                 if (episode.summary != null && episode.summary!.isNotEmpty)
                   Text(

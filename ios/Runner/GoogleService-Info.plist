@@ -2,24 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CLIENT_ID</key>
-	<string>128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.128498222438-hm17267tb543u524v3so193q1hqujtse</string>
 	<key>API_KEY</key>
-	<string>AIzaSyDqFQ2I7I1hJ8vEbe5xinI-PoSayWEpG2k</string>
+	<string>AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw</string>
 	<key>GCM_SENDER_ID</key>
-	<string>128498222438</string>
+	<string>666526516629</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.learningenglish.studyingbbc.bbcReborn</string>
+	<string>com.voalearningenglish.listeningskills</string>
 	<key>PROJECT_ID</key>
-	<string>bbc-listening-english</string>
+	<string>voa-learning-english-c75fe</string>
 	<key>STORAGE_BUCKET</key>
-	<string>bbc-listening-english.appspot.com</string>
+	<string>voa-learning-english-c75fe.appspot.com</string>
 	<key>DATABASE_URL</key>
-	<string>https://bbc-listening-english.firebaseio.com</string>
+	<string>https://voa-learning-english-c75fe.firebaseio.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false/>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +27,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true/>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:128498222438:ios:6a28f807827da6ea0534a7</string>
+	<string>1:666526516629:ios:5818cf39fcf1c5a262a29c</string>
 </dict>
 </plist>

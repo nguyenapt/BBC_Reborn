@@ -66,6 +66,8 @@
             this.btnConfig = new System.Windows.Forms.Button();
             this.cbCloudService = new System.Windows.Forms.ComboBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.cbLevel = new System.Windows.Forms.ComboBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.cbExportTranslation = new System.Windows.Forms.CheckBox();
             this.cbExportGrammar = new System.Windows.Forms.CheckBox();
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
@@ -595,6 +597,8 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.cbLevel);
+            this.groupBox3.Controls.Add(this.label3);
             this.groupBox3.Controls.Add(this.cbExportTranslation);
             this.groupBox3.Controls.Add(this.cbExportGrammar);
             this.groupBox3.Controls.Add(this.cbExportVocabulary);
@@ -643,6 +647,31 @@
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Firebase";
+            // 
+            // cbLevel
+            // 
+            this.cbLevel.FormattingEnabled = true;
+            this.cbLevel.Items.AddRange(new object[] {
+            "--Select--",
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2"});
+            this.cbLevel.Location = new System.Drawing.Point(406, 163);
+            this.cbLevel.Name = "cbLevel";
+            this.cbLevel.Size = new System.Drawing.Size(217, 21);
+            this.cbLevel.TabIndex = 48;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(351, 166);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(33, 13);
+            this.label3.TabIndex = 47;
+            this.label3.Text = "Level";
             // 
             // cbExportTranslation
             // 
@@ -2248,6 +2277,8 @@
         private System.Windows.Forms.CheckBox cbExportQuestions;
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
         private System.Windows.Forms.CheckBox cbExportTranslation;
+        private System.Windows.Forms.ComboBox cbLevel;
+        private System.Windows.Forms.Label label3;
     }
 }
 

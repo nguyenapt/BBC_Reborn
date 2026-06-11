@@ -17,7 +17,7 @@ namespace playMP3
         /// </summary>
         public const string GrammarModelVersion = "gemini:gemini-2.5-flash:gpt-4o-mini";
 
-        public const string FirebaseRtdbBaseUrl = "https://bbc-listening-english.firebaseio.com";
+        /// <summary>RTDB base URL comes from selected CloudService (<c>txtUrl</c>), not a constant here.</summary>
 
         public const string AiCachePath = "ai_cache";
         public const string GrammarByEpisodePath = "grammar_by_episode";

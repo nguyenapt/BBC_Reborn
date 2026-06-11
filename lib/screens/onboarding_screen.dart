@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/language_manager.dart';
 import 'language_selection_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
@@ -21,23 +22,14 @@ class OnboardingScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '🎓',
-                    style: TextStyle(fontSize: 80),
-                  ),
-                ),
+              Image.asset(
+                'assets/images/logo.png',
+                width: 220,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 44),
               Text(
-                'Welcome to Learning English - 6 minutes',
+                LanguageManager().getText('welcomeMessage'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,

@@ -1,5 +1,5 @@
 {
-  "name": "bbc-listening-english-functions",
+  "name": "voa-learning-english-functions",
   "description": "FCM khi có episode mới trong Realtime Database",
   "main": "index.js",
   "engines": {

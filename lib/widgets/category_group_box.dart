@@ -169,6 +169,14 @@ class CategoryGroupBox extends StatelessWidget {
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName) {
+      case 'AMS':
+        return Icons.auto_stories_outlined;
+      case 'ON':
+        return Icons.article_outlined;
+      case 'NC':
+        return Icons.forum_outlined;
+      case 'SC':
+        return Icons.chat_outlined;
       case '6M':
       case '6MGB':
       case '6MGI':
@@ -193,9 +201,7 @@ class CategoryGroupBox extends StatelessWidget {
   }
 
   bool _shouldUseHorizontalLayout(String categoryName) {
-    return categoryName == '6M' ||
-        categoryName == 'TEWS' ||
-        categoryName == 'REE' ||
+    return CategoryNames.isPrimaryTab(categoryName) ||
         categoryName == 'BSA' ||
         categoryName == 'EG';
   }

@@ -15,7 +15,7 @@ const String fcmTopicNewEpisodes = 'episodes';
 /// SharedPreferences key — đồng bộ với [setEpisodePushEnabled] / [getEpisodePushEnabled].
 const String prefKeyEpisodePushEnabled = 'push_episodes_enabled';
 
-const String _androidChannelId = 'bbc_episode_push';
+const String _androidChannelId = 'voa_episode_push';
 const String _androidChannelName = 'Tập mới';
 
 @pragma('vm:entry-point')
@@ -57,7 +57,7 @@ class PushNotificationService {
       const AndroidNotificationChannel(
         _androidChannelId,
         _androidChannelName,
-        description: 'Thông báo khi có episode mới trên BBC Learning English',
+        description: 'Thông báo khi có episode mới trên VOA Learning English - ESL',
         importance: Importance.high,
       ),
     );
@@ -116,7 +116,7 @@ class PushNotificationService {
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     final n = message.notification;
-    final title = n?.title ?? message.data['title'] as String? ?? 'BBC Learning English';
+    final title = n?.title ?? message.data['title'] as String? ?? 'VOA Learning English - ESL';
     final body = n?.body ?? message.data['body'] as String? ?? '';
     final id = message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
 

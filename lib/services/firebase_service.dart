@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import '../config/firebase_rtdb_config.dart';
 import '../config/rtdb_list_config.dart';
 import '../models/category.dart';
 import '../models/episode.dart';
+import '../utils/category_names.dart';
 import '../utils/debug_source_log.dart';
 import 'api_daily_cache_keys.dart';
 import 'local_database_service.dart';
 
 class FirebaseService {
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _baseUrl = kFirebaseRtdbBaseUrl;
 
   final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
 
@@ -90,7 +92,11 @@ class FirebaseService {
             try {
               final episodeId = episodeData['Id']?.toString() ?? '';
               if (episodeId.isNotEmpty) {
-                episodes.add(Episode.fromJson(episodeData, episodeId));
+                episodes.add(Episode.fromJson(
+                  episodeData,
+                  episodeId,
+                  listCategory: categoryName,
+                ));
               }
             } catch (e) {
               print('Error parsing episode: $e');
@@ -121,7 +127,7 @@ class FirebaseService {
         );
         if (slim.statusCode == 200 && slim.body.isNotEmpty && slim.body != 'null') {
           final dynamic data = json.decode(slim.body);
-          return _parseCategoryYearPayload(data);
+          return _parseCategoryYearPayload(data, listCategory: categoryName);
         }
       }
 
@@ -149,13 +155,20 @@ class FirebaseService {
     }
   }
 
-  static List<Episode> _parseCategoryYearPayload(dynamic data) {
+  static List<Episode> _parseCategoryYearPayload(
+    dynamic data, {
+    String? listCategory,
+  }) {
     final List<Episode> episodes = [];
 
     if (data is Map<String, dynamic>) {
       data.forEach((episodeId, episodeData) {
         if (episodeData is Map<String, dynamic>) {
-          episodes.add(Episode.fromJson(episodeData, episodeId));
+          episodes.add(Episode.fromJson(
+            episodeData,
+            episodeId,
+            listCategory: listCategory,
+          ));
         }
       });
     } else if (data is List) {
@@ -163,12 +176,20 @@ class FirebaseService {
         final episodeData = data[i];
         if (episodeData is Map<String, dynamic>) {
           final episodeId = episodeData['Id']?.toString() ?? i.toString();
-          episodes.add(Episode.fromJson(episodeData, episodeId));
+          episodes.add(Episode.fromJson(
+            episodeData,
+            episodeId,
+            listCategory: listCategory,
+          ));
         }
       }
     } else if (data is Map<String, dynamic> && data.containsKey('Id')) {
       final episodeId = data['Id']?.toString() ?? '0';
-      episodes.add(Episode.fromJson(data, episodeId));
+      episodes.add(Episode.fromJson(
+        data,
+        episodeId,
+        listCategory: listCategory,
+      ));
     }
 
     episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
@@ -210,7 +231,10 @@ class FirebaseService {
     final id = partial.id;
     if (id == null || id.isEmpty) return null;
 
-    final category = partial.category;
+    var category = partial.category;
+    if (category.isEmpty) {
+      category = await _resolveCategoryForEpisode(partial);
+    }
     var yearParsed = int.tryParse(partial.year ?? '');
     if (yearParsed == null && partial.publishedDate.year > 1800) {
       yearParsed = partial.publishedDate.year;
@@ -305,6 +329,20 @@ class FirebaseService {
     return null;
   }
 
+  /// Khi JSON episode thiếu `Category` (dữ liệu migrate), thử khớp id trong tree gốc.
+  static Future<String> _resolveCategoryForEpisode(Episode partial) async {
+    final id = partial.id;
+    if (id == null || id.isEmpty) return '';
+
+    for (final code in CategoryNames.primaryTabCodes) {
+      try {
+        final bulk = await getCategoryDataWithoutYearLegacyFull(code);
+        if (bulk.any((e) => e.id == id)) return code;
+      } catch (_) {}
+    }
+    return '';
+  }
+
   /// Luôn đọc `/{category}/{year}.json` (đầy đủ), không qua `List/`.
   static Future<List<Episode>> getCategoryDataLegacyFull(
     String category,
@@ -318,7 +356,7 @@ class FirebaseService {
       throw Exception('Failed to load category data: ${response.statusCode}');
     }
     final dynamic data = json.decode(response.body);
-    return _parseCategoryYearPayload(data);
+    return _parseCategoryYearPayload(data, listCategory: category);
   }
 
   /// Luôn đọc `/{category}.json` (đầy đủ).
@@ -333,7 +371,7 @@ class FirebaseService {
       throw Exception('Failed to load category data: ${response.statusCode}');
     }
     final dynamic data = json.decode(response.body);
-    return _parseCategoryYearPayload(data);
+    return _parseCategoryYearPayload(data, listCategory: category);
   }
 
   // Lấy dữ liệu category theo năm (cho CategoriesScreen)
@@ -348,7 +386,7 @@ class FirebaseService {
             slim.body.isNotEmpty &&
             slim.body != 'null') {
           final dynamic data = json.decode(slim.body);
-          return _parseCategoryYearPayload(data);
+          return _parseCategoryYearPayload(data, listCategory: category);
         }
       }
 
@@ -359,7 +397,7 @@ class FirebaseService {
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        return _parseCategoryYearPayload(data);
+        return _parseCategoryYearPayload(data, listCategory: category);
       } else {
         throw Exception('Failed to load category data: ${response.statusCode}');
       }
@@ -380,7 +418,7 @@ class FirebaseService {
             slim.body.isNotEmpty &&
             slim.body != 'null') {
           final dynamic data = json.decode(slim.body);
-          return _parseCategoryYearPayload(data);
+          return _parseCategoryYearPayload(data, listCategory: category);
         }
       }
 
@@ -391,7 +429,7 @@ class FirebaseService {
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        return _parseCategoryYearPayload(data);
+        return _parseCategoryYearPayload(data, listCategory: category);
       } else {
         throw Exception('Failed to load category data: ${response.statusCode}');
       }
@@ -566,7 +604,9 @@ class FirebaseService {
       final dynamic data = json.decode(body);
       final parsed = _parseAnotherSeriesPayload(data);
       return _forceEpisodesCategory(
-        parsed.isNotEmpty ? parsed : _parseCategoryYearPayload(data),
+        parsed.isNotEmpty
+            ? parsed
+            : _parseCategoryYearPayload(data, listCategory: sub),
         sub,
       );
     } catch (_) {

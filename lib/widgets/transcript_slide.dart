@@ -88,56 +88,10 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   /// Parse từ [widget.episode] — gọi lại khi parent hydrate transcript (vd. list RTDB mỏng → đầy đủ).
   void _buildTranscriptLinesFromEpisode() {
     final ep = widget.episode;
-    // Ưu tiên sử dụng transcriptHtml (có time info)
-    if (ep.transcriptHtml != null && ep.transcriptHtml!.isNotEmpty) {
-      transcriptLines = TranscriptLine.parseTranscriptHtml(ep.transcriptHtml);
-
-      if (transcriptLines.isNotEmpty &&
-          transcriptLines.every((line) => line.startTime == 0 && line.endTime == 0)) {
-        final lines = ep.transcriptHtml!.split('\n').where((line) => line.trim().isNotEmpty).toList();
-        transcriptLines = lines
-            .map((line) {
-              return TranscriptLine(
-                speaker: 'Speaker',
-                text: line.trim(),
-                startTime: 0,
-                endTime: 0,
-              );
-            })
-            .toList()
-            .cast<TranscriptLine>();
-      } else if (transcriptLines.isEmpty) {
-        if (ep.transcript.isNotEmpty) {
-          final lines = ep.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
-          transcriptLines = lines
-              .map((line) {
-                return TranscriptLine(
-                  speaker: 'Speaker',
-                  text: line.trim(),
-                  startTime: 0,
-                  endTime: 0,
-                );
-              })
-              .toList()
-              .cast<TranscriptLine>();
-        }
-      }
-    } else if (ep.transcript.isNotEmpty) {
-      final lines = ep.transcript.split('\n').where((line) => line.trim().isNotEmpty).toList();
-      transcriptLines = lines
-          .map((line) {
-            return TranscriptLine(
-              speaker: 'Speaker',
-              text: line.trim(),
-              startTime: 0,
-              endTime: 0,
-            );
-          })
-          .toList()
-          .cast<TranscriptLine>();
-    } else {
-      transcriptLines = [];
-    }
+    transcriptLines = TranscriptLine.parseFromTranscript(
+      transcriptHtml: ep.transcriptHtml,
+      transcript: ep.transcript,
+    );
   }
 
   Color _speakerAccentColor(String speaker) {
@@ -157,9 +111,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
   String _speakerInitial(String speaker) {
     final t = speaker.trim();
-    if (t.isEmpty) return '?';
+    if (t.isEmpty) return '';
     return t[0].toUpperCase();
   }
+
+  bool _showSpeakerLabel(String speaker) => speaker.trim().isNotEmpty;
 
   void _calculateAdPositions() {
     final totalItems = transcriptLines.length;
@@ -396,29 +352,38 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     },
                                     child: CircleAvatar(
                                       radius: 17,
-                                      backgroundColor: speakerColor.withOpacity(0.22),
+                                      backgroundColor: _showSpeakerLabel(line.speaker)
+                                          ? speakerColor.withOpacity(0.22)
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant
+                                              .withOpacity(0.45),
+                                      child: _showSpeakerLabel(line.speaker)
+                                          ? Text(
+                                              _speakerInitial(line.speaker),
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: speakerColor,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                  if (_showSpeakerLabel(line.speaker)) ...[
+                                    const SizedBox(width: 10),
+                                    Expanded(
                                       child: Text(
-                                        _speakerInitial(line.speaker),
+                                        line.speaker.toUpperCase(),
                                         style: TextStyle(
-                                          fontSize: 15,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.bold,
-                                          color: speakerColor,
+                                          letterSpacing: 0.65,
+                                          color: isActive ? categoryColor : speakerColor,
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      line.speaker.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.65,
-                                        color: isActive ? categoryColor : speakerColor,
-                                      ),
-                                    ),
-                                  ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 8),

@@ -93,44 +93,154 @@ class TranscriptLine {
     return true;
   }
 
-  // Parse transcriptHtml thành danh sách TranscriptLine
+  /// VOA: tìm `:` trong [maxWords] từ đầu để tách speaker / text.
+  static ({String speaker, String text, bool hasSpeakerMarker}) splitSpeakerByColon(
+    String line, {
+    int maxWords = 5,
+  }) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) {
+      return (speaker: '', text: '', hasSpeakerMarker: false);
+    }
+    if (!trimmed.contains(':')) {
+      return (speaker: '', text: trimmed, hasSpeakerMarker: false);
+    }
+
+    final colonIndex = trimmed.indexOf(':');
+    final lastCharOfNthWord = _lastCharIndexOfNthWord(trimmed, maxWords);
+    if (colonIndex > lastCharOfNthWord) {
+      return (speaker: '', text: trimmed, hasSpeakerMarker: false);
+    }
+
+    final speaker = trimmed.substring(0, colonIndex).trim();
+    final text = trimmed.substring(colonIndex + 1).trim();
+    return (speaker: speaker, text: text, hasSpeakerMarker: true);
+  }
+
+  static int _lastCharIndexOfNthWord(String s, int n) {
+    if (n <= 0) return -1;
+    int wordCount = 0;
+    int lastChar = -1;
+    bool inWord = false;
+
+    for (int i = 0; i < s.length; i++) {
+      final isSpace = s[i].trim().isEmpty;
+      if (!isSpace) {
+        if (!inWord) {
+          wordCount++;
+          inWord = true;
+        }
+        if (wordCount <= n) {
+          lastChar = i;
+        }
+      } else {
+        inWord = false;
+      }
+      if (wordCount >= n) break;
+    }
+    return lastChar;
+  }
+
+  /// VOA plain transcript: `Name: dialogue` hoặc `Name:` rồi dòng tiếp theo.
+  static List<TranscriptLine> parseVoaPlainTranscript(String transcript) {
+    if (transcript.trim().isEmpty) return [];
+
+    final rawLines = transcript.split('\n');
+    final lines = <TranscriptLine>[];
+    String? activeSpeaker;
+
+    for (final raw in rawLines) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) continue;
+
+      final split = splitSpeakerByColon(trimmed);
+      if (split.hasSpeakerMarker) {
+        if (split.text.isEmpty) {
+          activeSpeaker = split.speaker;
+          continue;
+        }
+        activeSpeaker = null;
+        lines.add(TranscriptLine(
+          startTime: 0,
+          endTime: 0,
+          speaker: split.speaker,
+          text: split.text,
+        ));
+        continue;
+      }
+
+      final speaker = activeSpeaker ?? '';
+      lines.add(TranscriptLine(
+        startTime: 0,
+        endTime: 0,
+        speaker: speaker,
+        text: split.text,
+      ));
+    }
+
+    return lines;
+  }
+
+  /// Parse transcriptHtml thành danh sách TranscriptLine
   static List<TranscriptLine> parseTranscriptHtml(String? transcriptHtml) {
     if (transcriptHtml == null || transcriptHtml.isEmpty) {
       return [];
     }
 
-    List<TranscriptLine> lines = [];
-    
-    // Tìm tất cả pattern [start]Speaker Text[end] trong toàn bộ string
-    RegExp pattern = RegExp(r'\[(\d+)\]([^[]+?)\[(\d+)\]');
-    Iterable<Match> matches = pattern.allMatches(transcriptHtml);
-    
-    for (Match match in matches) {
-      int startTime = int.tryParse(match.group(1) ?? '0') ?? 0;
+    final List<TranscriptLine> lines = [];
+
+    // Tìm tất cả pattern [start]Text[end] trong toàn bộ string
+    final RegExp pattern = RegExp(r'\[(\d+)\]([^[]+?)\[(\d+)\]');
+    final Iterable<Match> matches = pattern.allMatches(transcriptHtml);
+
+    for (final match in matches) {
+      final int startTime = int.tryParse(match.group(1) ?? '0') ?? 0;
       String content = match.group(2)?.trim() ?? '';
-      int endTime = int.tryParse(match.group(3) ?? '0') ?? 0;
-      
-      if (content.isNotEmpty) {
-        // Strip HTML tags từ content
-        content = _stripHtmlTags(content);
-        
-        // Tách speaker và text (speaker là từ đầu tiên, phần còn lại là text)
-        List<String> parts = content.split(' ');
-        if (parts.length > 1) {
-          String speaker = parts[0];
-          String text = parts.sublist(1).join(' ');
-          
-          lines.add(TranscriptLine(
-            startTime: startTime,
-            endTime: endTime,
-            speaker: speaker,
-            text: text,
-          ));
-        }
+      final int endTime = int.tryParse(match.group(3) ?? '0') ?? 0;
+
+      if (content.isEmpty) continue;
+
+      content = _stripHtmlTags(content);
+      final split = splitSpeakerByColon(content);
+      if (split.text.isEmpty && !split.hasSpeakerMarker) continue;
+
+      lines.add(TranscriptLine(
+        startTime: startTime,
+        endTime: endTime,
+        speaker: split.hasSpeakerMarker ? split.speaker : '',
+        text: split.hasSpeakerMarker ? split.text : split.text,
+      ));
+    }
+
+    return lines;
+  }
+
+  /// Entry point: transcriptHtml ưu tiên, fallback plain VOA.
+  static List<TranscriptLine> parseFromTranscript({
+    String? transcriptHtml,
+    String? transcript,
+  }) {
+    if (transcriptHtml != null && transcriptHtml.trim().isNotEmpty) {
+      final fromHtml = parseTranscriptHtml(transcriptHtml);
+      if (fromHtml.isNotEmpty) {
+        final hasTiming = fromHtml.any(
+          (line) => line.startTime != 0 || line.endTime != 0,
+        );
+        if (hasTiming) return fromHtml;
+
+        final plainFromHtml = _stripHtmlTags(transcriptHtml)
+            .replaceAll(RegExp(r'\[\d+\]'), '\n')
+            .replaceAll(RegExp(r'\n+'), '\n');
+        final voa = parseVoaPlainTranscript(plainFromHtml);
+        if (voa.isNotEmpty) return voa;
+        return fromHtml;
       }
     }
-    
-    return lines;
+
+    if (transcript != null && transcript.trim().isNotEmpty) {
+      return parseVoaPlainTranscript(transcript);
+    }
+    return [];
   }
 
   // Xóa tất cả HTML tags khỏi text

@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import '../config/firebase_rtdb_config.dart';
 import '../models/grammar.dart';
 import '../utils/debug_source_log.dart';
 import 'api_daily_cache_keys.dart';
 import 'local_database_service.dart';
 
 class GrammarService {
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _baseUrl = kFirebaseRtdbBaseUrl;
   static const String _grammarPath = 'HomePage/Grammar';
 
   final LocalDatabaseService _apiCacheDb = LocalDatabaseService();

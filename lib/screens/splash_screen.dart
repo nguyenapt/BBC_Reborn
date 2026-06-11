@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/admob_service.dart';
+import '../services/language_manager.dart';
 import 'onboarding_screen.dart';
 import 'ads_support_notice_screen.dart';
 import '../main.dart';
@@ -144,16 +145,8 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue[600]!,
-              Colors.blue[800]!,
-              Colors.indigo[900]!,
-            ],
-          ),
+        decoration: const BoxDecoration(
+          color: Colors.black,
         ),
         child: Center(
           child: Column(
@@ -167,30 +160,10 @@ class _SplashScreenState extends State<SplashScreen>
                     opacity: _fadeAnimation,
                     child: ScaleTransition(
                       scale: _scaleAnimation,
-                      child: Container(
-                        width: 120,
-                        height: 129,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'L.E.O',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 220,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   );
@@ -202,9 +175,9 @@ class _SplashScreenState extends State<SplashScreen>
               // App name
               FadeTransition(
                 opacity: _fadeAnimation,
-                child: const Text(
-                  'Learning English - 6 minutes',
-                  style: TextStyle(
+                child: Text(
+                  LanguageManager().getText('appTitle'),
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -213,18 +186,6 @@ class _SplashScreenState extends State<SplashScreen>
               ),
               
               const SizedBox(height: 8),
-              
-              // Subtitle
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'Listen. Engage. Own.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                ),
-              ),
               
               const SizedBox(height: 60),
               

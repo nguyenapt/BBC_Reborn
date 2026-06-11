@@ -27,29 +27,19 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   
   // Data cho từng tab
   Map<String, List<Episode>> _episodesData = {};
-  Map<String, bool> _loadingStates = {
-    '6M': false,
-    'TEWS': false,
-    'REE': false,
-    'AS': false,
+  final Map<String, bool> _loadingStates = {
+    for (final c in CategoryNames.primaryTabCodes) c: false,
   };
-  Map<String, String?> _errorStates = {
-    '6M': null,
-    'TEWS': null,
-    'REE': null,
-    'AS': null,
+  final Map<String, String?> _errorStates = {
+    for (final c in CategoryNames.primaryTabCodes) c: null,
   };
   // Theo dõi các năm đã load cho mỗi category
-  Map<String, List<int>> _loadedYears = {
-    '6M': [],
-    'TEWS': [],
-    'REE': [],
+  final Map<String, List<int>> _loadedYears = {
+    for (final c in CategoryNames.primaryTabCodes) c: <int>[],
   };
   // Trạng thái loading more cho mỗi category
-  Map<String, bool> _loadingMoreStates = {
-    '6M': false,
-    'TEWS': false,
-    'REE': false,
+  final Map<String, bool> _loadingMoreStates = {
+    for (final c in CategoryNames.primaryTabCodes) c: false,
   };
   // Data cho tab Another Series riêng (map sub -> episodes)
   Map<String, List<Episode>> _anotherSeriesData = {};
@@ -58,12 +48,14 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    
-    // Xác định tab ban đầu
-    final categories = ['6M', 'TEWS', 'REE', 'AS'];
-    String initialCategory = '6M'; // Default
-    
+    _tabController = TabController(
+      length: CategoryNames.primaryTabCodes.length,
+      vsync: this,
+    );
+
+    final categories = CategoryNames.primaryTabCodes;
+    String initialCategory = categories.first;
+
     if (widget.initialTab != null) {
       final tabIndex = categories.indexOf(widget.initialTab!);
       if (tabIndex != -1) {
@@ -71,13 +63,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         initialCategory = widget.initialTab!;
       }
     }
-    
-    // Load data cho tab được chọn
-    if (initialCategory == 'AS') {
-      _loadAnotherSeriesTabData();
-    } else {
-      _loadCategoryData(initialCategory);
-    }
+
+    _loadCategoryData(initialCategory);
     
     // Listen to tab changes
     _tabController.addListener(_onTabChanged);
@@ -101,25 +88,38 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     });
 
     try {
-      final currentYear = DateTime.now().year;
-      final previousYear = currentYear - 1;
-      
-      // Lấy dữ liệu từ cache trước, API chỉ gọi nếu chưa fetch hôm nay
-      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, currentYear);
-      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, previousYear);
-      
-      // Gộp episodes và loại trùng theo id
-      final Map<String, Episode> uniqueEpisodes = {};
-      for (final episode in [...currentYearEpisodes, ...previousYearEpisodes]) {
-        final key = episode.id ?? '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
-        uniqueEpisodes[key] = episode;
+      final List<Episode> allEpisodes;
+      final List<int> loadedYears;
+
+      // VOA primary tabs: RTDB slim list phẳng `List/{CAT}.json` (không có /{year}).
+      if (CategoryNames.isPrimaryTab(category)) {
+        allEpisodes = await _episodeCacheService
+            .getCategoryEpisodesWithoutYear(category);
+        allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+        loadedYears = [DateTime.now().year];
+      } else {
+        final currentYear = DateTime.now().year;
+        final previousYear = currentYear - 1;
+
+        final currentYearEpisodes =
+            await _episodeCacheService.getCategoryEpisodes(category, currentYear);
+        final previousYearEpisodes =
+            await _episodeCacheService.getCategoryEpisodes(category, previousYear);
+
+        final Map<String, Episode> uniqueEpisodes = {};
+        for (final episode in [...currentYearEpisodes, ...previousYearEpisodes]) {
+          final key = episode.id ??
+              '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
+          uniqueEpisodes[key] = episode;
+        }
+        allEpisodes = uniqueEpisodes.values.toList()
+          ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+        loadedYears = [currentYear, previousYear];
       }
-      final allEpisodes = uniqueEpisodes.values.toList()
-        ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
+
       setState(() {
         _episodesData[category] = allEpisodes;
-        _loadedYears[category] = [currentYear, previousYear];
+        _loadedYears[category] = loadedYears;
         _loadingStates[category] = false;
       });
     } catch (e) {
@@ -188,45 +188,27 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   bool _canLoadMore(String category) {
+    if (CategoryNames.isPrimaryTab(category)) return false;
+
     final loadedYears = _loadedYears[category] ?? [];
     if (loadedYears.isEmpty) return false;
-    
+
     final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
     return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
   }
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      final currentIndex = _tabController.index;
-      final categories = ['6M', 'TEWS', 'REE', 'AS'];
-      final currentCategory = categories[currentIndex];
-      
-      print('Tab changed to: $currentCategory (index: $currentIndex)');
-      
-      if (currentCategory == 'AS') {
-        print('Loading Another Series tab data...');
-        _loadAnotherSeriesTabData();
-      } else {
-        _loadCategoryData(currentCategory);
-      }
+      final currentCategory =
+          CategoryNames.primaryTabCodes[_tabController.index];
+      _loadCategoryData(currentCategory);
     }
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
-    // Tìm danh sách episodes của category hiện tại
-    final currentIndex = _tabController.index;
-    final categories = ['6M', 'TEWS', 'REE', 'AS'];
-    final currentCategory = categories[currentIndex];
-    
-    List<Episode> categoryEpisodes = [];
-    if (currentCategory == 'AS') {
-      // Lấy tất cả episodes từ các sub trong Another Series tab
-      _anotherSeriesData.values.forEach((episodes) {
-        categoryEpisodes.addAll(episodes);
-      });
-    } else {
-      categoryEpisodes = _episodesData[currentCategory] ?? [];
-    }
+    final currentCategory =
+        CategoryNames.primaryTabCodes[_tabController.index];
+    final categoryEpisodes = _episodesData[currentCategory] ?? [];
 
     EpisodeDetailOpenHelper.open(
       context: context,
@@ -336,10 +318,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildCategoryContent('6M'),
-                    _buildCategoryContent('TEWS'),
-                    _buildCategoryContent('REE'),
-                    _buildAnotherSeriesContent(),
+                    for (final code in CategoryNames.primaryTabCodes)
+                      _buildCategoryContent(code),
                   ],
                 ),
               ),
@@ -452,12 +432,19 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
         tabs: [
-          _buildTabLabel(0, '6 Minutes', 'English'),
-          _buildTabLabel(1, 'The English', 'We Speak'),
-          _buildTabLabel(2, 'Real Easy', 'English'),
-          _buildTabLabel(3, 'Another', 'Series'),
+          for (var i = 0; i < CategoryNames.primaryTabCodes.length; i++)
+            _buildTabLabelForCode(i, CategoryNames.primaryTabCodes[i]),
         ],
       ),
+    );
+  }
+
+  Widget _buildTabLabelForCode(int index, String code) {
+    final keys = CategoryNames.primaryTabLabelKeys[code]!;
+    return _buildTabLabel(
+      index,
+      _languageManager.getText(keys[0]),
+      _languageManager.getText(keys[1]),
     );
   }
 
@@ -650,6 +637,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     );
   }
 
+  // Preserved for when [CategoryNames.showAnotherSeries] is re-enabled.
+  // ignore: unused_element
   Widget _buildAnotherSeriesContent() {
     if (_loadingStates['AS'] == true) {
       return Center(

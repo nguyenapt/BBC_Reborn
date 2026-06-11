@@ -141,27 +141,10 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   void _rebuildParsedTranscriptLines() {
-    if (_episode.transcriptHtml != null && _episode.transcriptHtml!.isNotEmpty) {
-      _parsedTranscriptLines =
-          TranscriptLine.parseTranscriptHtml(_episode.transcriptHtml);
-      return;
-    }
-    if (_episode.transcript.isNotEmpty) {
-      _parsedTranscriptLines = _episode.transcript
-          .split('\n')
-          .where((line) => line.trim().isNotEmpty)
-          .map(
-            (line) => TranscriptLine(
-              startTime: 0,
-              endTime: 0,
-              speaker: '',
-              text: line.trim(),
-            ),
-          )
-          .toList();
-      return;
-    }
-    _parsedTranscriptLines = [];
+    _parsedTranscriptLines = TranscriptLine.parseFromTranscript(
+      transcriptHtml: _episode.transcriptHtml,
+      transcript: _episode.transcript,
+    );
   }
 
   TranscriptLine? _currentActiveTranscriptLine() {
@@ -405,6 +388,25 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                         ),
                       ),
                     ),
+                    if (_episode.hasLevel) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: categoryColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: categoryColor.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          _episode.level!.trim(),
+                          style: TextStyle(
+                            color: categoryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                     // Episode Name
                     Expanded(
                       child: SelectableText(

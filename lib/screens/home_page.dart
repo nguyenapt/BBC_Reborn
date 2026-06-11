@@ -63,12 +63,21 @@ class _HomePageState extends State<HomePage> {
 
       print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
-      final anotherSeries = await _loadAnotherSeriesCategories();
-      final bsaEpisodes =
-          await _episodeCacheService.getAnotherSeriesFixedCategoryEpisodes('BSA');
-      final bsaCategory =
-          bsaEpisodes.isNotEmpty ? Category(name: 'BSA', episodes: bsaEpisodes) : null;
-      print('Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}');
+      List<Category> anotherSeries = [];
+      Category? bsaCategory;
+      if (CategoryNames.showAnotherSeries) {
+        anotherSeries = await _loadAnotherSeriesCategories();
+        final bsaEpisodes = await _episodeCacheService
+            .getAnotherSeriesFixedCategoryEpisodes('BSA');
+        bsaCategory = bsaEpisodes.isNotEmpty
+            ? Category(name: 'BSA', episodes: bsaEpisodes)
+            : null;
+        print(
+          'Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}',
+        );
+      } else {
+        print('Loaded ${categories.length} categories');
+      }
 
       _preloadImages(categories, anotherSeries, bsaCategory: bsaCategory);
 
@@ -410,13 +419,14 @@ class _HomePageState extends State<HomePage> {
   /// BSA bỏ qua khi đã có [_bsaCategory] (tránh trùng key `BSA` trong List/HomePage.json).
   List<Category> _remainingHomeCategories() {
     return _categories.where((c) {
-      if (c.name == '6M' || c.name == 'TEWS' || c.name == 'REE') return false;
+      if (CategoryNames.isPrimaryTab(c.name)) return false;
       if (c.name == 'BSA' && _bsaCategory != null) return false;
       return true;
     }).toList();
   }
 
   Widget _buildAnotherSeriesSection() {
+    if (!CategoryNames.showAnotherSeries) return const SizedBox.shrink();
     if (_anotherSeriesCategories.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -529,30 +539,39 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   _buildCategoryCard(
                     width: cardWidth,
-                    letter: '6',
-                    title: _languageManager.getText('categorySixMinutes'),
+                    letter: 'A',
+                    title: _languageManager.getText('categoryAmerican'),
+                    subtitle: _languageManager.getText('categoryStory'),
+                    color: cardColor,
+                    badgeColor: theme.colorScheme.primary,
+                    onTap: () => _navigateToCategory('AMS'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: 'O',
+                    title: _languageManager.getText('categoryOur'),
+                    subtitle: _languageManager.getText('categoryNarrative'),
+                    color: cardColor,
+                    badgeColor: theme.colorScheme.primary,
+                    onTap: () => _navigateToCategory('ON'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
+                    letter: 'N',
+                    title: _languageManager.getText('categoryNatural'),
                     subtitle: _languageManager.getText('categoryConversation'),
                     color: cardColor,
                     badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('6M'),
+                    onTap: () => _navigateToCategory('NC'),
                   ),
                   _buildCategoryCard(
                     width: cardWidth,
-                    letter: 'T',
-                    title: _languageManager.getText('categoryTheEnglish'),
-                    subtitle: _languageManager.getText('categoryWeSpeak'),
+                    letter: 'S',
+                    title: _languageManager.getText('categorySimple'),
+                    subtitle: _languageManager.getText('categoryConversation'),
                     color: cardColor,
                     badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('TEWS'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'R',
-                    title: _languageManager.getText('categoryRealEasy'),
-                    subtitle: _languageManager.getText('categoryEnglish'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('REE'),
+                    onTap: () => _navigateToCategory('SC'),
                   ),
                   _buildCategoryCard(
                     width: cardWidth,
@@ -563,15 +582,16 @@ class _HomePageState extends State<HomePage> {
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('EG'),
                   ),
-                  _buildCategoryCard(
-                    width: constraints.maxWidth,
-                    letter: 'A',
-                    title: 'Another',
-                    subtitle: 'Series',
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('AS'),
-                  ),
+                  if (CategoryNames.showAnotherSeries)
+                    _buildCategoryCard(
+                      width: constraints.maxWidth,
+                      letter: 'A',
+                      title: 'Another',
+                      subtitle: 'Series',
+                      color: cardColor,
+                      badgeColor: theme.colorScheme.primary,
+                      onTap: () => _navigateToCategory('AS'),
+                    ),
                 ],
               );
             },
@@ -759,11 +779,11 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Priority sections: 6M -> TEWS -> REE
+          // Priority sections: AMS -> ON -> NC -> SC
           SliverList(
             delegate: SliverChildListDelegate(
               [
-                for (final name in const ['6M', 'TEWS', 'REE'])
+                for (final name in CategoryNames.primaryTabCodes)
                   ..._categories
                       .where((c) => c.name == name)
                       .map(
@@ -773,7 +793,7 @@ class _HomePageState extends State<HomePage> {
                           onViewAllTap: _navigateToCategory,
                         ),
                       ),
-                if (_bsaCategory != null)
+                if (CategoryNames.showAnotherSeries && _bsaCategory != null)
                   CategoryGroupBox(
                     category: _bsaCategory!,
                     onEpisodeTap: _navigateToEpisodeDetail,

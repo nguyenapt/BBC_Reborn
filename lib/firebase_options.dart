@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -49,24 +46,33 @@ class DefaultFirebaseOptions {
     }
   }
 
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAly0A7Gz63plAQ2L4V-KE8t4sIHxXKMVU',
+    appId: '1:666526516629:web:446e73b8882bf5cd62a29c',
+    messagingSenderId: '666526516629',
+    projectId: 'voa-learning-english-c75fe',
+    authDomain: 'voa-learning-english-c75fe.firebaseapp.com',
+    databaseURL: 'https://voa-learning-english-c75fe.firebaseio.com',
+    storageBucket: 'voa-learning-english-c75fe.appspot.com',
+    measurementId: 'G-8254ZCPEPE',
+  );
+
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD7EqjWjJJ41zmkLX98SdMZJ941fzla1cM',
-    appId: '1:128498222438:android:4b0456d020df0b3f0534a7',
-    messagingSenderId: '128498222438',
-    projectId: 'bbc-listening-english',
-    databaseURL: 'https://bbc-listening-english.firebaseio.com',
-    storageBucket: 'bbc-listening-english.appspot.com',
+    apiKey: 'AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw',
+    appId: '1:666526516629:android:5818cf39fcf1c5a262a29c',
+    messagingSenderId: '666526516629',
+    projectId: 'voa-learning-english-c75fe',
+    databaseURL: 'https://voa-learning-english-c75fe.firebaseio.com',
+    storageBucket: 'voa-learning-english-c75fe.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDqFQ2I7I1hJ8vEbe5xinI-PoSayWEpG2k',
-    appId: '1:128498222438:ios:6a28f807827da6ea0534a7',
-    messagingSenderId: '128498222438',
-    projectId: 'bbc-listening-english',
-    databaseURL: 'https://bbc-listening-english.firebaseio.com',
-    storageBucket: 'bbc-listening-english.appspot.com',
-    androidClientId: '128498222438-ajigulkv0l926j8fqh7gcb7g4psqog6o.apps.googleusercontent.com',
-    iosClientId: '128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com',
-    iosBundleId: 'com.learningenglish.studyingbbc.bbcReborn',
+    apiKey: 'AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw',
+    appId: '1:666526516629:ios:5818cf39fcf1c5a262a29c',
+    messagingSenderId: '666526516629',
+    projectId: 'voa-learning-english-c75fe',
+    databaseURL: 'https://voa-learning-english-c75fe.firebaseio.com',
+    storageBucket: 'voa-learning-english-c75fe.appspot.com',
+    iosBundleId: 'com.voalearningenglish.listeningskills',
   );
 }

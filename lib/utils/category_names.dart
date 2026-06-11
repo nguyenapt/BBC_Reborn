@@ -1,5 +1,15 @@
 class CategoryNames {
+  /// VOA primary tabs shown on Categories screen and Home priority sections.
+  static const List<String> primaryTabCodes = ['AMS', 'ON', 'NC', 'SC'];
+
+  /// Temporarily hide Another Series UI (Home card/section, Categories AS tab).
+  static const bool showAnotherSeries = false;
+
   static const Map<String, String> _categoryMapping = {
+    'AMS': 'American Story',
+    'ON': 'Our Narrative',
+    'NC': 'Natural Conversation',
+    'SC': 'Simple Conversation',
     '6M': '6 Minutes Conversation',
     'TEWS': 'The English We Speak',
     'REE': 'Real Easy English',
@@ -13,6 +23,14 @@ class CategoryNames {
     'EG': 'English Grammar',
     'OF': 'Office English',
     'EIM': 'English In Minute',
+  };
+
+  /// TabBar line-1 / line-2 l10n keys for [primaryTabCodes].
+  static const Map<String, List<String>> primaryTabLabelKeys = {
+    'AMS': ['categoryAmerican', 'categoryStory'],
+    'ON': ['categoryOur', 'categoryNarrative'],
+    'NC': ['categoryNatural', 'categoryConversation'],
+    'SC': ['categorySimple', 'categoryConversation'],
   };
 
   /// Sub-category codes under RTDB `AS` (Another Series). Thêm mã mới khi có series mới.
@@ -32,8 +50,13 @@ class CategoryNames {
 
   /// Opening these categories from Home should select the Another Series tab (`AS`).
   static bool opensAnotherSeriesTab(String categoryCode) {
+    if (!showAnotherSeries) return false;
     return anotherSeriesSubcategoryCodes.contains(categoryCode) ||
         anotherSeriesFixedProgramCodes.contains(categoryCode);
+  }
+
+  static bool isPrimaryTab(String categoryCode) {
+    return primaryTabCodes.contains(categoryCode);
   }
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category

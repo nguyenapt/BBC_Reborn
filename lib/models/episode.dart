@@ -14,6 +14,8 @@ class Episode {
   final String? transcriptHtml;
   final String? vocabulary;
   final List<dynamic>? vocabularies;
+  /// CEFR level (A1–C2) — chỉ có trên episode VOA.
+  final String? level;
 
   Episode({
     required this.actor,
@@ -31,13 +33,26 @@ class Episode {
     this.transcriptHtml,
     this.vocabulary,
     this.vocabularies,
+    this.level,
   });
 
-  factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
+  bool get hasLevel =>
+      level != null && level!.trim().isNotEmpty && level!.trim() != '--Select--';
+
+  factory Episode.fromJson(
+    Map<String, dynamic> json,
+    String episodeId, {
+    String? listCategory,
+  }) {
+    final rawCategory = json['Category']?.toString() ?? '';
+    final category = rawCategory.isNotEmpty
+        ? rawCategory
+        : (listCategory ?? '');
+
     return Episode(
       id: episodeId,
       actor: json['Actor']?.toString() ?? '',
-      category: json['Category']?.toString() ?? '',
+      category: category,
       duration: _formatDuration(json['Duration']),
       publishedDate: _parseDate(json['PublishedDate']),
       episodeName: json['EpisodeName']?.toString() ?? '',
@@ -50,6 +65,7 @@ class Episode {
       transcriptHtml: json['TranscriptHtml']?.toString(),
       vocabulary: json['Vocabulary']?.toString(),
       vocabularies: json['Vocabularies'] as List<dynamic>?,
+      level: json['Level']?.toString() ?? json['level']?.toString(),
     );
   }
 
@@ -107,6 +123,7 @@ class Episode {
       'fileUrl': fileUrl,
       'secondFileUrl': secondFileUrl,
       'id': id,
+      'level': level,
     };
   }
 
