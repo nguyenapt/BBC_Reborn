@@ -15,24 +15,31 @@ class SpeakingFeedbackService {
     required String spokenText,
     String? language,
   }) async {
-    await HeartService().consumeForAIFeature();
+    debugPrint('Speaking[evaluate] start referenceLen=${referenceText.length}');
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
 
-    final resultMap = await AIErrorHandler.withRetry(() async {
-      return AIErrorHandler.withProviderFallback(
-        (provider) => provider.evaluateSpeech(
-          referenceText: referenceText,
-          spokenText: spokenText,
-          language: language,
-        ),
-        primaryProvider,
-        backupProvider,
-      );
-    });
+    try {
+      final resultMap = await AIErrorHandler.withRetry(() async {
+        return AIErrorHandler.withProviderFallback(
+          (provider) => provider.evaluateSpeech(
+            referenceText: referenceText,
+            spokenText: spokenText,
+            language: language,
+          ),
+          primaryProvider,
+          backupProvider,
+        );
+      });
 
-    debugPrint('✅ Speaking feedback result: $resultMap');
-    return SpeakingFeedback.fromMap(resultMap);
+      await HeartService().consumeForAIFeature();
+
+      debugPrint('Speaking[evaluate] ok score=${resultMap['overallScore']}');
+      return SpeakingFeedback.fromMap(resultMap);
+    } catch (e) {
+      debugPrint('Speaking[evaluate] failed: $e');
+      rethrow;
+    }
   }
 }

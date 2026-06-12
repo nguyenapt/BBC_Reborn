@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../models/question.dart';
+import '../models/transcript_line.dart';
 import '../services/ai_question_service.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../services/ai/exceptions.dart';
@@ -75,12 +76,15 @@ class _QuestionSlideState extends State<QuestionSlide> {
     });
 
     try {
-      // Get transcript text
+      // Plain text only — avoid sending raw HTML to the AI prompt.
       String transcript = '';
-      if (widget.episode.transcriptHtml != null && widget.episode.transcriptHtml!.isNotEmpty) {
-        transcript = widget.episode.transcriptHtml!;
-      } else if (widget.episode.transcript.isNotEmpty) {
+      if (widget.episode.transcript.isNotEmpty) {
         transcript = widget.episode.transcript;
+      } else if (widget.episode.transcriptHtml != null &&
+          widget.episode.transcriptHtml!.isNotEmpty) {
+        final lines =
+            TranscriptLine.parseTranscriptHtml(widget.episode.transcriptHtml);
+        transcript = lines.map((line) => line.text).join(' ');
       }
 
       if (transcript.isEmpty) {

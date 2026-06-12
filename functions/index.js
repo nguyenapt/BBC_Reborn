@@ -1,6 +1,7 @@
 const {onValueCreated} = require("firebase-functions/v2/database");
 const {logger} = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {aiRequest} = require("./ai/aiRequest");
 
 /** Gọi trong handler, không gọi khi nạp file — tránh timeout khi CLI deploy phân tích code trên Windows. */
 function ensureAdmin() {
@@ -144,3 +145,5 @@ exports.onEpisodeCreated = onValueCreated(
     return null;
   },
 );
+
+exports.aiRequest = aiRequest;

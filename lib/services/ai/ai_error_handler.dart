@@ -17,6 +17,25 @@ class AIErrorHandler {
     return error?.toString() ?? '';
   }
 
+  /// STT cloud/local failures (Azure, Whisper fallback, empty transcript).
+  static bool _isSpeechTranscriptionFailure(String message) {
+    final lower = message.toLowerCase();
+    const markers = [
+      'speech recognition is not configured',
+      'azure speech key not configured',
+      'azure stt',
+      'transcribespeech',
+      'whisper',
+      'model_not_found',
+      'empty transcription',
+      'audio file is empty',
+    ];
+    for (final marker in markers) {
+      if (lower.contains(marker)) return true;
+    }
+    return false;
+  }
+
   /// Ẩn JSON, status code, tên provider, API key, stack trace, v.v.
   static bool _looksTechnical(String message) {
     final m = message.trim();
@@ -75,7 +94,22 @@ class AIErrorHandler {
     if (error is NetworkException) {
       return _languageManager.getText('aiNetworkError');
     }
-    if (error is APIException || error is InvalidResponseException) {
+    if (error is SpeechNotConfiguredException) {
+      return _languageManager.getText('speakingSttNotConfigured');
+    }
+    if (error is SpeakingAnalysisException) {
+      return _languageManager.getText('speakingAnalysisFailed');
+    }
+    if (error is APIException) {
+      if (_isSpeechTranscriptionFailure(raw)) {
+        return _languageManager.getText('speakingSttFailed');
+      }
+      return genericUserMessage;
+    }
+    if (error is InvalidResponseException) {
+      if (_isSpeechTranscriptionFailure(raw)) {
+        return _languageManager.getText('speakingSttFailed');
+      }
       return genericUserMessage;
     }
     if (error is AIException) {

@@ -107,15 +107,17 @@ class AIQuestionService {
       }
 
       // Save to both local and Firebase cache
-      if (questions.isNotEmpty) {
-        final questionsData = questions.map((q) => q.toJson()).toList();
-        await _cache.saveQuestionsToCache(episodeId, count, questionsData);
+      if (questions.isEmpty) {
+        throw InvalidResponseException('No valid questions parsed from AI response');
       }
+
+      final questionsData = questions.map((q) => q.toJson()).toList();
+      await _cache.saveQuestionsToCache(episodeId, count, questionsData);
 
       return questions;
     } catch (e) {
       debugPrint('Error generating questions: $e');
-      throw AIException('Failed to generate questions: ${AIErrorHandler.getErrorMessage(e)}', e);
+      rethrow;
     }
   }
 

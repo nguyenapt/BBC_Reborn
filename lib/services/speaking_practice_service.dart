@@ -174,7 +174,9 @@ class SpeakingPracticeService {
       }
     }
 
-    _cleanupRecording(recordingPath);
+    debugPrint(
+      'Speaking[evaluate] file path=$recordingPath bytes=${audioBytes.length}',
+    );
 
     final recognizedText =
         await _sttService.transcribeWavBytes(audioBytes, language: language);
@@ -183,6 +185,8 @@ class SpeakingPracticeService {
       spokenText: recognizedText,
       language: language,
     );
+
+    _cleanupRecording(recordingPath);
 
     final feedbackJson = jsonEncode(feedback.toMap());
 

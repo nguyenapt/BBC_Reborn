@@ -7,7 +7,21 @@ import 'json_parser_helper.dart';
 import '../../config/ai_config.dart';
 
 /// Google Gemini AI Provider (Free tier)
+/// Deprecated: use [CloudAIProvider] when [AIConfig.useCloudAI] is true.
+@Deprecated('Use CloudAIProvider via AIProviderFactory when useCloudAI is true')
 class GeminiProvider implements AIProvider {
+  static String _resolveLocalGeminiKey() {
+    const googleApiKey = String.fromEnvironment('GOOGLE_API_KEY');
+    if (googleApiKey.isNotEmpty && googleApiKey != 'YOUR_GOOGLE_API_KEY') {
+      return googleApiKey;
+    }
+    const geminiApiKeyEnv = String.fromEnvironment('GEMINI_API_KEY');
+    if (geminiApiKeyEnv.isNotEmpty && geminiApiKeyEnv != 'YOUR_GEMINI_API_KEY') {
+      return geminiApiKeyEnv;
+    }
+    return '';
+  }
+
   late final GenerativeModel _model;
   final RateLimiter _rateLimiter;
   bool _initialized = false;
@@ -25,7 +39,7 @@ class GeminiProvider implements AIProvider {
         return;
       }
       
-      final apiKey = AIConfig.getGeminiApiKey();
+      final apiKey = _resolveLocalGeminiKey();
       debugPrint('🔑 Gemini API Key check: isEmpty=${apiKey.isEmpty}, length=${apiKey.length}');
       
       if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY') {
@@ -91,7 +105,7 @@ class GeminiProvider implements AIProvider {
     debugPrint('🔍 Checking Gemini availability: initialized=$_initialized');
     if (!_initialized) {
       // Try to initialize if not already done
-      final apiKey = AIConfig.getGeminiApiKey();
+      final apiKey = _resolveLocalGeminiKey();
       if (apiKey.isNotEmpty && apiKey != 'YOUR_GEMINI_API_KEY') {
         debugPrint('🔄 Attempting late initialization...');
         _initializeModel(apiKey);
@@ -112,7 +126,7 @@ class GeminiProvider implements AIProvider {
     // Lazy initialization for web platform
     if (!_initialized) {
       if (kIsWeb) {
-        final apiKey = AIConfig.getGeminiApiKey();
+        final apiKey = _resolveLocalGeminiKey();
         if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY') {
           throw APIException('Gemini API key not configured');
         }

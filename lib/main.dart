@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -40,6 +41,25 @@ void main() async {
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await FirebaseAppCheck.instance.activate(
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider:
+          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+    );
+    if (kDebugMode) {
+      try {
+        await FirebaseAppCheck.instance.getToken(true);
+        debugPrint('✅ App Check debug token OK');
+      } catch (e) {
+        debugPrint(
+          '⚠️ App Check chưa có debug token. Mở Logcat, filter '
+          '"DebugAppCheckProvider", copy UUID → Firebase Console → '
+          'App Check → Manage debug tokens → Add.',
+        );
+        debugPrint('   Chi tiết: $e');
+      }
+    }
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await PushNotificationService.instance.initialize();
   }

@@ -46,6 +46,7 @@ app.*.map.json
 
 # Firebase Functions
 functions/node_modules/
+functions/.secret.local
 
 # API Keys - DO NOT COMMIT!
 # Uncomment the line below to ignore ai_config.dart (if you want to hardcode keys for dev)

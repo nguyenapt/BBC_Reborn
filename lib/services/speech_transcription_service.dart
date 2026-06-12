@@ -1,11 +1,14 @@
 import 'dart:convert';
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 import '../config/ai_config.dart';
+import 'ai/ai_provider_factory.dart';
 import 'ai/exceptions.dart';
 import 'azure_stt_service.dart';
 
-/// Azure STT ưu tiên; nếu chưa cấu hình Azure thì dùng OpenAI Whisper (cùng API key OpenAI).
+/// STT: Cloud Function (production) or local Azure/Whisper (dev when useCloudAI=false).
 class SpeechTranscriptionService {
   final AzureSttService _azure = AzureSttService();
 
@@ -21,6 +24,12 @@ class SpeechTranscriptionService {
     String filePath, {
     String language = 'en-US',
   }) async {
+    if (AIConfig.effectiveUseCloudAI) {
+      throw APIException(
+        'Cloud STT requires audio bytes; use transcribeWavBytes on mobile.',
+      );
+    }
+
     final azureKey = AIConfig.getAzureSpeechKey();
     if (azureKey.isNotEmpty) {
       return _azure.transcribeWavFile(filePath, language: language);
@@ -34,6 +43,23 @@ class SpeechTranscriptionService {
     Uint8List audioBytes, {
     String language = 'en-US',
   }) async {
+    if (AIConfig.effectiveUseCloudAI) {
+      debugPrint(
+        'Speaking[stt] cloud transcribeSpeech bytes=${audioBytes.length}',
+      );
+      try {
+        final text = await AIProviderFactory.getCloudProvider().transcribeSpeech(
+          audioBytes,
+          language: language,
+        );
+        debugPrint('Speaking[stt] cloud ok length=${text.length}');
+        return text;
+      } catch (e) {
+        debugPrint('Speaking[stt] cloud failed: $e');
+        rethrow;
+      }
+    }
+
     final azureKey = AIConfig.getAzureSpeechKey();
     if (azureKey.isNotEmpty) {
       return _azure.transcribeWavBytes(audioBytes, language: language);
@@ -46,14 +72,9 @@ class SpeechTranscriptionService {
     String filePath, {
     required String language,
   }) async {
-    final key = AIConfig.getOpenAIApiKey();
+    final key = AIConfig.getWhisperApiKey();
     if (key.isEmpty) {
-      throw APIException(
-        'Speech recognition is not configured. '
-        'Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (or AZURE_SPEECH_ENDPOINT) in '
-        'environment variables or lib/config/ai_config.dart, '
-        'or set OPENAI_API_KEY / openaiApiKey to use Whisper as fallback.',
-      );
+      throw SpeechNotConfiguredException();
     }
 
     final lang = _whisperLanguageCode(language);
@@ -72,14 +93,9 @@ class SpeechTranscriptionService {
     Uint8List audioBytes, {
     required String language,
   }) async {
-    final key = AIConfig.getOpenAIApiKey();
+    final key = AIConfig.getWhisperApiKey();
     if (key.isEmpty) {
-      throw APIException(
-        'Speech recognition is not configured. '
-        'Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (or AZURE_SPEECH_ENDPOINT) in '
-        'environment variables or lib/config/ai_config.dart, '
-        'or set OPENAI_API_KEY / openaiApiKey to use Whisper as fallback.',
-      );
+      throw SpeechNotConfiguredException();
     }
 
     final lang = _whisperLanguageCode(language);
