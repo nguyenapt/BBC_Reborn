@@ -36,18 +36,46 @@ function extractBalancedJson(text, openChar, closeChar) {
  * @param {string} response
  * @returns {Record<string, unknown>}
  */
-function parseJsonObject(response) {
-  const markdownMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+function parseJsonWithHint(response, openChar, closeChar) {
+  const markdownPattern = openChar === "{" ?
+    /```(?:json)?\s*(\{[\s\S]*?\})\s*```/ :
+    /```(?:json)?\s*(\[[\s\S]*?\])\s*```/;
+  const markdownMatch = response.match(markdownPattern);
   if (markdownMatch) {
-    return JSON.parse(markdownMatch[1].trim());
+    try {
+      return JSON.parse(markdownMatch[1].trim());
+    } catch (err) {
+      throw new Error(
+          `JSON parse failed (markdown): ${err instanceof Error ? err.message : err}. ` +
+          `Snippet: ${response.slice(0, 300)}`,
+      );
+    }
   }
 
-  const balanced = extractBalancedJson(response, "{", "}");
+  const balanced = extractBalancedJson(response, openChar, closeChar);
   if (balanced) {
-    return JSON.parse(balanced);
+    try {
+      return JSON.parse(balanced);
+    } catch (err) {
+      throw new Error(
+          `JSON parse failed (balanced): ${err instanceof Error ? err.message : err}. ` +
+          `Snippet: ${balanced.slice(0, 300)}`,
+      );
+    }
   }
 
-  return JSON.parse(response.trim());
+  try {
+    return JSON.parse(response.trim());
+  } catch (err) {
+    throw new Error(
+        `JSON parse failed: ${err instanceof Error ? err.message : err}. ` +
+        `Snippet: ${response.slice(0, 300)}`,
+    );
+  }
+}
+
+function parseJsonObject(response) {
+  return parseJsonWithHint(response, "{", "}");
 }
 
 /**
@@ -55,18 +83,7 @@ function parseJsonObject(response) {
  * @returns {Array<Record<string, unknown>>}
  */
 function parseJsonArray(response) {
-  const markdownMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-  if (markdownMatch) {
-    const parsed = JSON.parse(markdownMatch[1].trim());
-    return parsed;
-  }
-
-  const balanced = extractBalancedJson(response, "[", "]");
-  if (balanced) {
-    return JSON.parse(balanced);
-  }
-
-  return JSON.parse(response.trim());
+  return parseJsonWithHint(response, "[", "]");
 }
 
 module.exports = {parseJsonObject, parseJsonArray};

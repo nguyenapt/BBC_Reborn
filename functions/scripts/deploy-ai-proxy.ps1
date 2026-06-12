@@ -3,6 +3,7 @@
 #
 #   firebase functions:secrets:set AI_OPENAI_API_KEY
 #   firebase functions:secrets:set AI_GEMINI_API_KEY
+#   firebase functions:secrets:set AI_AZURE_SPEECH_KEY
 #
 # Seed RTDB config (requires RTDB write access via service account or Console):
 #   Upload functions/ai_server_config.seed.json to /ai_server_config in Firebase Console

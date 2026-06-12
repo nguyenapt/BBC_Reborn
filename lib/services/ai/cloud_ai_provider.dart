@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -193,6 +195,22 @@ class CloudAIProvider implements AIProvider {
       if (context != null) 'context': context,
     });
     return Map<String, dynamic>.from(data as Map);
+  }
+
+  /// Speech-to-text via Cloud Function `transcribeSpeech` (Azure / Whisper on server).
+  Future<String> transcribeSpeech(
+    Uint8List audioBytes, {
+    String language = 'en-US',
+  }) async {
+    final data = await _callAction('transcribeSpeech', {
+      'audioBase64': base64Encode(audioBytes),
+      'language': language,
+    });
+    final text = data.toString().trim();
+    if (text.isEmpty) {
+      throw InvalidResponseException('Empty transcription from Cloud STT');
+    }
+    return text;
   }
 
   @override

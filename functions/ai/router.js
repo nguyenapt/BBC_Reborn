@@ -1,5 +1,7 @@
 const {callGemini} = require("./providers/gemini");
 const {callOpenAI} = require("./providers/openai");
+const {callAzureStt} = require("./providers/azureStt");
+const {callWhisperStt} = require("./providers/whisperStt");
 const {buildPromptForAction} = require("./prompts");
 const {parseJsonObject, parseJsonArray} = require("./jsonParser");
 
@@ -27,7 +29,7 @@ async function invokeProvider(providerName, prompt, systemPrompt, keys, config) 
     const apiKey = keys.gemini;
     if (!apiKey) throw new Error("Gemini API key not configured");
     const model = models.gemini ?? "gemini-2.5-flash";
-    return callGemini(apiKey, model, prompt);
+    return callGemini(apiKey, model, prompt, systemPrompt);
   }
   if (providerName === "openai") {
     const apiKey = keys.openai;
@@ -45,7 +47,7 @@ async function invokeProvider(providerName, prompt, systemPrompt, keys, config) 
  * @returns {unknown}
  */
 function parseActionResponse(action, rawResponse, payload) {
-  if (action === "translate") {
+  if (action === "translate" || action === "transcribeSpeech") {
     return rawResponse.trim();
   }
 
@@ -88,13 +90,78 @@ function parseActionResponse(action, rawResponse, payload) {
 }
 
 /**
+ * @param {Record<string, unknown>} payload
+ * @param {Record<string, unknown>} config
+ * @param {{openai: string, gemini: string, azure: string}} keys
+ * @returns {Promise<{data: string, provider: string}>}
+ */
+async function routeTranscribeSpeech(payload, config, keys) {
+  const routes = /** @type {Record<string, string>} */ (config.routes ?? {});
+  const fallback = /** @type {Record<string, string>} */ (config.fallback ?? {});
+
+  const audioBase64 = typeof payload.audioBase64 === "string" ?
+    payload.audioBase64.trim() :
+    "";
+  if (!audioBase64) {
+    throw new Error("audioBase64 is required for transcribeSpeech");
+  }
+
+  const language = typeof payload.language === "string" ?
+    payload.language.trim() :
+    "en-US";
+  const audioBytes = Buffer.from(audioBase64, "base64");
+  const region = String(config.azureSpeechRegion ?? "southeastasia").trim();
+
+  const primary = routes.transcribeSpeech ?? "azure";
+  const fallbackProvider = fallback.transcribeSpeech;
+  const providersToTry = [primary];
+  if (fallbackProvider && fallbackProvider !== primary) {
+    providersToTry.push(fallbackProvider);
+  }
+
+  let lastError = null;
+  for (const providerName of providersToTry) {
+    try {
+      let transcript;
+      if (providerName === "azure") {
+        transcript = await callAzureStt(
+            keys.azure,
+            region,
+            audioBytes,
+            language,
+        );
+      } else if (providerName === "whisper") {
+        transcript = await callWhisperStt(keys.openai, audioBytes, language);
+      } else {
+        throw new Error(`Unknown STT provider: ${providerName}`);
+      }
+      return {data: transcript, provider: providerName};
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  const message = lastError instanceof Error ? lastError.message : String(lastError);
+  const code = lastError && typeof lastError === "object" && "code" in lastError ?
+    String(lastError.code) :
+    "STT_ERROR";
+  const err = new Error(`Speech transcription failed: ${message.slice(0, 240)}`);
+  err.code = code;
+  throw err;
+}
+
+/**
  * @param {string} action
  * @param {Record<string, unknown>} payload
  * @param {Record<string, unknown>} config
- * @param {{openai: string, gemini: string}} keys
+ * @param {{openai: string, gemini: string, azure: string}} keys
  * @returns {Promise<{data: unknown, provider: string}>}
  */
 async function routeAiRequest(action, payload, config, keys) {
+  if (action === "transcribeSpeech") {
+    return routeTranscribeSpeech(payload, config, keys);
+  }
+
   const routes = /** @type {Record<string, string>} */ (config.routes ?? {});
   const fallback = /** @type {Record<string, string>} */ (config.fallback ?? {});
 

@@ -8,11 +8,11 @@ import '../../config/ai_config.dart';
 
 /// Factory for creating AI providers with fallback logic
 class AIProviderFactory {
-  static AIProvider? _cloudProvider;
+  static CloudAIProvider? _cloudProvider;
   static AIProvider? _primaryProvider;
   static AIProvider? _backupProvider;
 
-  static AIProvider _createCloudProvider() {
+  static CloudAIProvider _createCloudProvider() {
     return CloudAIProvider();
   }
 
@@ -38,7 +38,7 @@ class AIProviderFactory {
     }
   }
 
-  static AIProvider getCloudProvider() {
+  static CloudAIProvider getCloudProvider() {
     _cloudProvider ??= _createCloudProvider();
     return _cloudProvider!;
   }

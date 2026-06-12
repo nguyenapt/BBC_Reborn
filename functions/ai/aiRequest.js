@@ -45,7 +45,7 @@ const aiRequest = onCall(
       }
 
       if (!isPackageAllowed(packageName, config)) {
-        logger.warn("Package not allowed", {packageName, action});
+        logger.warn(`Package not allowed package=${packageName} action=${action}`);
         throw new HttpsError("permission-denied", "Package not allowed");
       }
 
@@ -68,11 +68,18 @@ const aiRequest = onCall(
         const code = err && typeof err === "object" && "code" in err ?
           String(err.code) :
           "AI_ERROR";
-        // Chỉ log 1 string — logger.error(msg, meta) có thể crash trên Cloud Functions.
-        logger.error(
-            `AI request failed action=${action} package=${packageName} ` +
-            `code=${code} message=${message}`,
-        );
+        // Chỉ log 1 string — logger.error(msg, meta) crash trên bản deploy cũ.
+        try {
+          logger.error(
+              `AI request failed action=${action} package=${packageName} ` +
+              `code=${code} message=${message}`,
+          );
+        } catch (logErr) {
+          console.error(
+              `AI request failed action=${action} package=${packageName} ` +
+              `code=${code} message=${message} logErr=${logErr}`,
+          );
+        }
 
         if (code === "RATE_LIMIT") {
           throw new HttpsError("resource-exhausted", message);

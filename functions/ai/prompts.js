@@ -3,6 +3,25 @@
  */
 
 /**
+ * @param {string|undefined} context
+ * @param {string} word
+ * @param {number} maxLen
+ * @returns {string|undefined}
+ */
+function trimContextForWord(context, word, maxLen = 200) {
+  if (!context || !String(context).trim()) return undefined;
+  const text = String(context);
+  const wordLower = word.toLowerCase();
+  const sentences = text.split(/[.!?]\s+/);
+  const relevant = sentences
+      .filter((sentence) => sentence.toLowerCase().includes(wordLower))
+      .slice(0, 2)
+      .join(". ");
+  if (!relevant) return undefined;
+  return relevant.length > maxLen ? `${relevant.slice(0, maxLen)}...` : relevant;
+}
+
+/**
  * @param {string} text
  * @param {string} targetLanguage
  * @param {string|undefined} context
@@ -215,7 +234,8 @@ Important: Return ONLY the JSON array, nothing else.`,
  * @returns {{prompt: string, systemPrompt: string}}
  */
 function buildEnhanceVocabularyPrompt(word, meaning, context) {
-  const contextPart = context ? `\n\nContext: ${context}` : "";
+  const trimmedContext = trimContextForWord(context, word);
+  const contextPart = trimmedContext ? `\n\nContext: ${trimmedContext}` : "";
   return {
     prompt: `Enhance this English vocabulary with additional information.
 You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.

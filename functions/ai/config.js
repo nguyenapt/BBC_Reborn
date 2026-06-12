@@ -3,8 +3,9 @@ const admin = require("firebase-admin");
 
 const openaiKeySecret = defineSecret("AI_OPENAI_API_KEY");
 const geminiKeySecret = defineSecret("AI_GEMINI_API_KEY");
+const azureSpeechKeySecret = defineSecret("AI_AZURE_SPEECH_KEY");
 
-const AI_SECRETS = [openaiKeySecret, geminiKeySecret];
+const AI_SECRETS = [openaiKeySecret, geminiKeySecret, azureSpeechKeySecret];
 
 /** @type {Record<string, unknown>|null} */
 let cachedServerConfig = null;
@@ -15,11 +16,13 @@ const CONFIG_TTL_MS = 60_000;
 /** Cached API keys per function instance (cold start read once). */
 let cachedOpenaiKey = null;
 let cachedGeminiKey = null;
+let cachedAzureSpeechKey = null;
 
 const DEFAULT_SERVER_CONFIG = {
   allowedPackages:
     "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills",
   enabled: true,
+  azureSpeechRegion: "southeastasia",
   routes: {
     translate: "gemini",
     translateVocabularyBatch: "gemini",
@@ -29,10 +32,16 @@ const DEFAULT_SERVER_CONFIG = {
     enhanceVocabulary: "gemini",
     generateQuestions: "gemini",
     evaluateSpeech: "openai",
+    transcribeSpeech: "azure",
   },
   fallback: {
     translate: "openai",
+    translateVocabularyBatch: "openai",
     explainGrammar: "openai",
+    enhanceVocabulary: "openai",
+    generateQuestions: "openai",
+    evaluateSpeech: "gemini",
+    transcribeSpeech: "whisper",
   },
   models: {
     gemini: "gemini-2.5-flash",
@@ -51,6 +60,7 @@ const ALLOWED_ACTIONS = new Set([
   "enhanceVocabulary",
   "generateQuestions",
   "evaluateSpeech",
+  "transcribeSpeech",
 ]);
 
 function ensureAdmin() {
@@ -62,6 +72,34 @@ function ensureAdmin() {
 /**
  * @returns {Promise<Record<string, unknown>>}
  */
+/**
+ * Deep-merge RTDB config so partial `routes` / `fallback` updates do not drop defaults.
+ * @param {Record<string, unknown>} val
+ * @returns {Record<string, unknown>}
+ */
+function mergeServerConfig(val) {
+  const defaults = DEFAULT_SERVER_CONFIG;
+  if (!val || typeof val !== "object") {
+    return {...defaults};
+  }
+  return {
+    ...defaults,
+    ...val,
+    routes: {
+      ...defaults.routes,
+      ...(val.routes && typeof val.routes === "object" ? val.routes : {}),
+    },
+    fallback: {
+      ...defaults.fallback,
+      ...(val.fallback && typeof val.fallback === "object" ? val.fallback : {}),
+    },
+    models: {
+      ...defaults.models,
+      ...(val.models && typeof val.models === "object" ? val.models : {}),
+    },
+  };
+}
+
 async function loadServerConfig() {
   const now = Date.now();
   if (cachedServerConfig && now - configLoadedAt < CONFIG_TTL_MS) {
@@ -72,11 +110,9 @@ async function loadServerConfig() {
   try {
     const snap = await admin.database().ref("ai_server_config").once("value");
     const val = snap.val();
-    cachedServerConfig = val && typeof val === "object" ?
-      {...DEFAULT_SERVER_CONFIG, ...val} :
-      {...DEFAULT_SERVER_CONFIG};
+    cachedServerConfig = mergeServerConfig(val);
   } catch {
-    cachedServerConfig = {...DEFAULT_SERVER_CONFIG};
+    cachedServerConfig = mergeServerConfig(null);
   }
   configLoadedAt = now;
   return cachedServerConfig;
@@ -94,7 +130,7 @@ function isPackageAllowed(packageName, config) {
 }
 
 /**
- * @returns {{openai: string, gemini: string}}
+ * @returns {{openai: string, gemini: string, azure: string}}
  */
 function getApiKeys() {
   if (!cachedOpenaiKey) {
@@ -103,9 +139,13 @@ function getApiKeys() {
   if (!cachedGeminiKey) {
     cachedGeminiKey = geminiKeySecret.value();
   }
+  if (!cachedAzureSpeechKey) {
+    cachedAzureSpeechKey = azureSpeechKeySecret.value();
+  }
   return {
     openai: cachedOpenaiKey ? String(cachedOpenaiKey).trim() : "",
     gemini: cachedGeminiKey ? String(cachedGeminiKey).trim() : "",
+    azure: cachedAzureSpeechKey ? String(cachedAzureSpeechKey).trim() : "",
   };
 }
 
@@ -138,6 +178,7 @@ module.exports = {
   AI_SECRETS,
   openaiKeySecret,
   geminiKeySecret,
+  azureSpeechKeySecret,
   ALLOWED_ACTIONS,
   DEFAULT_SERVER_CONFIG,
   loadServerConfig,

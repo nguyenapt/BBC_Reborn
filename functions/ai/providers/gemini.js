@@ -6,20 +6,27 @@
  * @param {string} apiKey
  * @param {string} model
  * @param {string} prompt
+ * @param {string|undefined} systemPrompt
  * @returns {Promise<string>}
  */
-async function callGemini(apiKey, model, prompt) {
+async function callGemini(apiKey, model, prompt, systemPrompt) {
   const url =
     `https://generativelanguage.googleapis.com/v1beta/models/${model}` +
     `:generateContent?key=${encodeURIComponent(apiKey)}`;
 
+  /** @type {Record<string, unknown>} */
+  const requestBody = {
+    contents: [{parts: [{text: prompt}]}],
+    generationConfig: {temperature: 0.7, maxOutputTokens: 8192},
+  };
+  if (systemPrompt) {
+    requestBody.systemInstruction = {parts: [{text: systemPrompt}]};
+  }
+
   const response = await fetch(url, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      contents: [{parts: [{text: prompt}]}],
-      generationConfig: {temperature: 0.7},
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const bodyText = await response.text();

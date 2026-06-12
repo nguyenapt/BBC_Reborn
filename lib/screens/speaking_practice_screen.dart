@@ -475,8 +475,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     _repeatPulseController.stop();
     _repeatPulseController.reset();
 
+    ({String path, int durationMs})? kept;
     try {
-      final kept = await _practiceService.stopRecordingKeepFile();
+      kept = await _practiceService.stopRecordingKeepFile();
       await _ensureSession('repeat');
 
       final result = await _practiceService.evaluateRecordingFile(
@@ -503,9 +504,17 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         setState(() {
           _isProcessing = false;
           _repeatAnalysisInProgress = false;
+          if (kept != null) {
+            _repeatAwaitingSend = true;
+            _repeatPendingPath = kept.path;
+            _repeatPendingDurationMs = kept.durationMs;
+          }
         });
       }
-      _showError(e);
+      _showError(
+        e,
+        onRetry: kept != null ? () => _sendRepeatAnalysis() : null,
+      );
     } finally {
       _micStopInProgress = false;
     }
@@ -571,8 +580,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     _repeatPulseController.stop();
     _repeatPulseController.reset();
 
+    ({String path, int durationMs})? kept;
     try {
-      final kept = await _practiceService.stopRecordingKeepFile();
+      kept = await _practiceService.stopRecordingKeepFile();
       await _ensureSession('roleplay');
 
       final result = await _practiceService.evaluateRecordingFile(
@@ -600,9 +610,17 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         setState(() {
           _isProcessing = false;
           _roleplayAnalysisInProgress = false;
+          if (kept != null) {
+            _roleplayAwaitingSend = true;
+            _roleplayPendingPath = kept.path;
+            _roleplayPendingDurationMs = kept.durationMs;
+          }
         });
       }
-      _showError(e);
+      _showError(
+        e,
+        onRetry: kept != null ? () => _sendRoleplayAnalysis() : null,
+      );
     } finally {
       _micStopInProgress = false;
     }
@@ -645,17 +663,14 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       });
       await _navigateToAnalysis(result, _repeatSelectedLine!);
     } catch (e) {
-      _practiceService.discardRecordingFile(path);
       if (mounted) {
         setState(() {
           _isProcessing = false;
           _repeatAnalysisInProgress = false;
-          _repeatPendingPath = null;
-          _repeatPendingDurationMs = null;
-          _repeatAwaitingSend = false;
+          _repeatAwaitingSend = true;
         });
       }
-      _showError(e);
+      _showError(e, onRetry: () => _sendRepeatAnalysis());
     }
   }
 
@@ -698,17 +713,14 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       });
       await _navigateToAnalysis(result, line);
     } catch (e) {
-      _practiceService.discardRecordingFile(path);
       if (mounted) {
         setState(() {
           _isProcessing = false;
           _roleplayAnalysisInProgress = false;
-          _roleplayPendingPath = null;
-          _roleplayPendingDurationMs = null;
-          _roleplayAwaitingSend = false;
+          _roleplayAwaitingSend = true;
         });
       }
-      _showError(e);
+      _showError(e, onRetry: () => _sendRoleplayAnalysis());
     }
   }
 
@@ -756,9 +768,10 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  void _showError(dynamic error) {
+  void _showError(dynamic error, {VoidCallback? onRetry}) {
     if (!mounted) return;
     final message = AIErrorHandler.getErrorMessage(error);
+    final lm = LanguageManager();
 
     if (error is NoHeartsException) {
       final heartService = HeartService();
@@ -812,7 +825,15 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        action: onRetry != null
+            ? SnackBarAction(
+                label: lm.getText('retry'),
+                onPressed: onRetry,
+              )
+            : null,
+      ),
     );
   }
 

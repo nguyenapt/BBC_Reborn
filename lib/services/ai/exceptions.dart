@@ -43,3 +43,15 @@ class NoHeartsException extends AIException {
       : super('No hearts available. Please watch an ad to earn more hearts.', originalError);
 }
 
+/// STT not configured (local dev only — production uses Cloud STT).
+class SpeechNotConfiguredException extends AIException {
+  SpeechNotConfiguredException([dynamic originalError])
+      : super('Speech recognition is not configured for local dev.', originalError);
+}
+
+/// Speaking analysis (evaluateSpeech) failed after STT succeeded.
+class SpeakingAnalysisException extends AIException {
+  SpeakingAnalysisException([String? message, dynamic originalError])
+      : super(message ?? 'Speaking analysis failed.', originalError);
+}
+

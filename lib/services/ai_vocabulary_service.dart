@@ -17,6 +17,20 @@ class AIVocabularyService {
   final AICacheService _cache = AICacheService();
   final LanguageManager _languageManager = LanguageManager();
 
+  String? _relevantContext(String? context, String word) {
+    if (context == null || context.trim().isEmpty) return null;
+    final wordLower = word.toLowerCase();
+    final sentences = context.split(RegExp(r'[.!?]\s+'));
+    final relevant = sentences
+        .where((sentence) => sentence.toLowerCase().contains(wordLower))
+        .take(2)
+        .join('. ');
+    if (relevant.isEmpty) return null;
+    return relevant.length > 200
+        ? '${relevant.substring(0, 200)}...'
+        : relevant;
+  }
+
   /// Enhance vocabulary with additional information
   Future<EnhancedVocabulary> enhanceVocabulary(
     VocabularyItem item, {
@@ -42,6 +56,8 @@ class AIVocabularyService {
 
     await HeartService().consumeForAIFeature();
 
+    final trimmedContext = _relevantContext(context, item.vocab);
+
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
@@ -54,7 +70,7 @@ class AIVocabularyService {
           () => primaryProvider.enhanceVocabulary(
             item.vocab,
             item.mean,
-            context: context,
+            context: trimmedContext,
           ),
           maxRetries: 1, // Only 1 retry, then fallback
         );
@@ -70,7 +86,7 @@ class AIVocabularyService {
               response = await backupProvider.enhanceVocabulary(
                 item.vocab,
                 item.mean,
-                context: context,
+                context: trimmedContext,
               );
               debugPrint('✅ Backup provider (OpenAI) vocabulary enhancement successful');
             } else {
@@ -88,7 +104,7 @@ class AIVocabularyService {
               response = await backupProvider.enhanceVocabulary(
                 item.vocab,
                 item.mean,
-                context: context,
+                context: trimmedContext,
               );
               debugPrint('✅ Backup provider (OpenAI) vocabulary enhancement successful');
             } else {
@@ -122,16 +138,7 @@ class AIVocabularyService {
       return enhanced;
     } catch (e) {
       debugPrint('Error enhancing vocabulary: $e');
-      // Return basic enhanced vocabulary on error
-      return EnhancedVocabulary(
-        original: item,
-        synonyms: [],
-        antonyms: [],
-        exampleSentences: [],
-        collocations: [],
-        pronunciation: null,
-        wordForm: null,
-      );
+      rethrow;
     }
   }
 }
