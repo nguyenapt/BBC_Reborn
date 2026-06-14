@@ -218,21 +218,24 @@ class AITranslationService {
         });
       }
       
-      // Batch translate with provider fallback
-      Map<String, String> translations;
-      
-      try {
-        // Try primary provider first
-        debugPrint('🔄 Attempting batch translation with primary provider (Gemini)...');
-        translations = await AIErrorHandler.withRetry(
-          () => primaryProvider.translateVocabularyBatch(
-            preparedVocabList,
-            targetLanguage,
-          ),
-          maxRetries: 1, // Only 1 retry, then fallback
-        );
-        debugPrint('✅ Primary provider batch translation successful');
-      } catch (primaryError) {
+      // Batch translate with provider fallback (chunk to avoid truncated JSON)
+      Map<String, String> translations = {};
+      const chunkSize = 5;
+
+      Future<Map<String, String>> translateChunk(
+        List<Map<String, String>> chunk,
+      ) async {
+        try {
+          debugPrint(
+            '🔄 Attempting batch translation with primary provider (${chunk.length} words)...',
+          );
+          final result = await AIErrorHandler.withRetry(
+            () => primaryProvider.translateVocabularyBatch(chunk, targetLanguage),
+            maxRetries: 1,
+          );
+          debugPrint('✅ Primary provider batch translation successful');
+          return result;
+        } catch (primaryError) {
         // Check if it's a rate limit or quota error
         final shouldFallback = primaryError is RateLimitException || 
                               primaryError is APIException ||
@@ -242,69 +245,69 @@ class AITranslationService {
         if (shouldFallback) {
           debugPrint('⚠️ Primary provider failed: $primaryError');
           debugPrint('🔄 Falling back to backup provider (OpenAI)...');
-          
+
           try {
-            // Check if backup provider is available
             final backupAvailable = await backupProvider.isAvailable();
             if (!backupAvailable) {
               debugPrint('❌ Backup provider not available');
-              // If backup not available, throw original error with improved message
-              final primaryMessage = primaryError is APIException 
-                  ? primaryError.message 
-                  : (primaryError is RateLimitException 
-                      ? primaryError.message 
+              final primaryMessage = primaryError is APIException
+                  ? primaryError.message
+                  : (primaryError is RateLimitException
+                      ? primaryError.message
                       : primaryError.toString());
-              
+
               throw APIException(
                 'Translation failed: $primaryMessage. Backup provider (OpenAI) is not configured.',
                 null,
                 primaryError,
               );
             }
-            
-            // Try backup provider
-            translations = await backupProvider.translateVocabularyBatch(
-              preparedVocabList,
+
+            final result = await backupProvider.translateVocabularyBatch(
+              chunk,
               targetLanguage,
             );
             debugPrint('✅ Backup provider batch translation successful');
+            return result;
           } catch (backupError) {
             debugPrint('❌ Backup provider also failed: $backupError');
-            
-            // Extract messages from both errors
-            final primaryMessage = primaryError is APIException 
-                ? primaryError.message 
-                : (primaryError is RateLimitException 
-                    ? primaryError.message 
+
+            final primaryMessage = primaryError is APIException
+                ? primaryError.message
+                : (primaryError is RateLimitException
+                    ? primaryError.message
                     : primaryError.toString());
-            
-            // If backup error is about backup not available (from our check above),
-            // the error message already includes both, so just rethrow it
-            if (backupError is APIException && 
+
+            if (backupError is APIException &&
                 backupError.message.contains('Backup provider (OpenAI) is not configured')) {
-              rethrow; // Already has the right message
+              rethrow;
             }
-            
-            // If backup has a different meaningful error, combine both
+
             if (backupError is APIException || backupError is RateLimitException) {
-              final backupMessage = backupError is APIException 
-                  ? (backupError as APIException).message 
+              final backupMessage = backupError is APIException
+                  ? (backupError as APIException).message
                   : (backupError as RateLimitException).message;
-              
+
               throw APIException(
                 'Translation failed. Primary (Gemini): $primaryMessage. Backup (OpenAI): $backupMessage',
                 null,
                 backupError,
               );
-            } else {
-              // For other backup errors, throw original primary error
-              throw primaryError;
             }
+            throw primaryError;
           }
-        } else {
-          // For other errors, rethrow
-          rethrow;
         }
+        rethrow;
+        }
+      }
+
+      for (var i = 0; i < preparedVocabList.length; i += chunkSize) {
+        final end = (i + chunkSize < preparedVocabList.length)
+            ? i + chunkSize
+            : preparedVocabList.length;
+        final chunk = preparedVocabList.sublist(i, end);
+        final chunkTranslations = await translateChunk(chunk);
+        translations.addAll(chunkTranslations);
       }
       
       // Cache all translations

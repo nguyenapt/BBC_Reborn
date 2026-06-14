@@ -7,11 +7,21 @@ import 'json_parser_helper.dart';
 import '../../config/ai_config.dart';
 
 /// OpenAI Provider (Backup) - Using HTTP directly
+/// Deprecated: use [CloudAIProvider] when [AIConfig.useCloudAI] is true.
+@Deprecated('Use CloudAIProvider via AIProviderFactory when useCloudAI is true')
 class OpenAIProvider implements AIProvider {
+  static String _resolveLocalOpenAIKey() {
+    const envKey = String.fromEnvironment('OPENAI_API_KEY');
+    if (envKey.isNotEmpty && envKey != 'YOUR_OPENAI_API_KEY') {
+      return envKey;
+    }
+    return '';
+  }
+
   bool _initialized = false;
   final String? _apiKey;
-  
-  OpenAIProvider() : _apiKey = AIConfig.getOpenAIApiKey() {
+
+  OpenAIProvider() : _apiKey = _resolveLocalOpenAIKey() {
     debugPrint('🔑 OpenAI Provider: API key length=${_apiKey?.length ?? 0}');
     _initialize();
   }
