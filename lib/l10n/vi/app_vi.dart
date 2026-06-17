@@ -1,11 +1,11 @@
 class AppVi {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'VOA Learning English - ESL',
-    'welcomeMessage': 'Chào mừng đến với VOA Learning English - ESL!',
-    'homeTitleMain': 'VOA Learning English',
-    'homeTitleSub': 'ESL',
-    'homeHeroTitle': 'Chào mừng đến với VOA Learning English - ESL',
+    'appTitle': 'VOA Learning English',
+    'welcomeMessage': 'Chào mừng đến với VOA Learning English!',
+    'homeTitleMain': 'VOA',
+    'homeTitleSub': 'learning english',
+    'homeHeroTitle': 'Chào mừng đến với VOA Learning English',
     'homeHeroSubtitle': 'Luyện nghe hằng ngày với bài học ngắn, hiện đại.',
     'startPracticingListening': 'Bắt đầu luyện nghe',
     'chooseListeningCategory': 'Chọn danh mục luyện nghe',

@@ -57,7 +57,7 @@ class PushNotificationService {
       const AndroidNotificationChannel(
         _androidChannelId,
         _androidChannelName,
-        description: 'Thông báo khi có episode mới trên VOA Learning English - ESL',
+        description: 'Thông báo khi có episode mới trên VOA Learning English',
         importance: Importance.high,
       ),
     );
@@ -116,7 +116,7 @@ class PushNotificationService {
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     final n = message.notification;
-    final title = n?.title ?? message.data['title'] as String? ?? 'VOA Learning English - ESL';
+    final title = n?.title ?? message.data['title'] as String? ?? 'VOA Learning English';
     final body = n?.body ?? message.data['body'] as String? ?? '';
     final id = message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
 

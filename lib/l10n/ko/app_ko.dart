@@ -1,11 +1,11 @@
 class AppKo {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'VOA 영어 학습 - ESL',
-    'welcomeMessage': 'VOA Learning English - ESL에 오신 것을 환영합니다!',
-    'homeTitleMain': 'VOA Learning English',
-    'homeTitleSub': 'ESL',
-    'homeHeroTitle': 'VOA Learning English - ESL에 오신 것을 환영합니다',
+    'appTitle': 'VOA 영어 학습',
+    'welcomeMessage': 'VOA Learning English에 오신 것을 환영합니다!',
+    'homeTitleMain': 'VOA',
+    'homeTitleSub': 'learning english',
+    'homeHeroTitle': 'VOA Learning English에 오신 것을 환영합니다',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

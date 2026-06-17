@@ -13,11 +13,25 @@ function ensureAdmin() {
 /** Trùng với lib/services/push_notification_service.dart — fcmTopicNewEpisodes */
 const FCM_TOPIC = "episodes";
 
+const NOTIFICATION_TITLE = "VOA Learning English — new episode";
+const ANDROID_CHANNEL_ID = "voa_episode_push";
+
+/** Root nodes that must never trigger episode push. */
+const IGNORED_ROOT_CATEGORIES = new Set([
+  "HomePage",
+  "List",
+  "ai_cache",
+  "ai_server_config",
+]);
+
 /**
- * Các category có cấu trúc {cat}/{year}/{index} (như 6M/2026/0) — khớp getCategoryData trong app.
- * Không dùng HomePage/* vì thường là cập nhật nguyên list → ít khi chỉ onCreate từng tập.
+ * BBC-style categories: {cat}/{year}/{index} (6M/2026/0).
+ * Kept for legacy data if present on RTDB.
  */
-const EPISODE_CATEGORIES = new Set(["6M", "TEWS", "REE","EG"]);
+const EPISODE_CATEGORIES_WITH_YEAR = new Set(["6M", "TEWS", "REE", "EG"]);
+
+/** VOA primary tabs: {cat}/{index} (AMS/5). */
+const EPISODE_CATEGORIES_FLAT = new Set(["AMS", "ON", "NC", "SC"]);
 
 /**
  * Ghi log lỗi an toàn — tránh truyền Error thẳng vào logger (có thể gây TypeError trong firebase-functions/logger).
@@ -60,89 +74,133 @@ function safeSerializeErrorForLog(err) {
 }
 
 /**
- * Khi thêm node mới tại <category>/<year>/<episodeKey> (vd: 6M/2026/8), gửi FCM tới topic "episodes".
+ * @param {string} category
+ * @param {string|undefined|null} year
+ * @param {string} episodeKey
+ * @param {unknown} val
+ * @returns {Promise<null>}
  */
-exports.onEpisodeCreated = onValueCreated(
+async function handleEpisodeCreated(category, year, episodeKey, val) {
+  if (IGNORED_ROOT_CATEGORIES.has(category)) {
+    return null;
+  }
+
+  const hasYear = year != null && String(year).trim() !== "";
+  const allowed = hasYear ?
+    EPISODE_CATEGORIES_WITH_YEAR.has(category) :
+    EPISODE_CATEGORIES_FLAT.has(category);
+
+  if (!allowed) {
+    return null;
+  }
+
+  if (val == null || typeof val !== "object") {
+    return null;
+  }
+
+  const episodeName =
+    val.EpisodeName || val.episodeName || val.Title || val.title || "New episode";
+  const safeName = String(episodeName).slice(0, 120);
+  const idFromDoc = val.Id != null ? String(val.Id) : String(episodeKey);
+  const yearLabel = hasYear ? String(year) : "";
+  const bodySuffix = hasYear ?
+    `${category} · ${yearLabel}` :
+    category;
+
+  const payload = {
+    topic: FCM_TOPIC,
+    notification: {
+      title: NOTIFICATION_TITLE,
+      body: `${safeName} (${bodySuffix})`,
+    },
+    data: {
+      category: String(category),
+      year: yearLabel,
+      episodeKey: String(episodeKey),
+      episodeId: idFromDoc,
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+    },
+    android: {
+      priority: "high",
+      notification: {
+        channelId: ANDROID_CHANNEL_ID,
+        sound: "default",
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: "default",
+          badge: 1,
+        },
+      },
+    },
+  };
+
+  try {
+    ensureAdmin();
+    const messageId = await admin.messaging().send(payload);
+    logger.info("FCM sent for new episode", {
+      category,
+      year: yearLabel || undefined,
+      episodeKey,
+      messageId,
+    });
+  } catch (e) {
+    const details = safeSerializeErrorForLog(e);
+    let line;
+    try {
+      line = `FCM send failed: ${JSON.stringify(details)}`;
+    } catch {
+      line = `FCM send failed: ${details.message || "unknown"}`;
+    }
+    logger.error(line);
+    console.error(line);
+  }
+  return null;
+}
+
+/**
+ * BBC-style / year-based: {category}/{year}/{episodeKey} (vd: 6M/2026/8).
+ */
+exports.onEpisodeCreatedWithYear = onValueCreated(
   {
     ref: "{category}/{year}/{episodeKey}",
     region: "us-central1",
   },
   async (event) => {
-    const category = event.params.category;
-    const year = event.params.year;
-    const episodeKey = event.params.episodeKey;
-
-    if (!EPISODE_CATEGORIES.has(category)) {
-      return null;
-    }
-
     const snapshot = event.data;
     if (!snapshot) {
       return null;
     }
+    return handleEpisodeCreated(
+      event.params.category,
+      event.params.year,
+      event.params.episodeKey,
+      snapshot.val(),
+    );
+  },
+);
 
-    const val = snapshot.val();
-    if (val == null || typeof val !== "object") {
+/**
+ * VOA primary tabs: {category}/{episodeKey} (vd: AMS/5).
+ */
+exports.onEpisodeCreatedFlat = onValueCreated(
+  {
+    ref: "{category}/{episodeKey}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) {
       return null;
     }
-
-    const episodeName =
-      val.EpisodeName || val.episodeName || val.Title || val.title || "New episode";
-    const safeName = String(episodeName).slice(0, 120);
-    const idFromDoc = val.Id != null ? String(val.Id) : String(episodeKey);
-
-    const payload = {
-      topic: FCM_TOPIC,
-      notification: {
-        title: "BBC Learning English — new episode",
-        body: `${safeName} (${category} · ${year})`,
-      },
-      data: {
-        category: String(category),
-        year: String(year),
-        episodeKey: String(episodeKey),
-        episodeId: idFromDoc,
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-      },
-      android: {
-        priority: "high",
-        notification: {
-          channelId: "bbc_episode_push",
-          sound: "default",
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-            badge: 1,
-          },
-        },
-      },
-    };
-
-    try {
-      ensureAdmin();
-      const messageId = await admin.messaging().send(payload);
-      logger.info("FCM sent for new episode", {
-        category,
-        year,
-        episodeKey,
-        messageId,
-      });
-    } catch (e) {
-      // Chỉ truyền 1 string — logger.error(msg, meta) có thể gây TypeError (đọc .error trên undefined).
-      const details = safeSerializeErrorForLog(e);
-      let line;
-      try {
-        line = `FCM send failed: ${JSON.stringify(details)}`;
-      } catch {
-        line = `FCM send failed: ${details.message || "unknown"}`;
-      }
-      logger.error(line);
-      console.error(line);
-    }
-    return null;
+    return handleEpisodeCreated(
+      event.params.category,
+      null,
+      event.params.episodeKey,
+      snapshot.val(),
+    );
   },
 );
 

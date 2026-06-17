@@ -63,7 +63,7 @@ class MainActivity : FlutterActivity() {
         mediaChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "showNotification" -> {
-                    val title = call.argument<String>("title") ?: "VOA Learning English - ESL"
+                    val title = call.argument<String>("title") ?: "VOA Learning English"
                     val content = call.argument<String>("content") ?: "Đang phát audio"
                     val isPlaying = call.argument<Boolean>("isPlaying") ?: false
                     val episodeId = call.argument<String>("episodeId")
@@ -78,7 +78,7 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "updateNotification" -> {
-                    val title = call.argument<String>("title") ?: "VOA Learning English - ESL"
+                    val title = call.argument<String>("title") ?: "VOA Learning English"
                     val content = call.argument<String>("content") ?: "Đang phát audio"
                     val isPlaying = call.argument<Boolean>("isPlaying") ?: false
                     val episodeId = call.argument<String>("episodeId")

@@ -1,11 +1,11 @@
 class AppEs {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'VOA Aprende Inglés - ESL',
-    'welcomeMessage': '¡Bienvenido a VOA Learning English - ESL!',
-    'homeTitleMain': 'VOA Learning English',
-    'homeTitleSub': 'ESL',
-    'homeHeroTitle': 'Bienvenido a VOA Learning English - ESL',
+    'appTitle': 'VOA Aprende Inglés',
+    'welcomeMessage': '¡Bienvenido a VOA Learning English!',
+    'homeTitleMain': 'VOA',
+    'homeTitleSub': 'learning english',
+    'homeHeroTitle': 'Bienvenido a VOA Learning English',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

@@ -17,7 +17,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     
     <application
-        android:label="VOA Learning English - ESL"
+        android:label="VOA Learning English"
         android:name="${applicationName}"
         android:icon="@mipmap/logo">
         <activity

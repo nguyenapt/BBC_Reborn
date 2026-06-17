@@ -1,75 +1,89 @@
+import 'package:flutter/foundation.dart';
+
 enum AIProviderType {
   gemini,
   openai,
 }
 
 class AIConfig {
-  // Gemini (Free)
-  // Get free API key from: https://aistudio.google.com/app/apikey
-  // Official guide: https://ai.google.dev/gemini-api/docs/api-key
-  // SECURITY: Never commit API keys to source control!
-  // Use environment variable GEMINI_API_KEY or GOOGLE_API_KEY instead
-  static const String geminiApiKey = 'GEMINI_API_KEY';
-  static const int geminiRateLimit = 15; // requests per minute
-  static const String geminiModel = 'gemini-2.5-flash'; // Official model name from https://ai.google.dev/gemini-api/docs/api-key
-  
-  // OpenAI (Backup)
-  // TODO: Replace with your actual API key
-  // Get API key from: https://platform.openai.com/api-keys
-  static const String openaiApiKey = 'OPENAI_API_KEY';
-  static const String openaiModel = 'gpt-3.5-turbo'; // Cheaper option
-  
+  /// When true, LLM requests go through Firebase Callable `aiRequest` (mobile only).
+  static const bool useCloudAI = true;
+
+  /// Cloud AI requires Firebase + App Check on device; web is not configured yet.
+  static bool get effectiveUseCloudAI => useCloudAI && !kIsWeb;
+  // Model names (used for cache keys / sync with server config)
+  static const int geminiRateLimit = 15; // local GeminiProvider dev only
+  static const String geminiModel = 'gemini-2.5-flash';
+  static const String openaiModel = 'gpt-4o-mini';
+
+  // Azure STT — local dev only when [effectiveUseCloudAI] is false.
+  // Production uses Cloud Function transcribeSpeech + AI_AZURE_SPEECH_KEY secret.
+  static const String azureSpeechKey = '';
+  static const String azureSpeechRegion = 'southeastasia';
+  /// Leave empty to build STT URL from [azureSpeechRegion].
+  /// Do not use *.tts.speech.microsoft.com (that is Text-to-Speech, not STT).
+  static const String azureSpeechEndpoint = '';
+
   // Feature flags
   static const bool enableTranslation = true;
   static const bool enableGrammar = true;
   static const bool enableQuestions = true;
   static const bool enableVocabularyEnhancement = true;
-  
-  // Primary provider
+
+  // Primary provider (local dev only when useCloudAI is false)
   static const AIProviderType primaryProvider = AIProviderType.gemini;
-  
-  // Get API key from environment variables first, then fallback to hardcoded constant
-  // According to official guide: https://ai.google.dev/gemini-api/docs/api-key
-  // Supports both GEMINI_API_KEY and GOOGLE_API_KEY (GOOGLE_API_KEY takes precedence)
-  // SECURITY: For production, use environment variables! Hardcoded keys are for development only.
-  static String getGeminiApiKey() {
-    // Try GOOGLE_API_KEY first (takes precedence according to Google docs)
-    const googleApiKey = String.fromEnvironment('GOOGLE_API_KEY');
-    if (googleApiKey.isNotEmpty && googleApiKey != 'YOUR_GOOGLE_API_KEY') {
-      return googleApiKey;
-    }
-    
-    // Try GEMINI_API_KEY
-    const geminiApiKeyEnv = String.fromEnvironment('GEMINI_API_KEY');
-    if (geminiApiKeyEnv.isNotEmpty && geminiApiKeyEnv != 'YOUR_GEMINI_API_KEY') {
-      return geminiApiKeyEnv;
-    }
-    
-    // Fallback to hardcoded constant (for development)
-    // WARNING: In production, use environment variables instead!
-    if (geminiApiKey.isNotEmpty && geminiApiKey != 'YOUR_GEMINI_API_KEY') {
-      return geminiApiKey;
-    }
-    
-    // No API key found - return empty string (will cause error in provider)
-    return '';
-  }
-  
-  static String getOpenAIApiKey() {
-    // Try to get from environment variable first
+
+  // Grammar behavior/versioning (MUST_SYNC playMP3/GrammarCacheConstants.cs)
+  static const String grammarPromptVersion = 'v2_detailed_learning_no_quiz';
+  static const String grammarSchemaVersion = 'v2';
+
+  // Firebase-only guardrails (operational reminders)
+  static const int keyRotationDays = 14;
+  static const int dailyGrammarSoftCapPerUser = 120;
+
+  /// Whisper STT — local dev only. Production STT is server-side (Azure/Whisper).
+  static String getWhisperApiKey() {
     const envKey = String.fromEnvironment('OPENAI_API_KEY');
     if (envKey.isNotEmpty && envKey != 'YOUR_OPENAI_API_KEY') {
       return envKey;
     }
-    
-    // Fallback to hardcoded constant (for development)
-    // WARNING: In production, use environment variables instead!
-    if (openaiApiKey.isNotEmpty && openaiApiKey != 'YOUR_OPENAI_API_KEY') {
-      return openaiApiKey;
-    }
-    
-    // No API key found - return empty string (will cause error in provider)
     return '';
   }
-}
 
+  /// Azure STT key — local dev only. Not used on Play Store when useCloudAI=true.
+  static String getAzureSpeechKey() {
+    const envKey = String.fromEnvironment('AZURE_SPEECH_KEY');
+    if (envKey.isNotEmpty && envKey != 'YOUR_AZURE_SPEECH_KEY') {
+      return envKey;
+    }
+
+    if (azureSpeechKey.isNotEmpty && azureSpeechKey != 'YOUR_AZURE_SPEECH_KEY') {
+      return azureSpeechKey;
+    }
+
+    return '';
+  }
+
+  static String getAzureSpeechRegion() {
+    const envRegion = String.fromEnvironment('AZURE_SPEECH_REGION');
+    if (envRegion.isNotEmpty && envRegion != 'YOUR_AZURE_SPEECH_REGION') {
+      return envRegion;
+    }
+
+    if (azureSpeechRegion.isNotEmpty &&
+        azureSpeechRegion != 'YOUR_AZURE_SPEECH_REGION') {
+      return azureSpeechRegion;
+    }
+
+    return '';
+  }
+
+  static String getAzureSpeechEndpoint() {
+    const envEndpoint = String.fromEnvironment('AZURE_SPEECH_ENDPOINT');
+    if (envEndpoint.isNotEmpty) {
+      return envEndpoint;
+    }
+
+    return azureSpeechEndpoint;
+  }
+}

@@ -1,5 +1,5 @@
 name: bbc_reborn
-description: "VOA Learning English - ESL - Học tiếng Anh qua các bài nghe, ngữ pháp và từ vựng."
+description: "VOA Learning English - Học tiếng Anh qua các bài nghe, ngữ pháp và từ vựng."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

@@ -1,11 +1,11 @@
 class AppZh {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'VOA英语学习 - ESL',
-    'welcomeMessage': '欢迎使用 VOA Learning English - ESL！',
-    'homeTitleMain': 'VOA Learning English',
-    'homeTitleSub': 'ESL',
-    'homeHeroTitle': '欢迎使用 VOA Learning English - ESL',
+    'appTitle': 'VOA英语学习',
+    'welcomeMessage': '欢迎使用 VOA Learning English！',
+    'homeTitleMain': 'VOA',
+    'homeTitleSub': 'learning english',
+    'homeHeroTitle': '欢迎使用 VOA Learning English',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

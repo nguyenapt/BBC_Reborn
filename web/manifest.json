@@ -1,11 +1,11 @@
 {
-    "name": "VOA Learning English - ESL",
-    "short_name": "VOA ESL",
+    "name": "VOA Learning English",
+    "short_name": "VOA English",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#002060",
     "theme_color": "#002060",
-    "description": "Learn English through listening with VOA Learning English - ESL",
+    "description": "Learn English through listening with VOA Learning English",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

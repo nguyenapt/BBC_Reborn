@@ -1,11 +1,11 @@
 class AppRu {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'VOA Изучение Английского - ESL',
-    'welcomeMessage': 'Добро пожаловать в VOA Learning English - ESL!',
-    'homeTitleMain': 'VOA Learning English',
-    'homeTitleSub': 'ESL',
-    'homeHeroTitle': 'Добро пожаловать в VOA Learning English - ESL',
+    'appTitle': 'VOA Изучение Английского',
+    'welcomeMessage': 'Добро пожаловать в VOA Learning English!',
+    'homeTitleMain': 'VOA',
+    'homeTitleSub': 'learning english',
+    'homeHeroTitle': 'Добро пожаловать в VOA Learning English',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
