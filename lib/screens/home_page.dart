@@ -11,6 +11,7 @@ import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
 import '../utils/category_names.dart';
+import '../utils/lle_level_groups.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
@@ -32,7 +33,6 @@ class _HomePageState extends State<HomePage> {
   final LanguageManager _languageManager = LanguageManager();
   List<Category> _categories = [];
   List<Category> _anotherSeriesCategories = [];
-  Category? _bsaCategory;
   bool _isLoading = true;
   String? _error;
   late final String _heroImageAsset;
@@ -64,14 +64,8 @@ class _HomePageState extends State<HomePage> {
       print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
       List<Category> anotherSeries = [];
-      Category? bsaCategory;
       if (CategoryNames.showAnotherSeries) {
         anotherSeries = await _loadAnotherSeriesCategories();
-        final bsaEpisodes = await _episodeCacheService
-            .getAnotherSeriesFixedCategoryEpisodes('BSA');
-        bsaCategory = bsaEpisodes.isNotEmpty
-            ? Category(name: 'BSA', episodes: bsaEpisodes)
-            : null;
         print(
           'Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}',
         );
@@ -79,12 +73,11 @@ class _HomePageState extends State<HomePage> {
         print('Loaded ${categories.length} categories');
       }
 
-      _preloadImages(categories, anotherSeries, bsaCategory: bsaCategory);
+      _preloadImages(categories, anotherSeries);
 
       setState(() {
         _categories = categories;
         _anotherSeriesCategories = anotherSeries;
-        _bsaCategory = bsaCategory;
         _isLoading = false;
       });
     } catch (e) {
@@ -98,16 +91,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<Category>> _loadAnotherSeriesCategories() async {
     try {
-      final subKeys =
-          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: true);
       final list = <Category>[];
-      for (final sub in subKeys) {
-        final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
-          sub,
-          forHomePage: true,
-        );
+      for (final code in CategoryNames.anotherSeriesSubCodes) {
+        final episodes = await _episodeCacheService
+            .getCategoryEpisodesWithoutYear(code);
         if (episodes.isNotEmpty) {
-          list.add(Category(name: sub, episodes: episodes));
+          list.add(Category(name: code, episodes: episodes));
         }
       }
       return list;
@@ -120,17 +109,11 @@ class _HomePageState extends State<HomePage> {
   /// Preload images for better performance
   void _preloadImages(
     List<Category> categories,
-    List<Category> anotherSeries, {
-    Category? bsaCategory,
-  }) {
+    List<Category> anotherSeries,
+  ) {
     final imageUrls = <String>[];
     
-    // Collect all image URLs from first few episodes of each category
-    for (final category in [
-      ...categories,
-      ...anotherSeries,
-      if (bsaCategory != null) bsaCategory,
-    ]) {
+    for (final category in [...categories, ...anotherSeries]) {
       final episodes = category.episodes.take(3); // Only preload first 3 episodes
       for (final episode in episodes) {
         if (episode.thumbImage.isNotEmpty) {
@@ -162,18 +145,28 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
-    if (episodeCategory == null && _bsaCategory != null) {
-      if (_bsaCategory!.name == episode.category) {
-        episodeCategory = _bsaCategory;
-      }
-    }
 
     final resolvedCategory = episodeCategory;
     if (resolvedCategory != null) {
+      final List<Episode> categoryEpisodes;
+      if (resolvedCategory.name == 'LLE') {
+        categoryEpisodes = LleLevelGroups.episodesForPlaylist(
+          episode,
+          resolvedCategory.episodes,
+        );
+      } else if (CategoryNames.anotherSeriesSubCodes
+          .contains(resolvedCategory.name)) {
+        categoryEpisodes = LleLevelGroups.episodesForPlaylist(
+          episode,
+          resolvedCategory.episodes,
+        );
+      } else {
+        categoryEpisodes = resolvedCategory.episodes;
+      }
       EpisodeDetailOpenHelper.open(
         context: context,
         episode: episode,
-        categoryEpisodes: resolvedCategory.episodes,
+        categoryEpisodes: categoryEpisodes,
       );
     } else {
       // Fallback nếu không tìm thấy category
@@ -312,7 +305,6 @@ class _HomePageState extends State<HomePage> {
     for (final category in [
       ..._categories,
       ..._anotherSeriesCategories,
-      if (_bsaCategory != null) _bsaCategory!,
     ]) {
       for (final episode in category.episodes) {
         if (latest == null || episode.publishedDate.isAfter(latest.publishedDate)) {
@@ -415,12 +407,10 @@ class _HomePageState extends State<HomePage> {
     return assets[index];
   }
 
-  /// Categories từ [getHomePageData] chưa render ở block ưu tiên / Another Series.
-  /// BSA bỏ qua khi đã có [_bsaCategory] (tránh trùng key `BSA` trong List/HomePage.json).
   List<Category> _remainingHomeCategories() {
     return _categories.where((c) {
-      if (CategoryNames.isPrimaryTab(c.name)) return false;
-      if (c.name == 'BSA' && _bsaCategory != null) return false;
+      if (CategoryNames.isHomePrioritySection(c.name)) return false;
+      if (CategoryNames.anotherSeriesSubCodes.contains(c.name)) return false;
       return true;
     }).toList();
   }
@@ -548,6 +538,15 @@ class _HomePageState extends State<HomePage> {
                   ),
                   _buildCategoryCard(
                     width: cardWidth,
+                    letter: 'L',
+                    title: _languageManager.getText('categoryLets'),
+                    subtitle: _languageManager.getText('categoryLearnEnglish'),
+                    color: cardColor,
+                    badgeColor: theme.colorScheme.primary,
+                    onTap: () => _navigateToCategory('LLE'),
+                  ),
+                  _buildCategoryCard(
+                    width: cardWidth,
                     letter: 'O',
                     title: _languageManager.getText('categoryOur'),
                     subtitle: _languageManager.getText('categoryNarrative'),
@@ -555,24 +554,16 @@ class _HomePageState extends State<HomePage> {
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('ON'),
                   ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'N',
-                    title: _languageManager.getText('categoryNatural'),
-                    subtitle: _languageManager.getText('categoryConversation'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('NC'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'S',
-                    title: _languageManager.getText('categorySimple'),
-                    subtitle: _languageManager.getText('categoryConversation'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('SC'),
-                  ),
+                  if (CategoryNames.showAnotherSeries)
+                    _buildCategoryCard(
+                      width: cardWidth,
+                      letter: 'A',
+                      title: _languageManager.getText('categoryAnother'),
+                      subtitle: _languageManager.getText('categorySeries'),
+                      color: cardColor,
+                      badgeColor: theme.colorScheme.primary,
+                      onTap: () => _navigateToCategory('AS'),
+                    ),
                   _buildCategoryCard(
                     width: cardWidth,
                     letter: 'E',
@@ -582,16 +573,6 @@ class _HomePageState extends State<HomePage> {
                     badgeColor: theme.colorScheme.primary,
                     onTap: () => _navigateToCategory('EG'),
                   ),
-                  if (CategoryNames.showAnotherSeries)
-                    _buildCategoryCard(
-                      width: constraints.maxWidth,
-                      letter: 'A',
-                      title: 'Another',
-                      subtitle: 'Series',
-                      color: cardColor,
-                      badgeColor: theme.colorScheme.primary,
-                      onTap: () => _navigateToCategory('AS'),
-                    ),
                 ],
               );
             },
@@ -735,9 +716,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (_categories.isEmpty &&
-        _anotherSeriesCategories.isEmpty &&
-        _bsaCategory == null) {
+    if (_categories.isEmpty && _anotherSeriesCategories.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -779,11 +758,11 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Priority sections: AMS -> ON -> NC -> SC
+          // Priority sections: AMS -> LLE -> ON
           SliverList(
             delegate: SliverChildListDelegate(
               [
-                for (final name in CategoryNames.primaryTabCodes)
+                for (final name in CategoryNames.homePrioritySectionCodes)
                   ..._categories
                       .where((c) => c.name == name)
                       .map(
@@ -793,12 +772,6 @@ class _HomePageState extends State<HomePage> {
                           onViewAllTap: _navigateToCategory,
                         ),
                       ),
-                if (CategoryNames.showAnotherSeries && _bsaCategory != null)
-                  CategoryGroupBox(
-                    category: _bsaCategory!,
-                    onEpisodeTap: _navigateToEpisodeDetail,
-                    onViewAllTap: _navigateToCategory,
-                  ),
               ],
             ),
           ),

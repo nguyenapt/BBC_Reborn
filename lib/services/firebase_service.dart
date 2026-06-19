@@ -334,7 +334,10 @@ class FirebaseService {
     final id = partial.id;
     if (id == null || id.isEmpty) return '';
 
-    for (final code in CategoryNames.primaryTabCodes) {
+    for (final code in [
+      ...CategoryNames.homePrioritySectionCodes,
+      ...CategoryNames.anotherSeriesSubCodes,
+    ]) {
       try {
         final bulk = await getCategoryDataWithoutYearLegacyFull(code);
         if (bulk.any((e) => e.id == id)) return code;

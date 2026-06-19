@@ -682,7 +682,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   bool _isOtherProgramsCategory(String category) {
-    return CategoryNames.anotherSeriesFixedProgramCodes.contains(category) ||
+    return CategoryNames.anotherSeriesSubCodes.contains(category) ||
+        CategoryNames.anotherSeriesFixedProgramCodes.contains(category) ||
         CategoryNames.isAnotherSeriesSubcategory(category);
   }
 

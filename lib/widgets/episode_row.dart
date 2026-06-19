@@ -1,25 +1,40 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../utils/category_colors.dart';
+import '../utils/category_names.dart';
+import '../utils/series_sub_badge_style.dart';
 import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
+import 'compact_ghost_badge.dart';
 
 class EpisodeRow extends StatelessWidget {
   final Episode episode;
   final VoidCallback onTap;
   final LanguageManager languageManager;
   final bool isLatest; // Flag để xác định episode mới nhất
+  final bool showLevelBadge;
+  final bool showCompactSubBadge;
   const EpisodeRow({
     super.key,
     required this.episode,
     required this.onTap,
     required this.languageManager,
     this.isLatest = false,
+    this.showLevelBadge = false,
+    this.showCompactSubBadge = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final subBadgeStyle = showCompactSubBadge &&
+            CategoryNames.anotherSeriesSubCodes.contains(episode.category)
+        ? SeriesSubBadgeStyle.forCode(
+            episode.category,
+            colorScheme,
+            languageManager,
+          )
+        : null;
     return Card(
       //margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: InkWell(
@@ -76,27 +91,52 @@ class EpisodeRow extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Category
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: CategoryColors.getCategoryBorderColor(episode.category),
-                              width: 1,
+                        if (showLevelBadge && episode.hasLevel) ...[
+                          CompactGhostBadge(
+                            icon: Icons.school_outlined,
+                            label: episode.level!.trim(),
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        if (showCompactSubBadge && subBadgeStyle != null) ...[
+                          CompactGhostBadge(
+                            icon: subBadgeStyle.icon,
+                            label: subBadgeStyle.label,
+                            color: subBadgeStyle.color,
+                          ),
+                          const SizedBox(width: 10),
+                        ] else if (!showCompactSubBadge) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: CategoryColors.getCategoryBackgroundColor(
+                                episode.category,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: CategoryColors.getCategoryBorderColor(
+                                  episode.category,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              episode.category,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: CategoryColors.getCategoryColor(
+                                  episode.category,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Text(
-                            episode.category,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: CategoryColors.getCategoryColor(episode.category),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
+                          const SizedBox(width: 6),
+                        ],
                         Icon(
                           Icons.access_time,
                           size: 14,

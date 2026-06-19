@@ -171,8 +171,10 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   bool _didShowReviewReminderThisSession = false;
 
   void navigateToCategoriesWithTab(String tabName) {
+    final resolvedTab =
+        (tabName == 'NC' || tabName == 'SC') ? 'AS' : tabName;
     setState(() {
-      categoriesInitialTab = tabName;
+      categoriesInitialTab = resolvedTab;
       currentPageIndex = 1; // Categories tab index
     });
   }

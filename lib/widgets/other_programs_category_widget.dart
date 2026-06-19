@@ -3,7 +3,10 @@ import '../models/episode.dart';
 import '../services/image_cache_service.dart';
 import '../utils/category_colors.dart';
 import '../utils/category_names.dart';
+import '../utils/series_sub_badge_style.dart';
 import '../services/language_manager.dart';
+import 'another_series_sub_section.dart';
+import 'compact_ghost_badge.dart';
 
 class OtherProgramsCategoryWidget extends StatelessWidget {
   final String categoryName;
@@ -26,6 +29,28 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
   });
 
   Widget _titleRow(BuildContext context, Color strongAccent) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isAnotherSeriesSub =
+        CategoryNames.anotherSeriesSubCodes.contains(categoryName);
+
+    if (isAnotherSeriesSub) {
+      final style = SeriesSubBadgeStyle.forCode(
+        categoryName,
+        colorScheme,
+        languageManager,
+      );
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        child: CompactGhostBadge(
+          icon: style.icon,
+          label: style.label,
+          color: style.color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
@@ -61,6 +86,18 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (CategoryNames.anotherSeriesSubCodes.contains(categoryName)) {
+      return AnotherSeriesSubSection(
+        categoryCode: categoryName,
+        episodes: episodes,
+        languageManager: languageManager,
+        onEpisodeTap: onEpisodeTap,
+        onViewAllTap: onViewAllTap,
+        compact: true,
+        showPlaceholderWhenEmpty: showPlaceholderWhenEmpty,
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
@@ -227,27 +264,62 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Category
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: CategoryColors.getCategoryBorderColor(episode.category),
-                              width: 1,
+                        if (episode.hasLevel) ...[
+                          CompactGhostBadge(
+                            icon: Icons.school_outlined,
+                            label: episode.level!.trim(),
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        if (CategoryNames.anotherSeriesSubCodes
+                            .contains(episode.category)) ...[
+                          Builder(
+                            builder: (context) {
+                              final style = SeriesSubBadgeStyle.forCode(
+                                episode.category,
+                                colorScheme,
+                                languageManager,
+                              );
+                              return CompactGhostBadge(
+                                icon: style.icon,
+                                label: style.label,
+                                color: style.color,
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: CategoryColors.getCategoryBackgroundColor(
+                                episode.category,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: CategoryColors.getCategoryBorderColor(
+                                  episode.category,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              episode.category,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: CategoryColors.getCategoryColor(
+                                  episode.category,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Text(
-                            episode.category,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: CategoryColors.getCategoryColor(episode.category),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
+                          const SizedBox(width: 6),
+                        ],
                         Icon(
                           Icons.access_time,
                           size: 14,

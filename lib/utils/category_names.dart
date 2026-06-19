@@ -1,12 +1,18 @@
 class CategoryNames {
-  /// VOA primary tabs shown on Categories screen and Home priority sections.
-  static const List<String> primaryTabCodes = ['AMS', 'ON', 'NC', 'SC'];
+  /// Tab Categories + thứ tự Home category cards.
+  static const List<String> primaryTabCodes = ['AMS', 'LLE', 'ON', 'AS'];
 
-  /// Temporarily hide Another Series UI (Home card/section, Categories AS tab).
-  static const bool showAnotherSeries = false;
+  /// Section episode ưu tiên trên Home (không gồm AS — AS là multi-category).
+  static const List<String> homePrioritySectionCodes = ['AMS', 'LLE', 'ON'];
+
+  /// Nội dung tab Another Series (NC + SC).
+  static const List<String> anotherSeriesSubCodes = ['NC', 'SC'];
+
+  static const bool showAnotherSeries = true;
 
   static const Map<String, String> _categoryMapping = {
     'AMS': 'American Story',
+    'LLE': "Let's Learn English",
     'ON': 'Our Narrative',
     'NC': 'Natural Conversation',
     'SC': 'Simple Conversation',
@@ -28,15 +34,15 @@ class CategoryNames {
   /// TabBar line-1 / line-2 l10n keys for [primaryTabCodes].
   static const Map<String, List<String>> primaryTabLabelKeys = {
     'AMS': ['categoryAmerican', 'categoryStory'],
+    'LLE': ['categoryLets', 'categoryLearnEnglish'],
     'ON': ['categoryOur', 'categoryNarrative'],
-    'NC': ['categoryNatural', 'categoryConversation'],
-    'SC': ['categorySimple', 'categoryConversation'],
+    'AS': ['categoryAnother', 'categorySeries'],
   };
 
-  /// Sub-category codes under RTDB `AS` (Another Series). Thêm mã mới khi có series mới.
+  /// Sub-category codes under RTDB `AS` (legacy). Thêm mã mới khi có series mới.
   static const Set<String> anotherSeriesSubcategoryCodes = {'OF', 'EIM'};
 
-  /// Top-level programme codes trong UI Another Series (sau subs AS, trước [6MGB…]).
+  /// Top-level programme codes trong UI Another Series (legacy).
   /// **BSA** lưu theo năm `BSA/{year}`; các mã khác thường là `/CAT.json` phẳng.
   static const List<String> anotherSeriesFixedProgramCodes = [
     'BSA',
@@ -51,12 +57,21 @@ class CategoryNames {
   /// Opening these categories from Home should select the Another Series tab (`AS`).
   static bool opensAnotherSeriesTab(String categoryCode) {
     if (!showAnotherSeries) return false;
-    return anotherSeriesSubcategoryCodes.contains(categoryCode) ||
-        anotherSeriesFixedProgramCodes.contains(categoryCode);
+    return anotherSeriesSubCodes.contains(categoryCode);
   }
 
   static bool isPrimaryTab(String categoryCode) {
     return primaryTabCodes.contains(categoryCode);
+  }
+
+  static bool isHomePrioritySection(String categoryCode) {
+    return homePrioritySectionCodes.contains(categoryCode);
+  }
+
+  /// Categories loaded from flat `List/{CAT}.json` (no year sub-path).
+  static bool usesFlatEpisodeList(String categoryCode) {
+    return homePrioritySectionCodes.contains(categoryCode) ||
+        anotherSeriesSubCodes.contains(categoryCode);
   }
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category

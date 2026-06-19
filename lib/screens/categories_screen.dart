@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/episode_cache_service.dart';
-import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
-import '../widgets/other_programs_category_widget.dart';
+import '../widgets/lle_level_episode_list.dart';
+import '../widgets/another_series_sub_section.dart';
 import '../utils/category_names.dart';
+import '../utils/lle_level_groups.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialTab;
@@ -56,15 +57,24 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     final categories = CategoryNames.primaryTabCodes;
     String initialCategory = categories.first;
 
-    if (widget.initialTab != null) {
-      final tabIndex = categories.indexOf(widget.initialTab!);
+    String? resolvedInitialTab = widget.initialTab;
+    if (resolvedInitialTab == 'NC' || resolvedInitialTab == 'SC') {
+      resolvedInitialTab = 'AS';
+    }
+
+    if (resolvedInitialTab != null) {
+      final tabIndex = categories.indexOf(resolvedInitialTab);
       if (tabIndex != -1) {
         _tabController.index = tabIndex;
-        initialCategory = widget.initialTab!;
+        initialCategory = resolvedInitialTab;
       }
     }
 
-    _loadCategoryData(initialCategory);
+    if (initialCategory == 'AS') {
+      _loadAnotherSeriesTabData();
+    } else {
+      _loadCategoryData(initialCategory);
+    }
     
     // Listen to tab changes
     _tabController.addListener(_onTabChanged);
@@ -78,6 +88,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   Future<void> _loadCategoryData(String category) async {
+    if (category == 'AS') return;
+
     if (_episodesData.containsKey(category) && _loadedYears[category]!.isNotEmpty) {
       return; // Đã load rồi
     }
@@ -91,8 +103,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       final List<Episode> allEpisodes;
       final List<int> loadedYears;
 
-      // VOA primary tabs: RTDB slim list phẳng `List/{CAT}.json` (không có /{year}).
-      if (CategoryNames.isPrimaryTab(category)) {
+      // Flat list tabs: RTDB slim list phẳng `List/{CAT}.json` (không có /{year}).
+      if (CategoryNames.usesFlatEpisodeList(category)) {
         allEpisodes = await _episodeCacheService
             .getCategoryEpisodesWithoutYear(category);
         allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
@@ -188,7 +200,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   bool _canLoadMore(String category) {
-    if (CategoryNames.isPrimaryTab(category)) return false;
+    if (CategoryNames.usesFlatEpisodeList(category)) return false;
 
     final loadedYears = _loadedYears[category] ?? [];
     if (loadedYears.isEmpty) return false;
@@ -201,14 +213,28 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     if (!_tabController.indexIsChanging) {
       final currentCategory =
           CategoryNames.primaryTabCodes[_tabController.index];
-      _loadCategoryData(currentCategory);
+      if (currentCategory == 'AS') {
+        _loadAnotherSeriesTabData();
+      } else {
+        _loadCategoryData(currentCategory);
+      }
     }
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
     final currentCategory =
         CategoryNames.primaryTabCodes[_tabController.index];
-    final categoryEpisodes = _episodesData[currentCategory] ?? [];
+    final List<Episode> categoryEpisodes;
+    if (currentCategory == 'AS') {
+      final subEpisodes = _anotherSeriesData[episode.category] ?? [];
+      categoryEpisodes =
+          LleLevelGroups.episodesForPlaylist(episode, subEpisodes);
+    } else if (currentCategory == 'LLE') {
+      final allLle = _episodesData['LLE'] ?? [];
+      categoryEpisodes = LleLevelGroups.episodesForPlaylist(episode, allLle);
+    } else {
+      categoryEpisodes = _episodesData[currentCategory] ?? [];
+    }
 
     EpisodeDetailOpenHelper.open(
       context: context,
@@ -219,73 +245,36 @@ class _CategoriesScreenState extends State<CategoriesScreen>
 
   Future<void> _loadAnotherSeriesTabData() async {
     if (_loadingStates['AS'] == true) {
-      print('Another Series tab data is already loading...');
       return;
     }
 
-    // Đã load đủ map (gồm mọi mục cố định như BSA) và có ít nhất một list episode?
-    final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
-    final hasAllFixedSlots =
-        fixedCodes.every((c) => _anotherSeriesData.containsKey(c));
-    final hasData = _anotherSeriesData.values.any((episodes) => episodes.isNotEmpty);
-    if (hasData && hasAllFixedSlots) {
-      print('Another Series tab data already loaded');
+    final hasAllSubs = CategoryNames.anotherSeriesSubCodes
+        .every((c) => _anotherSeriesData.containsKey(c));
+    final hasData =
+        _anotherSeriesData.values.any((episodes) => episodes.isNotEmpty);
+    if (hasData && hasAllSubs) {
       return;
     }
 
-    print('Loading Another Series tab data from List/AS.json...');
     setState(() {
       _loadingStates['AS'] = true;
       _errorStates['AS'] = null;
     });
 
     try {
-      final asSubs =
-          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: false);
-      print('Another Series subs=$asSubs');
-
       final Map<String, List<Episode>> allData = {};
-      final subsWithData = <String>[];
 
-      for (final sub in asSubs) {
-        try {
-          print('Loading Another Series sub: $sub...');
-          // Cache SQLite + chỉ fetch tối đa 1 lần/ngày (nếu có data).
-          final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
-            sub,
-            forHomePage: false,
-          );
-          print('$sub - Total: ${episodes.length} episodes');
-          if (episodes.isNotEmpty) {
-            allData[sub] = episodes;
-            subsWithData.add(sub);
-          }
-        } catch (e) {
-          print('Error loading Another Series sub $sub: $e');
-        }
+      for (final code in CategoryNames.anotherSeriesSubCodes) {
+        final episodes = await _episodeCacheService
+            .getCategoryEpisodesWithoutYear(code);
+        episodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+        allData[code] = episodes;
       }
-
-      for (final category in CategoryNames.anotherSeriesFixedProgramCodes) {
-        try {
-          print('Loading fixed section $category...');
-          final episodes = await _episodeCacheService
-              .getAnotherSeriesFixedCategoryEpisodes(category);
-          print('$category - Total: ${episodes.length} episodes');
-          allData[category] = episodes;
-        } catch (e) {
-          print('Error loading fixed section $category: $e');
-          allData[category] = [];
-        }
-      }
-
-      final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
-      final fixedSet = fixedCodes.toSet();
-      final subsOrdered =
-          subsWithData.where((s) => !fixedSet.contains(s)).toList();
 
       setState(() {
         _anotherSeriesData = allData;
-        _anotherSeriesDisplayOrder = [...subsOrdered, ...fixedCodes];
+        _anotherSeriesDisplayOrder =
+            List<String>.from(CategoryNames.anotherSeriesSubCodes);
         _loadingStates['AS'] = false;
       });
     } catch (e) {
@@ -319,7 +308,11 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                   controller: _tabController,
                   children: [
                     for (final code in CategoryNames.primaryTabCodes)
-                      _buildCategoryContent(code),
+                      code == 'AS'
+                          ? _buildAnotherSeriesContent()
+                          : code == 'LLE'
+                              ? _buildLleContent()
+                              : _buildCategoryContent(code),
                   ],
                 ),
               ),
@@ -637,8 +630,80 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     );
   }
 
-  // Preserved for when [CategoryNames.showAnotherSeries] is re-enabled.
-  // ignore: unused_element
+  Widget _buildLleContent() {
+    const category = 'LLE';
+
+    if (_loadingStates[category] == true) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('loading'),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorStates[category] != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('errorOccurred'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorStates[category]!,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _loadCategoryData(category),
+              child: Text(_languageManager.getText('tryAgain')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final episodes = _episodesData[category] ?? [];
+
+    return LleLevelEpisodeList(
+      episodes: episodes,
+      languageManager: _languageManager,
+      onEpisodeTap: _navigateToEpisodeDetail,
+      onRefresh: () {
+        _loadedYears[category] = [];
+        _episodesData.remove(category);
+        return _loadCategoryData(category);
+      },
+    );
+  }
+
   Widget _buildAnotherSeriesContent() {
     if (_loadingStates['AS'] == true) {
       return Center(
@@ -748,15 +813,13 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       );
     }
 
-    final subs = _anotherSeriesDisplayOrder;
-
     return RefreshIndicator(
       onRefresh: () {
         _anotherSeriesData.clear();
         _anotherSeriesDisplayOrder.clear();
         return _loadAnotherSeriesTabData();
       },
-      child: ListView.builder(
+      child: ListView(
         padding: FloatingBottomNavBar.scrollPadding(
           context,
           left: 0,
@@ -764,30 +827,16 @@ class _CategoriesScreenState extends State<CategoriesScreen>
           right: 0,
           bottom: 8,
         ),
-        itemCount: subs.length + 1, // +1 for banner ad
-        itemBuilder: (context, index) {
-          // Banner ad ở cuối
-          if (index == subs.length) {
-            return const BannerAdWidget();
-          }
-
-          final sub = subs[index];
-          final episodes = _anotherSeriesData[sub] ?? [];
-          final fixedSlots =
-              CategoryNames.anotherSeriesFixedProgramCodes.toSet();
-
-          if (episodes.isEmpty && !fixedSlots.contains(sub)) {
-            return const SizedBox.shrink();
-          }
-
-          return OtherProgramsCategoryWidget(
-            categoryName: sub,
-            episodes: episodes,
-            onEpisodeTap: (episode) => _navigateToEpisodeDetail(episode),
-            languageManager: _languageManager,
-            showPlaceholderWhenEmpty: fixedSlots.contains(sub),
-          );
-        },
+        children: [
+          for (final code in CategoryNames.anotherSeriesSubCodes)
+            AnotherSeriesSubSection(
+              categoryCode: code,
+              episodes: _anotherSeriesData[code] ?? [],
+              languageManager: _languageManager,
+              onEpisodeTap: _navigateToEpisodeDetail,
+            ),
+          const BannerAdWidget(),
+        ],
       ),
     );
   }

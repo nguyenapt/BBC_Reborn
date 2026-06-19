@@ -154,6 +154,7 @@ class CategoryGroupBox extends StatelessWidget {
                         onTap: () => onEpisodeTap(episode),
                         languageManager: languageManager,
                         isLatest: index == 0, // Episode đầu tiên là mới nhất
+                        showLevelBadge: category.name == 'LLE',
                       ),
                     );
                   }),
@@ -171,6 +172,8 @@ class CategoryGroupBox extends StatelessWidget {
     switch (categoryName) {
       case 'AMS':
         return Icons.auto_stories_outlined;
+      case 'LLE':
+        return Icons.school_outlined;
       case 'ON':
         return Icons.article_outlined;
       case 'NC':
@@ -201,7 +204,7 @@ class CategoryGroupBox extends StatelessWidget {
   }
 
   bool _shouldUseHorizontalLayout(String categoryName) {
-    return CategoryNames.isPrimaryTab(categoryName) ||
+    return CategoryNames.usesFlatEpisodeList(categoryName) ||
         categoryName == 'BSA' ||
         categoryName == 'EG';
   }
