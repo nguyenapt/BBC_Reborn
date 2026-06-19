@@ -1,5 +1,4 @@
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {logger} = require("firebase-functions/logger");
 const {
   AI_SECRETS,
   ALLOWED_ACTIONS,
@@ -9,6 +8,29 @@ const {
   checkRateLimit,
 } = require("./config");
 const {routeAiRequest} = require("./router");
+
+/** firebase-functions/logger có thể undefined trên một số bản deploy → dùng console. */
+function logWarn(msg) {
+  try {
+    const {logger} = require("firebase-functions/logger");
+    if (logger && typeof logger.warn === "function") {
+      logger.warn(msg);
+      return;
+    }
+  } catch (_) { /* ignore */ }
+  console.warn(msg);
+}
+
+function logError(msg) {
+  try {
+    const {logger} = require("firebase-functions/logger");
+    if (logger && typeof logger.error === "function") {
+      logger.error(msg);
+      return;
+    }
+  } catch (_) { /* ignore */ }
+  console.error(msg);
+}
 
 /**
  * Callable AI proxy — keys from Secret Manager, routing from RTDB ai_server_config.
@@ -45,7 +67,7 @@ const aiRequest = onCall(
       }
 
       if (!isPackageAllowed(packageName, config)) {
-        logger.warn(`Package not allowed package=${packageName} action=${action}`);
+        logWarn(`Package not allowed package=${packageName} action=${action}`);
         throw new HttpsError("permission-denied", "Package not allowed");
       }
 
@@ -68,18 +90,10 @@ const aiRequest = onCall(
         const code = err && typeof err === "object" && "code" in err ?
           String(err.code) :
           "AI_ERROR";
-        // Chỉ log 1 string — logger.error(msg, meta) crash trên bản deploy cũ.
-        try {
-          logger.error(
-              `AI request failed action=${action} package=${packageName} ` +
-              `code=${code} message=${message}`,
-          );
-        } catch (logErr) {
-          console.error(
-              `AI request failed action=${action} package=${packageName} ` +
-              `code=${code} message=${message} logErr=${logErr}`,
-          );
-        }
+        logError(
+            `AI request failed action=${action} package=${packageName} ` +
+            `code=${code} message=${message}`,
+        );
 
         if (code === "RATE_LIMIT") {
           throw new HttpsError("resource-exhausted", message);
