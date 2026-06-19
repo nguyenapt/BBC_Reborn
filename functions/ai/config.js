@@ -20,7 +20,7 @@ let cachedAzureSpeechKey = null;
 
 const DEFAULT_SERVER_CONFIG = {
   allowedPackages:
-    "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills",
+    "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
   enabled: true,
   azureSpeechRegion: "southeastasia",
   routes: {
@@ -124,9 +124,11 @@ async function loadServerConfig() {
  * @returns {boolean}
  */
 function isPackageAllowed(packageName, config) {
+  const normalized = String(packageName ?? "").trim();
+  if (!normalized) return false;
   const raw = String(config.allowedPackages ?? "");
   const packages = raw.split(";").map((p) => p.trim()).filter(Boolean);
-  return packages.includes(packageName);
+  return packages.includes(normalized);
 }
 
 /**

@@ -41,6 +41,7 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   shared_preferences: ^2.2.2 # For language storage
   google_sign_in: ^6.2.1 # For Google Sign-In
+  flutter_cache_manager: ^3.4.1
   cached_network_image: ^3.3.1 # For image caching
   path_provider: ^2.1.2 # For local file storage
   path: ^1.9.0

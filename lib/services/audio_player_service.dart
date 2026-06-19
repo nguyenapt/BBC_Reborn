@@ -12,6 +12,7 @@ import '../services/local_database_service.dart';
 import '../services/episode_download_service.dart';
 import '../utils/debug_source_log.dart';
 import 'notification_service.dart';
+import 'media_notification_launch_handler.dart';
 
 enum AudioPlayerState { stopped, playing, paused, loading }
 
@@ -68,10 +69,20 @@ class AudioPlayerService extends ChangeNotifier {
   final Set<String> _streamCacheScheduledOrDone = {};
 
   StreamSubscription<void>? _onPlayerCompleteSub;
+  StreamSubscription<Duration>? _onPositionChangedSub;
+  StreamSubscription<Duration>? _onDurationChangedSub;
+  StreamSubscription<PlayerState>? _onPlayerStateChangedSub;
+  bool _audioListenersAttached = false;
+  DateTime? _lastNotificationProgressSync;
+  static const Duration _notificationProgressInterval = Duration(seconds: 1);
 
   /// Initialize service
   Future<void> initialize() async {
     await _userService.initialize();
+
+    _notificationService.setMediaActionCallback(_handleNotificationMediaAction);
+    _notificationService.setNotificationTapCallback(_handleNotificationTap);
+    await _notificationService.initialize();
 
     _onPlayerCompleteSub ??= _audioPlayer.onPlayerComplete.listen((_) {
       _scheduleBackgroundStreamCacheIfNeeded();
@@ -157,14 +168,6 @@ class AudioPlayerService extends ChangeNotifier {
     
     // Check download status
     _isDownloaded = await _checkDownloadStatus(episode.id ?? '');
-    
-    // Show notification
-    await _notificationService.showAudioNotification(
-      episode, 
-      false, // Show notification as paused
-      duration: _totalDuration.inMilliseconds,
-      currentPosition: _currentPosition.inMilliseconds,
-    );
     
     notifyListeners();
   }
@@ -318,10 +321,10 @@ class AudioPlayerService extends ChangeNotifier {
       _playerState = AudioPlayerState.playing;
       notifyListeners();
       
-      // Update notification
+      // Show/update notification when playback starts
       if (_currentEpisode != null) {
-        await _notificationService.updateNotification(
-          _currentEpisode!, 
+        await _notificationService.showAudioNotification(
+          _currentEpisode!,
           true,
           duration: _totalDuration.inMilliseconds,
           currentPosition: _currentPosition.inMilliseconds,
@@ -336,20 +339,22 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Setup audio player listeners
   void _setupAudioPlayerListeners() {
-    // Listen to position changes
-    _audioPlayer.onPositionChanged.listen((Duration position) {
+    if (_audioListenersAttached) return;
+    _audioListenersAttached = true;
+
+    _onPositionChangedSub ??= _audioPlayer.onPositionChanged.listen((Duration position) {
       _currentPosition = position;
       notifyListeners();
+      _syncNotificationProgressIfNeeded();
     });
 
-    // Listen to duration changes
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
+    _onDurationChangedSub ??= _audioPlayer.onDurationChanged.listen((Duration duration) {
       _totalDuration = duration;
       notifyListeners();
+      _syncNotificationProgressIfNeeded(force: true);
     });
 
-    // Listen to player state changes
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) async {
+    _onPlayerStateChangedSub ??= _audioPlayer.onPlayerStateChanged.listen((PlayerState state) async {
       switch (state) {
         case PlayerState.playing:
           _playerState = AudioPlayerState.playing;
@@ -704,22 +709,98 @@ class AudioPlayerService extends ChangeNotifier {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // App bị pause hoặc inactive - KHÔNG tự động pause audio
-        // Chỉ pause khi có cuộc gọi điện thoại (được xử lý riêng)
         debugPrint('App paused/inactive - audio continues playing in background');
         break;
       case AppLifecycleState.resumed:
-        // App được resume - không cần làm gì đặc biệt
         debugPrint('App resumed - audio continues playing');
         break;
       case AppLifecycleState.detached:
-        // App bị terminate - dừng audio
         stop();
         break;
       case AppLifecycleState.hidden:
-        // App bị ẩn - audio vẫn tiếp tục phát
         debugPrint('App hidden - audio continues playing in background');
         break;
+    }
+  }
+
+  void _handleNotificationMediaAction(Map<String, dynamic> data) {
+    final action = data['action'] as String?;
+    switch (action) {
+      case 'action_play':
+        unawaited(_handleMediaPlay());
+        break;
+      case 'action_pause':
+        if (isPlaying) {
+          unawaited(pause());
+        }
+        break;
+      case 'action_toggle_play_pause':
+        unawaited(_handleMediaPlayPauseToggle());
+        break;
+      case 'action_skip_forward':
+        unawaited(skipForward());
+        break;
+      case 'action_skip_backward':
+        unawaited(skipBackward());
+        break;
+      case 'action_seek':
+        final seekToRaw = data['seek_to'];
+        final seekToMs = seekToRaw is int
+            ? seekToRaw
+            : (seekToRaw is num ? seekToRaw.toInt() : null);
+        if (seekToMs != null && seekToMs >= 0) {
+          unawaited(seekTo(Duration(milliseconds: seekToMs)));
+        }
+        break;
+    }
+  }
+
+  void _syncNotificationProgressIfNeeded({bool force = false}) {
+    if (_currentEpisode == null) return;
+    if (!isPlaying && !isPaused) return;
+    if (_totalDuration.inMilliseconds <= 0 && !force) return;
+
+    final now = DateTime.now();
+    if (!force &&
+        _lastNotificationProgressSync != null &&
+        now.difference(_lastNotificationProgressSync!) <
+            _notificationProgressInterval) {
+      return;
+    }
+    _lastNotificationProgressSync = now;
+
+    unawaited(
+      _notificationService.updateNotification(
+        _currentEpisode!,
+        isPlaying,
+        duration: _totalDuration.inMilliseconds,
+        currentPosition: _currentPosition.inMilliseconds,
+      ),
+    );
+  }
+
+  void _handleNotificationTap(String episodeId, String? category) {
+    unawaited(
+      MediaNotificationLaunchHandler.openEpisodeFromNotification(
+        episodeId: episodeId,
+        category: category,
+      ),
+    );
+  }
+
+  Future<void> _handleMediaPlay() async {
+    if (isPaused) {
+      await resume();
+    } else if (!isPlaying) {
+      await play();
+    }
+  }
+
+  Future<void> _handleMediaPlayPauseToggle() async {
+    if (isPlaying) {
+      await pause();
+    } else if (isPaused || _playerState == AudioPlayerState.stopped) {
+      await _handleMediaPlay();
     }
   }
 
@@ -727,6 +808,9 @@ class AudioPlayerService extends ChangeNotifier {
   void dispose() {
     _positionTimer?.cancel();
     _onPlayerCompleteSub?.cancel();
+    _onPositionChangedSub?.cancel();
+    _onDurationChangedSub?.cancel();
+    _onPlayerStateChangedSub?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
