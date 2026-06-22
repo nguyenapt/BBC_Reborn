@@ -168,10 +168,9 @@ class _SplashScreenState extends State<SplashScreen>
                     child: ScaleTransition(
                       scale: _scaleAnimation,
                       child: Container(
-                        width: 120,
-                        height: 129,
+                        width: 140,
+                        height: 140,
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
@@ -181,14 +180,11 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Text(
-                            'L.E.O',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),

@@ -3,8 +3,8 @@ class AppVi {
     // App Info
     'appTitle': '6 Mins Learning English Online',
     'welcomeMessage': 'Chào mừng đến với 6 Mins Learning English Online!',
-    'homeTitleMain': '6 Mins Learning English',
-    'homeTitleSub': 'Online',
+    'homeTitleMain': '6 Mins',
+    'homeTitleSub': 'Learning English',
     'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
     'homeHeroSubtitle': 'Luyện nghe hằng ngày với bài học ngắn, hiện đại.',
     'startPracticingListening': 'Bắt đầu luyện nghe',

@@ -3,8 +3,8 @@ class AppKo {
     // App Info
     'appTitle': '6 Mins Learning English Online',
     'welcomeMessage': '「6 Mins Learning English Online」에 오신 것을 환영합니다!',
-    'homeTitleMain': '6 Mins Learning English',
-    'homeTitleSub': 'Online',
+    'homeTitleMain': '6 Mins',
+    'homeTitleSub': 'Learning English',
     'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',

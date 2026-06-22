@@ -21,18 +21,13 @@ class OnboardingScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '🎓',
-                    style: TextStyle(fontSize: 80),
-                  ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: 44),

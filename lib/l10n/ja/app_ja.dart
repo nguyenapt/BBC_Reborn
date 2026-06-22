@@ -3,8 +3,8 @@ class AppJa {
     // App Info
     'appTitle': '6 Mins Learning English Online',
     'welcomeMessage': '「6 Mins Learning English Online」へようこそ！',
-    'homeTitleMain': '6 Mins Learning English',
-    'homeTitleSub': 'Online',
+    'homeTitleMain': '6 Mins',
+    'homeTitleSub': 'Learning English',
     'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
