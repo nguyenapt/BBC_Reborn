@@ -94,7 +94,7 @@ exports.onEpisodeCreated = onValueCreated(
     const payload = {
       topic: FCM_TOPIC,
       notification: {
-        title: "BBC Learning English — new episode",
+        title: "6 Mins Learning English Online — new episode",
         body: `${safeName} (${category} · ${year})`,
       },
       data: {

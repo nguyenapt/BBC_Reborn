@@ -1,4 +1,4 @@
-package com.learningenglish.studyingbbc.bbc_reborn
+package com.leo.learningenglish
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -53,7 +53,7 @@ class MediaNotificationManager(private val context: Context) {
                 "Audio Player Controls",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Controls for BBC Learning English audio player"
+                description = "Controls for 6 Mins Learning English Online audio player"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setSound(null, null)

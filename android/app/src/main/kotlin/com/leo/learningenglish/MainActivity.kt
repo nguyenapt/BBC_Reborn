@@ -1,4 +1,4 @@
-package com.learningenglish.studyingbbc.bbc_reborn
+package com.leo.learningenglish
 
 import android.Manifest
 import android.content.Intent
@@ -146,7 +146,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun buildNotificationFromCall(call: io.flutter.plugin.common.MethodCall): android.app.Notification {
-        val title = call.argument<String>("title") ?: "BBC Learning English"
+        val title = call.argument<String>("title") ?: "6 Mins Learning English Online"
         val content = call.argument<String>("content") ?: "Đang phát audio"
         val isPlaying = call.argument<Boolean>("isPlaying") ?: false
         val episodeId = call.argument<String>("episodeId")

@@ -37,7 +37,7 @@ class OnboardingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 44),
               Text(
-                'Welcome to Learning English - 6 minutes',
+                'Welcome to 6 Mins Learning English Online',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,

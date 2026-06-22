@@ -30,6 +30,49 @@
             {
               "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.learningenglish.studyingbbc.bbcReborn"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128498222438:android:2ef7264ec9b436df0534a7",
+        "android_client_info": {
+          "package_name": "com.learning.eslenglish"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7EqjWjJJ41zmkLX98SdMZJ941fzla1cM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.learningenglish.studyingbbc.bbcReborn"
+              }
             }
           ]
         }
@@ -59,6 +102,13 @@
             {
               "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.learningenglish.studyingbbc.bbcReborn"
+              }
             }
           ]
         }
@@ -104,6 +154,49 @@
             {
               "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.learningenglish.studyingbbc.bbcReborn"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128498222438:android:d00b163f60b15ffd0534a7",
+        "android_client_info": {
+          "package_name": "com.leo.learningenglish"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7EqjWjJJ41zmkLX98SdMZJ941fzla1cM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.learningenglish.studyingbbc.bbcReborn"
+              }
             }
           ]
         }

@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyD7EqjWjJJ41zmkLX98SdMZJ941fzla1cM',
-    appId: '1:128498222438:android:4b0456d020df0b3f0534a7',
+    appId: '1:128498222438:android:d00b163f60b15ffd0534a7',
     messagingSenderId: '128498222438',
     projectId: 'bbc-listening-english',
     databaseURL: 'https://bbc-listening-english.firebaseio.com',

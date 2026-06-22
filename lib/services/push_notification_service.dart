@@ -57,7 +57,7 @@ class PushNotificationService {
       const AndroidNotificationChannel(
         _androidChannelId,
         _androidChannelName,
-        description: 'Thông báo khi có episode mới trên BBC Learning English',
+        description: 'Thông báo khi có episode mới trên 6 Mins Learning English Online',
         importance: Importance.high,
       ),
     );
@@ -116,7 +116,7 @@ class PushNotificationService {
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     final n = message.notification;
-    final title = n?.title ?? message.data['title'] as String? ?? 'BBC Learning English';
+    final title = n?.title ?? message.data['title'] as String? ?? '6 Mins Learning English Online';
     final body = n?.body ?? message.data['body'] as String? ?? '';
     final id = message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
 

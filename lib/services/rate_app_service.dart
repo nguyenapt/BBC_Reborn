@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'language_manager.dart';
@@ -105,8 +106,8 @@ class RateAppService {
 
   /// Mở Google Play Store để rate app
   static Future<void> openPlayStore() async {
-    const String packageName = 'com.learningenglish.studyingbbc.bbc_reborn'; // Thay bằng package name thực tế
-    const String playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
+    final packageName = (await PackageInfo.fromPlatform()).packageName;
+    final playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
     
     try {
       final Uri url = Uri.parse(playStoreUrl);
