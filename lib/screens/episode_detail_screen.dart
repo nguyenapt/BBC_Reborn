@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -12,6 +13,7 @@ import '../services/audio_player_service.dart';
 import '../services/firebase_service.dart';
 import '../services/local_database_service.dart';
 import '../services/language_manager.dart';
+import '../services/learning_progress_service.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
@@ -19,6 +21,8 @@ import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/question_slide.dart';
+import '../widgets/learning_checklist_bar.dart';
+import '../widgets/episode_detail_tab_panel.dart';
 import 'speaking_practice_screen.dart';
 import 'speaking_history_screen.dart';
 
@@ -44,6 +48,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
+  final LearningProgressService _learningProgress = LearningProgressService();
   final GlobalKey _playerKey = GlobalKey();
   late Episode _episode;
   bool _hydratingFullEpisode = false;
@@ -69,10 +74,22 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
     _audioService = AudioPlayerService();
     _languageManager = LanguageManager();
-    _pageController = PageController(initialPage: 0);
+    final saved = _learningProgress.getProgress(
+      LearningProgressService.episodeKey(_episode),
+    );
+    final initialTab = (saved?.lastTabIndex ?? 0).clamp(0, 3);
+    _currentPageIndex = initialTab;
+    _pageController = PageController(initialPage: initialTab);
+
+    if (saved != null && saved.lastPositionMs > 0) {
+      _audioService.setPendingSeekPosition(
+        Duration(milliseconds: saved.lastPositionMs),
+      );
+    }
 
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+    unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(widget.episode);
 
@@ -257,6 +274,15 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   // Tắt Always Display
+  Future<void> _flushProgressOnExit() async {
+    await _learningProgress.flushEpisodeState(
+      episode: _episode,
+      positionMs: _audioService.currentPosition.inMilliseconds,
+      totalDurationMs: _audioService.totalDuration.inMilliseconds,
+      tabIndex: _currentPageIndex,
+    );
+  }
+
   Future<void> _disableAlwaysDisplay() async {
     try {
       await WakelockPlus.disable();
@@ -267,9 +293,15 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   @override
+  void deactivate() {
+    unawaited(_flushProgressOnExit());
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
-    // Release audio player khi rời khỏi màn hình
+    unawaited(_flushProgressOnExit());
     _audioService.stop();
     
     // Tắt Always Display khi rời khỏi màn hình
@@ -296,8 +328,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SpeakingPracticeScreen(
@@ -306,6 +338,10 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   ),
                 ),
               );
+              if (mounted) {
+                await _learningProgress.markSpeakingDone(_episode);
+                setState(() {});
+              }
             },
             icon: const Icon(Icons.mic),
           ),
@@ -504,6 +540,16 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ),
           ),
           _buildDetailTabs(context, categoryColor),
+          ListenableBuilder(
+            listenable: _learningProgress,
+            builder: (context, child) {
+              return LearningChecklistBar(
+                progress: _learningProgress.getProgress(
+                  LearningProgressService.episodeKey(_episode),
+                ),
+              );
+            },
+          ),
           Expanded(
             child: Builder(
               builder: (context) {
@@ -514,6 +560,12 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     setState(() {
                       _currentPageIndex = index;
                     });
+                    unawaited(
+                      _learningProgress.updateTabIndex(
+                        episode: _episode,
+                        tabIndex: index,
+                      ),
+                    );
                   },
                   children: [
                     ListenableBuilder(
@@ -570,8 +622,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ],
           ),
           Positioned(
-            left: 10,
-            right: 10,
+            left: EpisodeDetailTabPanel.contentHorizontalInset,
+            right: EpisodeDetailTabPanel.contentHorizontalInset,
             bottom: 10,
             child: ListenableBuilder(
               listenable: _audioService,

@@ -29,55 +29,51 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 350),
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final offsetAnimation = Tween<Offset>(
-                      begin: const Offset(0, 0.18),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: widget.showCurrentPanel
-                      ? _buildCurrentTranscriptPanel(context)
-                      : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
-                ),
-                if (widget.showCurrentPanel) const SizedBox(height: 4),
-                _buildSeekBarRow(),
-                const SizedBox(height: 3),
-                _buildCenterControls(context),
-              ],
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 0.18),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              child: widget.showCurrentPanel
+                  ? _buildCurrentTranscriptPanel(context)
+                  : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
             ),
-          ),
+            if (widget.showCurrentPanel) const SizedBox(height: 4),
+            _buildSeekBarRow(),
+            const SizedBox(height: 3),
+            _buildControlsRow(context),
+          ],
         ),
       ),
     );
@@ -242,7 +238,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     );
   }
 
-  Widget _buildCenterControls(BuildContext context) {
+  Widget _buildControlsRow(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.audioService,
       builder: (context, child) {
@@ -252,61 +248,159 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         }
 
         final primary = Theme.of(context).colorScheme.primary;
+        final colorScheme = Theme.of(context).colorScheme;
+        final rate = widget.audioService.playbackRate;
+        final hasAb = widget.audioService.hasAbRepeat;
+        final timerEnds = widget.audioService.sleepTimerEndsAt;
 
         return Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              onPressed: () async => await widget.audioService.skipBackward(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              icon: Icon(
-                Icons.replay_10_rounded,
-                color: primary,
-                size: 22,
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: primary,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-                onPressed: () async {
-                  if (widget.audioService.isPlaying) {
-                    await widget.audioService.pause();
-                  } else if (widget.audioService.isPaused) {
-                    await widget.audioService.resume();
-                  } else {
-                    // Gọi callback trước khi play (để hiển thị interstitial ads nếu cần)
-                    await widget.onPlayPressed?.call();
-                    await widget.audioService.play();
-                  }
-                },
-                icon: Icon(
-                  widget.audioService.isLoading
-                      ? Icons.hourglass_empty
-                      : widget.audioService.isPlaying
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: 28,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MiniChip(
+                      label: 'A',
+                      onTap: widget.audioService.markAbPointA,
+                      colorScheme: colorScheme,
+                      selected: hasAb,
+                    ),
+                    const SizedBox(width: 4),
+                    _MiniChip(
+                      label: 'B',
+                      onTap: widget.audioService.markAbPointB,
+                      colorScheme: colorScheme,
+                      selected: hasAb,
+                    ),
+                    if (hasAb)
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints.tightFor(width: 28, height: 28),
+                        onPressed: widget.audioService.clearAbRepeat,
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: colorScheme.error,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            IconButton(
-              onPressed: () async => await widget.audioService.skipForward(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              icon: Icon(
-                Icons.forward_10_rounded,
-                color: primary,
-                size: 22,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () async => await widget.audioService.skipBackward(),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints.tightFor(width: 36, height: 36),
+                  icon: Icon(
+                    Icons.replay_10_rounded,
+                    color: primary,
+                    size: 22,
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints.tightFor(width: 44, height: 44),
+                    onPressed: () async {
+                      if (widget.audioService.isPlaying) {
+                        await widget.audioService.pause();
+                      } else if (widget.audioService.isPaused) {
+                        await widget.audioService.resume();
+                      } else {
+                        await widget.onPlayPressed?.call();
+                        await widget.audioService.play();
+                      }
+                    },
+                    icon: Icon(
+                      widget.audioService.isLoading
+                          ? Icons.hourglass_empty
+                          : widget.audioService.isPlaying
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async => await widget.audioService.skipForward(),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints.tightFor(width: 36, height: 36),
+                  icon: Icon(
+                    Icons.forward_10_rounded,
+                    color: primary,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MiniChip(
+                      label: '${rate}x',
+                      onTap: () => widget.audioService.cyclePlaybackRate(),
+                      colorScheme: colorScheme,
+                    ),
+                    const SizedBox(width: 6),
+                    _MiniChip(
+                      label: timerEnds == null ? '⏱' : '⏱✓',
+                      onTap: () => _showSleepTimerSheet(context),
+                      colorScheme: colorScheme,
+                      selected: timerEnds != null,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showSleepTimerSheet(BuildContext context) async {
+    final durations = [5, 10, 15, 30];
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final min in durations)
+                ListTile(
+                  title: Text('$min min'),
+                  onTap: () {
+                    widget.audioService.setSleepTimer(Duration(minutes: min));
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ListTile(
+                title: const Text('Off'),
+                onTap: () {
+                  widget.audioService.setSleepTimer(null);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -317,6 +411,47 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final ColorScheme colorScheme;
+  final bool selected;
+
+  const _MiniChip({
+    required this.label,
+    required this.onTap,
+    required this.colorScheme,
+    this.selected = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? colorScheme.primary.withOpacity(0.15)
+          : colorScheme.surfaceContainerHighest.withOpacity(0.65),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withOpacity(0.75),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

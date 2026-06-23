@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../services/local_database_service.dart';
 import '../services/episode_download_service.dart';
 import '../utils/debug_source_log.dart';
+import 'learning_progress_service.dart';
 import 'notification_service.dart';
 import 'media_notification_launch_handler.dart';
 
@@ -30,6 +31,7 @@ class AudioPlayerService extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final LocalDatabaseService _localDatabaseService = LocalDatabaseService();
   final EpisodeDownloadService _downloadService = EpisodeDownloadService();
+  final LearningProgressService _learningProgress = LearningProgressService();
   
   AudioPlayerState _playerState = AudioPlayerState.stopped;
   Duration _currentPosition = Duration.zero;
@@ -76,6 +78,23 @@ class AudioPlayerService extends ChangeNotifier {
   DateTime? _lastNotificationProgressSync;
   static const Duration _notificationProgressInterval = Duration(seconds: 1);
 
+  double _playbackRate = 1.0;
+  Timer? _sleepTimer;
+  DateTime? _sleepTimerEndsAt;
+  Duration? _abRepeatStart;
+  Duration? _abRepeatEnd;
+  Duration? _pendingSeekPosition;
+  DateTime? _lastProgressPersistAt;
+  static const Duration _progressPersistInterval = Duration(seconds: 5);
+  static const List<double> _playbackRates = [0.75, 1.0, 1.25];
+
+  double get playbackRate => _playbackRate;
+  List<double> get availablePlaybackRates => _playbackRates;
+  DateTime? get sleepTimerEndsAt => _sleepTimerEndsAt;
+  Duration? get abRepeatStart => _abRepeatStart;
+  Duration? get abRepeatEnd => _abRepeatEnd;
+  bool get hasAbRepeat => _abRepeatStart != null && _abRepeatEnd != null;
+
   /// Initialize service
   Future<void> initialize() async {
     await _userService.initialize();
@@ -107,6 +126,95 @@ class AudioPlayerService extends ChangeNotifier {
         audioFocus: AndroidAudioFocus.gain,
       ),
     ));
+  }
+
+  void setPendingSeekPosition(Duration position) {
+    _pendingSeekPosition = position;
+  }
+
+  Future<void> setPlaybackRate(double rate) async {
+    if (!_playbackRates.contains(rate)) return;
+    _playbackRate = rate;
+    try {
+      await _audioPlayer.setPlaybackRate(rate);
+    } catch (e) {
+      debugPrint('setPlaybackRate error: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> cyclePlaybackRate() async {
+    final idx = _playbackRates.indexOf(_playbackRate);
+    final next = _playbackRates[(idx + 1) % _playbackRates.length];
+    await setPlaybackRate(next);
+  }
+
+  void setSleepTimer(Duration? duration) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    if (duration == null) {
+      notifyListeners();
+      return;
+    }
+    _sleepTimerEndsAt = DateTime.now().add(duration);
+    _sleepTimer = Timer(duration, () async {
+      await pause();
+      _sleepTimerEndsAt = null;
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void setAbRepeat({Duration? start, Duration? end}) {
+    if (start == null || end == null || end <= start) {
+      clearAbRepeat();
+      return;
+    }
+    _abRepeatStart = start;
+    _abRepeatEnd = end;
+    notifyListeners();
+  }
+
+  void clearAbRepeat() {
+    _abRepeatStart = null;
+    _abRepeatEnd = null;
+    notifyListeners();
+  }
+
+  void markAbPointA() {
+    _abRepeatStart = _currentPosition;
+    if (_abRepeatEnd != null && _abRepeatEnd! <= _abRepeatStart!) {
+      _abRepeatEnd = null;
+    }
+    notifyListeners();
+  }
+
+  void markAbPointB() {
+    if (_abRepeatStart == null) {
+      markAbPointA();
+    }
+    _abRepeatEnd = _currentPosition;
+    if (_abRepeatEnd! <= _abRepeatStart!) {
+      _abRepeatEnd = _abRepeatStart! + const Duration(seconds: 5);
+    }
+    notifyListeners();
+  }
+
+  Future<void> _persistListeningProgress() async {
+    final ep = _currentEpisode;
+    if (ep == null) return;
+    final now = DateTime.now();
+    if (_lastProgressPersistAt != null &&
+        now.difference(_lastProgressPersistAt!) < _progressPersistInterval) {
+      return;
+    }
+    _lastProgressPersistAt = now;
+    await _learningProgress.updateListeningProgress(
+      episode: ep,
+      positionMs: _currentPosition.inMilliseconds,
+      totalDurationMs: _totalDuration.inMilliseconds,
+    );
   }
 
   /// Load episode và category episodes
@@ -317,6 +425,12 @@ class AudioPlayerService extends ChangeNotifier {
       // Play audio from URL or local file
       final source = _buildAudioSource(_currentAudioUrl!);
       await _audioPlayer.play(source);
+      await _audioPlayer.setPlaybackRate(_playbackRate);
+
+      if (_pendingSeekPosition != null) {
+        await seekTo(_pendingSeekPosition!);
+        _pendingSeekPosition = null;
+      }
       
       _playerState = AudioPlayerState.playing;
       notifyListeners();
@@ -346,6 +460,8 @@ class AudioPlayerService extends ChangeNotifier {
       _currentPosition = position;
       notifyListeners();
       _syncNotificationProgressIfNeeded();
+      _handleAbRepeatLoop(position);
+      unawaited(_persistListeningProgress());
     });
 
     _onDurationChangedSub ??= _audioPlayer.onDurationChanged.listen((Duration duration) {
@@ -393,6 +509,7 @@ class AudioPlayerService extends ChangeNotifier {
       await _audioPlayer.pause();
       _playerState = AudioPlayerState.paused;
       notifyListeners();
+      await _persistListeningProgress();
       
       // Update notification
       if (_currentEpisode != null) {
@@ -804,9 +921,20 @@ class AudioPlayerService extends ChangeNotifier {
     }
   }
 
+  void _handleAbRepeatLoop(Duration position) {
+    final end = _abRepeatEnd;
+    final start = _abRepeatStart;
+    if (end == null || start == null) return;
+    if (_playerState != AudioPlayerState.playing) return;
+    if (position >= end) {
+      unawaited(seekTo(start));
+    }
+  }
+
   @override
   void dispose() {
     _positionTimer?.cancel();
+    _sleepTimer?.cancel();
     _onPlayerCompleteSub?.cancel();
     _onPositionChangedSub?.cancel();
     _onDurationChangedSub?.cancel();
