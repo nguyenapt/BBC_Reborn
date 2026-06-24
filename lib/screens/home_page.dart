@@ -277,7 +277,6 @@ class _HomePageState extends State<HomePage> {
     for (final category in [
       ..._categories,
       ..._anotherSeriesCategories,
-      if (_bsaCategory != null) _bsaCategory!,
     ]) {
       for (final episode in category.episodes) {
         if (episode.id == episodeId || episode.resolvedStorageId == episodeId) {
