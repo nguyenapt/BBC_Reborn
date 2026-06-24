@@ -4,70 +4,63 @@ import '../services/language_manager.dart';
 
 class LearningChecklistBar extends StatelessWidget {
   final EpisodeLearningProgress? progress;
+  final Color accentColor;
+  final void Function(int tabIndex)? onStepTap;
 
-  const LearningChecklistBar({super.key, this.progress});
+  const LearningChecklistBar({
+    super.key,
+    this.progress,
+    required this.accentColor,
+    this.onStepTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final lm = LanguageManager();
-    final colorScheme = Theme.of(context).colorScheme;
     final p = progress;
     final steps = [
       _Step(
-        done: p?.listenedComplete == true || (p?.listenProgressRatio ?? 0) >= 0.85,
+        done: p?.listenedComplete == true ||
+            (p?.listenProgressRatio ?? 0) >= 0.85,
+        icon: Icons.headphones_rounded,
         label: lm.getText('checklistListen'),
+        tabIndex: 0,
       ),
-      _Step(done: p?.transcriptViewed == true, label: lm.getText('checklistTranscript')),
-      _Step(done: p?.vocabViewed == true, label: lm.getText('checklistVocab')),
+      _Step(
+        done: p?.transcriptViewed == true,
+        icon: Icons.description_rounded,
+        label: lm.getText('checklistTranscript'),
+        tabIndex: 0,
+      ),
+      _Step(
+        done: p?.vocabViewed == true,
+        icon: Icons.translate_rounded,
+        label: lm.getText('checklistVocab'),
+        tabIndex: 2,
+      ),
       _Step(
         done: p?.questionsViewed == true || p?.speakingDone == true,
+        icon: Icons.quiz_outlined,
         label: lm.getText('checklistPractice'),
+        tabIndex: 3,
       ),
     ];
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.45),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.4)),
-      ),
+    return Material(
+      color: Colors.transparent,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Text(
-                lm.getText('learningProgress'),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface.withOpacity(0.85),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${p?.checklistCompletedCount ?? 0}/${EpisodeLearningProgress.checklistTotal}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              for (int i = 0; i < steps.length; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
-                Expanded(
-                  child: _ChecklistChip(step: steps[i]),
-                ),
-              ],
-            ],
-          ),
+          for (int i = 0; i < steps.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _ChecklistIcon(
+              step: steps[i],
+              accentColor: accentColor,
+              onTap: onStepTap == null
+                  ? null
+                  : () => onStepTap!(steps[i].tabIndex),
+            ),
+          ],
         ],
       ),
     );
@@ -76,54 +69,107 @@ class LearningChecklistBar extends StatelessWidget {
 
 class _Step {
   final bool done;
+  final IconData icon;
   final String label;
-  const _Step({required this.done, required this.label});
+  final int tabIndex;
+
+  const _Step({
+    required this.done,
+    required this.icon,
+    required this.label,
+    required this.tabIndex,
+  });
 }
 
-class _ChecklistChip extends StatelessWidget {
+class _ChecklistIcon extends StatelessWidget {
+  /// Xanh lá hoàn thành — tương phản tốt trên nền sáng/tối.
+  static const Color _completedGreen = Color(0xFF22A06B);
+
   final _Step step;
-  const _ChecklistChip({required this.step});
+  final Color accentColor;
+  final VoidCallback? onTap;
+
+  const _ChecklistIcon({
+    required this.step,
+    required this.accentColor,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      decoration: BoxDecoration(
-        color: step.done
-            ? colorScheme.primary.withOpacity(0.12)
-            : colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: step.done
-              ? colorScheme.primary.withOpacity(0.45)
-              : colorScheme.outlineVariant.withOpacity(0.45),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            step.done ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-            size: 14,
-            color: step.done
-                ? colorScheme.primary
-                : colorScheme.onSurface.withOpacity(0.4),
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              step.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface.withOpacity(step.done ? 0.9 : 0.55),
+    final inactiveColor = colorScheme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.42)
+        : colorScheme.onSurface.withOpacity(0.34);
+
+    return Tooltip(
+      message: step.label,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: step.done
+                    ? accentColor.withOpacity(0.1)
+                    : colorScheme.surface.withOpacity(0.5),
+                border: Border.all(
+                  color: step.done
+                      ? accentColor.withOpacity(0.55)
+                      : colorScheme.outlineVariant.withOpacity(0.5),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withOpacity(0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                step.icon,
+                size: 20,
+                color: step.done ? accentColor : inactiveColor,
               ),
             ),
-          ),
-        ],
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 15,
+                height: 15,
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: step.done
+                        ? _completedGreen.withOpacity(0.75)
+                        : Colors.red.withOpacity(0.75),
+                    width: 1.1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withOpacity(0.1),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  step.done ? Icons.check_rounded : Icons.close_rounded,
+                  size: 10,
+                  color: step.done ? _completedGreen : Colors.red.shade600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

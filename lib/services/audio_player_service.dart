@@ -88,9 +88,26 @@ class AudioPlayerService extends ChangeNotifier {
   static const Duration _progressPersistInterval = Duration(seconds: 5);
   static const List<double> _playbackRates = [0.75, 1.0, 1.25];
 
+  bool _autoPlayNextEnabled = false;
+  bool _sleepAfterCurrentEpisode = false;
+  bool _episodeCompleteHandling = false;
+  bool _suppressEpisodeComplete = false;
+  String? _loadingEpisodeId;
+  Future<void> _playbackChain = Future<void>.value();
+
+  Future<T> _runPlaybackTask<T>(Future<T> Function() task) {
+    final run = _playbackChain.then((_) => task());
+    _playbackChain = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
   double get playbackRate => _playbackRate;
   List<double> get availablePlaybackRates => _playbackRates;
   DateTime? get sleepTimerEndsAt => _sleepTimerEndsAt;
+  bool get sleepAfterCurrentEpisode => _sleepAfterCurrentEpisode;
+  bool get hasActiveSleepTimer =>
+      _sleepTimerEndsAt != null || _sleepAfterCurrentEpisode;
+  bool get autoPlayNextEnabled => _autoPlayNextEnabled;
   Duration? get abRepeatStart => _abRepeatStart;
   Duration? get abRepeatEnd => _abRepeatEnd;
   bool get hasAbRepeat => _abRepeatStart != null && _abRepeatEnd != null;
@@ -104,7 +121,7 @@ class AudioPlayerService extends ChangeNotifier {
     await _notificationService.initialize();
 
     _onPlayerCompleteSub ??= _audioPlayer.onPlayerComplete.listen((_) {
-      _scheduleBackgroundStreamCacheIfNeeded();
+      unawaited(_handleEpisodeCompleted());
     });
 
     // Cấu hình AudioContext cho background playback
@@ -149,7 +166,27 @@ class AudioPlayerService extends ChangeNotifier {
     await setPlaybackRate(next);
   }
 
+  void resetAutoPlayNext() {
+    if (!_autoPlayNextEnabled) return;
+    _autoPlayNextEnabled = false;
+    notifyListeners();
+  }
+
+  void toggleAutoPlayNext() {
+    _autoPlayNextEnabled = !_autoPlayNextEnabled;
+    notifyListeners();
+  }
+
+  void clearSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    _sleepAfterCurrentEpisode = false;
+    notifyListeners();
+  }
+
   void setSleepTimer(Duration? duration) {
+    _sleepAfterCurrentEpisode = false;
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndsAt = null;
@@ -165,6 +202,80 @@ class AudioPlayerService extends ChangeNotifier {
     });
     notifyListeners();
   }
+
+  void setSleepAfterCurrentEpisode() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    _sleepAfterCurrentEpisode = true;
+    notifyListeners();
+  }
+
+  Future<void> _handleEpisodeCompleted() async {
+    if (_suppressEpisodeComplete || _episodeCompleteHandling) return;
+    _episodeCompleteHandling = true;
+    _suppressEpisodeComplete = true;
+    try {
+      _scheduleBackgroundStreamCacheIfNeeded();
+      final ep = _currentEpisode;
+      if (ep != null && _totalDuration.inMilliseconds > 0) {
+        await _learningProgress.updateListeningProgress(
+          episode: ep,
+          positionMs: _totalDuration.inMilliseconds,
+          totalDurationMs: _totalDuration.inMilliseconds,
+        );
+      }
+
+      if (_sleepAfterCurrentEpisode) {
+        _sleepAfterCurrentEpisode = false;
+        _playerState = AudioPlayerState.stopped;
+        notifyListeners();
+        if (_currentEpisode != null) {
+          await _notificationService.updateNotification(
+            _currentEpisode!,
+            false,
+            duration: _totalDuration.inMilliseconds,
+            currentPosition: _totalDuration.inMilliseconds,
+          );
+        }
+        return;
+      }
+
+      if (_autoPlayNextEnabled &&
+          !hasAbRepeat &&
+          _currentEpisodeIndex < _currentCategoryEpisodes.length - 1) {
+        clearAbRepeat();
+        final nextEpisode =
+            _currentCategoryEpisodes[_currentEpisodeIndex + 1];
+        await loadEpisodeWithCategory(nextEpisode, _currentCategoryEpisodes);
+        if (_currentEpisode?.id != nextEpisode.id) return;
+        _applySavedSeekForEpisode(nextEpisode);
+        await play();
+      }
+    } finally {
+      _episodeCompleteHandling = false;
+      _suppressEpisodeComplete = false;
+    }
+  }
+
+  void _applySavedSeekForEpisode(Episode episode) {
+    final saved = _learningProgress.getProgressForEpisode(episode);
+    if (saved != null &&
+        saved.lastPositionMs > 0 &&
+        !saved.listenedComplete &&
+        !_isNearEndPosition(saved.lastPositionMs, saved.totalDurationMs)) {
+      setPendingSeekPosition(Duration(milliseconds: saved.lastPositionMs));
+    } else {
+      _pendingSeekPosition = null;
+    }
+  }
+
+  bool _isNearEndPosition(int positionMs, int totalDurationMs) {
+    if (totalDurationMs <= 0) return false;
+    return positionMs >= (totalDurationMs * 0.92).round();
+  }
+
+  bool _isActiveEpisodeLoad(String episodeId) => _loadingEpisodeId == episodeId;
 
   void setAbRepeat({Duration? start, Duration? end}) {
     if (start == null || end == null || end <= start) {
@@ -252,31 +363,76 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   /// Load episode với category episodes được truyền vào
-  Future<void> loadEpisodeWithCategory(Episode episode, List<Episode> categoryEpisodes) async {
-    _scheduleBackgroundStreamCacheIfNeeded();
-    _playedFromRemote = false;
-    _playerState = AudioPlayerState.stopped;
-    _currentPosition = Duration.zero;
-    _totalDuration = Duration.zero;
+  Future<void> loadEpisodeWithCategory(
+    Episode episode,
+    List<Episode> categoryEpisodes,
+  ) {
+    return _runPlaybackTask(() async {
+      final episodeId = episode.id ?? '';
+      final isEpisodeChange = _currentEpisode?.id != episode.id;
+      _loadingEpisodeId = episodeId;
+      _suppressEpisodeComplete = true;
 
-    await _audioPlayer.stop();
+      if (isEpisodeChange) {
+        _scheduleBackgroundStreamCacheIfNeeded();
+        _playedFromRemote = false;
+        _playerState = AudioPlayerState.stopped;
+        _currentPosition = Duration.zero;
+        _totalDuration = Duration.zero;
+        await _audioPlayer.stop();
+      }
+
+      try {
+        if (!_isActiveEpisodeLoad(episodeId)) return;
+
+        _currentEpisode = episode;
+        _currentCategoryEpisodes = categoryEpisodes;
+        _currentEpisodeIndex =
+            categoryEpisodes.indexWhere((e) => e.id == episode.id);
+
+        if (_currentEpisodeIndex == -1) {
+          _currentEpisodeIndex = 0;
+        }
+
+        _currentAudioUrl = await _resolvePlaybackUrl(episode);
+        if (!_isActiveEpisodeLoad(episodeId)) return;
+
+        _isFavourite = await _checkFavouriteStatus(episode.id ?? '');
+        if (!_isActiveEpisodeLoad(episodeId)) return;
+
+        _isDownloaded = await _checkDownloadStatus(episode.id ?? '');
+        if (!_isActiveEpisodeLoad(episodeId)) return;
+
+        notifyListeners();
+      } finally {
+        if (_isActiveEpisodeLoad(episodeId)) {
+          _loadingEpisodeId = null;
+        }
+        if (!_episodeCompleteHandling) {
+          _suppressEpisodeComplete = false;
+        }
+      }
+    });
+  }
+
+  /// Cập nhật metadata episode đang phát mà không dừng audio.
+  Future<void> refreshEpisodeData(Episode episode) async {
+    final episodeId = episode.id ?? '';
+    if (episodeId.isEmpty || _currentEpisode?.id != episodeId) return;
 
     _currentEpisode = episode;
-    _currentCategoryEpisodes = categoryEpisodes;
-    _currentEpisodeIndex = categoryEpisodes.indexWhere((e) => e.id == episode.id);
-
-    if (_currentEpisodeIndex == -1) {
-      _currentEpisodeIndex = 0;
+    final index = _currentCategoryEpisodes.indexWhere((e) => e.id == episodeId);
+    if (index != -1) {
+      _currentCategoryEpisodes[index] = episode;
     }
 
-    _currentAudioUrl = await _resolvePlaybackUrl(episode);
-    
-    // Check favourite status
-    _isFavourite = await _checkFavouriteStatus(episode.id ?? '');
-    
-    // Check download status
-    _isDownloaded = await _checkDownloadStatus(episode.id ?? '');
-    
+    final resolved = await _resolvePlaybackUrl(episode);
+    if (resolved != null) {
+      _currentAudioUrl = resolved;
+    }
+
+    _isFavourite = await _checkFavouriteStatus(episodeId);
+    _isDownloaded = await _checkDownloadStatus(episodeId);
     notifyListeners();
   }
 
@@ -400,55 +556,54 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   /// Play audio
-  Future<void> play() async {
-    if (_currentEpisode == null) {
-      debugPrint('No episode or audio URL available');
-      return;
-    }
-
-    _playerState = AudioPlayerState.loading;
-    notifyListeners();
-
-    try {
-      final resolved = await _resolvePlaybackUrl(_currentEpisode!);
-      if (resolved == null) {
-        _playerState = AudioPlayerState.stopped;
-        notifyListeners();
+  Future<void> play() {
+    return _runPlaybackTask(() async {
+      if (_currentEpisode == null) {
+        debugPrint('No episode or audio URL available');
         return;
       }
-      _currentAudioUrl = resolved;
-      _playedFromRemote = _isRemoteUrl(resolved);
 
-      // Set up audio player listeners
-      _setupAudioPlayerListeners();
-
-      // Play audio from URL or local file
-      final source = _buildAudioSource(_currentAudioUrl!);
-      await _audioPlayer.play(source);
-      await _audioPlayer.setPlaybackRate(_playbackRate);
-
-      if (_pendingSeekPosition != null) {
-        await seekTo(_pendingSeekPosition!);
-        _pendingSeekPosition = null;
-      }
-      
-      _playerState = AudioPlayerState.playing;
+      _playerState = AudioPlayerState.loading;
       notifyListeners();
-      
-      // Show/update notification when playback starts
-      if (_currentEpisode != null) {
-        await _notificationService.showAudioNotification(
-          _currentEpisode!,
-          true,
-          duration: _totalDuration.inMilliseconds,
-          currentPosition: _currentPosition.inMilliseconds,
-        );
+
+      try {
+        final resolved = await _resolvePlaybackUrl(_currentEpisode!);
+        if (resolved == null) {
+          _playerState = AudioPlayerState.stopped;
+          notifyListeners();
+          return;
+        }
+        _currentAudioUrl = resolved;
+        _playedFromRemote = _isRemoteUrl(resolved);
+
+        _setupAudioPlayerListeners();
+
+        final source = _buildAudioSource(_currentAudioUrl!);
+        await _audioPlayer.play(source);
+        await _audioPlayer.setPlaybackRate(_playbackRate);
+
+        if (_pendingSeekPosition != null) {
+          await seekTo(_pendingSeekPosition!);
+          _pendingSeekPosition = null;
+        }
+
+        _playerState = AudioPlayerState.playing;
+        notifyListeners();
+
+        if (_currentEpisode != null) {
+          await _notificationService.showAudioNotification(
+            _currentEpisode!,
+            true,
+            duration: _totalDuration.inMilliseconds,
+            currentPosition: _currentPosition.inMilliseconds,
+          );
+        }
+      } catch (e) {
+        _playerState = AudioPlayerState.stopped;
+        notifyListeners();
+        debugPrint('Error playing audio: $e');
       }
-    } catch (e) {
-      _playerState = AudioPlayerState.stopped;
-      notifyListeners();
-      debugPrint('Error playing audio: $e');
-    }
+    });
   }
 
   /// Setup audio player listeners
@@ -479,10 +634,12 @@ class AudioPlayerService extends ChangeNotifier {
           _playerState = AudioPlayerState.paused;
           break;
         case PlayerState.stopped:
+          if (_playerState == AudioPlayerState.loading) break;
           _playerState = AudioPlayerState.stopped;
           _currentPosition = Duration.zero;
           break;
         case PlayerState.completed:
+          if (_playerState == AudioPlayerState.loading) break;
           _playerState = AudioPlayerState.stopped;
           _currentPosition = Duration.zero;
           break;
@@ -543,15 +700,16 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   /// Stop audio
-  Future<void> stop() async {
-    _scheduleBackgroundStreamCacheIfNeeded();
-    await _audioPlayer.stop();
-    _playerState = AudioPlayerState.stopped;
-    _currentPosition = Duration.zero;
-    notifyListeners();
-    
-    // Hide notification
-    await _notificationService.hideNotification();
+  Future<void> stop() {
+    return _runPlaybackTask(() async {
+      _scheduleBackgroundStreamCacheIfNeeded();
+      await _audioPlayer.stop();
+      _playerState = AudioPlayerState.stopped;
+      _currentPosition = Duration.zero;
+      notifyListeners();
+
+      await _notificationService.hideNotification();
+    });
   }
 
   /// Seek to position

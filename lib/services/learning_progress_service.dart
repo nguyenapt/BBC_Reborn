@@ -19,7 +19,7 @@ class LearningProgressService extends ChangeNotifier {
   static const String _streakLastActiveKey = 'learning_streak_last_active_v1';
   static const String _todayListeningMsKey = 'learning_today_listening_ms_v1';
   static const String _todayListeningDateKey = 'learning_today_listening_date_v1';
-  static const int _activeListeningThresholdMs = 180000; // 3 minutes
+  static const int activeListeningThresholdMs = 180000; // 3 minutes
 
   final Map<String, EpisodeLearningProgress> _progressByEpisodeId = {};
   int _currentStreak = 0;
@@ -28,6 +28,13 @@ class LearningProgressService extends ChangeNotifier {
   int _todayListeningMs = 0;
   bool _initialized = false;
   bool _legacyLearningDetected = false;
+  Future<void> _mutationChain = Future.value();
+
+  Future<T> _runMutation<T>(Future<T> Function() action) {
+    final run = _mutationChain.then((_) => action());
+    _mutationChain = run.then((_) {}, onError: (_) {});
+    return run;
+  }
 
   int get currentStreak => _currentStreak;
   int get longestStreak => _longestStreak;
@@ -123,6 +130,27 @@ class LearningProgressService extends ChangeNotifier {
     }
     _refreshTodayListeningBucket(prefs);
     _detectLegacyLearningSignals(prefs);
+    if (_syncStreakDisplayWithCalendar()) {
+      await _saveStreak();
+    }
+  }
+
+  /// Chuỗi chỉ còn hiệu lực nếu học hôm nay hoặc hôm qua. Trả về true nếu đã reset streak.
+  bool _syncStreakDisplayWithCalendar() {
+    if (_lastActiveDate == null) {
+      if (_currentStreak == 0) return false;
+      _currentStreak = 0;
+      return true;
+    }
+    final today = _dateOnly(DateTime.now());
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (_isSameDay(_lastActiveDate!, today) ||
+        _isSameDay(_lastActiveDate!, yesterday)) {
+      return false;
+    }
+    if (_currentStreak == 0) return false;
+    _currentStreak = 0;
+    return true;
   }
 
   void _refreshTodayListeningBucket(SharedPreferences prefs) {
@@ -215,165 +243,219 @@ class LearningProgressService extends ChangeNotifier {
     required int positionMs,
     required int totalDurationMs,
     required int tabIndex,
-  }) async {
-    final id = episodeKey(episode);
-    if (id.isEmpty) return;
+  }) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
 
-    final listenedComplete = totalDurationMs > 0 &&
-        positionMs >= (totalDurationMs * 0.92).round();
+      final listenedComplete = totalDurationMs > 0 &&
+          positionMs >= (totalDurationMs * 0.92).round();
 
-    final existing = _progressByEpisodeId[id];
-    var updated = (existing ??
-            EpisodeLearningProgress(
-              episodeId: id,
-              episodeTitle: episode.episodeName,
-              category: episode.category,
-              thumbImage: episode.thumbImage,
-              lastOpenedAt: DateTime.now(),
-            ))
-        .copyWith(
-      episodeTitle: episode.episodeName,
-      category: episode.category,
-      thumbImage: episode.thumbImage,
-      lastPositionMs: positionMs,
-      totalDurationMs: totalDurationMs,
-      lastTabIndex: tabIndex,
-      listenedComplete: listenedComplete || (existing?.listenedComplete ?? false),
-      lastOpenedAt: DateTime.now(),
-    );
+      final existing = _progressByEpisodeId[id];
+      var updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(
+        episodeTitle: episode.episodeName,
+        category: episode.category,
+        thumbImage: episode.thumbImage,
+        lastPositionMs: positionMs,
+        totalDurationMs: totalDurationMs,
+        lastTabIndex: tabIndex,
+        listenedComplete:
+            listenedComplete || (existing?.listenedComplete ?? false),
+        lastOpenedAt: DateTime.now(),
+      );
 
-    if (tabIndex == 0) {
-      updated = updated.copyWith(transcriptViewed: true);
-    } else if (tabIndex == 2) {
-      updated = updated.copyWith(vocabViewed: true);
-    } else if (tabIndex == 3) {
-      updated = updated.copyWith(questionsViewed: true);
-    }
+      if (tabIndex == 2) {
+        updated = updated.copyWith(vocabViewed: true);
+      } else if (tabIndex == 3) {
+        updated = updated.copyWith(questionsViewed: true);
+      }
 
-    _progressByEpisodeId[id] = updated;
-    await _saveProgressMap();
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
 
-    if (positionMs >= 15000) {
-      await recordActivity(LearningActivityType.listening, listeningDeltaMs: 5000);
-    }
-    notifyListeners();
+      if (positionMs >= 15000) {
+        await _recordActivityImpl(
+          LearningActivityType.listening,
+          listeningDeltaMs: 5000,
+        );
+      }
+      notifyListeners();
+    });
   }
 
-  Future<void> touchEpisode(Episode episode) async {
-    final id = episodeKey(episode);
-    if (id.isEmpty) return;
-    final existing = _progressByEpisodeId[id];
-    final updated = (existing ??
-            EpisodeLearningProgress(
-              episodeId: id,
-              episodeTitle: episode.episodeName,
-              category: episode.category,
-              thumbImage: episode.thumbImage,
-              lastOpenedAt: DateTime.now(),
-            ))
-        .copyWith(
-      episodeTitle: episode.episodeName,
-      category: episode.category,
-      thumbImage: episode.thumbImage,
-      lastOpenedAt: DateTime.now(),
-    );
-    _progressByEpisodeId[id] = updated;
-    await _saveProgressMap();
-    notifyListeners();
+  Future<void> touchEpisode(Episode episode) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
+      final existing = _progressByEpisodeId[id];
+      final updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(
+        episodeTitle: episode.episodeName,
+        category: episode.category,
+        thumbImage: episode.thumbImage,
+        lastOpenedAt: DateTime.now(),
+      );
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
+      notifyListeners();
+    });
   }
 
   Future<void> updateListeningProgress({
     required Episode episode,
     required int positionMs,
     required int totalDurationMs,
-  }) async {
-    final id = episodeKey(episode);
-    if (id.isEmpty) return;
+  }) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
 
-    final listenedComplete = totalDurationMs > 0 &&
-        positionMs >= (totalDurationMs * 0.92).round();
+      final listenedComplete = totalDurationMs > 0 &&
+          positionMs >= (totalDurationMs * 0.92).round();
 
-    final existing = _progressByEpisodeId[id];
-    final updated = (existing ??
-            EpisodeLearningProgress(
-              episodeId: id,
-              episodeTitle: episode.episodeName,
-              category: episode.category,
-              thumbImage: episode.thumbImage,
-              lastOpenedAt: DateTime.now(),
-            ))
-        .copyWith(
-      episodeTitle: episode.episodeName,
-      category: episode.category,
-      thumbImage: episode.thumbImage,
-      lastPositionMs: positionMs,
-      totalDurationMs: totalDurationMs,
-      listenedComplete: listenedComplete || (existing?.listenedComplete ?? false),
-      lastOpenedAt: DateTime.now(),
-    );
-    _progressByEpisodeId[id] = updated;
-    await _saveProgressMap();
+      final existing = _progressByEpisodeId[id];
+      final updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(
+        episodeTitle: episode.episodeName,
+        category: episode.category,
+        thumbImage: episode.thumbImage,
+        lastPositionMs: positionMs,
+        totalDurationMs: totalDurationMs,
+        listenedComplete:
+            listenedComplete || (existing?.listenedComplete ?? false),
+        lastOpenedAt: DateTime.now(),
+      );
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
 
-    if (positionMs >= 15000) {
-      await recordActivity(LearningActivityType.listening, listeningDeltaMs: 5000);
-    }
-    notifyListeners();
+      if (positionMs >= 15000) {
+        await _recordActivityImpl(
+          LearningActivityType.listening,
+          listeningDeltaMs: 5000,
+        );
+      }
+      notifyListeners();
+    });
   }
 
   Future<void> updateTabIndex({
     required Episode episode,
     required int tabIndex,
-  }) async {
-    final id = episodeKey(episode);
-    if (id.isEmpty) return;
+  }) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
 
-    final existing = _progressByEpisodeId[id];
-    var updated = (existing ??
-            EpisodeLearningProgress(
-              episodeId: id,
-              episodeTitle: episode.episodeName,
-              category: episode.category,
-              thumbImage: episode.thumbImage,
-              lastOpenedAt: DateTime.now(),
-            ))
-        .copyWith(
-      lastTabIndex: tabIndex,
-      lastOpenedAt: DateTime.now(),
-    );
+      final existing = _progressByEpisodeId[id];
+      var updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(
+        lastTabIndex: tabIndex,
+        lastOpenedAt: DateTime.now(),
+      );
 
-    if (tabIndex == 0) {
-      updated = updated.copyWith(transcriptViewed: true);
-    } else if (tabIndex == 2) {
-      updated = updated.copyWith(vocabViewed: true);
-    } else if (tabIndex == 3) {
-      updated = updated.copyWith(questionsViewed: true);
-    }
+      if (tabIndex == 2) {
+        updated = updated.copyWith(vocabViewed: true);
+      } else if (tabIndex == 3) {
+        updated = updated.copyWith(questionsViewed: true);
+      }
 
-    _progressByEpisodeId[id] = updated;
-    await _saveProgressMap();
-    notifyListeners();
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
+      notifyListeners();
+    });
   }
 
-  Future<void> markSpeakingDone(Episode episode) async {
-    final id = episodeKey(episode);
-    if (id.isEmpty) return;
-    final existing = _progressByEpisodeId[id];
-    final updated = (existing ??
-            EpisodeLearningProgress(
-              episodeId: id,
-              episodeTitle: episode.episodeName,
-              category: episode.category,
-              thumbImage: episode.thumbImage,
-              lastOpenedAt: DateTime.now(),
-            ))
-        .copyWith(speakingDone: true, lastOpenedAt: DateTime.now());
-    _progressByEpisodeId[id] = updated;
-    await _saveProgressMap();
-    await recordActivity(LearningActivityType.speaking);
-    notifyListeners();
+  Future<void> markTranscriptViewed(Episode episode) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
+
+      final existing = _progressByEpisodeId[id];
+      if (existing?.transcriptViewed == true) return;
+
+      final updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(
+        episodeTitle: episode.episodeName,
+        category: episode.category,
+        thumbImage: episode.thumbImage,
+        transcriptViewed: true,
+        lastOpenedAt: DateTime.now(),
+      );
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
+      notifyListeners();
+    });
+  }
+
+  Future<void> markSpeakingDone(Episode episode) {
+    return _runMutation(() async {
+      final id = episodeKey(episode);
+      if (id.isEmpty) return;
+      final existing = _progressByEpisodeId[id];
+      if (existing?.speakingDone == true) return;
+
+      final updated = (existing ??
+              EpisodeLearningProgress(
+                episodeId: id,
+                episodeTitle: episode.episodeName,
+                category: episode.category,
+                thumbImage: episode.thumbImage,
+                lastOpenedAt: DateTime.now(),
+              ))
+          .copyWith(speakingDone: true, lastOpenedAt: DateTime.now());
+      _progressByEpisodeId[id] = updated;
+      await _saveProgressMap();
+      await _recordActivityImpl(LearningActivityType.speaking);
+      notifyListeners();
+    });
   }
 
   Future<void> recordActivity(
+    LearningActivityType type, {
+    int listeningDeltaMs = 0,
+  }) {
+    return _runMutation(
+      () => _recordActivityImpl(type, listeningDeltaMs: listeningDeltaMs),
+    );
+  }
+
+  Future<void> _recordActivityImpl(
     LearningActivityType type, {
     int listeningDeltaMs = 0,
   }) async {
@@ -383,7 +465,7 @@ class LearningProgressService extends ChangeNotifier {
 
     final qualifies = switch (type) {
       LearningActivityType.listening =>
-        _todayListeningMs >= _activeListeningThresholdMs,
+        _todayListeningMs >= activeListeningThresholdMs,
       LearningActivityType.vocabReview => true,
       LearningActivityType.grammarReview => true,
       LearningActivityType.speaking => true,
@@ -394,7 +476,7 @@ class LearningProgressService extends ChangeNotifier {
       return;
     }
     if (type == LearningActivityType.listening &&
-        _todayListeningMs < _activeListeningThresholdMs) {
+        _todayListeningMs < activeListeningThresholdMs) {
       return;
     }
     await _markActiveDay();

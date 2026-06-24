@@ -9,6 +9,15 @@ class AppAr {
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
     'dayStreak': 'Day streak',
+    'streakPanelLongest': 'أطول سلسلة: {count} يوم',
+    'streakPanelHowTo': 'حافظ على سلسلتك بإكمال نشاط واحد على الأقل من القائمة أدناه',
+    'streakPanelListenRule': 'استمع لمدة {minutes} دقائق على الأقل',
+    'streakPanelVocabRule': 'تدرب على المفردات',
+    'streakPanelGrammarRule': 'راجع القواعد',
+    'streakPanelSpeakingRule': 'أكمل تمرين التحدث',
+    'streakPanelCountedToday': 'تم احتساب اليوم — تم حفظ السلسلة!',
+    'streakPanelNotYet': 'لم يُحتسب بعد — أكمل أي نشاط أعلاه',
+    'streakPanelListeningProgress': '{current} / {target} دقيقة استماع اليوم',
     'learningProgress': 'Learning progress',
     'checklistListen': 'Listen',
     'checklistTranscript': 'Transcript',
@@ -344,5 +353,15 @@ class AppAr {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Player
+    'playerAutoPlay': 'Next',
+    'sleepTimerTitle': 'Sleep timer',
+    'sleepTimerEndOfEpisode': 'End of episode',
+    'sleepTimerOff': 'Off',
+    'sleepTimerMinutes': '{minutes} min',
+    'autoPlayNowPlaying': 'Now playing: {title}',
+    'autoPlayEnabledHint':
+        'Auto-play is on. The next episode in this category will play automatically.',
   };
 }

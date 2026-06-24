@@ -8,7 +8,16 @@ class AppEs {
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
-    'dayStreak': 'Day streak',
+    'dayStreak': 'Racha de días',
+    'streakPanelLongest': 'Racha más larga: {count} días',
+    'streakPanelHowTo': 'Mantén tu racha completando al menos una actividad a continuación',
+    'streakPanelListenRule': 'Escucha al menos {minutes} minutos',
+    'streakPanelVocabRule': 'Practica vocabulario',
+    'streakPanelGrammarRule': 'Repasa gramática',
+    'streakPanelSpeakingRule': 'Completa la práctica oral',
+    'streakPanelCountedToday': '¡Contado hoy — racha guardada!',
+    'streakPanelNotYet': 'Aún no contado — completa cualquier actividad arriba',
+    'streakPanelListeningProgress': '{current} / {target} min escuchados hoy',
     'learningProgress': 'Learning progress',
     'checklistListen': 'Listen',
     'checklistTranscript': 'Transcript',
@@ -346,5 +355,15 @@ class AppEs {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Player
+    'playerAutoPlay': 'Sig.',
+    'sleepTimerTitle': 'Temporizador de sueño',
+    'sleepTimerEndOfEpisode': 'Fin del episodio',
+    'sleepTimerOff': 'Apagar',
+    'sleepTimerMinutes': '{minutes} min',
+    'autoPlayNowPlaying': 'Reproduciendo: {title}',
+    'autoPlayEnabledHint':
+        'La reproducción automática está activada. El siguiente episodio de esta categoría se reproducirá solo.',
   };
 }

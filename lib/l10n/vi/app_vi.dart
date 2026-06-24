@@ -9,6 +9,15 @@ class AppVi {
     'reviewToday': 'Ôn hôm nay',
     'newEpisode': 'Episode mới',
     'dayStreak': 'Chuỗi ngày học',
+    'streakPanelLongest': 'Kỷ lục: {count} ngày',
+    'streakPanelHowTo': 'Giữ chuỗi ngày bằng cách hoàn thành ít nhất 1 mục dưới đây',
+    'streakPanelListenRule': 'Nghe ít nhất {minutes} phút',
+    'streakPanelVocabRule': 'Luyện từ vựng',
+    'streakPanelGrammarRule': 'Ôn ngữ pháp',
+    'streakPanelSpeakingRule': 'Hoàn thành luyện nói',
+    'streakPanelCountedToday': 'Đã tính hôm nay — chuỗi được giữ!',
+    'streakPanelNotYet': 'Chưa tính hôm nay — làm bất kỳ hoạt động nào ở trên',
+    'streakPanelListeningProgress': 'Đã nghe {current} / {target} phút hôm nay',
     'learningProgress': 'Tiến độ học',
     'checklistListen': 'Nghe',
     'checklistTranscript': 'Transcript',
@@ -374,5 +383,15 @@ class AppVi {
         'Phiên bản này không còn được hỗ trợ. Vui lòng cập nhật để tiếp tục.',
     'appUpdateButtonUpdate': 'Cập nhật ngay',
     'appUpdateButtonLater': 'Để sau',
+
+    // Player
+    'playerAutoPlay': 'Tiếp',
+    'sleepTimerTitle': 'Hẹn giờ tắt',
+    'sleepTimerEndOfEpisode': 'Hết episode này',
+    'sleepTimerOff': 'Tắt',
+    'sleepTimerMinutes': '{minutes} phút',
+    'autoPlayNowPlaying': 'Đang phát: {title}',
+    'autoPlayEnabledHint':
+        'Đã bật tự phát tiếp. Episode kế tiếp trong danh mục sẽ tự động phát.',
   };
 }

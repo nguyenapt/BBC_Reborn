@@ -8,7 +8,16 @@ class AppRu {
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
-    'dayStreak': 'Day streak',
+    'dayStreak': 'Серия дней',
+    'streakPanelLongest': 'Лучшая серия: {count} дн.',
+    'streakPanelHowTo': 'Сохраняйте серию, выполнив хотя бы одно из действий ниже',
+    'streakPanelListenRule': 'Слушайте не менее {minutes} минут',
+    'streakPanelVocabRule': 'Практикуйте слова',
+    'streakPanelGrammarRule': 'Повторяйте грамматику',
+    'streakPanelSpeakingRule': 'Завершите устную практику',
+    'streakPanelCountedToday': 'Сегодня засчитано — серия сохранена!',
+    'streakPanelNotYet': 'Ещё не засчитано — выполните любое действие выше',
+    'streakPanelListeningProgress': 'Сегодня прослушано {current} / {target} мин',
     'learningProgress': 'Learning progress',
     'checklistListen': 'Listen',
     'checklistTranscript': 'Transcript',
@@ -346,5 +355,15 @@ class AppRu {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Player
+    'playerAutoPlay': 'Далее',
+    'sleepTimerTitle': 'Таймер сна',
+    'sleepTimerEndOfEpisode': 'Конец эпизода',
+    'sleepTimerOff': 'Выкл.',
+    'sleepTimerMinutes': '{minutes} мин',
+    'autoPlayNowPlaying': 'Сейчас играет: {title}',
+    'autoPlayEnabledHint':
+        'Автовоспроизведение включено. Следующий эпизод в этой категории будет воспроизведён автоматически.',
   };
 }
