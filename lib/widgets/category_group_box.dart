@@ -4,8 +4,9 @@ import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../utils/category_names.dart';
 import 'episode_row.dart';
-import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
+import '../services/learning_progress_service.dart';
+import 'episode_progress_ring.dart';
 
 
 class CategoryGroupBox extends StatelessWidget {
@@ -25,6 +26,7 @@ class CategoryGroupBox extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
     final languageManager = LanguageManager();
+    final progressService = LearningProgressService();
     final useHorizontalLayout = _shouldUseHorizontalLayout(category.name);
     final latestEpisodes = useHorizontalLayout
         ? _getLatestEpisodes(category.episodes, 3)
@@ -34,7 +36,10 @@ class CategoryGroupBox extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
+    return ListenableBuilder(
+      listenable: progressService,
+      builder: (context, child) {
+        return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -98,7 +103,14 @@ class CategoryGroupBox extends StatelessWidget {
                 
                 
                 if (useHorizontalLayout) ...[
-                  _buildFirstEpisode(latestEpisodes.first, context),
+                  EpisodeRow(
+                    episode: latestEpisodes.first,
+                    onTap: () => onEpisodeTap(latestEpisodes.first),
+                    languageManager: languageManager,
+                    isLatest: true,
+                    learningProgress: progressService
+                        .getProgressForEpisode(latestEpisodes.first),
+                  ),
                   const SizedBox(height: 10),
                   if (latestEpisodes.length > 1 || onViewAllTap != null)
                     LayoutBuilder(
@@ -112,6 +124,7 @@ class CategoryGroupBox extends StatelessWidget {
                           items.add(_buildHorizontalEpisodeItem(
                             episode,
                             context,
+                            progressService: progressService,
                             width: itemWidth,
                           ));
                         }
@@ -153,7 +166,9 @@ class CategoryGroupBox extends StatelessWidget {
                         episode: episode,
                         onTap: () => onEpisodeTap(episode),
                         languageManager: languageManager,
-                        isLatest: index == 0, // Episode đầu tiên là mới nhất
+                        isLatest: index == 0,
+                        learningProgress: progressService
+                            .getProgressForEpisode(episode),
                       ),
                     );
                   }),
@@ -164,6 +179,8 @@ class CategoryGroupBox extends StatelessWidget {
           ),
         ),
       ),
+        );
+      },
     );
   }
 
@@ -264,108 +281,13 @@ class CategoryGroupBox extends StatelessWidget {
     );
   }
 
-  Widget _buildFirstEpisode(Episode episode, BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: () => onEpisodeTap(episode),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ImageCacheService().buildCachedImage(
-                imageUrl: episode.thumbImage,
-                width: 150,
-                height: 85,
-                fit: BoxFit.cover,
-                borderRadius: BorderRadius.circular(8),
-                showWatermark: true,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      episode.episodeName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      episode.summary?.isNotEmpty == true
-                          ? episode.summary!
-                          : episode.shortTranscript,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurface.withOpacity(0.68),
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: CategoryColors.getCategoryBorderColor(episode.category),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            episode.category,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: CategoryColors.getCategoryColor(episode.category),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: colorScheme.onSurface.withOpacity(0.65),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          episode.duration,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurface.withOpacity(0.65),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildHorizontalEpisodeItem(
     Episode episode,
     BuildContext context, {
+    required LearningProgressService progressService,
     required double width,
   }) {
-    return Container(
+    return SizedBox(
       width: width,
       child: InkWell(
         onTap: () => onEpisodeTap(episode),
@@ -373,15 +295,11 @@ class CategoryGroupBox extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: ImageCacheService().buildCachedImage(
-                imageUrl: episode.thumbImage,
-                width: width,
-                height: 56,
-                fit: BoxFit.cover,
-                showWatermark: true,
-              ),
+            EpisodeThumbnailWithProgress(
+              imageUrl: episode.thumbImage,
+              width: width,
+              height: 56,
+              learningProgress: progressService.getProgressForEpisode(episode),
             ),
             const SizedBox(height: 6),
             Text(
