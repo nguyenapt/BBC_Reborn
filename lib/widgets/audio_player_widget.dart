@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/audio_player_service.dart';
+import '../services/language_manager.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
   final AudioPlayerService audioService;
@@ -8,6 +9,7 @@ class AudioPlayerWidget extends StatefulWidget {
   final String currentLineText;
   final bool showCurrentPanel;
   final VoidCallback? onCurrentPanelTap;
+  final VoidCallback? onAutoPlayEnabled;
 
   const AudioPlayerWidget({
     super.key,
@@ -17,6 +19,7 @@ class AudioPlayerWidget extends StatefulWidget {
     required this.currentLineText,
     required this.showCurrentPanel,
     this.onCurrentPanelTap,
+    this.onAutoPlayEnabled,
   });
 
   @override
@@ -29,55 +32,51 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 350),
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final offsetAnimation = Tween<Offset>(
-                      begin: const Offset(0, 0.18),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: widget.showCurrentPanel
-                      ? _buildCurrentTranscriptPanel(context)
-                      : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
-                ),
-                if (widget.showCurrentPanel) const SizedBox(height: 4),
-                _buildSeekBarRow(),
-                const SizedBox(height: 3),
-                _buildCenterControls(context),
-              ],
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 0.18),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              child: widget.showCurrentPanel
+                  ? _buildCurrentTranscriptPanel(context)
+                  : const SizedBox.shrink(key: ValueKey('current-panel-hidden')),
             ),
-          ),
+            if (widget.showCurrentPanel) const SizedBox(height: 4),
+            _buildSeekBarRow(),
+            const SizedBox(height: 3),
+            _buildControlsRow(context),
+          ],
         ),
       ),
     );
@@ -242,7 +241,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     );
   }
 
-  Widget _buildCenterControls(BuildContext context) {
+  Widget _buildControlsRow(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.audioService,
       builder: (context, child) {
@@ -252,61 +251,209 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         }
 
         final primary = Theme.of(context).colorScheme.primary;
+        final colorScheme = Theme.of(context).colorScheme;
+        final rate = widget.audioService.playbackRate;
+        final hasAb = widget.audioService.hasAbRepeat;
+        final hasSleepTimer = widget.audioService.hasActiveSleepTimer;
+        final autoPlayOn = widget.audioService.autoPlayNextEnabled;
+        final lm = LanguageManager();
 
         return Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              onPressed: () async => await widget.audioService.skipBackward(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              icon: Icon(
-                Icons.replay_10_rounded,
-                color: primary,
-                size: 22,
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: primary,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-                onPressed: () async {
-                  if (widget.audioService.isPlaying) {
-                    await widget.audioService.pause();
-                  } else if (widget.audioService.isPaused) {
-                    await widget.audioService.resume();
-                  } else {
-                    // Gọi callback trước khi play (để hiển thị interstitial ads nếu cần)
-                    await widget.onPlayPressed?.call();
-                    await widget.audioService.play();
-                  }
-                },
-                icon: Icon(
-                  widget.audioService.isLoading
-                      ? Icons.hourglass_empty
-                      : widget.audioService.isPlaying
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: 28,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MiniChip(
+                        label: 'A',
+                        onTap: widget.audioService.markAbPointA,
+                        colorScheme: colorScheme,
+                        selected: hasAb,
+                      ),
+                      const SizedBox(width: 4),
+                      _MiniChip(
+                        label: 'B',
+                        onTap: widget.audioService.markAbPointB,
+                        colorScheme: colorScheme,
+                        selected: hasAb,
+                      ),
+                      if (hasAb)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 28,
+                            height: 28,
+                          ),
+                          onPressed: widget.audioService.clearAbRepeat,
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: colorScheme.error,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            IconButton(
-              onPressed: () async => await widget.audioService.skipForward(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              icon: Icon(
-                Icons.forward_10_rounded,
-                color: primary,
-                size: 22,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () async => await widget.audioService.skipBackward(),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints.tightFor(width: 36, height: 36),
+                  icon: Icon(
+                    Icons.replay_10_rounded,
+                    color: primary,
+                    size: 22,
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints.tightFor(width: 44, height: 44),
+                    onPressed: () async {
+                      if (widget.audioService.isPlaying) {
+                        await widget.audioService.pause();
+                      } else if (widget.audioService.isPaused) {
+                        await widget.audioService.resume();
+                      } else {
+                        await widget.onPlayPressed?.call();
+                        await widget.audioService.play();
+                      }
+                    },
+                    icon: Icon(
+                      widget.audioService.isLoading
+                          ? Icons.hourglass_empty
+                          : widget.audioService.isPlaying
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      size: 28,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async => await widget.audioService.skipForward(),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints.tightFor(width: 36, height: 36),
+                  icon: Icon(
+                    Icons.forward_10_rounded,
+                    color: primary,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MiniChip(
+                        label: '${rate}x',
+                        onTap: () => widget.audioService.cyclePlaybackRate(),
+                        colorScheme: colorScheme,
+                      ),
+                      const SizedBox(width: 4),
+                      _MiniChip(
+                        label: hasSleepTimer ? '⏱✓' : '⏱',
+                        onTap: () => _showSleepTimerSheet(context),
+                        colorScheme: colorScheme,
+                        selected: hasSleepTimer,
+                      ),
+                      const SizedBox(width: 4),
+                    _MiniChip(
+                      icon: Icons.playlist_play_rounded,
+                      tooltip: lm.getText('playerAutoPlay'),
+                      onTap: () {
+                        final wasOn = widget.audioService.autoPlayNextEnabled;
+                        widget.audioService.toggleAutoPlayNext();
+                        if (!wasOn &&
+                            widget.audioService.autoPlayNextEnabled) {
+                          widget.onAutoPlayEnabled?.call();
+                        }
+                      },
+                      colorScheme: colorScheme,
+                      selected: autoPlayOn,
+                    ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showSleepTimerSheet(BuildContext context) async {
+    final durations = [5, 10, 15, 30];
+    final lm = LanguageManager();
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    lm.getText('sleepTimerTitle'),
+                    style: Theme.of(ctx).textTheme.titleMedium,
+                  ),
+                ),
+              ),
+              ListTile(
+                title: Text(lm.getText('sleepTimerEndOfEpisode')),
+                onTap: () {
+                  widget.audioService.setSleepAfterCurrentEpisode();
+                  Navigator.pop(ctx);
+                },
+              ),
+              for (final min in durations)
+                ListTile(
+                  title: Text(
+                    lm.getTextWithParams(
+                      'sleepTimerMinutes',
+                      {'minutes': min},
+                    ),
+                  ),
+                  onTap: () {
+                    widget.audioService.setSleepTimer(Duration(minutes: min));
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ListTile(
+                title: Text(lm.getText('sleepTimerOff')),
+                onTap: () {
+                  widget.audioService.clearSleepTimer();
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
         );
       },
     );
@@ -317,6 +464,61 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String? label;
+  final IconData? icon;
+  final String? tooltip;
+  final VoidCallback onTap;
+  final ColorScheme colorScheme;
+  final bool selected;
+
+  const _MiniChip({
+    this.label,
+    this.icon,
+    this.tooltip,
+    required this.onTap,
+    required this.colorScheme,
+    this.selected = false,
+  }) : assert(label != null || icon != null);
+
+  @override
+  Widget build(BuildContext context) {
+    final fgColor = selected
+        ? colorScheme.primary
+        : colorScheme.onSurface.withOpacity(0.75);
+
+    final chip = Material(
+      color: selected
+          ? colorScheme.primary.withOpacity(0.15)
+          : colorScheme.surfaceContainerHighest.withOpacity(0.65),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: icon != null ? 6 : 8,
+            vertical: 4,
+          ),
+          child: icon != null
+              ? Icon(icon, size: 15, color: fgColor)
+              : Text(
+                  label!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: fgColor,
+                  ),
+                ),
+        ),
+      ),
+    );
+
+    if (tooltip == null || tooltip!.isEmpty) return chip;
+    return Tooltip(message: tooltip!, child: chip);
   }
 }
 

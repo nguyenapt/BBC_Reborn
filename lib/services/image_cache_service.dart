@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'navigation_service.dart';
 
@@ -165,6 +166,20 @@ class ImageCacheService {
         size: (width * 0.4).clamp(20.0, 40.0),
       ),
     );
+  }
+
+  /// Đường dẫn file thumbnail đã cache (dùng cho media notification).
+  Future<String?> cachedImageLocalPath(String imageUrl) async {
+    if (imageUrl.isEmpty) return null;
+    try {
+      final cached = await DefaultCacheManager().getFileFromCache(imageUrl);
+      if (cached != null && await cached.file.exists()) {
+        return cached.file.path;
+      }
+    } catch (e) {
+      debugPrint('cachedImageLocalPath failed: $e');
+    }
+    return null;
   }
 
   /// Preload ảnh vào cache

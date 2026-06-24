@@ -10,7 +10,14 @@ class AIConfig {
   static const bool useCloudAI = true;
 
   /// Cloud AI requires Firebase + App Check on device; web is not configured yet.
-  static bool get effectiveUseCloudAI => useCloudAI && !kIsWeb;
+  /// Override local dev: `--dart-define=USE_CLOUD_AI=false`
+  static bool get effectiveUseCloudAI {
+    const envOverride = String.fromEnvironment('USE_CLOUD_AI');
+    if (envOverride == 'false') return false;
+    if (envOverride == 'true') return true;
+    return useCloudAI && !kIsWeb;
+  }
+
   // Model names (used for cache keys / sync with server config)
   static const int geminiRateLimit = 15; // local GeminiProvider dev only
   static const String geminiModel = 'gemini-2.5-flash';

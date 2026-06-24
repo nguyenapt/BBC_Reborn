@@ -24,6 +24,9 @@ import 'services/rate_app_service.dart';
 import 'services/heart_service.dart';
 import 'services/saved_grammar_service.dart';
 import 'services/learning_analytics_service.dart';
+import 'services/learning_progress_service.dart';
+import 'services/vocabulary_practice_service.dart';
+import 'services/review_reminder_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
@@ -106,6 +109,12 @@ void main() async {
 
     await LearningAnalyticsService().initialize();
     debugPrint('✅ LearningAnalyticsService initialized');
+
+    await LearningProgressService().initialize();
+    debugPrint('✅ LearningProgressService initialized');
+
+    await VocabularyPracticeService().initialize();
+    debugPrint('✅ VocabularyPracticeService initialized');
     
     // Preload ads (interstitial dùng trước khi vào episode detail; rewarded cho hearts)
     if (!kIsWeb && consentService.canRequestAds) {
@@ -208,6 +217,17 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     await adService.showAppOpenAdIfReady(trigger: trigger);
   }
 
+  Future<void> _syncStreakReminder() async {
+    try {
+      final progress = LearningProgressService();
+      await ReviewReminderService().syncStreakRiskReminder(
+        isActiveToday: progress.isActiveToday,
+      );
+    } catch (e) {
+      debugPrint('syncStreakReminder error: $e');
+    }
+  }
+
   Future<void> _checkAndShowReviewReminder() async {
     if (!mounted || _didShowReviewReminderThisSession) return;
     final dueItems = SavedGrammarService().dueReviewItems;
@@ -296,6 +316,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       Future.delayed(const Duration(milliseconds: 1800), () {
         if (mounted) {
           _checkAndShowReviewReminder();
+          _syncStreakReminder();
         }
       });
       

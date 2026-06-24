@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
+import '../services/learning_progress_service.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -25,7 +26,9 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   late TabController _tabController;
   final LanguageManager _languageManager = LanguageManager();
   final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
+  final LearningProgressService _learningProgress = LearningProgressService();
   
+  late final VoidCallback _learningProgressListener;
   // Data cho từng tab
   Map<String, List<Episode>> _episodesData = {};
   final Map<String, bool> _loadingStates = {
@@ -78,10 +81,16 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     
     // Listen to tab changes
     _tabController.addListener(_onTabChanged);
+    _learningProgressListener = () {
+      if (mounted) setState(() {});
+    };
+    _learningProgress.addListener(_learningProgressListener);
+    _learningProgress.initialize();
   }
 
   @override
   void dispose() {
+    _learningProgress.removeListener(_learningProgressListener);
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
@@ -619,6 +628,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                 onTap: () => _navigateToEpisodeDetail(episode),
                 languageManager: _languageManager,
                 isLatest: isLatest,
+                learningProgress: _learningProgress.getProgressForEpisode(episode),
               ),
             );
           }

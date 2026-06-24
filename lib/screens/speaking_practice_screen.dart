@@ -1010,6 +1010,16 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     return _roleplaySpeaker != null && f.isNotEmpty && _roleplayIndex >= f.length;
   }
 
+  bool _isSpeakingPracticeComplete() {
+    if (_roleplayIsComplete()) return true;
+    final session = _repeatSession;
+    return session != null && session.totalAttempts > 0;
+  }
+
+  void _popWithCompletionResult() {
+    Navigator.of(context).pop(_isSpeakingPracticeComplete());
+  }
+
   Color _headingColor(Color categoryColor) {
     return Color.lerp(categoryColor, const Color(0xFF0B3D3D), 0.55)!;
   }
@@ -1037,12 +1047,22 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           cs.surface,
           0.45,
         )!;
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) {
+              _popWithCompletionResult();
+            }
+          },
+          child: Scaffold(
           backgroundColor: softBg,
           appBar: AppBar(
             backgroundColor: categoryColor,
             foregroundColor: cs.onPrimary,
             elevation: 0,
+            leading: BackButton(
+              onPressed: _popWithCompletionResult,
+            ),
             title: Text(lm.getText('speakingPracticeTitle')),
             actions: [
               Builder(
@@ -1074,6 +1094,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               _buildRepeatTab(context, softBg, categoryColor, lm),
               _buildRoleplayTab(context, softBg, categoryColor, lm),
             ],
+          ),
           ),
         );
       },

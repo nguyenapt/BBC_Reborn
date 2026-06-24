@@ -3,9 +3,11 @@ import '../models/episode.dart';
 import '../utils/category_colors.dart';
 import '../utils/category_names.dart';
 import '../utils/series_sub_badge_style.dart';
+import '../models/episode_learning_progress.dart';
 import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
 import 'compact_ghost_badge.dart';
+import 'episode_progress_ring.dart';
 
 class EpisodeRow extends StatelessWidget {
   final Episode episode;
@@ -14,6 +16,7 @@ class EpisodeRow extends StatelessWidget {
   final bool isLatest; // Flag để xác định episode mới nhất
   final bool showLevelBadge;
   final bool showCompactSubBadge;
+  final EpisodeLearningProgress? learningProgress;
   const EpisodeRow({
     super.key,
     required this.episode,
@@ -22,6 +25,7 @@ class EpisodeRow extends StatelessWidget {
     this.isLatest = false,
     this.showLevelBadge = false,
     this.showCompactSubBadge = false,
+    this.learningProgress,
   });
 
   @override
@@ -46,13 +50,29 @@ class EpisodeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Thumbnail bên trái theo tỉ lệ gốc 266:150
-              ImageCacheService().buildCachedImage(
-                imageUrl: episode.thumbImage,
-                width: isLatest ? 150 : 100,
-                height: isLatest ? 85 : 56,
-                fit: BoxFit.cover,
-                borderRadius: BorderRadius.circular(8),
-                showWatermark: true,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ImageCacheService().buildCachedImage(
+                    imageUrl: episode.thumbImage,
+                    width: isLatest ? 150 : 100,
+                    height: isLatest ? 85 : 56,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(8),
+                    showWatermark: true,
+                  ),
+                  if (learningProgress != null &&
+                      learningProgress!.shouldShowProgressRing)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: EpisodeProgressRing(
+                        progress: learningProgress!.ringProgressValue,
+                        size: 20,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 10),
               // Thông tin bên phải
