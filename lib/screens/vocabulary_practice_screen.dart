@@ -6,6 +6,8 @@ import '../models/vocabulary_practice_state.dart';
 import '../services/language_manager.dart';
 import '../services/vocabulary_practice_service.dart';
 import '../services/learning_progress_service.dart';
+import '../services/daily_goal_service.dart';
+import '../services/achievement_service.dart';
 import '../models/episode_learning_progress.dart';
 
 class VocabularyPracticeScreen extends StatefulWidget {
@@ -54,6 +56,8 @@ class _VocabularyPracticeScreenState extends State<VocabularyPracticeScreen> {
 
   Future<void> _answer(VocabularyPracticeOutcome outcome) async {
     await _practiceService.recordOutcome(_currentWord, outcome);
+    await DailyGoalService().recordVocabReview();
+    await AchievementService().evaluateAll();
     if (!mounted) return;
     if (_index == _deck.length - 1) {
       await LearningProgressService().recordActivity(LearningActivityType.vocabReview);

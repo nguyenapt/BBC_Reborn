@@ -143,7 +143,7 @@ class AppZh {
 
     // Saved Screen
     'saved': '已保存',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': '您保存的剧集和词汇',
     'myLearningDesc': '你的个性化语法、剧集和词汇',
     'noSavedGrammar': '还没有保存的语法',
@@ -153,7 +153,7 @@ class AppZh {
     'unsave': '取消保存',
     'episodeDataUnavailable': '剧集数据暂不可用',
     'grammarFeatureDisabled': '语法功能当前已禁用',
-    'savedToMyLearning': '已保存到 Library',
+    'savedToMyLearning': '已保存到 My Hub',
     'removedFromSavedGrammar': '已从已保存语法中移除',
     'grammarExplanationTitle': '语法解析',
     'sentenceLabel': '句子：',

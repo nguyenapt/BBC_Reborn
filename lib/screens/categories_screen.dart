@@ -384,25 +384,12 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         children: [         
           // Title và subtitle
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _languageManager.getText('categories'),
-                  style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _languageManager.getText('selectCategoryToExploreEpisodes'),
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.8),
-                  ),
-                ),
-              ],
+            child: Text(
+              _languageManager.getText('categories'),
+              style: theme.textTheme.headlineSmall!.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           // App icon đơn giản

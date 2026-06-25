@@ -143,7 +143,7 @@ class AppJa {
 
     // Saved Screen
     'saved': '保存済み',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': '保存されたエピソードと語彙',
     'myLearningDesc': 'あなた向けの文法・エピソード・語彙',
     'noSavedGrammar': '保存された文法はまだありません',
@@ -153,7 +153,7 @@ class AppJa {
     'unsave': '保存解除',
     'episodeDataUnavailable': 'エピソードデータはまだ利用できません',
     'grammarFeatureDisabled': '文法機能は現在無効です',
-    'savedToMyLearning': 'Library に保存しました',
+    'savedToMyLearning': 'My Hub に保存しました',
     'removedFromSavedGrammar': '保存済み文法から削除しました',
     'grammarExplanationTitle': '文法の解説',
     'sentenceLabel': '文:',

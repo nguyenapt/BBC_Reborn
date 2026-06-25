@@ -6,7 +6,8 @@ import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
 import '../theme/vocabulary_theme.dart';
 
-/// Chiều cao thống nhất cho các card dashboard (theo layout Word of the Day).
+/// Khoảng cách đều giữa các section trên Home (mục tiêu, tiếp tục học, WOTD, episode mới…).
+const double kHomeSectionSpacing = 10;
 const double _kDashboardCardHeight = 80;
 const EdgeInsets _kDashboardCardPadding =
     EdgeInsets.symmetric(horizontal: 12, vertical: 10);
@@ -181,12 +182,12 @@ class HomeLearningDashboard extends StatelessWidget {
     if (children.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, kHomeSectionSpacing, 16, 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (int i = 0; i < children.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
+            if (i > 0) const SizedBox(height: kHomeSectionSpacing),
             children[i],
           ],
         ],
@@ -311,33 +312,75 @@ class _ReviewTodayCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (dueVocabCount > 0)
-                ActionChip(
-                  avatar: const Icon(Icons.style_outlined, size: 18),
-                  label: Text(
-                    lm.getTextWithParams('dueVocabCount', {'count': dueVocabCount}),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onPressed: onVocabTap,
-                ),
-              if (dueGrammarCount > 0)
-                ActionChip(
-                  avatar: const Icon(Icons.menu_book_outlined, size: 18),
-                  label: Text(
-                    lm.getTextWithParams('dueGrammarCount', {'count': dueGrammarCount}),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onPressed: onGrammarTap,
-                ),
-            ],
-          ),
+          if (dueVocabCount > 0)
+            _ReviewTodayAction(
+              icon: Icons.style_outlined,
+              label: lm.getTextWithParams('dueVocabCount', {'count': dueVocabCount}),
+              onTap: onVocabTap,
+            ),
+          if (dueVocabCount > 0 && dueGrammarCount > 0) const SizedBox(height: 8),
+          if (dueGrammarCount > 0)
+            _ReviewTodayAction(
+              icon: Icons.menu_book_outlined,
+              label: lm.getTextWithParams('dueGrammarCount', {'count': dueGrammarCount}),
+              onTap: onGrammarTap,
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReviewTodayAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _ReviewTodayAction({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.surfaceContainerHighest.withOpacity(0.45),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

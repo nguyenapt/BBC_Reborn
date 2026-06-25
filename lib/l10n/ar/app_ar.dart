@@ -143,7 +143,7 @@ class AppAr {
 
     // Saved Screen
     'saved': 'المحفوظات',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'الحلقات والمفردات المحفوظة لديك',
     'myLearningDesc': 'القواعد والحلقات والمفردات المحفوظة بشكل شخصي',
     'noSavedGrammar': 'لا توجد قواعد محفوظة بعد',
@@ -153,7 +153,7 @@ class AppAr {
     'unsave': 'إلغاء الحفظ',
     'episodeDataUnavailable': 'بيانات الحلقة غير متاحة حاليا',
     'grammarFeatureDisabled': 'ميزة القواعد معطلة حاليا',
-    'savedToMyLearning': 'تم الحفظ في Library',
+    'savedToMyLearning': 'تم الحفظ في My Hub',
     'removedFromSavedGrammar': 'تمت الإزالة من القواعد المحفوظة',
     'grammarExplanationTitle': 'شرح القواعد',
     'sentenceLabel': 'الجملة:',
