@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/rtdb_list_config.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
@@ -12,6 +13,9 @@ import '../services/audio_player_service.dart';
 import '../services/firebase_service.dart';
 import '../services/local_database_service.dart';
 import '../services/language_manager.dart';
+import '../services/learning_progress_service.dart';
+import '../services/episode_detail_wake_lock.dart';
+import '../services/episode_detail_session.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
@@ -19,6 +23,8 @@ import '../widgets/transcript_slide.dart';
 import '../widgets/vocabulary_slide.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/question_slide.dart';
+import '../widgets/learning_checklist_bar.dart';
+import '../widgets/episode_detail_tab_panel.dart';
 import 'speaking_practice_screen.dart';
 import 'speaking_history_screen.dart';
 
@@ -37,6 +43,8 @@ class EpisodeDetailScreen extends StatefulWidget {
 }
 
 class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
+  static const String _prefAutoPlayNoticeShown = 'auto_play_enabled_notice_shown';
+
   static const double _playerBottomOffset = 10;
   static const double _contentPlayerGap = 16;
   static const double _fallbackPlayerHeight = 88;
@@ -44,6 +52,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late final AudioPlayerService _audioService;
   late final PageController _pageController;
   late final LanguageManager _languageManager;
+  final LearningProgressService _learningProgress = LearningProgressService();
   final GlobalKey _playerKey = GlobalKey();
   late Episode _episode;
   bool _hydratingFullEpisode = false;
@@ -52,6 +61,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   bool _isHandlingBackNavigation = false;
   double _playerHeight = _fallbackPlayerHeight;
   List<TranscriptLine> _parsedTranscriptLines = [];
+  late final VoidCallback _audioServiceListener;
+  bool _exitFinalized = false;
 
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
@@ -68,21 +79,97 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     _rebuildParsedTranscriptLines();
     _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
     _audioService = AudioPlayerService();
+    EpisodeDetailSession.acquire();
     _languageManager = LanguageManager();
-    _pageController = PageController(initialPage: 0);
+    final saved = _learningProgress.getProgress(
+      LearningProgressService.episodeKey(_episode),
+    );
+    final initialTab = (saved?.lastTabIndex ?? 0).clamp(0, 3);
+    _currentPageIndex = initialTab;
+    _pageController = PageController(initialPage: initialTab);
+
+    if (saved != null &&
+        saved.lastPositionMs > 0 &&
+        !saved.listenedComplete) {
+      final total = saved.totalDurationMs;
+      final nearEnd = total > 0 &&
+          saved.lastPositionMs >= (total * 0.92).round();
+      if (!nearEnd) {
+        _audioService.setPendingSeekPosition(
+          Duration(milliseconds: saved.lastPositionMs),
+        );
+      }
+    }
 
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+    unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(widget.episode);
 
     // Bật Always Display (Wakelock) để màn hình không tự tắt
-    _enableAlwaysDisplay();
+    unawaited(EpisodeDetailWakeLock.acquire());
     
     // Tạo interstitial ad để sẵn sàng hiển thị
     AdMobService().createInterstitialAd();
     
+    _audioServiceListener = _onAudioServiceEpisodeChanged;
+    _audioService.addListener(_audioServiceListener);
+
     _scheduleMeasurePlayerHeight();
+  }
+
+  void _onAudioServiceEpisodeChanged() {
+    final current = _audioService.currentEpisode;
+    if (current == null || current.id == _episode.id) return;
+
+    final inCategory = widget.categoryEpisodes.any((e) => e.id == current.id);
+    if (!inCategory) return;
+
+    final idx =
+        widget.categoryEpisodes.indexWhere((e) => e.id == current.id);
+    final nextEpisode =
+        idx >= 0 ? widget.categoryEpisodes[idx] : current;
+
+    if (!mounted) return;
+    setState(() {
+      _episode = nextEpisode;
+      _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
+      _rebuildParsedTranscriptLines();
+      _currentPageIndex = 0;
+    });
+    _pageController.jumpToPage(0);
+    unawaited(_learningProgress.touchEpisode(_episode));
+    Future.microtask(_hydrateFullEpisodeIfNeeded);
+    _scheduleDebugSqliteSourceNotice(_episode);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        content: Text(
+          _languageManager.getTextWithParams(
+            'autoPlayNowPlaying',
+            {'title': _episode.episodeName},
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onAutoPlayEnabledFirstTime() async {
+    if (!mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_prefAutoPlayNoticeShown) ?? false) return;
+    await prefs.setBool(_prefAutoPlayNoticeShown, true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        content: Text(_languageManager.getText('autoPlayEnabledHint')),
+      ),
+    );
   }
 
   Future<bool> _onWillPopShowInterstitial() async {
@@ -138,6 +225,12 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         _playerBottomOffset +
         _contentPlayerGap +
         safeBottom;
+  }
+
+  /// Cố định — không đổi khi player mở rộng panel transcript.
+  double _checklistBottomInset(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    return _fallbackPlayerHeight + _playerBottomOffset + safeBottom;
   }
 
   void _rebuildParsedTranscriptLines() {
@@ -217,6 +310,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   /// List `List/...` không có transcript — tải bản đầy đủ từ tree gốc và ghi SQLite.
   Future<void> _hydrateFullEpisodeIfNeeded() async {
+    final targetId = _episode.id;
+    if (targetId == null || targetId.isEmpty) return;
+
     if (!_mustFetchFullEpisode(_episode)) {
       if (mounted) setState(() => _hydratingFullEpisode = false);
       return;
@@ -228,13 +324,20 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
-      // Cập nhật UI trước — SQLite (đặc biệt web) có thể lỗi; không được chặn hiển thị transcript.
+      // Bỏ qua nếu user/auto-play đã chuyển sang episode khác trong lúc fetch.
+      if (_episode.id != targetId ||
+          _audioService.currentEpisode?.id != targetId) {
+        if (mounted) setState(() => _hydratingFullEpisode = false);
+        return;
+      }
       setState(() {
         _episode = full;
         _hydratingFullEpisode = false;
         _rebuildParsedTranscriptLines();
       });
-      await _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
+      if (_audioService.currentEpisode?.id == targetId) {
+        await _audioService.refreshEpisodeData(_episode);
+      }
       try {
         await LocalDatabaseService().upsertEpisode(full);
       } catch (e, st) {
@@ -246,35 +349,31 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     }
   }
 
-  // Bật Always Display
-  Future<void> _enableAlwaysDisplay() async {
-    try {
-      await WakelockPlus.enable();
-      print('Always Display enabled - Screen will stay on');
-    } catch (e) {
-      print('Failed to enable Always Display: $e');
-    }
-  }
+  Future<void> _finalizeEpisodeDetailExit() async {
+    if (_exitFinalized) return;
+    _exitFinalized = true;
 
-  // Tắt Always Display
-  Future<void> _disableAlwaysDisplay() async {
-    try {
-      await WakelockPlus.disable();
-      print('Always Display disabled - Screen can turn off');
-    } catch (e) {
-      print('Failed to disable Always Display: $e');
-    }
+    final positionMs = _audioService.currentPosition.inMilliseconds;
+    final totalDurationMs = _audioService.totalDuration.inMilliseconds;
+    final tabIndex = _currentPageIndex;
+    final episode = _episode;
+
+    await _learningProgress.flushEpisodeState(
+      episode: episode,
+      positionMs: positionMs,
+      totalDurationMs: totalDurationMs,
+      tabIndex: tabIndex,
+    );
+    await _audioService.stop();
+    await EpisodeDetailWakeLock.release();
+    EpisodeDetailSession.release();
   }
 
   @override
   void dispose() {
+    _audioService.removeListener(_audioServiceListener);
     _pageController.dispose();
-    // Release audio player khi rời khỏi màn hình
-    _audioService.stop();
-    
-    // Tắt Always Display khi rời khỏi màn hình
-    _disableAlwaysDisplay();
-    
+    unawaited(_finalizeEpisodeDetailExit());
     super.dispose();
   }
 
@@ -296,8 +395,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final completed = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SpeakingPracticeScreen(
@@ -306,6 +405,10 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                   ),
                 ),
               );
+              if (mounted && completed == true) {
+                await _learningProgress.markSpeakingDone(_episode);
+                setState(() {});
+              }
             },
             icon: const Icon(Icons.mic),
           ),
@@ -514,6 +617,12 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     setState(() {
                       _currentPageIndex = index;
                     });
+                    unawaited(
+                      _learningProgress.updateTabIndex(
+                        episode: _episode,
+                        tabIndex: index,
+                      ),
+                    );
                   },
                   children: [
                     ListenableBuilder(
@@ -521,6 +630,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                       builder: (context, child) {
                         return TranscriptSlide(
                           episode: _episode,
+                          learningProgress: _learningProgress,
                           isAwaitingFullEpisode: _hydratingFullEpisode,
                           scrollBottomInset: scrollBottomInset,
                           currentPositionMs: _audioService.currentPositionMs,
@@ -570,8 +680,37 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ],
           ),
           Positioned(
-            left: 10,
-            right: 10,
+            right: 6,
+            top: 0,
+            bottom: _checklistBottomInset(context),
+            child: SafeArea(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: ListenableBuilder(
+                  listenable: _learningProgress,
+                  builder: (context, child) {
+                    return LearningChecklistBar(
+                      accentColor: categoryColor,
+                      progress: _learningProgress.getProgress(
+                        LearningProgressService.episodeKey(_episode),
+                      ),
+                      onStepTap: (tabIndex) {
+                        setState(() => _currentPageIndex = tabIndex);
+                        _pageController.animateToPage(
+                          tabIndex,
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: EpisodeDetailTabPanel.contentHorizontalInset,
+            right: EpisodeDetailTabPanel.contentHorizontalInset,
             bottom: 10,
             child: ListenableBuilder(
               listenable: _audioService,
@@ -597,6 +736,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     showCurrentPanel: shouldShowCurrentPanel,
                     onCurrentPanelTap: _focusCurrentTranscriptLine,
                     onPlayPressed: null,
+                    onAutoPlayEnabled: _onAutoPlayEnabledFirstTime,
                   ),
                 );
               },

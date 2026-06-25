@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/episode.dart';
 import '../models/favourite_episode.dart';
 import '../models/saved_grammar_item.dart';
@@ -8,6 +9,8 @@ import '../services/auth_service.dart';
 import '../services/firebase_storage_service.dart';
 import '../services/language_manager.dart';
 import '../services/learning_analytics_service.dart';
+import '../services/learning_progress_service.dart';
+import '../models/episode_learning_progress.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
@@ -19,6 +22,7 @@ import '../widgets/episode_row.dart';
 import '../widgets/grammar_explanation_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'vocabulary_practice_screen.dart';
+import '../theme/vocabulary_theme.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 
 class MyLearningScreen extends StatefulWidget {
@@ -41,10 +45,12 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
   final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
+  final LearningProgressService _learningProgress = LearningProgressService();
   final ApiDailyCacheService _apiDailyCacheService = ApiDailyCacheService();
 
   late final VoidCallback _vocabularyListener;
   late final VoidCallback _savedGrammarListener;
+  late final VoidCallback _learningProgressListener;
 
   List<FavouriteEpisode> _favouriteEpisodes = [];
   List<VocabularyItem> _savedVocabularies = [];
@@ -72,8 +78,13 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         _loadSavedGrammar();
       }
     };
+    _learningProgressListener = () {
+      if (mounted) setState(() {});
+    };
     _vocabularyService.addListener(_vocabularyListener);
     _savedGrammarService.addListener(_savedGrammarListener);
+    _learningProgress.addListener(_learningProgressListener);
+    unawaited(_learningProgress.initialize());
     _loadData();
   }
 
@@ -82,6 +93,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     _tabController.dispose();
     _vocabularyService.removeListener(_vocabularyListener);
     _savedGrammarService.removeListener(_savedGrammarListener);
+    _learningProgress.removeListener(_learningProgressListener);
     super.dispose();
   }
 
@@ -318,6 +330,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   Future<void> _markGrammarReviewed(SavedGrammarItem item) async {
     await _savedGrammarService.markReviewed(item.id);
     await _analyticsService.trackEvent('review_done');
+    await LearningProgressService().recordActivity(LearningActivityType.grammarReview);
     await _loadSavedGrammar();
   }
 
@@ -767,6 +780,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
             episode: episode,
             onTap: () => _navigateToEpisode(episode),
             languageManager: _languageManager,
+            learningProgress: _learningProgress.getProgressForEpisode(episode),
           );
         },
       ),
@@ -949,9 +963,6 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   }
 
   Widget _buildWordOfTheDayCard(VocabularyItem item) {
-    const backgroundTop = Color(0xFF0D5D85);
-    const backgroundBottom = Color(0xFF0A4B6B);
-    const exploreGreen = Color(0xFF66C95B);
     return Card(
       margin: const EdgeInsets.fromLTRB(8, 10, 8, 8),
       elevation: 0,
@@ -959,11 +970,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [backgroundTop, backgroundBottom],
-          ),
+          gradient: VocabularyTheme.cardGradient,
         ),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
@@ -1002,7 +1009,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
             FilledButton(
               onPressed: () => _openVocabularyPractice(initialWords: [item]),
               style: FilledButton.styleFrom(
-                backgroundColor: exploreGreen,
+                backgroundColor: VocabularyTheme.accentGreen,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 textStyle: const TextStyle(
@@ -1025,18 +1032,11 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   Widget _buildFloatingPracticeButton() {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFF0D5D85),
-            Color(0xFF0A4B6B),
-          ],
-        ),
+        gradient: VocabularyTheme.cardGradient,
         borderRadius: BorderRadius.circular(999),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0D5D85).withOpacity(0.35),
+            color: VocabularyTheme.backgroundTop.withOpacity(0.35),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
