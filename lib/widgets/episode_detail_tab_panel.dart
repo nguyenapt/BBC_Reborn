@@ -14,6 +14,9 @@ class EpisodeDetailTabPanel extends StatelessWidget {
 
   static const double panelBorderRadius = 12;
 
+  /// Horizontal inset aligned with tab list content (panel 6 + scroll 12).
+  static const double contentHorizontalInset = 18;
+
   /// List / scroll padding: base insets + clearance for floating player.
   static EdgeInsets scrollPadding(
     double scrollBottomInset, {

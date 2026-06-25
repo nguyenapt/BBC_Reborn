@@ -5,6 +5,8 @@ import '../models/vocabulary_item.dart';
 import '../models/vocabulary_practice_state.dart';
 import '../services/language_manager.dart';
 import '../services/vocabulary_practice_service.dart';
+import '../services/learning_progress_service.dart';
+import '../models/episode_learning_progress.dart';
 
 class VocabularyPracticeScreen extends StatefulWidget {
   final List<VocabularyItem> allWords;
@@ -54,6 +56,8 @@ class _VocabularyPracticeScreenState extends State<VocabularyPracticeScreen> {
     await _practiceService.recordOutcome(_currentWord, outcome);
     if (!mounted) return;
     if (_index == _deck.length - 1) {
+      await LearningProgressService().recordActivity(LearningActivityType.vocabReview);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_languageManager.getText('practiceSessionCompleted'))),
       );

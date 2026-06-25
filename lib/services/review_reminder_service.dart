@@ -19,6 +19,7 @@ class ReviewReminderService {
   static const String _scheduledIdsKey = 'review_scheduled_notification_ids';
   static const String _askedPermissionKey =
       'review_reminders_permission_asked_v1';
+  static const int _streakNotificationId = 910001;
   bool _initialized = false;
 
   Future<bool> hasAskedPermission() async {
@@ -127,5 +128,39 @@ class ReviewReminderService {
       }
     }
     await prefs.remove(_scheduledIdsKey);
+  }
+
+  /// Nhắc giữ streak lúc 21:00 nếu user chưa active trong ngày.
+  Future<void> syncStreakRiskReminder({required bool isActiveToday}) async {
+    await initialize();
+    if (!_initialized) return;
+    await _plugin.cancel(_streakNotificationId);
+    if (isActiveToday) return;
+
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, 21);
+    if (!scheduled.isAfter(now)) return;
+
+    final scheduledAt = tz.TZDateTime.from(scheduled, tz.local);
+    await _plugin.zonedSchedule(
+      _streakNotificationId,
+      'Keep your streak alive',
+      'Practice a few minutes today to continue your learning streak.',
+      scheduledAt,
+      NotificationDetails(
+        android: const AndroidNotificationDetails(
+          _channelId,
+          'Grammar Review Reminders',
+          channelDescription: 'Reminds users to review saved grammar',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/logo',
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 }

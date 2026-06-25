@@ -14,6 +14,7 @@ class VocabularyPracticeService extends ChangeNotifier {
   VocabularyPracticeService._internal();
 
   static const String _statesKey = 'vocabulary_practice_states_v1';
+  static const String _wordOfTheDayCacheKey = 'word_of_the_day_cache_v1';
 
   final Map<String, VocabularyPracticeState> _states = {};
   bool _initialized = false;
@@ -99,7 +100,65 @@ class VocabularyPracticeService extends ChangeNotifier {
     final now = (nowUtc ?? DateTime.now().toUtc()).toUtc();
     final epoch = (epochUtc ?? DateTime.utc(2020)).toUtc();
     final dayIndex = now.difference(epoch).inDays.abs();
-    return items[dayIndex % items.length];
+    final sorted = List<VocabularyItem>.from(items)
+      ..sort((a, b) => keyForVocabulary(a).compareTo(keyForVocabulary(b)));
+    return sorted[dayIndex % sorted.length];
+  }
+
+  static String _dayKeyUtc(DateTime nowUtc) {
+    final d = nowUtc.toUtc();
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Giữ cùng một từ cả ngày (UTC), kể cả khi mở lại app hoặc đổi thứ tự danh sách.
+  Future<VocabularyItem?> pickWordOfTheDayCached(
+    List<VocabularyItem> items, {
+    DateTime? nowUtc,
+    DateTime? epochUtc,
+  }) async {
+    if (items.isEmpty) return null;
+
+    final now = (nowUtc ?? DateTime.now().toUtc()).toUtc();
+    final todayKey = _dayKeyUtc(now);
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wordOfTheDayCacheKey);
+
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = json.decode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final cachedDate = decoded['date']?.toString();
+          final cachedWordKey = decoded['wordKey']?.toString();
+          if (cachedDate == todayKey && cachedWordKey != null && cachedWordKey.isNotEmpty) {
+            for (final item in items) {
+              if (keyForVocabulary(item) == cachedWordKey) {
+                return item;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error reading word of the day cache: $e');
+      }
+    }
+
+    final picked = pickWordOfTheDay(
+      items,
+      nowUtc: now,
+      epochUtc: epochUtc,
+    );
+    if (picked == null) return null;
+
+    await prefs.setString(
+      _wordOfTheDayCacheKey,
+      json.encode({
+        'date': todayKey,
+        'wordKey': keyForVocabulary(picked),
+      }),
+    );
+    return picked;
   }
 
   List<VocabularyItem> buildPracticeDeck(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
@@ -9,6 +11,7 @@ import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../services/ai/exceptions.dart';
 import '../models/grammar_explanation.dart';
+import '../services/learning_progress_service.dart';
 import '../services/language_manager.dart';
 import '../services/admob_service.dart';
 import '../services/heart_service.dart';
@@ -31,10 +34,12 @@ class TranscriptSlide extends StatefulWidget {
 
   /// Clearance above floating player (from [EpisodeDetailScreen]).
   final double scrollBottomInset;
+  final LearningProgressService learningProgress;
 
   const TranscriptSlide({
     super.key,
     required this.episode,
+    required this.learningProgress,
     this.currentPositionMs,
     this.onPlayAtTime,
     this.scrollToActiveRequestId = 0,
@@ -48,10 +53,20 @@ class TranscriptSlide extends StatefulWidget {
 
 class _TranscriptSlideState extends State<TranscriptSlide>
     with SingleTickerProviderStateMixin {
+  static const double _transcriptDoneLineRatio = 0.66;
+  static const int _shortTranscriptLineThreshold = 5;
+  static const Duration _shortTranscriptDwell = Duration(seconds: 18);
+  static const double _lineVisibleFractionThreshold = 0.5;
+
   late List<TranscriptLine> transcriptLines;
   late ScrollController _scrollController;
+  List<GlobalKey> _lineKeys = [];
+  final Set<int> _seenLineIndices = {};
   int? _currentActiveIndex;
-  List<int> _adPositions = []; // Vị trí chèn native ads
+  List<int> _adPositions = [];
+  bool _transcriptMarked = false;
+  bool _hasScrolled = false;
+  Timer? _shortTranscriptDwellTimer;
   
   // Translation state
   bool _showTranslation = false;
@@ -80,9 +95,30 @@ class _TranscriptSlideState extends State<TranscriptSlide>
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
     _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
     _buildTranscriptLinesFromEpisode();
     _calculateAdPositions();
     _updateActiveLine();
+    _syncTranscriptMarkedFromProgress();
+    _scheduleShortTranscriptDwellIfNeeded();
+  }
+
+  void _syncTranscriptMarkedFromProgress() {
+    final progress = widget.learningProgress.getProgressForEpisode(widget.episode);
+    _transcriptMarked = progress?.transcriptViewed == true;
+  }
+
+  void _scheduleShortTranscriptDwellIfNeeded() {
+    if (_transcriptMarked) return;
+    if (transcriptLines.length >= _shortTranscriptLineThreshold) return;
+    if (transcriptLines.isEmpty) return;
+    _shortTranscriptDwellTimer?.cancel();
+    _shortTranscriptDwellTimer = Timer(_shortTranscriptDwell, () {
+      if (!mounted || _transcriptMarked) return;
+      if (_hasScrolled) {
+        unawaited(_markTranscriptViewed());
+      }
+    });
   }
 
   /// Parse từ [widget.episode] — gọi lại khi parent hydrate transcript (vd. list RTDB mỏng → đầy đủ).
@@ -138,6 +174,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     } else {
       transcriptLines = [];
     }
+    _lineKeys = List.generate(transcriptLines.length, (_) => GlobalKey());
+    _seenLineIndices.clear();
   }
 
   Color _speakerAccentColor(String speaker) {
@@ -189,6 +227,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _buildTranscriptLinesFromEpisode();
         _calculateAdPositions();
       });
+      _syncTranscriptMarkedFromProgress();
+      _scheduleShortTranscriptDwellIfNeeded();
     }
     if (oldWidget.currentPositionMs != widget.currentPositionMs || transcriptChanged) {
       _updateActiveLine();
@@ -222,6 +262,61 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         _currentActiveIndex = newActiveIndex;
       });
     }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels > 8) {
+      _hasScrolled = true;
+    }
+    _updateSeenLines();
+  }
+
+  double _visibleFraction(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx == null) return 0;
+    final renderObject = ctx.findRenderObject();
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        !renderObject.attached) {
+      return 0;
+    }
+    final viewport = RenderAbstractViewport.maybeOf(renderObject);
+    if (viewport == null) return 0;
+
+    final viewportBox = viewport as RenderBox;
+    final itemRect = MatrixUtils.transformRect(
+      renderObject.getTransformTo(viewportBox),
+      renderObject.paintBounds,
+    );
+    final viewportRect = Offset.zero & viewportBox.size;
+    final intersection = itemRect.intersect(viewportRect);
+    if (intersection.isEmpty || itemRect.height <= 0) return 0;
+    return intersection.height / itemRect.height;
+  }
+
+  void _updateSeenLines() {
+    if (_transcriptMarked || transcriptLines.isEmpty) return;
+
+    for (var i = 0; i < transcriptLines.length; i++) {
+      if (_seenLineIndices.contains(i)) continue;
+      if (i >= _lineKeys.length) continue;
+      if (_visibleFraction(_lineKeys[i]) >= _lineVisibleFractionThreshold) {
+        _seenLineIndices.add(i);
+      }
+    }
+
+    final seenRatio = _seenLineIndices.length / transcriptLines.length;
+    if (seenRatio >= _transcriptDoneLineRatio) {
+      unawaited(_markTranscriptViewed());
+    }
+  }
+
+  Future<void> _markTranscriptViewed() async {
+    if (_transcriptMarked) return;
+    _transcriptMarked = true;
+    _shortTranscriptDwellTimer?.cancel();
+    await widget.learningProgress.markTranscriptViewed(widget.episode);
   }
 
   int _displayIndexForTranscriptIndex(int transcriptIndex) {
@@ -293,7 +388,17 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         );
       }
 
-      return ListView.builder(
+      return NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification ||
+              notification is ScrollEndNotification) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _updateSeenLines();
+            });
+          }
+          return false;
+        },
+        child: ListView.builder(
                     controller: _scrollController,
                     padding: EpisodeDetailTabPanel.scrollPadding(
                       widget.scrollBottomInset,
@@ -341,6 +446,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                       final quoted = '"${line.text}"';
 
                       return Padding(
+                        key: _lineKeys[transcriptIndex],
                         padding: const EdgeInsets.only(bottom: 10),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
@@ -617,7 +723,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                         ),
                       );
                     },
-                  );
+                  ),
+      );
     }
 
     return EpisodeDetailTabPanel(
@@ -965,6 +1072,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
   @override
   void dispose() {
+    _shortTranscriptDwellTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
     _breathController.dispose();
     _scrollController.dispose();
     super.dispose();
