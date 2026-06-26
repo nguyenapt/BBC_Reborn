@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/daily_activity_summary.dart';
 import '../models/episode.dart';
 import '../models/episode_learning_progress.dart';
+import 'daily_goal_service.dart';
+import 'learning_reward_service.dart';
 import 'local_database_service.dart';
+import 'user_cloud_sync_service.dart';
 
 class LearningProgressService extends ChangeNotifier {
   static final LearningProgressService _instance =
@@ -19,9 +23,11 @@ class LearningProgressService extends ChangeNotifier {
   static const String _streakLastActiveKey = 'learning_streak_last_active_v1';
   static const String _todayListeningMsKey = 'learning_today_listening_ms_v1';
   static const String _todayListeningDateKey = 'learning_today_listening_date_v1';
+  static const String _dailyHistoryKey = 'learning_daily_history_v1';
   static const int activeListeningThresholdMs = 180000; // 3 minutes
 
   final Map<String, EpisodeLearningProgress> _progressByEpisodeId = {};
+  final Map<String, DailyActivitySummary> _dailyHistory = {};
   int _currentStreak = 0;
   int _longestStreak = 0;
   DateTime? _lastActiveDate;
@@ -40,6 +46,31 @@ class LearningProgressService extends ChangeNotifier {
   int get longestStreak => _longestStreak;
   int get todayListeningMs => _todayListeningMs;
 
+  List<EpisodeLearningProgress> get allProgress =>
+      List.unmodifiable(_progressByEpisodeId.values);
+
+  DailyActivitySummary get todaySummary =>
+      _dailyHistory[_dateKey(DateTime.now())] ?? const DailyActivitySummary();
+
+  DailyActivitySummary weekSummary() {
+    final now = DateTime.now();
+    var summary = const DailyActivitySummary();
+    for (var i = 0; i < 7; i++) {
+      final day = _dateOnly(now.subtract(Duration(days: i)));
+      final key = _dateKey(day);
+      final daySummary = _dailyHistory[key];
+      if (daySummary == null) continue;
+      summary = summary.copyWith(
+        listeningMs: summary.listeningMs + daySummary.listeningMs,
+        vocabReviews: summary.vocabReviews + daySummary.vocabReviews,
+        grammarReviews: summary.grammarReviews + daySummary.grammarReviews,
+        speakingAttempts: summary.speakingAttempts + daySummary.speakingAttempts,
+        speakingScoreSum: summary.speakingScoreSum + daySummary.speakingScoreSum,
+      );
+    }
+    return summary;
+  }
+
   bool get isActiveToday {
     final today = _dateOnly(DateTime.now());
     return _lastActiveDate != null && _isSameDay(_lastActiveDate!, today);
@@ -49,6 +80,11 @@ class LearningProgressService extends ChangeNotifier {
     if (_initialized) return;
     await _load();
     _initialized = true;
+    notifyListeners();
+  }
+
+  Future<void> reloadFromStorage() async {
+    await _load();
     notifyListeners();
   }
 
@@ -129,6 +165,7 @@ class LearningProgressService extends ChangeNotifier {
       _lastActiveDate = DateTime.tryParse(lastActive);
     }
     _refreshTodayListeningBucket(prefs);
+    _loadDailyHistory(prefs);
     _detectLegacyLearningSignals(prefs);
     if (_syncStreakDisplayWithCalendar()) {
       await _saveStreak();
@@ -153,6 +190,63 @@ class LearningProgressService extends ChangeNotifier {
     return true;
   }
 
+  void _loadDailyHistory(SharedPreferences prefs) {
+    final raw = prefs.getString(_dailyHistoryKey);
+    _dailyHistory.clear();
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final decoded = json.decode(raw);
+      if (decoded is Map) {
+        for (final entry in decoded.entries) {
+          final value = entry.value;
+          if (value is Map) {
+            _dailyHistory[entry.key.toString()] = DailyActivitySummary.fromJson(
+              Map<String, dynamic>.from(value),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('LearningProgressService daily history load error: $e');
+    }
+  }
+
+  Future<void> _saveDailyHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = <String, dynamic>{};
+    for (final entry in _dailyHistory.entries) {
+      payload[entry.key] = entry.value.toJson();
+    }
+    await prefs.setString(_dailyHistoryKey, json.encode(payload));
+  }
+
+  Future<void> _bumpDailySummary({
+    int listeningDeltaMs = 0,
+    int vocabReviews = 0,
+    int grammarReviews = 0,
+    double? speakingScore,
+  }) async {
+    final key = _dateKey(DateTime.now());
+    final existing = _dailyHistory[key] ?? const DailyActivitySummary();
+    _dailyHistory[key] = existing.copyWith(
+      listeningMs: existing.listeningMs + listeningDeltaMs,
+      vocabReviews: existing.vocabReviews + vocabReviews,
+      grammarReviews: existing.grammarReviews + grammarReviews,
+      speakingAttempts: speakingScore != null
+          ? existing.speakingAttempts + 1
+          : existing.speakingAttempts,
+      speakingScoreSum: speakingScore != null
+          ? existing.speakingScoreSum + speakingScore
+          : existing.speakingScoreSum,
+    );
+    await _saveDailyHistory();
+  }
+
+  Future<void> recordSpeakingScore(double score) async {
+    await _bumpDailySummary(speakingScore: score);
+    notifyListeners();
+  }
+
   void _refreshTodayListeningBucket(SharedPreferences prefs) {
     final today = _dateKey(DateTime.now());
     final storedDate = prefs.getString(_todayListeningDateKey);
@@ -169,6 +263,7 @@ class LearningProgressService extends ChangeNotifier {
       for (final e in _progressByEpisodeId.entries) e.key: e.value.toJson(),
     };
     await prefs.setString(_progressKey, json.encode(payload));
+    UserCloudSyncService().schedulePush();
   }
 
   Future<void> _saveStreak() async {
@@ -181,6 +276,7 @@ class LearningProgressService extends ChangeNotifier {
         _lastActiveDate!.toIso8601String(),
       );
     }
+    UserCloudSyncService().schedulePush();
   }
 
   EpisodeLearningProgress? getProgress(String episodeId) {
@@ -472,6 +568,10 @@ class LearningProgressService extends ChangeNotifier {
     };
 
     if (!qualifies && type != LearningActivityType.listening) {
+      await _bumpDailySummary(
+        vocabReviews: type == LearningActivityType.vocabReview ? 1 : 0,
+        grammarReviews: type == LearningActivityType.grammarReview ? 1 : 0,
+      );
       await _markActiveDay();
       return;
     }
@@ -479,6 +579,10 @@ class LearningProgressService extends ChangeNotifier {
         _todayListeningMs < activeListeningThresholdMs) {
       return;
     }
+    await _bumpDailySummary(
+      vocabReviews: type == LearningActivityType.vocabReview ? 1 : 0,
+      grammarReviews: type == LearningActivityType.grammarReview ? 1 : 0,
+    );
     await _markActiveDay();
   }
 
@@ -488,6 +592,8 @@ class LearningProgressService extends ChangeNotifier {
     _todayListeningMs += deltaMs;
     await prefs.setInt(_todayListeningMsKey, _todayListeningMs);
     await prefs.setString(_todayListeningDateKey, _dateKey(DateTime.now()));
+    await _bumpDailySummary(listeningDeltaMs: deltaMs);
+    await DailyGoalService().onListeningProgressChanged();
   }
 
   Future<void> _markActiveDay() async {
@@ -512,6 +618,9 @@ class LearningProgressService extends ChangeNotifier {
       _longestStreak = _currentStreak;
     }
     await _saveStreak();
+    if (_currentStreak == 7) {
+      await LearningRewardService().onStreakMilestone(_currentStreak);
+    }
     notifyListeners();
   }
 

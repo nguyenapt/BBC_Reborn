@@ -14,13 +14,13 @@
           }
         }
       },
-          "grammar": {
-            "$sentenceHash": {
-              "$languageCode": {
-                ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
-              }
-            }
-          },
+      "grammar": {
+        "$sentenceHash": {
+          "$languageCode": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
       "questions": {
         "$episodeId": {
           "$count": {
@@ -28,17 +28,23 @@
           }
         }
       },
-          "vocabulary": {
-            "$wordHash": {
-              "$languageCode": {
-                ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
-              }
-            }
-          },
+      "vocabulary": {
+        "$wordHash": {
+          "$languageCode": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
       "access_stats": {
         "$episodeId": {
           ".validate": "newData.hasChildren(['episodeId', 'count', 'lastAccessed'])"
         }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
       }
     },
     ".read": true,
