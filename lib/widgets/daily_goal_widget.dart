@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../models/daily_goal_config.dart';
 import '../services/daily_goal_service.dart';
 import '../services/language_manager.dart';
 import '../services/learning_progress_service.dart';
 
 class DailyGoalWidget extends StatefulWidget {
-  const DailyGoalWidget({super.key});
+  final VoidCallback? onTap;
+
+  const DailyGoalWidget({super.key, this.onTap});
 
   @override
   State<DailyGoalWidget> createState() => _DailyGoalWidgetState();
@@ -53,7 +54,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> {
     final completed = _goalService.isCompletedToday;
     final progress = _goalService.overallProgress;
 
-    return Container(
+    final content = Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -107,7 +108,12 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> {
                 const SizedBox(height: 4),
                 Text(
                   completed
-                      ? _languageManager.getText('dailyGoalCompleted')
+                      ? (_goalService.lastCompletionReward > 0
+                          ? _languageManager.getTextWithParams(
+                              'dailyGoalCompleted',
+                              {'hearts': _goalService.lastCompletionReward},
+                            )
+                          : _languageManager.getText('dailyGoalCompletedNoReward'))
                       : _languageManager.getTextWithParams(
                           'dailyGoalProgress',
                           {
@@ -115,6 +121,7 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> {
                             'listenTarget': targets.listeningMinutes,
                             'vocab': _goalService.todayVocabReviews,
                             'vocabTarget': targets.vocabReviews,
+                            'hearts': targets.heartReward,
                           },
                         ),
                   maxLines: 2,
@@ -128,7 +135,23 @@ class _DailyGoalWidgetState extends State<DailyGoalWidget> {
               ],
             ),
           ),
+          if (widget.onTap != null)
+            Icon(
+              Icons.chevron_right,
+              color: colorScheme.onSurface.withOpacity(0.45),
+            ),
         ],
+      ),
+    );
+
+    if (widget.onTap == null) return content;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: content,
       ),
     );
   }

@@ -406,14 +406,16 @@ class AppEn {
     // Daily goals
     'dailyGoalTitle': 'Daily goal',
     'dailyGoalSettingsDesc': 'Choose how much you want to practice each day.',
-    'dailyGoalEasy': 'Easy — 3 min listen + 5 words',
-    'dailyGoalNormal': 'Normal — 5 min listen + 10 words',
-    'dailyGoalHard': 'Hard — 10 min listen + 20 words',
+    'dailyGoalEasy': '3 min listen + 3 words · ❤️1 reward',
+    'dailyGoalNormal': '5 min listen + 5 words · ❤️2 reward',
+    'dailyGoalHard': '10 min listen + 10 words · ❤️5 reward',
     'dailyGoalEasyShort': 'Easy',
     'dailyGoalNormalShort': 'Normal',
     'dailyGoalHardShort': 'Hard',
-    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} words',
-    'dailyGoalCompleted': 'Daily goal complete! +1 heart earned',
+    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} words · ❤️{hearts} reward',
+    'dailyGoalCompleted': 'Daily goal complete! +{hearts} heart(s) earned',
+    'dailyGoalCompletedNoReward': 'Daily goal complete! (already at max hearts)',
+    'dailyGoalRewardShort': '❤️{hearts} reward',
 
     // My Learning tabs
     'myLearningToday': 'Today',
@@ -452,6 +454,6 @@ class AppEn {
     'notifDailyPractice': 'Daily practice reminder (9 AM)',
     'notifWordOfDay': 'Word of the day (8 AM)',
     'notifSpeakingReview': 'Speaking review reminders',
-    'heartEarnHint': 'Earn +1 heart by completing your daily goal or a 7-day streak.',
+    'heartEarnHint': 'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
   };
 }

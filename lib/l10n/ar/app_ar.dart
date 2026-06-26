@@ -354,6 +354,25 @@ class AppAr {
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
 
+    // Daily goals
+    'dailyGoalTitle': 'الهدف اليومي',
+    'dailyGoalSettingsDesc': 'اختر مقدار التدريب يومياً.',
+    'dailyGoalEasy': '3 دقائق استماع + 3 كلمات · مكافأة ❤️1',
+    'dailyGoalNormal': '5 دقائق استماع + 5 كلمات · مكافأة ❤️2',
+    'dailyGoalHard': '10 دقائق استماع + 10 كلمات · مكافأة ❤️5',
+    'dailyGoalEasyShort': 'خفيف',
+    'dailyGoalNormalShort': 'متوسط',
+    'dailyGoalHardShort': 'مكثف',
+    'dailyGoalProgress': '{listen}/{listenTarget} د · {vocab}/{vocabTarget} كلمات · مكافأة ❤️{hearts}',
+    'dailyGoalCompleted': 'اكتمل الهدف! +{hearts} قلب مكافأة',
+    'dailyGoalCompletedNoReward': 'اكتمل الهدف! (القلوب ممتلئة)',
+    'dailyGoalRewardShort': 'مكافأة ❤️{hearts}',
+    'onboardingGoalHint': 'سنضبط هدفاً يومياً {difficulty} للبدء.',
+    'myLearningToday': 'اليوم',
+    'myLearningWeek': 'هذا الأسبوع',
+    'myLearningSaved': 'المحفوظات',
+    'heartEarnHint': 'أكمل هدفك اليومي لتحصل على 1–5 قلوب (حسب المستوى)، أو +1 عند سلسلة 7 أيام.',
+
     // Player
     'playerAutoPlay': 'Next',
     'sleepTimerTitle': 'Sleep timer',

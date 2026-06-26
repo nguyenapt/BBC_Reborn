@@ -347,6 +347,25 @@ class AppZh {
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
 
+    // Daily goals
+    'dailyGoalTitle': '每日目标',
+    'dailyGoalSettingsDesc': '选择每天的学习量。',
+    'dailyGoalEasy': '3 分钟听力 + 3 个词 · 奖励 ❤️1',
+    'dailyGoalNormal': '5 分钟听力 + 5 个词 · 奖励 ❤️2',
+    'dailyGoalHard': '10 分钟听力 + 10 个词 · 奖励 ❤️5',
+    'dailyGoalEasyShort': '轻松',
+    'dailyGoalNormalShort': '适中',
+    'dailyGoalHardShort': '挑战',
+    'dailyGoalProgress': '{listen}/{listenTarget} 分钟 · {vocab}/{vocabTarget} 词 · 奖励 ❤️{hearts}',
+    'dailyGoalCompleted': '目标完成！+{hearts} 颗心奖励',
+    'dailyGoalCompletedNoReward': '目标完成！（心已满）',
+    'dailyGoalRewardShort': '奖励 ❤️{hearts}',
+    'onboardingGoalHint': '我们将为你设置{difficulty}的每日目标。',
+    'myLearningToday': '今天',
+    'myLearningWeek': '本周',
+    'myLearningSaved': '已保存',
+    'heartEarnHint': '完成今日目标可获得 1–5 颗心（按难度），或连续 7 天额外 +1 颗心。',
+
     // Player
     'playerAutoPlay': '下一集',
     'sleepTimerTitle': '睡眠定时',

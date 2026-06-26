@@ -356,6 +356,25 @@ class AppPt {
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
 
+    // Daily goals
+    'dailyGoalTitle': 'Meta de hoje',
+    'dailyGoalSettingsDesc': 'Escolha quanto quer praticar por dia.',
+    'dailyGoalEasy': '3 min de escuta + 3 palavras · recompensa ❤️1',
+    'dailyGoalNormal': '5 min de escuta + 5 palavras · recompensa ❤️2',
+    'dailyGoalHard': '10 min de escuta + 10 palavras · recompensa ❤️5',
+    'dailyGoalEasyShort': 'Leve',
+    'dailyGoalNormalShort': 'Média',
+    'dailyGoalHardShort': 'Alta',
+    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} palavras · recompensa ❤️{hearts}',
+    'dailyGoalCompleted': 'Meta concluída! +{hearts} coração(ões) de recompensa',
+    'dailyGoalCompletedNoReward': 'Meta concluída! (corações no máximo)',
+    'dailyGoalRewardShort': 'recompensa ❤️{hearts}',
+    'onboardingGoalHint': 'Definiremos uma meta diária {difficulty} para começar.',
+    'myLearningToday': 'Hoje',
+    'myLearningWeek': 'Esta semana',
+    'myLearningSaved': 'Salvo',
+    'heartEarnHint': 'Conclua sua meta diária para ganhar 1–5 corações (por nível), ou +1 por uma sequência de 7 dias.',
+
     // Player
     'playerAutoPlay': 'Próx.',
     'sleepTimerTitle': 'Timer de sono',

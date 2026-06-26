@@ -19,6 +19,7 @@ class DailyGoalService extends ChangeNotifier {
   DailyGoalDifficulty _difficulty = DailyGoalDifficulty.normal;
   int _todayVocabReviews = 0;
   String? _celebratedDate;
+  int _lastCompletionReward = 0;
   bool _initialized = false;
 
   DailyGoalDifficulty get difficulty => _difficulty;
@@ -96,6 +97,8 @@ class DailyGoalService extends ChangeNotifier {
     return _celebratedDate == today;
   }
 
+  int get lastCompletionReward => _lastCompletionReward;
+
   Future<void> recordVocabReview() async {
     final prefs = await SharedPreferences.getInstance();
     _refreshTodayVocabBucket(prefs);
@@ -117,7 +120,8 @@ class DailyGoalService extends ChangeNotifier {
     final today = _dateKey(DateTime.now());
     _celebratedDate = today;
     await prefs.setString(_celebratedDatePrefsKey, today);
-    await LearningRewardService().onDailyGoalCompleted();
+    _lastCompletionReward =
+        await LearningRewardService().onDailyGoalCompleted(targets.heartReward);
     notifyListeners();
   }
 
