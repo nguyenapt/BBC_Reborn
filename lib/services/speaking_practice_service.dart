@@ -17,6 +17,8 @@ import '../models/speaking_feedback.dart';
 import '../models/speaking_session.dart';
 import 'speech_transcription_service.dart';
 import 'local_database_service.dart';
+import 'learning_progress_service.dart';
+import 'speaking_review_service.dart';
 import 'speaking_feedback_service.dart';
 
 class SpeakingAttemptResult {
@@ -210,6 +212,12 @@ class SpeakingPracticeService {
     );
 
     await _db.insertSpeakingAttempt(attempt);
+
+    await LearningProgressService().recordSpeakingScore(feedback.overallScore);
+    await SpeakingReviewService().scheduleFromAttempt(
+      attempt: attempt,
+      episodeTitle: episode.episodeName,
+    );
 
     final updatedSession = _updateSessionStats(session, feedback.overallScore);
     await _db.updateSpeakingSession(updatedSession);

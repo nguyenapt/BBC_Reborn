@@ -143,7 +143,7 @@ class AppKo {
 
     // Saved Screen
     'saved': '저장됨',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': '저장된 에피소드와 어휘',
     'myLearningDesc': '개인화된 문법, 에피소드, 어휘',
     'noSavedGrammar': '저장된 문법이 아직 없습니다',
@@ -153,7 +153,7 @@ class AppKo {
     'unsave': '저장 해제',
     'episodeDataUnavailable': '에피소드 데이터를 아직 사용할 수 없습니다',
     'grammarFeatureDisabled': '문법 기능이 현재 비활성화되었습니다',
-    'savedToMyLearning': 'Library에 저장됨',
+    'savedToMyLearning': 'My Hub에 저장됨',
     'removedFromSavedGrammar': '저장된 문법에서 제거됨',
     'grammarExplanationTitle': '문법 설명',
     'sentenceLabel': '문장:',

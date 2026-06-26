@@ -324,7 +324,7 @@
             this.txtTranscript.Multiline = true;
             this.txtTranscript.Name = "txtTranscript";
             this.txtTranscript.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtTranscript.Size = new System.Drawing.Size(1043, 187);
+            this.txtTranscript.Size = new System.Drawing.Size(1046, 178);
             this.txtTranscript.TabIndex = 1;
             this.txtTranscript.Leave += new System.EventHandler(this.txtTranscript_Leave);
             // 
@@ -1491,7 +1491,7 @@
             this.txtViTranscript.Location = new System.Drawing.Point(9, 26);
             this.txtViTranscript.Multiline = true;
             this.txtViTranscript.Name = "txtViTranscript";
-            this.txtViTranscript.Size = new System.Drawing.Size(1042, 201);
+            this.txtViTranscript.Size = new System.Drawing.Size(1042, 184);
             this.txtViTranscript.TabIndex = 14;
             this.txtViTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1548,7 +1548,7 @@
             this.txtEsTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtEsTranscript.Multiline = true;
             this.txtEsTranscript.Name = "txtEsTranscript";
-            this.txtEsTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtEsTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtEsTranscript.TabIndex = 17;
             this.txtEsTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1605,7 +1605,7 @@
             this.txtArTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtArTranscript.Multiline = true;
             this.txtArTranscript.Name = "txtArTranscript";
-            this.txtArTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtArTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtArTranscript.TabIndex = 17;
             this.txtArTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1662,7 +1662,7 @@
             this.txtJaTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtJaTranscript.Multiline = true;
             this.txtJaTranscript.Name = "txtJaTranscript";
-            this.txtJaTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtJaTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtJaTranscript.TabIndex = 17;
             this.txtJaTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1719,7 +1719,7 @@
             this.txtKoTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtKoTranscript.Multiline = true;
             this.txtKoTranscript.Name = "txtKoTranscript";
-            this.txtKoTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtKoTranscript.Size = new System.Drawing.Size(1048, 174);
             this.txtKoTranscript.TabIndex = 17;
             this.txtKoTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1776,7 +1776,7 @@
             this.txtPtTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtPtTranscript.Multiline = true;
             this.txtPtTranscript.Name = "txtPtTranscript";
-            this.txtPtTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtPtTranscript.Size = new System.Drawing.Size(1048, 174);
             this.txtPtTranscript.TabIndex = 17;
             this.txtPtTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1833,7 +1833,7 @@
             this.txtRuTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtRuTranscript.Multiline = true;
             this.txtRuTranscript.Name = "txtRuTranscript";
-            this.txtRuTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtRuTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtRuTranscript.TabIndex = 17;
             this.txtRuTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1890,7 +1890,7 @@
             this.txtZhTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtZhTranscript.Multiline = true;
             this.txtZhTranscript.Name = "txtZhTranscript";
-            this.txtZhTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtZhTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtZhTranscript.TabIndex = 17;
             this.txtZhTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 

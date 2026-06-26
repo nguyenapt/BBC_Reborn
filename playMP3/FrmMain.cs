@@ -47,14 +47,17 @@ namespace playMP3
         System.Windows.Media.MediaPlayer player;
         Boolean isPlay = false;
         int intCursorPos;
+        readonly Dictionary<DataGridView, Label> _transcriptRowCountLabels = new Dictionary<DataGridView, Label>();
+
         public frmMain()
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            ApplyTranscriptRowGridStyle(grvRow);
-            foreach (var g in new DataGridView[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow })
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow };
+            foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
+                EnsureTranscriptRowCountLabel(g);
             }
 
             foreach (var g in new DataGridView[] {
@@ -260,6 +263,50 @@ namespace playMP3
             grid.RowTemplate.Height = 40;
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders;
+            if (!grid.Columns.Contains("RowNumber"))
+            {
+                grid.Columns.Insert(0, new DataGridViewTextBoxColumn
+                {
+                    Name = "RowNumber",
+                    DataPropertyName = "RowNumber",
+                    HeaderText = "Number Row",
+                    Width = 50,
+                    ReadOnly = true,
+                });
+            }
+        }
+
+        private void EnsureTranscriptRowCountLabel(DataGridView grid)
+        {
+            if (_transcriptRowCountLabels.ContainsKey(grid))
+                return;
+
+            var lbl = new Label
+            {
+                AutoSize = true,
+                Text = "Rows: 0",
+            };
+            grid.Parent.Controls.Add(lbl);
+            lbl.BringToFront();
+            _transcriptRowCountLabels[grid] = lbl;
+
+            void reposition()
+            {
+                lbl.Location = new Point(grid.Right - lbl.PreferredWidth, grid.Top - lbl.Height - 2);
+            }
+
+            grid.LocationChanged += (_, __) => reposition();
+            grid.SizeChanged += (_, __) => reposition();
+            reposition();
+        }
+
+        private void UpdateTranscriptGridRowCountLabel(DataGridView grid)
+        {
+            if (!_transcriptRowCountLabels.TryGetValue(grid, out var lbl))
+                return;
+
+            lbl.Text = "Rows: " + GetEpisodeRowCount(grid);
+            lbl.Location = new Point(grid.Right - lbl.PreferredWidth, grid.Top - lbl.Height - 2);
         }
 
         private void btnConvertToGrid_Click(object sender, EventArgs e)
@@ -280,7 +327,7 @@ namespace playMP3
             for (var i = 0; i < lstRows.Length; i++)
             {
                 var trimmed = lstRows[i].Trim();
-                var m = new EpisodeRowModel { FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
+                var m = new EpisodeRowModel { RowNumber = i, FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
 
                 if (previous != null && i < previous.Count)
                 {
@@ -301,6 +348,7 @@ namespace playMP3
 
             grid.DataSource = lstRowModels;
             grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+            UpdateTranscriptGridRowCountLabel(grid);
         }
 
         public void ConvertToGrid()
@@ -746,6 +794,7 @@ namespace playMP3
             txtResult.Text = "";
             txtGroupResult.Text = "";
             grvRow.DataSource = null;
+            UpdateTranscriptGridRowCountLabel(grvRow);
             txtId.Text = Guid.NewGuid().ToString();
             txtEpisodeName.Text = "";
             txtThumb.Text = "";

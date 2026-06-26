@@ -27,6 +27,11 @@ import 'services/learning_analytics_service.dart';
 import 'services/learning_progress_service.dart';
 import 'services/vocabulary_practice_service.dart';
 import 'services/review_reminder_service.dart';
+import 'services/user_profile_service.dart';
+import 'services/daily_goal_service.dart';
+import 'services/achievement_service.dart';
+import 'services/speaking_review_service.dart';
+import 'services/user_cloud_sync_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
@@ -94,6 +99,9 @@ void main() async {
     
     await AuthService().initialize();
     debugPrint('✅ AuthService initialized');
+
+    await UserCloudSyncService().initialize();
+    debugPrint('✅ UserCloudSyncService initialized');
     
     await AudioPlayerService().initialize();
     debugPrint('✅ AudioPlayerService initialized');
@@ -115,6 +123,12 @@ void main() async {
 
     await VocabularyPracticeService().initialize();
     debugPrint('✅ VocabularyPracticeService initialized');
+
+    await UserProfileService().initialize();
+    await DailyGoalService().initialize();
+    await AchievementService().initialize();
+    await SpeakingReviewService().initialize();
+    debugPrint('✅ Phase 2 services initialized');
     
     // Preload ads (interstitial dùng trước khi vào episode detail; rewarded cho hearts)
     if (!kIsWeb && consentService.canRequestAds) {
@@ -218,8 +232,22 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   Future<void> _syncStreakReminder() async {
     try {
       final progress = LearningProgressService();
-      await ReviewReminderService().syncStreakRiskReminder(
+      final grammar = SavedGrammarService();
+      final vocabPractice = VocabularyPracticeService();
+      final speakingReview = SpeakingReviewService();
+      await vocabPractice.initialize();
+
+      final vocabItems = VocabularyService().savedVocabularies;
+      final word = await vocabPractice.pickWordOfTheDayCached(vocabItems);
+      final dueSpeaking = speakingReview.dueReviewItems;
+
+      await ReviewReminderService().syncAllLocalReminders(
         isActiveToday: progress.isActiveToday,
+        grammarItems: grammar.dueReviewItems,
+        wordOfTheDay: word?.vocab,
+        speakingDueCount: dueSpeaking.length,
+        speakingEpisodeTitle:
+            dueSpeaking.isNotEmpty ? dueSpeaking.first.episodeTitle : null,
       );
     } catch (e) {
       debugPrint('syncStreakReminder error: $e');

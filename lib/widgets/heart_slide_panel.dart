@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/heart_service.dart';
 import '../services/admob_service.dart';
+import '../services/language_manager.dart';
 
 /// Widget hiển thị heart panel dạng slide từ trên xuống
 class HeartSlidePanel extends StatelessWidget {
@@ -15,6 +16,7 @@ class HeartSlidePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final heartService = HeartService();
     final admobService = AdMobService();
+    final languageManager = LanguageManager();
 
     return ListenableBuilder(
       listenable: heartService,
@@ -41,7 +43,17 @@ class HeartSlidePanel extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              Text(
+                languageManager.getText('heartEarnHint'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
               
               // Watch Ad Button (chỉ hiển thị khi heart < 5)
               if (heartService.hearts < 5 && !kIsWeb)

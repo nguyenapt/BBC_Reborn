@@ -143,7 +143,7 @@ class AppEs {
 
     // Saved Screen
     'saved': 'Guardado',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Tus episodios y vocabulario guardados',
     'myLearningDesc': 'Tu gramatica, episodios y vocabulario personalizados',
     'noSavedGrammar': 'No hay gramatica guardada todavia',
@@ -153,7 +153,7 @@ class AppEs {
     'unsave': 'Quitar guardado',
     'episodeDataUnavailable': 'Los datos del episodio aun no estan disponibles',
     'grammarFeatureDisabled': 'La funcion de gramatica esta desactivada',
-    'savedToMyLearning': 'Guardado en Library',
+    'savedToMyLearning': 'Guardado en My Hub',
     'removedFromSavedGrammar': 'Eliminado de gramatica guardada',
     'grammarExplanationTitle': 'Explicacion gramatical',
     'sentenceLabel': 'Oracion:',

@@ -5,9 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/episode.dart';
 import '../services/firebase_service.dart';
 import '../services/storage_service.dart';
-import '../services/firebase_storage_service.dart';
 import '../services/user_service.dart';
-import '../services/auth_service.dart';
 import '../services/local_database_service.dart';
 import '../services/episode_download_service.dart';
 import '../utils/debug_source_log.dart';
@@ -26,9 +24,7 @@ class AudioPlayerService extends ChangeNotifier {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final NotificationService _notificationService = NotificationService();
   final StorageService _storageService = StorageService();
-  final FirebaseStorageService _firebaseStorageService = FirebaseStorageService();
   final UserService _userService = UserService();
-  final AuthService _authService = AuthService();
   final LocalDatabaseService _localDatabaseService = LocalDatabaseService();
   final EpisodeDownloadService _downloadService = EpisodeDownloadService();
   final LearningProgressService _learningProgress = LearningProgressService();
@@ -833,13 +829,7 @@ class AudioPlayerService extends ChangeNotifier {
   /// Check favourite status
   Future<bool> _checkFavouriteStatus(String episodeId) async {
     try {
-      // Check local storage first
-      final localFavourite = await _storageService.isEpisodeFavourite(episodeId);
-      if (localFavourite) return true;
-      
-      // Check Firebase storage
-      final firebaseFavourite = await _firebaseStorageService.isEpisodeFavourite(_userService.userId, episodeId);
-      return firebaseFavourite;
+      return await _storageService.isEpisodeFavourite(episodeId);
     } catch (e) {
       debugPrint('Error checking favourite status: $e');
       return false;
@@ -850,20 +840,11 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> _saveFavouriteStatus(String episodeId, bool isFavourite) async {
     try {
       if (isFavourite) {
-        // Save complete episode data to local storage
         if (_currentEpisode != null) {
           await _storageService.addFavouriteEpisode(_currentEpisode!);
         }
-        // Only save to Firebase if user is logged in
-        if (_authService.isLoggedIn) {
-          await _firebaseStorageService.addFavouriteEpisode(_userService.userId, episodeId);
-        }
       } else {
         await _storageService.removeFavouriteEpisode(episodeId);
-        // Only remove from Firebase if user is logged in
-        if (_authService.isLoggedIn) {
-          await _firebaseStorageService.removeFavouriteEpisode(_userService.userId, episodeId);
-        }
       }
     } catch (e) {
       debugPrint('Error saving favourite status: $e');

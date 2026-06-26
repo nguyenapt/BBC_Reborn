@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/language_manager.dart';
+import '../services/user_profile_service.dart';
 import '../main.dart';
 import 'ads_support_notice_screen.dart';
+import 'onboarding_profile_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -95,7 +97,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       debugPrint('   Current locale after change: ${_languageManager.currentLocale.languageCode}');
       
       if (mounted) {
+        final profileService = UserProfileService();
+        await profileService.initialize();
         final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
+
+        if (!profileService.hasCompletedProfile) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const OnboardingProfileScreen(),
+            ),
+          );
+          return;
+        }
+
         if (!hasSeenAdsNotice) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(

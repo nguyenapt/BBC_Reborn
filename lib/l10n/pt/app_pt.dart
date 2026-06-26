@@ -143,7 +143,7 @@ class AppPt {
 
     // Saved Screen
     'saved': 'Salvo',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Seus episódios e vocabulário salvos',
     'myLearningDesc': 'Sua gramatica, episodios e vocabulario personalizados',
     'noSavedGrammar': 'Ainda nao ha gramatica salva',
@@ -153,7 +153,7 @@ class AppPt {
     'unsave': 'Desmarcar salvo',
     'episodeDataUnavailable': 'Os dados do episodio ainda nao estao disponiveis',
     'grammarFeatureDisabled': 'O recurso de gramatica esta desativado no momento',
-    'savedToMyLearning': 'Salvo em Library',
+    'savedToMyLearning': 'Salvo em My Hub',
     'removedFromSavedGrammar': 'Removido da gramatica salva',
     'grammarExplanationTitle': 'Explicacao de gramatica',
     'sentenceLabel': 'Frase:',

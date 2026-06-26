@@ -9,12 +9,20 @@ namespace playMP3.Base
     /// </summary>
     public class EpisodeRowModel : INotifyPropertyChanged
     {
+        private int _rowNumber;
         private double _firstDuration;
         private string _rowContent;
         private double _lastDuration;
         private int _group;
         private string _grammarExplanationSummary;
         private string _grammarExplanationJson;
+
+        /// <summary>0-based transcript line index (matches Firebase lineNumber).</summary>
+        public int RowNumber
+        {
+            get => _rowNumber;
+            set { if (value.Equals(_rowNumber)) return; _rowNumber = value; OnPropertyChanged(); }
+        }
 
         public double FirstDuration
         {

@@ -143,7 +143,7 @@ class AppRu {
 
     // Saved Screen
     'saved': 'Сохранено',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Ваши сохраненные эпизоды и словарь',
     'myLearningDesc': 'Персональные грамматика, эпизоды и словарь',
     'noSavedGrammar': 'Пока нет сохраненной грамматики',
@@ -153,7 +153,7 @@ class AppRu {
     'unsave': 'Убрать из сохраненного',
     'episodeDataUnavailable': 'Данные эпизода пока недоступны',
     'grammarFeatureDisabled': 'Функция грамматики сейчас отключена',
-    'savedToMyLearning': 'Сохранено в Library',
+    'savedToMyLearning': 'Сохранено в My Hub',
     'removedFromSavedGrammar': 'Удалено из сохраненной грамматики',
     'grammarExplanationTitle': 'Объяснение грамматики',
     'sentenceLabel': 'Предложение:',
