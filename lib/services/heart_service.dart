@@ -107,16 +107,28 @@ class HeartService extends ChangeNotifier {
   /// Earn a heart (called after watching rewarded ad)
   /// Returns true if heart was earned successfully, false if already at max
   Future<bool> earnHeart() async {
+    final earned = await earnHearts(1);
+    return earned > 0;
+  }
+
+  /// Earn multiple hearts, capped at [maxHearts]. Returns hearts actually added.
+  Future<int> earnHearts(int count) async {
+    if (count <= 0) return 0;
+    _checkAndResetIfNeeded();
+
     if (_hearts >= _maxHearts) {
       debugPrint('❌ Already at max hearts');
-      return false;
+      return 0;
     }
-    
-    _hearts++;
+
+    final added = count.clamp(0, _maxHearts - _hearts);
+    if (added == 0) return 0;
+
+    _hearts += added;
     await _saveHearts();
     notifyListeners();
-    debugPrint('❤️ Heart earned. Total: $_hearts');
-    return true;
+    debugPrint('❤️ Hearts earned: +$added (total: $_hearts)');
+    return added;
   }
 
   /// Save hearts count to SharedPreferences

@@ -29,7 +29,9 @@ import '../theme/vocabulary_theme.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 
 class MyLearningScreen extends StatefulWidget {
-  const MyLearningScreen({super.key});
+  final bool scrollToDailyGoal;
+
+  const MyLearningScreen({super.key, this.scrollToDailyGoal = false});
 
   @override
   State<MyLearningScreen> createState() => _MyLearningScreenState();
@@ -39,6 +41,8 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   late PageController _savedSubPageController;
+  final ScrollController _todayTabScrollController = ScrollController();
+  final GlobalKey _dailyGoalSectionKey = GlobalKey();
   int _savedSubPageIndex = 0;
   final StorageService _storageService = StorageService();
   final LanguageManager _languageManager = LanguageManager();
@@ -93,12 +97,44 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     unawaited(AchievementService().initialize());
     unawaited(DailyGoalService().initialize());
     _loadData();
+    if (widget.scrollToDailyGoal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToDailyGoalSection();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(MyLearningScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.scrollToDailyGoal && !oldWidget.scrollToDailyGoal) {
+      _scrollToDailyGoalSection();
+    }
+  }
+
+  void _scrollToDailyGoalSection() {
+    if (_tabController.index != 0) {
+      _tabController.animateTo(0);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final context = _dailyGoalSectionKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+          alignment: 0.35,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _savedSubPageController.dispose();
+    _todayTabScrollController.dispose();
     _vocabularyService.removeListener(_vocabularyListener);
     _savedGrammarService.removeListener(_savedGrammarListener);
     _learningProgress.removeListener(_learningProgressListener);
@@ -463,6 +499,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     final continueProgress = _learningProgress.getMostRecentContinue();
 
     return ListView(
+      controller: _todayTabScrollController,
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         if (continueProgress != null)
@@ -511,7 +548,10 @@ class _MyLearningScreenState extends State<MyLearningScreen>
             onTap: () => _tabController.animateTo(2),
           ),
         const AchievementsSection(),
-        const DailyGoalSettingsTile(),
+        KeyedSubtree(
+          key: _dailyGoalSectionKey,
+          child: const DailyGoalSettingsTile(),
+        ),
       ],
     );
   }

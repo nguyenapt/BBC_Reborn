@@ -356,6 +356,25 @@ class AppRu {
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
 
+    // Daily goals
+    'dailyGoalTitle': 'Цель на сегодня',
+    'dailyGoalSettingsDesc': 'Выберите, сколько хотите заниматься каждый день.',
+    'dailyGoalEasy': '3 мин прослушивания + 3 слова · награда ❤️1',
+    'dailyGoalNormal': '5 мин прослушивания + 5 слов · награда ❤️2',
+    'dailyGoalHard': '10 мин прослушивания + 10 слов · награда ❤️5',
+    'dailyGoalEasyShort': 'Лёгкий',
+    'dailyGoalNormalShort': 'Средний',
+    'dailyGoalHardShort': 'Высокий',
+    'dailyGoalProgress': '{listen}/{listenTarget} мин · {vocab}/{vocabTarget} слов · награда ❤️{hearts}',
+    'dailyGoalCompleted': 'Цель выполнена! +{hearts} сердец награды',
+    'dailyGoalCompletedNoReward': 'Цель выполнена! (сердца заполнены)',
+    'dailyGoalRewardShort': 'награда ❤️{hearts}',
+    'onboardingGoalHint': 'Для начала установим ежедневную цель: {difficulty}.',
+    'myLearningToday': 'Сегодня',
+    'myLearningWeek': 'На этой неделе',
+    'myLearningSaved': 'Сохранённое',
+    'heartEarnHint': 'Выполните цель дня, чтобы получить 1–5 сердец (по уровню), или +1 за серию 7 дней.',
+
     // Player
     'playerAutoPlay': 'Далее',
     'sleepTimerTitle': 'Таймер сна',

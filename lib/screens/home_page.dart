@@ -32,8 +32,14 @@ import '../widgets/floating_bottom_nav_bar.dart';
 class HomePage extends StatefulWidget {
   final Function(String)? onNavigateToCategory;
   final Function(String)? onNavigateToGrammar;
-  
-  const HomePage({super.key, this.onNavigateToCategory, this.onNavigateToGrammar});
+  final VoidCallback? onNavigateToMyHubDailyGoal;
+
+  const HomePage({
+    super.key,
+    this.onNavigateToCategory,
+    this.onNavigateToGrammar,
+    this.onNavigateToMyHubDailyGoal,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -934,7 +940,9 @@ class _HomePageState extends State<HomePage> {
           ),
 
           SliverToBoxAdapter(
-            child: const DailyGoalWidget(),
+            child: DailyGoalWidget(
+              onTap: widget.onNavigateToMyHubDailyGoal,
+            ),
           ),
 
           SliverToBoxAdapter(
