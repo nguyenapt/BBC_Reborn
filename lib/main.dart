@@ -190,6 +190,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   int currentPageIndex = 0;
   String? categoriesInitialTab;
   String? grammarInitialTab;
+  bool scrollMyHubToDailyGoal = false;
   DateTime? _lastBackgroundAt;
   bool _didShowReviewReminderThisSession = false;
 
@@ -204,6 +205,13 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     setState(() {
       grammarInitialTab = tabName;
       currentPageIndex = 3; // Grammar tab index
+    });
+  }
+
+  void navigateToMyHubDailyGoal() {
+    setState(() {
+      scrollMyHubToDailyGoal = true;
+      currentPageIndex = 2; // My Hub
     });
   }
 
@@ -424,6 +432,7 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
                 HomePage(
                   onNavigateToCategory: navigateToCategoriesWithTab,
                   onNavigateToGrammar: navigateToGrammarWithTab,
+                  onNavigateToMyHubDailyGoal: navigateToMyHubDailyGoal,
                 ),
                 Builder(
                   builder: (context) {
@@ -439,7 +448,21 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
                     return CategoriesScreen(initialTab: categoriesInitialTab);
                   },
                 ),
-                const MyLearningScreen(),
+                Builder(
+                  builder: (context) {
+                    final scrollToDailyGoal = scrollMyHubToDailyGoal;
+                    if (scrollToDailyGoal) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            scrollMyHubToDailyGoal = false;
+                          });
+                        }
+                      });
+                    }
+                    return MyLearningScreen(scrollToDailyGoal: scrollToDailyGoal);
+                  },
+                ),
                 Builder(
                   builder: (context) {
                     if (grammarInitialTab != null) {

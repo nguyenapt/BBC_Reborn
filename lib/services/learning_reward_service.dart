@@ -12,15 +12,15 @@ class LearningRewardService {
       'learning_reward_daily_goal_date_v1';
   static const String _streak7RewardedKey = 'learning_reward_streak7_v1';
 
-  Future<bool> onDailyGoalCompleted() async {
+  Future<int> onDailyGoalCompleted(int heartReward) async {
     final prefs = await SharedPreferences.getInstance();
     final today = _dateKey(DateTime.now());
-    if (prefs.getString(_dailyGoalRewardDateKey) == today) return false;
+    if (prefs.getString(_dailyGoalRewardDateKey) == today) return 0;
 
-    final earned = await HeartService().earnHeart();
-    if (earned) {
+    final earned = await HeartService().earnHearts(heartReward);
+    if (earned > 0) {
       await prefs.setString(_dailyGoalRewardDateKey, today);
-      debugPrint('❤️ Heart earned for daily goal completion');
+      debugPrint('❤️ Daily goal reward: +$earned heart(s)');
     }
     return earned;
   }
