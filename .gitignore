@@ -64,3 +64,5 @@ database-list-17042026.json
 playMP3/bin/
 playMP3/obj/
 playMP3/packages/
+playMP3/service.config
+*-firebase-adminsdk*.json

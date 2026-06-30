@@ -75,6 +75,9 @@ namespace playMP3
             cbYear.SelectedIndex = 0;
             ReadConfigFile();
 
+            if (cbSendEpisodePush != null)
+                cbSendEpisodePush.Checked = ConfigModel.SendEpisodePush;
+
             cbCloudService.DataSource = this.ConfigModel.CloudServices;
             cbCloudService.DisplayMember = "Name";
             cbCloudService.ValueMember = "Name";
@@ -519,6 +522,18 @@ namespace playMP3
                 var delayNode = m_xmld.SelectSingleNode("/Configurations/GeminiRequestDelayMs");
                 if (delayNode != null && int.TryParse((delayNode.InnerText ?? string.Empty).Trim(), out var delayMs) && delayMs >= 0 && delayMs <= 120_000)
                     ConfigModel.GeminiRequestDelayMs = delayMs;
+
+                var fcmPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPath");
+                if (fcmPathNode != null)
+                    ConfigModel.FcmServiceAccountPath = (fcmPathNode.InnerText ?? string.Empty).Trim();
+
+                var sendPushNode = m_xmld.SelectSingleNode("/Configurations/SendEpisodePush");
+                if (sendPushNode != null)
+                {
+                    var pushText = (sendPushNode.InnerText ?? string.Empty).Trim();
+                    if (bool.TryParse(pushText, out var sendPush))
+                        ConfigModel.SendEpisodePush = sendPush;
+                }
             }
             else
             {
@@ -690,6 +705,39 @@ namespace playMP3
                     {
                         await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
                     }
+                }
+            }
+
+            if (exportEpisodeDetail && cbSendEpisodePush != null && cbSendEpisodePush.Checked)
+            {
+                try
+                {
+                    if (!EpisodeFcmSender.TryConfigure(ConfigModel.FcmServiceAccountPath))
+                    {
+                        MessageBox.Show(
+                            this,
+                            "FCM chưa cấu hình: thêm FcmServiceAccountPath trong service.config "
+                            + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.",
+                            "Push FCM",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        var messageId = await EpisodeFcmSender.SendNewEpisodeAsync(
+                            episode,
+                            txtNumber.Text).ConfigureAwait(true);
+                        Debug.WriteLine("EpisodeFcmSender: sent message " + messageId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        this,
+                        "Upload RTDB thành công nhưng gửi FCM thất bại: " + ex.Message,
+                        "Push FCM",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
                 }
             }
 
