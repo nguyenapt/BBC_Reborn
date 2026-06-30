@@ -1,4 +1,3 @@
-const {onValueCreated} = require("firebase-functions/v2/database");
 const {logger} = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const {aiRequest} = require("./ai/aiRequest");
@@ -60,8 +59,12 @@ function safeSerializeErrorForLog(err) {
 }
 
 /**
+ * DISABLED: FCM is sent directly from playMP3 (EpisodeFcmSender.cs) after RTDB upload.
+ * Keeping handler commented to avoid double notifications if this file is redeployed.
+ *
  * Khi thêm node mới tại <category>/<year>/<episodeKey> (vd: 6M/2026/8), gửi FCM tới topic "episodes".
  */
+/*
 exports.onEpisodeCreated = onValueCreated(
   {
     ref: "{category}/{year}/{episodeKey}",
@@ -131,7 +134,6 @@ exports.onEpisodeCreated = onValueCreated(
         messageId,
       });
     } catch (e) {
-      // Chỉ truyền 1 string — logger.error(msg, meta) có thể gây TypeError (đọc .error trên undefined).
       const details = safeSerializeErrorForLog(e);
       let line;
       try {
@@ -145,5 +147,6 @@ exports.onEpisodeCreated = onValueCreated(
     return null;
   },
 );
+*/
 
 exports.aiRequest = aiRequest;

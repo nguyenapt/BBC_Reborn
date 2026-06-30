@@ -248,6 +248,7 @@
     <Compile Include="TranslationsFirebaseCacheWriter.cs" />
     <Compile Include="QuestionsGeminiService.cs" />
     <Compile Include="QuestionsFirebaseCacheWriter.cs" />
+    <Compile Include="EpisodeFcmSender.cs" />
     <Compile Include="FrmMain.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -1,13 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'screens/home_page.dart';
 import 'screens/categories_screen.dart';
 import 'screens/saved_screen.dart';
@@ -15,28 +14,19 @@ import 'screens/settings_screen.dart';
 import 'screens/grammar_screen.dart';
 import 'services/language_manager.dart';
 import 'services/audio_player_service.dart';
-import 'services/user_service.dart';
-import 'services/auth_service.dart';
 import 'services/navigation_service.dart';
 import 'services/admob_service.dart';
 import 'services/vocabulary_service.dart';
 import 'services/rate_app_service.dart';
-import 'services/heart_service.dart';
 import 'services/saved_grammar_service.dart';
-import 'services/learning_analytics_service.dart';
 import 'services/learning_progress_service.dart';
 import 'services/vocabulary_practice_service.dart';
 import 'services/review_reminder_service.dart';
-import 'services/user_profile_service.dart';
-import 'services/daily_goal_service.dart';
-import 'services/achievement_service.dart';
 import 'services/speaking_review_service.dart';
-import 'services/user_cloud_sync_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
 import 'services/push_notification_service.dart';
-import 'services/consent_service.dart';
 import 'firebase_options.dart';
 import 'widgets/app_update_prompt.dart';
 import 'theme/app_theme.dart';
@@ -45,103 +35,14 @@ import 'widgets/floating_bottom_nav_bar.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('🚀 App starting...');
-  final ConsentService consentService = ConsentService();
+
+  await LanguageManager().initialize();
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider:
-          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-    );
-    if (kDebugMode) {
-      try {
-        await FirebaseAppCheck.instance.getToken(true);
-        debugPrint('✅ App Check debug token OK');
-      } catch (e) {
-        debugPrint(
-          '⚠️ App Check chưa có debug token. Mở Logcat, filter '
-          '"DebugAppCheckProvider", copy UUID → Firebase Console → '
-          'App Check → Manage debug tokens → Add.',
-        );
-        debugPrint('   Chi tiết: $e');
-      }
-    }
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    await PushNotificationService.instance.initialize();
   }
-  
-  // Thu thập consent trước khi khởi tạo và request ads.
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    debugPrint('🛡️ Running UMP consent flow...');
-    await consentService.initializeConsentFlow();
-    debugPrint(
-        '🛡️ UMP completed. canRequestAds=${consentService.canRequestAds}, status=${consentService.consentStatus}');
 
-    if (consentService.canRequestAds) {
-      debugPrint('📱 Initializing MobileAds...');
-      await MobileAds.instance.initialize();
-      debugPrint('✅ MobileAds initialized');
-    } else {
-      debugPrint('⚠️ MobileAds init skipped because consent not granted yet');
-    }
-  }
-  
-  // Khởi tạo các service với error handling
-  try {
-    debugPrint('🔧 Initializing services...');
-    await LanguageManager().initialize();
-    debugPrint('✅ LanguageManager initialized');
-    
-    await UserService().initialize();
-    debugPrint('✅ UserService initialized');
-    
-    await AuthService().initialize();
-    debugPrint('✅ AuthService initialized');
-
-    await UserCloudSyncService().initialize();
-    debugPrint('✅ UserCloudSyncService initialized');
-    
-    await AudioPlayerService().initialize();
-    debugPrint('✅ AudioPlayerService initialized');
-    
-    await VocabularyService().initialize();
-    debugPrint('✅ VocabularyService initialized');
-    
-    await HeartService().initialize();
-    debugPrint('✅ HeartService initialized');
-
-    await SavedGrammarService().initialize();
-    debugPrint('✅ SavedGrammarService initialized');
-
-    await LearningAnalyticsService().initialize();
-    debugPrint('✅ LearningAnalyticsService initialized');
-
-    await LearningProgressService().initialize();
-    debugPrint('✅ LearningProgressService initialized');
-
-    await VocabularyPracticeService().initialize();
-    debugPrint('✅ VocabularyPracticeService initialized');
-
-    await UserProfileService().initialize();
-    await DailyGoalService().initialize();
-    await AchievementService().initialize();
-    await SpeakingReviewService().initialize();
-    debugPrint('✅ Phase 2 services initialized');
-    
-    // Preload ads (interstitial dùng trước khi vào episode detail; rewarded cho hearts)
-    if (!kIsWeb && consentService.canRequestAds) {
-      AdMobService().createInterstitialAd();
-      AdMobService().createRewardedAd();
-    }
-    
-    debugPrint('🎉 All services initialized successfully');
-  } catch (e) {
-    debugPrint('❌ Error initializing services: $e');
-    // Tiếp tục chạy app ngay cả khi có lỗi khởi tạo service
-  }
-  
   debugPrint('🏃‍♂️ Running app...');
   runApp(const BBCLearningApp());
 }
@@ -339,9 +240,8 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
     // - Cold start: thử hiển thị sau khi UI ổn định.
     // - Resume: chỉ thử khi app ở background đủ lâu.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!kIsWeb && mounted) {
-        AdMobService().createInterstitialAd();
-      }
+      unawaited(PushNotificationService.instance.processPendingLaunchNotification());
+
       Future.delayed(_appOpenStartupDelay, () {
         if (mounted) {
           _tryShowAppOpenAd(trigger: 'startup');
