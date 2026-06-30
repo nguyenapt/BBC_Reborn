@@ -33,7 +33,15 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  Future<void> initialize() async {
+  bool _permissionSetupDone = false;
+  Map<String, dynamic>? _pendingLaunchData;
+  bool _pendingLaunchConsumed = false;
+
+  /// [requestPermissions] / [subscribeToTopics] có thể hoãn để không chặn splash.
+  Future<void> initialize({
+    bool requestPermissions = true,
+    bool subscribeToTopics = true,
+  }) async {
     if (_initialized) return;
     if (kIsWeb) return;
     if (!Platform.isAndroid && !Platform.isIOS) return;
@@ -65,41 +73,71 @@ class PushNotificationService {
       ),
     );
 
-    if (Platform.isAndroid) {
-      await Permission.notification.request();
-    } else if (Platform.isIOS) {
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
-    }
-
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleEpisodePushTap);
 
-    final prefs = await SharedPreferences.getInstance();
-    final episodePushEnabled = prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
-    if (episodePushEnabled) {
-      await messaging.subscribeToTopic(fcmTopicNewEpisodes);
-      debugPrint('PushNotificationService: subscribed to topic "$fcmTopicNewEpisodes"');
-    } else {
-      await messaging.unsubscribeFromTopic(fcmTopicNewEpisodes);
-      debugPrint(
-        'PushNotificationService: unsubscribed from topic "$fcmTopicNewEpisodes" (saved preference)',
-      );
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _pendingLaunchData = Map<String, dynamic>.from(initialMessage.data);
     }
-
-    await handleInitialMessage();
 
     _initialized = true;
+
+    if (requestPermissions || subscribeToTopics) {
+      await completePermissionAndTopicSetup(
+        requestPermissions: requestPermissions,
+        subscribeToTopics: subscribeToTopics,
+      );
+    }
   }
 
-  /// Tap notification khi app bị kill — gọi sau [initialize].
-  Future<void> handleInitialMessage() async {
-    if (kIsWeb) return;
+  Future<void> completePermissionAndTopicSetup({
+    bool requestPermissions = true,
+    bool subscribeToTopics = true,
+  }) async {
+    if (!_initialized || kIsWeb) return;
     if (!Platform.isAndroid && !Platform.isIOS) return;
 
-    final message = await FirebaseMessaging.instance.getInitialMessage();
-    if (message != null) {
-      _handleEpisodePushTap(message);
+    final messaging = FirebaseMessaging.instance;
+
+    if (requestPermissions && !_permissionSetupDone) {
+      if (Platform.isAndroid) {
+        await Permission.notification.request();
+      } else if (Platform.isIOS) {
+        await messaging.requestPermission(alert: true, badge: true, sound: true);
+      }
+      _permissionSetupDone = true;
     }
+
+    if (subscribeToTopics) {
+      final prefs = await SharedPreferences.getInstance();
+      final episodePushEnabled =
+          prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
+      if (episodePushEnabled) {
+        await messaging.subscribeToTopic(fcmTopicNewEpisodes);
+        debugPrint(
+          'PushNotificationService: subscribed to topic "$fcmTopicNewEpisodes"',
+        );
+      } else {
+        await messaging.unsubscribeFromTopic(fcmTopicNewEpisodes);
+        debugPrint(
+          'PushNotificationService: unsubscribed from topic '
+          '"$fcmTopicNewEpisodes" (saved preference)',
+        );
+      }
+    }
+  }
+
+  /// Cold start từ notification — gọi sau khi shell chính (navigator) sẵn sàng.
+  Future<void> processPendingLaunchNotification() async {
+    if (kIsWeb) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+    if (_pendingLaunchConsumed || _pendingLaunchData == null) return;
+
+    final data = _pendingLaunchData!;
+    _pendingLaunchConsumed = true;
+    _pendingLaunchData = null;
+    _openEpisodeFromPushData(data);
   }
 
   /// Bật/tắt nhận push tập mới (topic [fcmTopicNewEpisodes]). Lưu [prefKeyEpisodePushEnabled].
@@ -156,6 +194,8 @@ class PushNotificationService {
     MediaNotificationLaunchHandler.openEpisodeFromNotification(
       episodeId: episodeId,
       category: category,
+      year: data['year'] as String?,
+      episodeKey: data['episodeKey'] as String?,
     );
   }
 
@@ -166,6 +206,8 @@ class PushNotificationService {
     return jsonEncode({
       'episodeId': episodeId,
       'category': message.data['category'],
+      'year': message.data['year'],
+      'episodeKey': message.data['episodeKey'],
     });
   }
 

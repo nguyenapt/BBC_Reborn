@@ -45,9 +45,17 @@ class UserCloudSyncService {
   Future<void> initialize() async {
     if (_initialized || !cloudAvailable) return;
     _initialized = true;
+  }
+
+  /// Đồng bộ RTDB nền — không chặn cold start.
+  Future<void> syncInBackground() async {
+    if (!cloudAvailable) return;
     final uid = _uid;
-    if (uid != null && uid != _lastSyncedUid) {
+    if (uid == null || uid == _lastSyncedUid) return;
+    try {
       await syncOnLogin(uid);
+    } catch (e) {
+      debugPrint('UserCloudSyncService.syncInBackground error: $e');
     }
   }
 

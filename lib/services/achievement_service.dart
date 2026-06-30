@@ -27,7 +27,6 @@ class AchievementService extends ChangeNotifier {
     final stored = prefs.getStringList(_unlockedKey) ?? [];
     _unlocked.addAll(stored);
     _initialized = true;
-    await evaluateAll();
   }
 
   Future<void> reloadFromStorage() async {

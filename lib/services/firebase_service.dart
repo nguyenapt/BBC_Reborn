@@ -202,6 +202,72 @@ class FirebaseService {
     return episodes;
   }
 
+  /// Tải episode từ RTDB theo payload FCM playMP3 (`category`, `year`, `episodeKey`, `episodeId`).
+  ///
+  /// playMP3 ghi `/{category}/{year}/{episodeKey}` — key là số tập, GUID nằm trong field `Id`.
+  static Future<Episode?> fetchEpisodeFromPushNotification({
+    required String episodeId,
+    String? category,
+    String? year,
+    String? episodeKey,
+  }) async {
+    if (episodeId.isEmpty) return null;
+    if (category == null || category.isEmpty) return null;
+
+    final yearInt = int.tryParse(year ?? '');
+    final pathsToTry = <String>[];
+
+    if (episodeKey != null && episodeKey.isNotEmpty) {
+      if (yearInt != null && yearInt > 1800) {
+        pathsToTry.add('$_baseUrl/$category/$yearInt/$episodeKey.json');
+        pathsToTry.add('$_baseUrl/AS/$category/$yearInt/$episodeKey.json');
+      }
+      pathsToTry.add('$_baseUrl/$category/$episodeKey.json');
+      pathsToTry.add('$_baseUrl/AS/$category/$episodeKey.json');
+    }
+
+    for (final url in pathsToTry) {
+      try {
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {'Accept': 'application/json'},
+        );
+        if (response.statusCode != 200 ||
+            response.body.isEmpty ||
+            response.body == 'null') {
+          continue;
+        }
+        final decoded = json.decode(response.body);
+        if (decoded is! Map<String, dynamic>) continue;
+
+        final resolvedId = decoded['Id']?.toString() ?? episodeId;
+        if (!_episodeIdsMatch(resolvedId, episodeId)) continue;
+
+        return Episode.fromJson(decoded, resolvedId);
+      } catch (_) {}
+    }
+
+    final partial = Episode(
+      actor: '',
+      category: category,
+      duration: '0',
+      publishedDate: yearInt != null && yearInt > 1800
+          ? DateTime(yearInt)
+          : DateTime.now(),
+      episodeName: '',
+      transcript: '',
+      thumbImage: '',
+      id: episodeId,
+      year: year,
+    );
+    return fetchEpisodeFull(partial);
+  }
+
+  static bool _episodeIdsMatch(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return false;
+    return a.toLowerCase() == b.toLowerCase();
+  }
+
   /// Lấy episode đầy đủ (transcript/vocab) từ tree gốc — dùng sau khi list chỉ có bản mỏng.
   ///
   /// Thử `GET /{category}/{year}/{id}.json` hoặc `/{category}/{id}.json`; nếu không có (array layout),
