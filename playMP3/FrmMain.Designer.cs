@@ -71,6 +71,7 @@
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
             this.cbExportQuestions = new System.Windows.Forms.CheckBox();
             this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
+            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
             this.txtASSeriesChild = new System.Windows.Forms.TextBox();
             this.lblASSeriesChild = new System.Windows.Forms.Label();
             this.btnGetQuestions = new System.Windows.Forms.Button();
@@ -595,6 +596,7 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.cbSendEpisodePush);
             this.groupBox3.Controls.Add(this.cbExportTranslation);
             this.groupBox3.Controls.Add(this.cbExportGrammar);
             this.groupBox3.Controls.Add(this.cbExportVocabulary);
@@ -693,6 +695,18 @@
             this.cbExportEpisodeDetail.TabIndex = 42;
             this.cbExportEpisodeDetail.Text = "Export Detail";
             this.cbExportEpisodeDetail.UseVisualStyleBackColor = true;
+            // 
+            // cbSendEpisodePush
+            // 
+            this.cbSendEpisodePush.AutoSize = true;
+            this.cbSendEpisodePush.Checked = true;
+            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
+            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
+            this.cbSendEpisodePush.Size = new System.Drawing.Size(95, 17);
+            this.cbSendEpisodePush.TabIndex = 44;
+            this.cbSendEpisodePush.Text = "Gửi push FCM";
+            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
             // 
             // txtASSeriesChild
             // 
@@ -2247,6 +2261,7 @@
         private System.Windows.Forms.CheckBox cbExportVocabulary;
         private System.Windows.Forms.CheckBox cbExportQuestions;
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
+        private System.Windows.Forms.CheckBox cbSendEpisodePush;
         private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }

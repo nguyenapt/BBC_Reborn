@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -8,8 +9,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../firebase_options.dart';
+import 'media_notification_launch_handler.dart';
 
-/// FCM topic nhận push khi có episode mới (broadcast — phải trùng topic trong Cloud Function).
+/// FCM topic nhận push khi có episode mới (broadcast — phải trùng topic trong playMP3 / Cloud Function).
 const String fcmTopicNewEpisodes = 'episodes';
 
 /// SharedPreferences key — đồng bộ với [setEpisodePushEnabled] / [getEpisodePushEnabled].
@@ -49,6 +51,7 @@ class PushNotificationService {
     const iosInit = DarwinInitializationSettings();
     await _local.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
+      onDidReceiveNotificationResponse: _onLocalNotificationTap,
     );
 
     final androidPlugin = _local.resolvePlatformSpecificImplementation<
@@ -69,6 +72,7 @@ class PushNotificationService {
     }
 
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleEpisodePushTap);
 
     final prefs = await SharedPreferences.getInstance();
     final episodePushEnabled = prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
@@ -81,7 +85,21 @@ class PushNotificationService {
         'PushNotificationService: unsubscribed from topic "$fcmTopicNewEpisodes" (saved preference)',
       );
     }
+
+    await handleInitialMessage();
+
     _initialized = true;
+  }
+
+  /// Tap notification khi app bị kill — gọi sau [initialize].
+  Future<void> handleInitialMessage() async {
+    if (kIsWeb) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    final message = await FirebaseMessaging.instance.getInitialMessage();
+    if (message != null) {
+      _handleEpisodePushTap(message);
+    }
   }
 
   /// Bật/tắt nhận push tập mới (topic [fcmTopicNewEpisodes]). Lưu [prefKeyEpisodePushEnabled].
@@ -114,6 +132,43 @@ class PushNotificationService {
     return prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
   }
 
+  void _onLocalNotificationTap(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+
+    try {
+      final map = jsonDecode(payload) as Map<String, dynamic>;
+      _openEpisodeFromPushData(map);
+    } catch (e) {
+      debugPrint('PushNotificationService: invalid local notification payload: $e');
+    }
+  }
+
+  void _handleEpisodePushTap(RemoteMessage message) {
+    _openEpisodeFromPushData(message.data);
+  }
+
+  void _openEpisodeFromPushData(Map<String, dynamic> data) {
+    final episodeId = data['episodeId'] as String?;
+    final category = data['category'] as String?;
+    if (episodeId == null || episodeId.isEmpty) return;
+
+    MediaNotificationLaunchHandler.openEpisodeFromNotification(
+      episodeId: episodeId,
+      category: category,
+    );
+  }
+
+  String? _episodePushPayload(RemoteMessage message) {
+    final episodeId = message.data['episodeId'] as String?;
+    if (episodeId == null || episodeId.isEmpty) return null;
+
+    return jsonEncode({
+      'episodeId': episodeId,
+      'category': message.data['category'],
+    });
+  }
+
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     final n = message.notification;
     final title = n?.title ?? message.data['title'] as String? ?? 'BBC Learning English';
@@ -135,6 +190,7 @@ class PushNotificationService {
         ),
         iOS: const DarwinNotificationDetails(),
       ),
+      payload: _episodePushPayload(message),
     );
   }
 }
