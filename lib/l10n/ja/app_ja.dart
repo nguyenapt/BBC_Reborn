@@ -143,7 +143,7 @@ class AppJa {
 
     // Saved Screen
     'saved': '保存済み',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': '保存されたエピソードと語彙',
     'myLearningDesc': 'あなた向けの文法・エピソード・語彙',
     'noSavedGrammar': '保存された文法はまだありません',
@@ -153,7 +153,7 @@ class AppJa {
     'unsave': '保存解除',
     'episodeDataUnavailable': 'エピソードデータはまだ利用できません',
     'grammarFeatureDisabled': '文法機能は現在無効です',
-    'savedToMyLearning': 'Library に保存しました',
+    'savedToMyLearning': 'My Hub に保存しました',
     'removedFromSavedGrammar': '保存済み文法から削除しました',
     'grammarExplanationTitle': '文法の解説',
     'sentenceLabel': '文:',
@@ -352,6 +352,25 @@ class AppJa {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': '今日の目標',
+    'dailyGoalSettingsDesc': '毎日の学習量を選んでください。',
+    'dailyGoalEasy': '3分リスニング + 3語 · 報酬 ❤️1',
+    'dailyGoalNormal': '5分リスニング + 5語 · 報酬 ❤️2',
+    'dailyGoalHard': '10分リスニング + 10語 · 報酬 ❤️5',
+    'dailyGoalEasyShort': '軽め',
+    'dailyGoalNormalShort': '普通',
+    'dailyGoalHardShort': '高め',
+    'dailyGoalProgress': '{listen}/{listenTarget}分 · {vocab}/{vocabTarget}語 · 報酬 ❤️{hearts}',
+    'dailyGoalCompleted': '目標達成！+{hearts} ハート報酬',
+    'dailyGoalCompletedNoReward': '目標達成！（ハートが満タンです）',
+    'dailyGoalRewardShort': '報酬 ❤️{hearts}',
+    'onboardingGoalHint': 'まずは{difficulty}の毎日の目標を設定します。',
+    'myLearningToday': '今日',
+    'myLearningWeek': '今週',
+    'myLearningSaved': '保存済み',
+    'heartEarnHint': '今日の目標を達成すると1〜5ハート（レベル別）、または7日連続で+1ハートを獲得できます。',
 
     // Player
     'playerAutoPlay': '次へ',

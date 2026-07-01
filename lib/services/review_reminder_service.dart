@@ -15,11 +15,22 @@ class ReviewReminderService {
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
-  static const String _channelId = 'grammar_review_reminders';
+  static const String _channelId = 'learning_reminders';
   static const String _scheduledIdsKey = 'review_scheduled_notification_ids';
   static const String _askedPermissionKey =
       'review_reminders_permission_asked_v1';
+
+  static const String prefGrammarReview = 'notif_grammar_review_enabled';
+  static const String prefStreakRisk = 'notif_streak_risk_enabled';
+  static const String prefDailyPractice = 'notif_daily_practice_enabled';
+  static const String prefWordOfDay = 'notif_word_of_day_enabled';
+  static const String prefSpeakingReview = 'notif_speaking_review_enabled';
+
   static const int _streakNotificationId = 910001;
+  static const int _dailyPracticeNotificationId = 910002;
+  static const int _wordOfDayNotificationId = 910003;
+  static const int _speakingReviewNotificationId = 910004;
+
   bool _initialized = false;
 
   Future<bool> hasAskedPermission() async {
@@ -34,8 +45,16 @@ class ReviewReminderService {
     await prefs.setBool(_askedPermissionKey, true);
   }
 
-  /// Best-effort request for notification permission (Android 13+/iOS).
-  /// Returns true if permission is granted after the request.
+  Future<bool> getPreference(String key, {bool defaultValue = true}) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(key) ?? defaultValue;
+  }
+
+  Future<void> setPreference(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
   Future<bool> requestNotificationPermission() async {
     if (kIsWeb) return false;
     if (!Platform.isAndroid && !Platform.isIOS) return false;
@@ -59,8 +78,8 @@ class ReviewReminderService {
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
         _channelId,
-        'Grammar Review Reminders',
-        description: 'Reminds users to review saved grammar',
+        'Learning Reminders',
+        description: 'Practice, review, and streak reminders',
         importance: Importance.high,
       ),
     );
@@ -69,11 +88,27 @@ class ReviewReminderService {
     _initialized = true;
   }
 
+  NotificationDetails get _details => NotificationDetails(
+        android: const AndroidNotificationDetails(
+          _channelId,
+          'Learning Reminders',
+          channelDescription: 'Practice, review, and streak reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/logo',
+        ),
+        iOS: const DarwinNotificationDetails(),
+      );
+
   Future<void> syncReviewNotifications(List<SavedGrammarItem> items) async {
     await initialize();
     if (!_initialized) return;
+    if (!await getPreference(prefGrammarReview)) {
+      await _clearGrammarScheduled();
+      return;
+    }
 
-    await _clearPreviouslyScheduled();
+    await _clearGrammarScheduled();
 
     final now = DateTime.now();
     final newIds = <int>[];
@@ -89,17 +124,7 @@ class ReviewReminderService {
         'Grammar review time',
         item.grammarPoint,
         scheduledAt,
-        NotificationDetails(
-          android: const AndroidNotificationDetails(
-            _channelId,
-            'Grammar Review Reminders',
-            channelDescription: 'Reminds users to review saved grammar',
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/logo',
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
+        _details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
@@ -118,7 +143,7 @@ class ReviewReminderService {
     return itemId.hashCode.abs() % 2147480000;
   }
 
-  Future<void> _clearPreviouslyScheduled() async {
+  Future<void> _clearGrammarScheduled() async {
     final prefs = await SharedPreferences.getInstance();
     final ids = prefs.getStringList(_scheduledIdsKey) ?? [];
     for (final idStr in ids) {
@@ -130,12 +155,12 @@ class ReviewReminderService {
     await prefs.remove(_scheduledIdsKey);
   }
 
-  /// Nhắc giữ streak lúc 21:00 nếu user chưa active trong ngày.
   Future<void> syncStreakRiskReminder({required bool isActiveToday}) async {
     await initialize();
     if (!_initialized) return;
     await _plugin.cancel(_streakNotificationId);
     if (isActiveToday) return;
+    if (!await getPreference(prefStreakRisk)) return;
 
     final now = DateTime.now();
     var scheduled = DateTime(now.year, now.month, now.day, 21);
@@ -147,20 +172,113 @@ class ReviewReminderService {
       'Keep your streak alive',
       'Practice a few minutes today to continue your learning streak.',
       scheduledAt,
-      NotificationDetails(
-        android: const AndroidNotificationDetails(
-          _channelId,
-          'Grammar Review Reminders',
-          channelDescription: 'Reminds users to review saved grammar',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/logo',
-        ),
-        iOS: const DarwinNotificationDetails(),
-      ),
+      _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  Future<void> syncDailyPracticeReminder() async {
+    await initialize();
+    if (!_initialized) return;
+    await _plugin.cancel(_dailyPracticeNotificationId);
+    if (!await getPreference(prefDailyPractice)) return;
+
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, 9);
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    await _plugin.zonedSchedule(
+      _dailyPracticeNotificationId,
+      'Time to practice',
+      'Complete your daily goal: listen and review vocabulary.',
+      tz.TZDateTime.from(scheduled, tz.local),
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> syncWordOfTheDayReminder({String? word}) async {
+    await initialize();
+    if (!_initialized) return;
+    await _plugin.cancel(_wordOfDayNotificationId);
+    if (!await getPreference(prefWordOfDay)) return;
+
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, 8);
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    final body = word != null && word.isNotEmpty
+        ? 'Today\'s word: $word'
+        : 'Open the app to learn today\'s vocabulary.';
+
+    await _plugin.zonedSchedule(
+      _wordOfDayNotificationId,
+      'Word of the day',
+      body,
+      tz.TZDateTime.from(scheduled, tz.local),
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> syncSpeakingReviewReminder({
+    required int dueCount,
+    String? episodeTitle,
+  }) async {
+    await initialize();
+    if (!_initialized) return;
+    await _plugin.cancel(_speakingReviewNotificationId);
+    if (!await getPreference(prefSpeakingReview)) return;
+    if (dueCount <= 0) return;
+
+    final now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, 18);
+    if (!scheduled.isAfter(now)) return;
+
+    final title = episodeTitle != null && episodeTitle.isNotEmpty
+        ? episodeTitle
+        : 'Speaking practice';
+    final body =
+        'Review $dueCount speaking line${dueCount == 1 ? '' : 's'} from $title';
+
+    await _plugin.zonedSchedule(
+      _speakingReviewNotificationId,
+      'Speaking review',
+      body,
+      tz.TZDateTime.from(scheduled, tz.local),
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  Future<void> syncAllLocalReminders({
+    required bool isActiveToday,
+    required List<SavedGrammarItem> grammarItems,
+    String? wordOfTheDay,
+    int speakingDueCount = 0,
+    String? speakingEpisodeTitle,
+  }) async {
+    await syncReviewNotifications(grammarItems);
+    await syncStreakRiskReminder(isActiveToday: isActiveToday);
+    await syncDailyPracticeReminder();
+    await syncWordOfTheDayReminder(word: wordOfTheDay);
+    await syncSpeakingReviewReminder(
+      dueCount: speakingDueCount,
+      episodeTitle: speakingEpisodeTitle,
     );
   }
 }

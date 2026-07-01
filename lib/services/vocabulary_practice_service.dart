@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/vocabulary_item.dart';
 import '../models/vocabulary_practice_state.dart';
+import 'user_cloud_sync_service.dart';
 
 class VocabularyPracticeService extends ChangeNotifier {
   static final VocabularyPracticeService _instance =
@@ -23,6 +24,11 @@ class VocabularyPracticeService extends ChangeNotifier {
     if (_initialized) return;
     await _loadStates();
     _initialized = true;
+  }
+
+  Future<void> reloadFromStorage() async {
+    await _loadStates();
+    notifyListeners();
   }
 
   Future<void> _loadStates() async {
@@ -50,6 +56,7 @@ class VocabularyPracticeService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final payload = _states.values.map((e) => e.toJson()).toList();
     await prefs.setString(_statesKey, json.encode(payload));
+    UserCloudSyncService().schedulePush();
   }
 
   static String keyForVocabulary(VocabularyItem item) {
@@ -79,6 +86,8 @@ class VocabularyPracticeService extends ChangeNotifier {
   }
 
   VocabularyPracticeState? wordStateByKey(String key) => _states[key];
+
+  Iterable<VocabularyPracticeState> get allStates => _states.values;
 
   @visibleForTesting
   void setStateForTesting(String key, VocabularyPracticeState state) {

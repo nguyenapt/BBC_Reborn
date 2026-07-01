@@ -143,7 +143,7 @@ class AppRu {
 
     // Saved Screen
     'saved': 'Сохранено',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Ваши сохраненные эпизоды и словарь',
     'myLearningDesc': 'Персональные грамматика, эпизоды и словарь',
     'noSavedGrammar': 'Пока нет сохраненной грамматики',
@@ -153,7 +153,7 @@ class AppRu {
     'unsave': 'Убрать из сохраненного',
     'episodeDataUnavailable': 'Данные эпизода пока недоступны',
     'grammarFeatureDisabled': 'Функция грамматики сейчас отключена',
-    'savedToMyLearning': 'Сохранено в Library',
+    'savedToMyLearning': 'Сохранено в My Hub',
     'removedFromSavedGrammar': 'Удалено из сохраненной грамматики',
     'grammarExplanationTitle': 'Объяснение грамматики',
     'sentenceLabel': 'Предложение:',
@@ -355,6 +355,25 @@ class AppRu {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': 'Цель на сегодня',
+    'dailyGoalSettingsDesc': 'Выберите, сколько хотите заниматься каждый день.',
+    'dailyGoalEasy': '3 мин прослушивания + 3 слова · награда ❤️1',
+    'dailyGoalNormal': '5 мин прослушивания + 5 слов · награда ❤️2',
+    'dailyGoalHard': '10 мин прослушивания + 10 слов · награда ❤️5',
+    'dailyGoalEasyShort': 'Лёгкий',
+    'dailyGoalNormalShort': 'Средний',
+    'dailyGoalHardShort': 'Высокий',
+    'dailyGoalProgress': '{listen}/{listenTarget} мин · {vocab}/{vocabTarget} слов · награда ❤️{hearts}',
+    'dailyGoalCompleted': 'Цель выполнена! +{hearts} сердец награды',
+    'dailyGoalCompletedNoReward': 'Цель выполнена! (сердца заполнены)',
+    'dailyGoalRewardShort': 'награда ❤️{hearts}',
+    'onboardingGoalHint': 'Для начала установим ежедневную цель: {difficulty}.',
+    'myLearningToday': 'Сегодня',
+    'myLearningWeek': 'На этой неделе',
+    'myLearningSaved': 'Сохранённое',
+    'heartEarnHint': 'Выполните цель дня, чтобы получить 1–5 сердец (по уровню), или +1 за серию 7 дней.',
 
     // Player
     'playerAutoPlay': 'Далее',

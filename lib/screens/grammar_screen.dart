@@ -254,22 +254,6 @@ class _GrammarScreenState extends State<GrammarScreen>
   Widget _buildHeader() {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final now = DateTime.now();
-    final hour = now.hour;
-    
-    String greeting;
-    String emoji;
-    
-    if (hour < 12) {
-      greeting = _languageManager.getText('goodMorning');
-      emoji = '🌅';
-    } else if (hour < 17) {
-      greeting = _languageManager.getText('goodAfternoon');
-      emoji = '☀️';
-    } else {
-      greeting = _languageManager.getText('goodEvening');
-      emoji = '🌙';
-    }
 
     return Container(
       decoration: BoxDecoration(
@@ -293,25 +277,12 @@ class _GrammarScreenState extends State<GrammarScreen>
           
           // Title và subtitle
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _languageManager.getText('grammar'),
-                  style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _languageManager.getText('grammarDesc'),
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.8),
-                  ),
-                ),
-              ],
+            child: Text(
+              _languageManager.getText('grammar'),
+              style: theme.textTheme.headlineSmall!.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           // App icon đơn giản

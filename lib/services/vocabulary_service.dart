@@ -17,6 +17,10 @@ class VocabularyService extends ChangeNotifier {
     await _loadSavedVocabularies();
   }
 
+  Future<void> reloadFromStorage() async {
+    await _loadSavedVocabularies();
+  }
+
   /// Load saved vocabularies từ storage
   Future<void> _loadSavedVocabularies() async {
     try {

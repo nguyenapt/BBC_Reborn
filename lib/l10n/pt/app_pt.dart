@@ -143,7 +143,7 @@ class AppPt {
 
     // Saved Screen
     'saved': 'Salvo',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Seus episódios e vocabulário salvos',
     'myLearningDesc': 'Sua gramatica, episodios e vocabulario personalizados',
     'noSavedGrammar': 'Ainda nao ha gramatica salva',
@@ -153,7 +153,7 @@ class AppPt {
     'unsave': 'Desmarcar salvo',
     'episodeDataUnavailable': 'Os dados do episodio ainda nao estao disponiveis',
     'grammarFeatureDisabled': 'O recurso de gramatica esta desativado no momento',
-    'savedToMyLearning': 'Salvo em Library',
+    'savedToMyLearning': 'Salvo em My Hub',
     'removedFromSavedGrammar': 'Removido da gramatica salva',
     'grammarExplanationTitle': 'Explicacao de gramatica',
     'sentenceLabel': 'Frase:',
@@ -355,6 +355,25 @@ class AppPt {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': 'Meta de hoje',
+    'dailyGoalSettingsDesc': 'Escolha quanto quer praticar por dia.',
+    'dailyGoalEasy': '3 min de escuta + 3 palavras · recompensa ❤️1',
+    'dailyGoalNormal': '5 min de escuta + 5 palavras · recompensa ❤️2',
+    'dailyGoalHard': '10 min de escuta + 10 palavras · recompensa ❤️5',
+    'dailyGoalEasyShort': 'Leve',
+    'dailyGoalNormalShort': 'Média',
+    'dailyGoalHardShort': 'Alta',
+    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} palavras · recompensa ❤️{hearts}',
+    'dailyGoalCompleted': 'Meta concluída! +{hearts} coração(ões) de recompensa',
+    'dailyGoalCompletedNoReward': 'Meta concluída! (corações no máximo)',
+    'dailyGoalRewardShort': 'recompensa ❤️{hearts}',
+    'onboardingGoalHint': 'Definiremos uma meta diária {difficulty} para começar.',
+    'myLearningToday': 'Hoje',
+    'myLearningWeek': 'Esta semana',
+    'myLearningSaved': 'Salvo',
+    'heartEarnHint': 'Conclua sua meta diária para ganhar 1–5 corações (por nível), ou +1 por uma sequência de 7 dias.',
 
     // Player
     'playerAutoPlay': 'Próx.',

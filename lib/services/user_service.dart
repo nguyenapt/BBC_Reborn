@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'dart:math';
+
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserService {
@@ -12,6 +16,12 @@ class UserService {
   String get userId {
     _userId ??= _generateUserId();
     return _userId!;
+  }
+
+  /// Firebase Auth UID khi đã đăng nhập; null nếu chưa login.
+  String? get cloudUserId {
+    if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return null;
+    return fb.FirebaseAuth.instance.currentUser?.uid;
   }
 
   String _generateUserId() {

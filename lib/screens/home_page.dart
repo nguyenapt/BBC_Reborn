@@ -19,6 +19,7 @@ import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/home_learning_dashboard.dart';
 import '../widgets/streak_widget.dart';
+import '../widgets/daily_goal_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
 import '../utils/category_names.dart';
 import 'categories_screen.dart';
@@ -31,8 +32,14 @@ import '../widgets/floating_bottom_nav_bar.dart';
 class HomePage extends StatefulWidget {
   final Function(String)? onNavigateToCategory;
   final Function(String)? onNavigateToGrammar;
-  
-  const HomePage({super.key, this.onNavigateToCategory, this.onNavigateToGrammar});
+  final VoidCallback? onNavigateToMyHubDailyGoal;
+
+  const HomePage({
+    super.key,
+    this.onNavigateToCategory,
+    this.onNavigateToGrammar,
+    this.onNavigateToMyHubDailyGoal,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -930,6 +937,12 @@ class _HomePageState extends State<HomePage> {
           // PinnedHeaderSliver cho WelcomeHeader
           PinnedHeaderSliver(
             child: _buildPinnedHeader(),
+          ),
+
+          SliverToBoxAdapter(
+            child: DailyGoalWidget(
+              onTap: widget.onNavigateToMyHubDailyGoal,
+            ),
           ),
 
           SliverToBoxAdapter(

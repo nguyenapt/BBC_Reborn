@@ -148,7 +148,7 @@ class AppEn {
 
     // Saved Screen
     'saved': 'Saved',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Your saved episodes and vocabulary',
     'myLearningDesc': 'Your personalized grammar, episodes, and vocabulary',
     'noSavedGrammar': 'No saved grammar yet',
@@ -158,7 +158,7 @@ class AppEn {
     'unsave': 'Unsave',
     'episodeDataUnavailable': 'Episode data is not available yet',
     'grammarFeatureDisabled': 'Grammar feature is currently disabled',
-    'savedToMyLearning': 'Saved to Library',
+    'savedToMyLearning': 'Saved to My Hub',
     'removedFromSavedGrammar': 'Removed from saved grammar',
     'grammarExplanationTitle': 'Grammar Explanation',
     'sentenceLabel': 'Sentence:',
@@ -388,5 +388,72 @@ class AppEn {
     'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
+
+    // Phase 2 — onboarding profile
+    'onboardingProfileTitle': 'Personalize your learning',
+    'onboardingProfileSubtitle': 'Tell us your level and goals so we can tailor your experience.',
+    'onboardingLevelLabel': 'Your English level',
+    'onboardingFocusLabel': 'What do you want to focus on?',
+    'onboardingProfileContinue': 'Continue',
+    'onboardingGoalHint': 'We\'ll set a {difficulty} daily goal to start.',
+    'levelBeginner': 'Beginner',
+    'levelIntermediate': 'Intermediate',
+    'levelAdvanced': 'Advanced',
+    'focusListening': 'Listening',
+    'focusVocabulary': 'Vocabulary',
+    'focusSpeaking': 'Speaking',
+
+    // Daily goals
+    'dailyGoalTitle': 'Daily goal',
+    'dailyGoalSettingsDesc': 'Choose how much you want to practice each day.',
+    'dailyGoalEasy': '3 min listen + 3 words · ❤️1 reward',
+    'dailyGoalNormal': '5 min listen + 5 words · ❤️2 reward',
+    'dailyGoalHard': '10 min listen + 10 words · ❤️5 reward',
+    'dailyGoalEasyShort': 'Easy',
+    'dailyGoalNormalShort': 'Normal',
+    'dailyGoalHardShort': 'Hard',
+    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} words · ❤️{hearts} reward',
+    'dailyGoalCompleted': 'Daily goal complete! +{hearts} heart(s) earned',
+    'dailyGoalCompletedNoReward': 'Daily goal complete! (already at max hearts)',
+    'dailyGoalRewardShort': '❤️{hearts} reward',
+
+    // My Learning tabs
+    'myLearningToday': 'Today',
+    'myLearningWeek': 'This week',
+    'myLearningSaved': 'Saved',
+
+    // Week stats
+    'weekListeningTitle': 'Listening',
+    'weekListeningValue': '{minutes} minutes this week',
+    'weekVocabTitle': 'Vocabulary reviews',
+    'weekVocabValue': '{count} words reviewed',
+    'weekGrammarTitle': 'Grammar reviews',
+    'weekGrammarValue': '{count} grammar items reviewed',
+    'weekSpeakingTitle': 'Speaking',
+    'weekSpeakingValue': '{avg}% avg · {count} attempts',
+    'weekSpeakingEmpty': 'No speaking practice this week',
+
+    // Speaking SRS
+    'speakingReviewTitle': 'Speaking review',
+    'speakingDueCount': '{count} lines due',
+
+    // Achievements
+    'achievementsTitle': 'Achievements',
+    'achievementStreak7Title': '7-day streak',
+    'achievementStreak7Desc': 'Study 7 days in a row',
+    'achievementVocab50Title': '50 words mastered',
+    'achievementVocab50Desc': 'Review 50 words to mastery',
+    'achievementEpisodes10Title': '10 episodes completed',
+    'achievementEpisodes10Desc': 'Finish all steps in 10 episodes',
+    'achievementSpeaking80Title': 'Speaking star',
+    'achievementSpeaking80Desc': 'Average 80+ on 5+ speaking attempts',
+
+    // Notification toggles
+    'notifGrammarReview': 'Grammar review reminders',
+    'notifStreakRisk': 'Streak at risk (9 PM)',
+    'notifDailyPractice': 'Daily practice reminder (9 AM)',
+    'notifWordOfDay': 'Word of the day (8 AM)',
+    'notifSpeakingReview': 'Speaking review reminders',
+    'heartEarnHint': 'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
   };
 }

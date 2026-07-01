@@ -143,7 +143,7 @@ class AppEs {
 
     // Saved Screen
     'saved': 'Guardado',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'Tus episodios y vocabulario guardados',
     'myLearningDesc': 'Tu gramatica, episodios y vocabulario personalizados',
     'noSavedGrammar': 'No hay gramatica guardada todavia',
@@ -153,7 +153,7 @@ class AppEs {
     'unsave': 'Quitar guardado',
     'episodeDataUnavailable': 'Los datos del episodio aun no estan disponibles',
     'grammarFeatureDisabled': 'La funcion de gramatica esta desactivada',
-    'savedToMyLearning': 'Guardado en Library',
+    'savedToMyLearning': 'Guardado en My Hub',
     'removedFromSavedGrammar': 'Eliminado de gramatica guardada',
     'grammarExplanationTitle': 'Explicacion gramatical',
     'sentenceLabel': 'Oracion:',
@@ -355,6 +355,25 @@ class AppEs {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': 'Meta de hoy',
+    'dailyGoalSettingsDesc': 'Elige cuánto quieres practicar cada día.',
+    'dailyGoalEasy': '3 min escucha + 3 palabras · recompensa ❤️1',
+    'dailyGoalNormal': '5 min escucha + 5 palabras · recompensa ❤️2',
+    'dailyGoalHard': '10 min escucha + 10 palabras · recompensa ❤️5',
+    'dailyGoalEasyShort': 'Ligera',
+    'dailyGoalNormalShort': 'Media',
+    'dailyGoalHardShort': 'Alta',
+    'dailyGoalProgress': '{listen}/{listenTarget} min · {vocab}/{vocabTarget} palabras · recompensa ❤️{hearts}',
+    'dailyGoalCompleted': '¡Meta cumplida! +{hearts} corazón(es) de recompensa',
+    'dailyGoalCompletedNoReward': '¡Meta cumplida! (corazones al máximo)',
+    'dailyGoalRewardShort': 'recompensa ❤️{hearts}',
+    'onboardingGoalHint': 'Configuraremos una meta diaria {difficulty} para empezar.',
+    'myLearningToday': 'Hoy',
+    'myLearningWeek': 'Esta semana',
+    'myLearningSaved': 'Guardado',
+    'heartEarnHint': 'Completa tu meta diaria para ganar 1–5 corazones (según nivel), o +1 por una racha de 7 días.',
 
     // Player
     'playerAutoPlay': 'Sig.',

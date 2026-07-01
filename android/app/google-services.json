@@ -51,6 +51,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "128498222438-57i9kqmkaebq3afl4g0tla4socg4cqdc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.learning.eslenglish",
+            "certificate_hash": "80d1043e5298526cb23d1edb31a1627d83d83b07"
+          }
+        },
+        {
+          "client_id": "128498222438-e6jb3123iumngeqf6hdejjbffn9tvv5g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.learning.eslenglish",
+            "certificate_hash": "96a8ce0a78d13f49163bc6a41f3c7e415329a18c"
+          }
+        },
+        {
+          "client_id": "128498222438-q6msjrg8tu9lek4vkptegqk7ar8pqmgf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.learning.eslenglish",
+            "certificate_hash": "b70b0e627d61fc53046cfeb37cff150e6640df19"
+          }
+        },
+        {
           "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -87,6 +111,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "128498222438-8ic1nln2d684ca3lsansr1svqkbnqr31.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.learning.esllearning",
+            "certificate_hash": "96a8ce0a78d13f49163bc6a41f3c7e415329a18c"
+          }
+        },
+        {
           "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -122,6 +154,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "128498222438-49evs7frpa98f96b0glkl82oi52q2bdb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.learningenglish.studyingbbc.bbc_reborn",
+            "certificate_hash": "53a61b5af376e4d481aa6e893835470672e68e75"
+          }
+        },
         {
           "client_id": "128498222438-ajigulkv0l926j8fqh7gcb7g4psqog6o.apps.googleusercontent.com",
           "client_type": 1,
@@ -174,6 +214,30 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "128498222438-4ng09cssflgc5epe8h9ecogqcignnd0e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.leo.learningenglish",
+            "certificate_hash": "80d1043e5298526cb23d1edb31a1627d83d83b07"
+          }
+        },
+        {
+          "client_id": "128498222438-8ibgqlj2jjl3h6kovmjgs5nh0pls8m6p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.leo.learningenglish",
+            "certificate_hash": "e4c09b56c6605e7d73063bf11017c4d90827de9c"
+          }
+        },
+        {
+          "client_id": "128498222438-l2uc6tmm06ro5jjcff5hs6q9olfk4hgk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.leo.learningenglish",
+            "certificate_hash": "f67d05855f5fc3abfea71847b8ed21a25045fe3e"
+          }
+        },
         {
           "client_id": "128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com",
           "client_type": 3

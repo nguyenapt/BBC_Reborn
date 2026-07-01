@@ -12,14 +12,25 @@ class MediaNotificationLaunchHandler {
 
   static bool _isNavigating = false;
 
+  static const Duration _navigatorPollInterval = Duration(milliseconds: 100);
+  static const int _navigatorMaxAttempts = 30;
+
   static Future<void> openEpisodeFromNotification({
     required String episodeId,
     String? category,
+    String? year,
+    String? episodeKey,
   }) async {
     if (_isNavigating) return;
     _isNavigating = true;
 
     try {
+      final navigatorReady = await _waitForNavigator();
+      if (!navigatorReady) {
+        debugPrint('MediaNotificationLaunchHandler: navigator not ready');
+        return;
+      }
+
       final audioService = AudioPlayerService();
       Episode? episode = audioService.currentEpisode;
       List<Episode> categoryEpisodes = audioService.currentCategoryEpisodes;
@@ -28,18 +39,24 @@ class MediaNotificationLaunchHandler {
         episode = await LocalDatabaseService().getEpisodeById(episodeId);
       }
 
+      episode ??= await FirebaseService.fetchEpisodeFromPushNotification(
+        episodeId: episodeId,
+        category: category,
+        year: year,
+        episodeKey: episodeKey,
+      );
+
       if (episode == null) {
-        debugPrint('MediaNotificationLaunchHandler: episode not found ($episodeId)');
+        debugPrint(
+          'MediaNotificationLaunchHandler: episode not found ($episodeId, '
+          'category=$category, year=$year, key=$episodeKey)',
+        );
         return;
       }
 
       if (categoryEpisodes.isEmpty ||
           !categoryEpisodes.any((e) => e.id == episode!.id)) {
-        final resolvedCategory = category ?? episode.category;
-        if (resolvedCategory.isNotEmpty) {
-          categoryEpisodes =
-              await FirebaseService().getEpisodesByCategory(resolvedCategory);
-        }
+        categoryEpisodes = await _loadCategoryEpisodes(episode, category);
       }
 
       if (categoryEpisodes.isEmpty) {
@@ -70,6 +87,48 @@ class MediaNotificationLaunchHandler {
       debugPrint('MediaNotificationLaunchHandler failed: $e\n$st');
     } finally {
       _isNavigating = false;
+    }
+  }
+
+  static Future<bool> _waitForNavigator() async {
+    for (var attempt = 0; attempt < _navigatorMaxAttempts; attempt++) {
+      if (NavigationService.navigatorKey.currentState != null) {
+        return true;
+      }
+      await Future<void>.delayed(_navigatorPollInterval);
+    }
+    return NavigationService.navigatorKey.currentState != null;
+  }
+
+  static Future<List<Episode>> _loadCategoryEpisodes(
+    Episode episode,
+    String? category,
+  ) async {
+    final resolvedCategory = category ?? episode.category;
+    if (resolvedCategory.isEmpty) return [episode];
+
+    final yearParsed = int.tryParse(episode.year ?? '');
+    if (yearParsed != null && yearParsed > 1800) {
+      try {
+        return await FirebaseService.getCategoryDataLegacyFull(
+          resolvedCategory,
+          yearParsed,
+        );
+      } catch (_) {}
+
+      try {
+        return await FirebaseService.getCategoryData(
+          resolvedCategory,
+          yearParsed,
+        );
+      } catch (_) {}
+    }
+
+    try {
+      return await FirebaseService().getEpisodesByCategory(resolvedCategory);
+    } catch (e) {
+      debugPrint('MediaNotificationLaunchHandler: category load failed: $e');
+      return [episode];
     }
   }
 }

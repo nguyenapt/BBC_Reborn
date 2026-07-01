@@ -143,7 +143,7 @@ class AppAr {
 
     // Saved Screen
     'saved': 'المحفوظات',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': 'الحلقات والمفردات المحفوظة لديك',
     'myLearningDesc': 'القواعد والحلقات والمفردات المحفوظة بشكل شخصي',
     'noSavedGrammar': 'لا توجد قواعد محفوظة بعد',
@@ -153,7 +153,7 @@ class AppAr {
     'unsave': 'إلغاء الحفظ',
     'episodeDataUnavailable': 'بيانات الحلقة غير متاحة حاليا',
     'grammarFeatureDisabled': 'ميزة القواعد معطلة حاليا',
-    'savedToMyLearning': 'تم الحفظ في Library',
+    'savedToMyLearning': 'تم الحفظ في My Hub',
     'removedFromSavedGrammar': 'تمت الإزالة من القواعد المحفوظة',
     'grammarExplanationTitle': 'شرح القواعد',
     'sentenceLabel': 'الجملة:',
@@ -353,6 +353,25 @@ class AppAr {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': 'الهدف اليومي',
+    'dailyGoalSettingsDesc': 'اختر مقدار التدريب يومياً.',
+    'dailyGoalEasy': '3 دقائق استماع + 3 كلمات · مكافأة ❤️1',
+    'dailyGoalNormal': '5 دقائق استماع + 5 كلمات · مكافأة ❤️2',
+    'dailyGoalHard': '10 دقائق استماع + 10 كلمات · مكافأة ❤️5',
+    'dailyGoalEasyShort': 'خفيف',
+    'dailyGoalNormalShort': 'متوسط',
+    'dailyGoalHardShort': 'مكثف',
+    'dailyGoalProgress': '{listen}/{listenTarget} د · {vocab}/{vocabTarget} كلمات · مكافأة ❤️{hearts}',
+    'dailyGoalCompleted': 'اكتمل الهدف! +{hearts} قلب مكافأة',
+    'dailyGoalCompletedNoReward': 'اكتمل الهدف! (القلوب ممتلئة)',
+    'dailyGoalRewardShort': 'مكافأة ❤️{hearts}',
+    'onboardingGoalHint': 'سنضبط هدفاً يومياً {difficulty} للبدء.',
+    'myLearningToday': 'اليوم',
+    'myLearningWeek': 'هذا الأسبوع',
+    'myLearningSaved': 'المحفوظات',
+    'heartEarnHint': 'أكمل هدفك اليومي لتحصل على 1–5 قلوب (حسب المستوى)، أو +1 عند سلسلة 7 أيام.',
 
     // Player
     'playerAutoPlay': 'Next',

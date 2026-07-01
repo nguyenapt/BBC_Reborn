@@ -49,6 +49,11 @@ class SavedGrammarService extends ChangeNotifier {
     await _load();
   }
 
+  Future<void> reloadFromStorage() async {
+    await _load();
+    notifyListeners();
+  }
+
   SavedGrammarItem? getBySentence(String sentence, String episodeId) {
     final lookupId = _buildId(sentence, episodeId);
     try {

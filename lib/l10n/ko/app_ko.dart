@@ -143,7 +143,7 @@ class AppKo {
 
     // Saved Screen
     'saved': '저장됨',
-    'myLearning': 'Library',
+    'myLearning': 'My Hub',
     'savedDesc': '저장된 에피소드와 어휘',
     'myLearningDesc': '개인화된 문법, 에피소드, 어휘',
     'noSavedGrammar': '저장된 문법이 아직 없습니다',
@@ -153,7 +153,7 @@ class AppKo {
     'unsave': '저장 해제',
     'episodeDataUnavailable': '에피소드 데이터를 아직 사용할 수 없습니다',
     'grammarFeatureDisabled': '문법 기능이 현재 비활성화되었습니다',
-    'savedToMyLearning': 'Library에 저장됨',
+    'savedToMyLearning': 'My Hub에 저장됨',
     'removedFromSavedGrammar': '저장된 문법에서 제거됨',
     'grammarExplanationTitle': '문법 설명',
     'sentenceLabel': '문장:',
@@ -352,6 +352,25 @@ class AppKo {
         'This version is no longer supported. Please update to continue.',
     'appUpdateButtonUpdate': 'Update',
     'appUpdateButtonLater': 'Later',
+
+    // Daily goals
+    'dailyGoalTitle': '오늘의 목표',
+    'dailyGoalSettingsDesc': '매일 연습할 분량을 선택하세요.',
+    'dailyGoalEasy': '3분 듣기 + 3단어 · 보상 ❤️1',
+    'dailyGoalNormal': '5분 듣기 + 5단어 · 보상 ❤️2',
+    'dailyGoalHard': '10분 듣기 + 10단어 · 보상 ❤️5',
+    'dailyGoalEasyShort': '가볍게',
+    'dailyGoalNormalShort': '보통',
+    'dailyGoalHardShort': '높음',
+    'dailyGoalProgress': '{listen}/{listenTarget}분 · {vocab}/{vocabTarget}단어 · 보상 ❤️{hearts}',
+    'dailyGoalCompleted': '목표 달성! +{hearts} 하트 보상',
+    'dailyGoalCompletedNoReward': '목표 달성! (하트가 가득 찼습니다)',
+    'dailyGoalRewardShort': '보상 ❤️{hearts}',
+    'onboardingGoalHint': '시작을 위해 {difficulty} 일일 목표를 설정합니다.',
+    'myLearningToday': '오늘',
+    'myLearningWeek': '이번 주',
+    'myLearningSaved': '저장됨',
+    'heartEarnHint': '오늘의 목표를 완료하면 1–5개의 하트(난이도별)를 받거나, 7일 연속 시 +1개를 받습니다.',
 
     // Player
     'playerAutoPlay': '다음',

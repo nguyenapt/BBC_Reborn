@@ -10,6 +10,7 @@ import '../widgets/auth_dialog.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 import '../services/push_notification_service.dart';
 import '../services/consent_service.dart';
+import '../services/review_reminder_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,12 +29,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersionLabel = '—';
 
   bool _pushNotificationsEnabled = true;
+  bool _grammarReviewNotif = true;
+  bool _streakRiskNotif = true;
+  bool _dailyPracticeNotif = true;
+  bool _wordOfDayNotif = true;
+  bool _speakingReviewNotif = true;
 
   @override
   void initState() {
     super.initState();
     _loadCacheSize();
     _loadPushPreference();
+    _loadNotificationPreferences();
     _loadAppVersion();
   }
 
@@ -60,6 +67,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _pushNotificationsEnabled = enabled;
       });
     }
+  }
+
+  Future<void> _loadNotificationPreferences() async {
+    final reminder = ReviewReminderService();
+    final grammar = await reminder.getPreference(ReviewReminderService.prefGrammarReview);
+    final streak = await reminder.getPreference(ReviewReminderService.prefStreakRisk);
+    final daily = await reminder.getPreference(ReviewReminderService.prefDailyPractice);
+    final word = await reminder.getPreference(ReviewReminderService.prefWordOfDay);
+    final speaking = await reminder.getPreference(ReviewReminderService.prefSpeakingReview);
+    if (mounted) {
+      setState(() {
+        _grammarReviewNotif = grammar;
+        _streakRiskNotif = streak;
+        _dailyPracticeNotif = daily;
+        _wordOfDayNotif = word;
+        _speakingReviewNotif = speaking;
+      });
+    }
+  }
+
+  Future<void> _setReminderPref(String key, bool value) async {
+    await ReviewReminderService().setPreference(key, value);
   }
 
   Future<void> _loadCacheSize() async {
@@ -97,22 +126,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildHeader() {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final now = DateTime.now();
-    final hour = now.hour;
-    
-    String greeting;
-    String emoji;
-    
-    if (hour < 12) {
-      greeting = _languageManager.getText('goodMorning');
-      emoji = '🌅';
-    } else if (hour < 17) {
-      greeting = _languageManager.getText('goodAfternoon');
-      emoji = '☀️';
-    } else {
-      greeting = _languageManager.getText('goodEvening');
-      emoji = '🌙';
-    }
 
     return Container(
       decoration: BoxDecoration(
@@ -135,25 +148,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [          
           // Title và subtitle
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _languageManager.getText('settings'),
-                  style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _languageManager.getText('settingsDesc'),
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.8),
-                  ),
-                ),
-              ],
+            child: Text(
+              _languageManager.getText('settings'),
+              style: theme.textTheme.headlineSmall!.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           // App icon đơn giản
@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _buildRateAppSection(),
         const SizedBox(height: 16),
 
-        // Notification Section (Placeholder)
+        // Notification Section
         _buildNotificationSection(),
         const SizedBox(height: 16),
 
@@ -604,15 +604,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Icon(Icons.notifications, color: Colors.orange),
                 const SizedBox(width: 12),
-                Text(
-                  _languageManager.getText('pushNotifications'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    _languageManager.getText('pushNotifications'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
-                ),
+            ),
             const SizedBox(height: 16),
             Text(
               _languageManager.getText('notificationDescription'),
@@ -622,38 +626,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _languageManager.getText('enablePushNotifications'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Switch(
-                  value: _pushNotificationsEnabled,
-                  onChanged: (bool value) async {
-                    setState(() {
-                      _pushNotificationsEnabled = value;
-                    });
-                    await PushNotificationService.instance.setEpisodePushEnabled(value);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          value
-                              ? _languageManager.getText('notificationsEnabled')
-                              : _languageManager.getText('notificationsDisabled'),
-                        ),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  activeColor: Colors.orange,
-                ),
-              ],
+            _buildNotificationToggle(
+              label: _languageManager.getText('enablePushNotifications'),
+              value: _pushNotificationsEnabled,
+              onChanged: (value) async {
+                setState(() => _pushNotificationsEnabled = value);
+                await PushNotificationService.instance.setEpisodePushEnabled(value);
+              },
+            ),
+            _buildNotificationToggle(
+              label: _languageManager.getText('notifGrammarReview'),
+              value: _grammarReviewNotif,
+              onChanged: (value) async {
+                setState(() => _grammarReviewNotif = value);
+                await _setReminderPref(ReviewReminderService.prefGrammarReview, value);
+              },
+            ),
+            _buildNotificationToggle(
+              label: _languageManager.getText('notifStreakRisk'),
+              value: _streakRiskNotif,
+              onChanged: (value) async {
+                setState(() => _streakRiskNotif = value);
+                await _setReminderPref(ReviewReminderService.prefStreakRisk, value);
+              },
+            ),
+            _buildNotificationToggle(
+              label: _languageManager.getText('notifDailyPractice'),
+              value: _dailyPracticeNotif,
+              onChanged: (value) async {
+                setState(() => _dailyPracticeNotif = value);
+                await _setReminderPref(ReviewReminderService.prefDailyPractice, value);
+              },
+            ),
+            _buildNotificationToggle(
+              label: _languageManager.getText('notifWordOfDay'),
+              value: _wordOfDayNotif,
+              onChanged: (value) async {
+                setState(() => _wordOfDayNotif = value);
+                await _setReminderPref(ReviewReminderService.prefWordOfDay, value);
+              },
+            ),
+            _buildNotificationToggle(
+              label: _languageManager.getText('notifSpeakingReview'),
+              value: _speakingReviewNotif,
+              onChanged: (value) async {
+                setState(() => _speakingReviewNotif = value);
+                await _setReminderPref(ReviewReminderService.prefSpeakingReview, value);
+              },
             ),
             const SizedBox(height: 8),
             Text(
@@ -670,6 +689,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildNotificationToggle({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      ),
+      value: value,
+      onChanged: onChanged,
+      activeColor: Colors.orange,
+    );
+  }
+
   Widget _buildPrivacyOptionsSection() {
     return Card(
       child: Padding(
@@ -681,11 +720,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Icon(Icons.privacy_tip_outlined, color: Colors.teal),
                 const SizedBox(width: 12),
-                Text(
-                  _languageManager.getText('adPrivacyOptionsTitle'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    _languageManager.getText('adPrivacyOptionsTitle'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
