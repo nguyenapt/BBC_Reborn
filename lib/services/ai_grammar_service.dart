@@ -39,6 +39,10 @@ class AIGrammarService {
         return 'Arabic';
       case 'ru':
         return 'Russian';
+      case 'fr':
+        return 'French';
+      case 'de':
+        return 'German';
       default:
         return 'English';
     }

@@ -105,7 +105,7 @@ namespace playMP3
                 Topic = FcmTopicNewEpisodes,
                 Notification = new Notification
                 {
-                    Title = "BBC Learning English — new episode",
+                    Title = "Learning English — new episode",
                     Body = string.Format("{0} ({1} · {2})", episodeName, category, year),
                 },
                 Data = new Dictionary<string, string>
