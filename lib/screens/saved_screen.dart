@@ -5,41 +5,47 @@ import '../models/favourite_episode.dart';
 import '../models/saved_grammar_item.dart';
 import '../models/vocabulary_item.dart';
 import '../services/api_daily_cache_service.dart';
-import '../services/auth_service.dart';
-import '../services/firebase_storage_service.dart';
 import '../services/language_manager.dart';
 import '../services/learning_analytics_service.dart';
 import '../services/learning_progress_service.dart';
 import '../models/episode_learning_progress.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/storage_service.dart';
-import '../services/user_service.dart';
 import '../services/vocabulary_service.dart';
 import '../services/vocabulary_practice_service.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../services/review_reminder_service.dart';
+import '../services/speaking_review_service.dart';
+import '../services/achievement_service.dart';
+import '../services/daily_goal_service.dart';
+import '../widgets/achievements_section.dart';
+import '../widgets/daily_goal_settings_tile.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/grammar_explanation_widget.dart';
+import '../widgets/segment_tab_slider.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'vocabulary_practice_screen.dart';
 import '../theme/vocabulary_theme.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 
 class MyLearningScreen extends StatefulWidget {
-  const MyLearningScreen({super.key});
+  final bool scrollToDailyGoal;
+
+  const MyLearningScreen({super.key, this.scrollToDailyGoal = false});
 
   @override
   State<MyLearningScreen> createState() => _MyLearningScreenState();
 }
 
 class _MyLearningScreenState extends State<MyLearningScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
+  late PageController _savedSubPageController;
+  final ScrollController _todayTabScrollController = ScrollController();
+  final GlobalKey _dailyGoalSectionKey = GlobalKey();
+  int _savedSubPageIndex = 0;
   final StorageService _storageService = StorageService();
-  final FirebaseStorageService _firebaseStorageService = FirebaseStorageService();
-  final UserService _userService = UserService();
   final LanguageManager _languageManager = LanguageManager();
-  final AuthService _authService = AuthService();
   final VocabularyService _vocabularyService = VocabularyService();
   final VocabularyPracticeService _vocabularyPracticeService = VocabularyPracticeService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
@@ -47,6 +53,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
   final LearningProgressService _learningProgress = LearningProgressService();
   final ApiDailyCacheService _apiDailyCacheService = ApiDailyCacheService();
+  final SpeakingReviewService _speakingReviewService = SpeakingReviewService();
 
   late final VoidCallback _vocabularyListener;
   late final VoidCallback _savedGrammarListener;
@@ -68,6 +75,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _savedSubPageController = PageController();
     _vocabularyListener = () {
       if (mounted) {
         _loadSavedVocabularies();
@@ -85,12 +93,48 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     _savedGrammarService.addListener(_savedGrammarListener);
     _learningProgress.addListener(_learningProgressListener);
     unawaited(_learningProgress.initialize());
+    unawaited(_speakingReviewService.initialize());
+    unawaited(AchievementService().initialize());
+    unawaited(DailyGoalService().initialize());
     _loadData();
+    if (widget.scrollToDailyGoal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToDailyGoalSection();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(MyLearningScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.scrollToDailyGoal && !oldWidget.scrollToDailyGoal) {
+      _scrollToDailyGoalSection();
+    }
+  }
+
+  void _scrollToDailyGoalSection() {
+    if (_tabController.index != 0) {
+      _tabController.animateTo(0);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final context = _dailyGoalSectionKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+          alignment: 0.35,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _savedSubPageController.dispose();
+    _todayTabScrollController.dispose();
     _vocabularyService.removeListener(_vocabularyListener);
     _savedGrammarService.removeListener(_savedGrammarListener);
     _learningProgress.removeListener(_learningProgressListener);
@@ -112,20 +156,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     });
 
     try {
-      final localEpisodes = await _storageService.getFavouriteEpisodes();
-      if (localEpisodes.isNotEmpty) {
-        _favouriteEpisodes = localEpisodes;
-      } else if (_authService.isLoggedIn) {
-        try {
-          final firebaseEpisodes =
-              await _firebaseStorageService.getFavouriteEpisodes(_userService.userId);
-          _favouriteEpisodes = firebaseEpisodes
-              .map((episode) => FavouriteEpisode.fromEpisode(episode))
-              .toList();
-        } catch (firebaseError) {
-          debugPrint('Firebase load failed: $firebaseError');
-        }
-      }
+      _favouriteEpisodes = await _storageService.getFavouriteEpisodes();
     } catch (e) {
       _favouritesError = e.toString();
     } finally {
@@ -331,6 +362,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     await _savedGrammarService.markReviewed(item.id);
     await _analyticsService.trackEvent('review_done');
     await LearningProgressService().recordActivity(LearningActivityType.grammarReview);
+    await AchievementService().evaluateAll();
     await _loadSavedGrammar();
   }
 
@@ -352,9 +384,9 @@ class _MyLearningScreenState extends State<MyLearningScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildSavedGrammarTab(),
-                    _buildFavouriteEpisodesTab(),
-                    _buildVocabulariesTab(),
+                    _buildTodayTab(),
+                    _buildWeekTab(),
+                    _buildSavedLibraryTab(),
                   ],
                 ),
               ),
@@ -389,25 +421,12 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         children: [          
           // Title và subtitle
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _languageManager.getText('myLearning'),
-                  style: theme.textTheme.headlineSmall!.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _languageManager.getText('myLearningDesc'),
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.8),
-                  ),
-                ),
-              ],
+            child: Text(
+              _languageManager.getText('myLearning'),
+              style: theme.textTheme.headlineSmall!.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           // App icon đơn giản
@@ -465,11 +484,206 @@ class _MyLearningScreenState extends State<MyLearningScreen>
         ),
         dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
         tabs: [
-          Tab(text: _languageManager.getText('grammar')),
-          Tab(text: _languageManager.getText('episodes')),
-          Tab(text: _languageManager.getText('vocabularies')),
+          Tab(text: _languageManager.getText('myLearningToday')),
+          Tab(text: _languageManager.getText('myLearningWeek')),
+          Tab(text: _languageManager.getText('myLearningSaved')),
         ],
       ),
+    );
+  }
+
+  Widget _buildTodayTab() {
+    final dueGrammar = _savedGrammarService.dueReviewItems.length;
+    final dueVocab = _vocabularyPracticeService.buildPracticeDeck(_savedVocabularies).length;
+    final dueSpeaking = _speakingReviewService.dueReviewItems.length;
+    final continueProgress = _learningProgress.getMostRecentContinue();
+
+    return ListView(
+      controller: _todayTabScrollController,
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        if (continueProgress != null)
+          FutureBuilder<Episode?>(
+            future: _learningProgress.resolveEpisodeForProgress(continueProgress),
+            builder: (context, snapshot) {
+              final episode = snapshot.data;
+              if (episode == null) return const SizedBox.shrink();
+              return ListTile(
+                leading: const Icon(Icons.play_circle_fill),
+                title: Text(_languageManager.getText('continueLearning')),
+                subtitle: Text(episode.episodeName),
+                onTap: () => _navigateToEpisode(episode),
+              );
+            },
+          ),
+        _buildTodayActionTile(
+          icon: Icons.menu_book,
+          title: _languageManager.getText('reviewToday'),
+          subtitle: _languageManager.getTextWithParams('dueVocabCount', {'count': dueVocab}),
+          enabled: dueVocab > 0,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VocabularyPracticeScreen(
+                  allWords: _savedVocabularies,
+                ),
+              ),
+            );
+          },
+        ),
+        _buildTodayActionTile(
+          icon: Icons.spellcheck,
+          title: _languageManager.getText('grammar'),
+          subtitle: _languageManager.getTextWithParams('dueGrammarCount', {'count': dueGrammar}),
+          enabled: dueGrammar > 0,
+          onTap: () => _tabController.animateTo(2),
+        ),
+        if (dueSpeaking > 0)
+          _buildTodayActionTile(
+            icon: Icons.mic,
+            title: _languageManager.getText('speakingReviewTitle'),
+            subtitle: _languageManager.getTextWithParams('speakingDueCount', {'count': dueSpeaking}),
+            enabled: true,
+            onTap: () => _tabController.animateTo(2),
+          ),
+        const AchievementsSection(),
+        KeyedSubtree(
+          key: _dailyGoalSectionKey,
+          child: const DailyGoalSettingsTile(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTodayActionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: Icon(icon, color: enabled ? Theme.of(context).colorScheme.primary : null),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: enabled ? onTap : null,
+      ),
+    );
+  }
+
+  Widget _buildWeekTab() {
+    final week = _learningProgress.weekSummary();
+    final listenMinutes = (week.listeningMs / 60000).round();
+    final speakingAvg = week.speakingAverage.round();
+
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        _buildWeekStatCard(
+          _languageManager.getText('weekListeningTitle'),
+          _languageManager.getTextWithParams('weekListeningValue', {'minutes': listenMinutes}),
+          Icons.headphones,
+        ),
+        _buildWeekStatCard(
+          _languageManager.getText('weekVocabTitle'),
+          _languageManager.getTextWithParams('weekVocabValue', {'count': week.vocabReviews}),
+          Icons.bookmark,
+        ),
+        _buildWeekStatCard(
+          _languageManager.getText('weekGrammarTitle'),
+          _languageManager.getTextWithParams('weekGrammarValue', {'count': week.grammarReviews}),
+          Icons.spellcheck,
+        ),
+        _buildWeekStatCard(
+          _languageManager.getText('weekSpeakingTitle'),
+          week.speakingAttempts > 0
+              ? _languageManager.getTextWithParams('weekSpeakingValue', {
+                  'avg': speakingAvg,
+                  'count': week.speakingAttempts,
+                })
+              : _languageManager.getText('weekSpeakingEmpty'),
+          Icons.mic,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeekStatCard(String title, String value, IconData icon) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(value),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSavedLibraryTab() {
+    final accent = Theme.of(context).colorScheme.primary;
+    final subTabs = [
+      SegmentTabItem(
+        icon: Icons.menu_book_rounded,
+        label: _languageManager.getText('grammar'),
+      ),
+      SegmentTabItem(
+        icon: Icons.headphones_rounded,
+        label: _languageManager.getText('episodes'),
+      ),
+      SegmentTabItem(
+        icon: Icons.translate_rounded,
+        label: _languageManager.getText('vocabularies'),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SegmentTabSlider(
+          tabs: subTabs,
+          selectedIndex: _savedSubPageIndex,
+          accentColor: accent,
+          onSelected: (index) {
+            setState(() => _savedSubPageIndex = index);
+            _savedSubPageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+            );
+          },
+        ),
+        Expanded(
+          child: PageView(
+            controller: _savedSubPageController,
+            onPageChanged: (index) {
+              setState(() => _savedSubPageIndex = index);
+            },
+            children: [
+              _buildSavedGrammarTab(),
+              _buildFavouriteEpisodesTab(),
+              _buildVocabulariesTab(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

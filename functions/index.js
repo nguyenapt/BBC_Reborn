@@ -31,7 +31,7 @@ const IGNORED_ROOT_CATEGORIES = new Set([
 const EPISODE_CATEGORIES_WITH_YEAR = new Set(["6M", "TEWS", "REE", "EG"]);
 
 /** VOA primary tabs: {cat}/{index} (AMS/5). */
-const EPISODE_CATEGORIES_FLAT = new Set(["AMS", "ON", "NC", "SC"]);
+const EPISODE_CATEGORIES_FLAT = new Set(["AMS", "LLE", "ON", "NC", "SC"]);
 
 /**
  * Ghi log lỗi an toàn — tránh truyền Error thẳng vào logger (có thể gây TypeError trong firebase-functions/logger).

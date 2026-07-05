@@ -660,6 +660,7 @@ class LocalDatabaseService {
       transcriptHtml: map['transcriptHtml']?.toString(),
       vocabulary: map['vocabulary']?.toString(),
       vocabularies: map['vocabularies'] as List<dynamic>?,
+      level: map['level']?.toString(),
     );
   }
 

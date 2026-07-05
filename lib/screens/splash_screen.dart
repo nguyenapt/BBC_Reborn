@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/admob_service.dart';
+import '../services/app_bootstrap_service.dart';
 import '../services/language_manager.dart';
 import 'onboarding_screen.dart';
 import 'ads_support_notice_screen.dart';
@@ -57,34 +56,11 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _initializeApp() async {
     try {
       debugPrint('🎬 Splash screen starting...');
-      
-      // Bỏ qua splash screen nếu chạy trên web
-      if (kIsWeb) {
-        debugPrint('🌐 Web platform detected, skipping splash');
-        await _navigateToAppropriateScreen();
-        return;
-      }
-      
-      // Khởi tạo AdMob (chỉ trên mobile) với error handling
-      try {
-        debugPrint('📱 Initializing AdMob in splash...');
-        await AdMobService.initialize();
-        debugPrint('✅ AdMob initialized in splash');
-        AdMobService().createInterstitialAd();
-      } catch (e) {
-        debugPrint('❌ Error initializing AdMob: $e');
-        // Tiếp tục chạy app ngay cả khi AdMob lỗi
-      }
-      
-      // Delay để hiển thị splash screen ít nhất 2 giây (chỉ trên mobile)
-      debugPrint('⏳ Waiting 2 seconds...');
-      await Future.delayed(const Duration(milliseconds: 2000));
-      
+      await AppBootstrapService.instance.ensureReadyForNavigation();
       debugPrint('🚀 Navigating to appropriate screen...');
       await _navigateToAppropriateScreen();
     } catch (e) {
       debugPrint('❌ Error in splash screen initialization: $e');
-      // Vẫn chuyển đến màn hình chính ngay cả khi có lỗi
       if (mounted) {
         await _navigateToAppropriateScreen();
       }
@@ -97,8 +73,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateToOnboardingOrMain(SharedPreferences prefs) async {
-    // Kiểm tra xem user đã hoàn thành onboarding chưa
-    final isOnboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    final isOnboardingCompleted =
+        prefs.getBool('onboarding_completed') ?? false;
     final hasSeenAdsNotice = prefs.getBool(_adsNoticeSeenKey) ?? false;
 
     if (mounted) {
@@ -121,13 +97,13 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           );
         } else {
-          // User đã hoàn thành onboarding, chuyển đến main app với bottom navigation
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const BBCLearningAppStateful()),
+            MaterialPageRoute(
+              builder: (context) => const BBCLearningAppStateful(),
+            ),
           );
         }
       } else {
-        // User mới, chuyển đến onboarding
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
         );
@@ -152,7 +128,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo animation
               AnimatedBuilder(
                 animation: _animationController,
                 builder: (context, child) {
@@ -169,10 +144,7 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-              
               const SizedBox(height: 32),
-              
-              // App name
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Text(
@@ -184,12 +156,18 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-              
               const SizedBox(height: 8),
-              
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Listen. Engage. Own.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ),
               const SizedBox(height: 60),
-              
-              // Loading indicator
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(

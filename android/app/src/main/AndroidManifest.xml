@@ -76,5 +76,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Google Sign-In / Play services (Android 11+ package visibility) -->
+        <package android:name="com.google.android.gms" />
     </queries>
 </manifest>

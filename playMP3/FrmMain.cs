@@ -47,14 +47,17 @@ namespace playMP3
         System.Windows.Media.MediaPlayer player;
         Boolean isPlay = false;
         int intCursorPos;
+        readonly Dictionary<DataGridView, Label> _transcriptRowCountLabels = new Dictionary<DataGridView, Label>();
+
         public frmMain()
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            ApplyTranscriptRowGridStyle(grvRow);
-            foreach (var g in new DataGridView[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow })
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow };
+            foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
+                EnsureTranscriptRowCountLabel(g);
             }
 
             foreach (var g in new DataGridView[] {
@@ -71,6 +74,9 @@ namespace playMP3
             txtId.Text = Guid.NewGuid().ToString();
             cbYear.SelectedIndex = 0;
             ReadConfigFile();
+
+            if (cbSendEpisodePush != null)
+                cbSendEpisodePush.Checked = ConfigModel.SendEpisodePush;
 
             cbCloudService.DataSource = this.ConfigModel.CloudServices;
             cbCloudService.DisplayMember = "Name";
@@ -327,6 +333,50 @@ namespace playMP3
             grid.RowTemplate.Height = 40;
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders;
+            if (!grid.Columns.Contains("RowNumber"))
+            {
+                grid.Columns.Insert(0, new DataGridViewTextBoxColumn
+                {
+                    Name = "RowNumber",
+                    DataPropertyName = "RowNumber",
+                    HeaderText = "Number Row",
+                    Width = 50,
+                    ReadOnly = true,
+                });
+            }
+        }
+
+        private void EnsureTranscriptRowCountLabel(DataGridView grid)
+        {
+            if (_transcriptRowCountLabels.ContainsKey(grid))
+                return;
+
+            var lbl = new Label
+            {
+                AutoSize = true,
+                Text = "Rows: 0",
+            };
+            grid.Parent.Controls.Add(lbl);
+            lbl.BringToFront();
+            _transcriptRowCountLabels[grid] = lbl;
+
+            void reposition()
+            {
+                lbl.Location = new Point(grid.Right - lbl.PreferredWidth, grid.Top - lbl.Height - 2);
+            }
+
+            grid.LocationChanged += (_, __) => reposition();
+            grid.SizeChanged += (_, __) => reposition();
+            reposition();
+        }
+
+        private void UpdateTranscriptGridRowCountLabel(DataGridView grid)
+        {
+            if (!_transcriptRowCountLabels.TryGetValue(grid, out var lbl))
+                return;
+
+            lbl.Text = "Rows: " + GetEpisodeRowCount(grid);
+            lbl.Location = new Point(grid.Right - lbl.PreferredWidth, grid.Top - lbl.Height - 2);
         }
 
         private void btnConvertToGrid_Click(object sender, EventArgs e)
@@ -347,7 +397,7 @@ namespace playMP3
             for (var i = 0; i < lstRows.Length; i++)
             {
                 var trimmed = lstRows[i].Trim();
-                var m = new EpisodeRowModel { FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
+                var m = new EpisodeRowModel { RowNumber = i, FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
 
                 if (previous != null && i < previous.Count)
                 {
@@ -368,6 +418,7 @@ namespace playMP3
 
             grid.DataSource = lstRowModels;
             grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+            UpdateTranscriptGridRowCountLabel(grid);
         }
 
         public void ConvertToGrid()
@@ -538,6 +589,18 @@ namespace playMP3
                 var delayNode = m_xmld.SelectSingleNode("/Configurations/GeminiRequestDelayMs");
                 if (delayNode != null && int.TryParse((delayNode.InnerText ?? string.Empty).Trim(), out var delayMs) && delayMs >= 0 && delayMs <= 120_000)
                     ConfigModel.GeminiRequestDelayMs = delayMs;
+
+                var fcmPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPath");
+                if (fcmPathNode != null)
+                    ConfigModel.FcmServiceAccountPath = (fcmPathNode.InnerText ?? string.Empty).Trim();
+
+                var sendPushNode = m_xmld.SelectSingleNode("/Configurations/SendEpisodePush");
+                if (sendPushNode != null)
+                {
+                    var pushText = (sendPushNode.InnerText ?? string.Empty).Trim();
+                    if (bool.TryParse(pushText, out var sendPush))
+                        ConfigModel.SendEpisodePush = sendPush;
+                }
             }
             else
             {
@@ -704,6 +767,39 @@ namespace playMP3
 
             var firebaseRtdbBaseUrl = GetFirebaseRtdbBaseUrl();
 
+            if (exportEpisodeDetail && cbSendEpisodePush != null && cbSendEpisodePush.Checked)
+            {
+                try
+                {
+                    if (!EpisodeFcmSender.TryConfigure(ConfigModel.FcmServiceAccountPath))
+                    {
+                        MessageBox.Show(
+                            this,
+                            "FCM chưa cấu hình: thêm FcmServiceAccountPath trong service.config "
+                            + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.",
+                            "Push FCM",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        var messageId = await EpisodeFcmSender.SendNewEpisodeAsync(
+                            episode,
+                            txtNumber.Text).ConfigureAwait(true);
+                        Debug.WriteLine("EpisodeFcmSender: sent message " + messageId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        this,
+                        "Upload RTDB thành công nhưng gửi FCM thất bại: " + ex.Message,
+                        "Push FCM",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+
             if (exportTranslation)
                 await UploadTranslationsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportGrammar)
@@ -806,6 +902,7 @@ namespace playMP3
             txtResult.Text = "";
             txtGroupResult.Text = "";
             grvRow.DataSource = null;
+            UpdateTranscriptGridRowCountLabel(grvRow);
             txtId.Text = Guid.NewGuid().ToString();
             txtEpisodeName.Text = "";
             txtThumb.Text = "";

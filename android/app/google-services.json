@@ -13,7 +13,24 @@
           "package_name": "com.voalearningenglish.listeningskills"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "666526516629-jbfhm9g6fpbs7q2q4g0gruq3hnk67fa5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.voalearningenglish.listeningskills",
+            "certificate_hash": "b6de83abba96463de29a1d999cb9dcab31f85b7e"
+          }
+        },
+        {
+          "client_id": "666526516629-lnhemnqo3cmm0rfk4r84oi98v7dkbu5c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.voalearningenglish.listeningskills",
+            "certificate_hash": "80d1043e5298526cb23d1edb31a1627d83d83b07"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw"
@@ -21,7 +38,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "666526516629-oclcd1u0n99dg2ar94409lqp4g0e0l1u.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -73,6 +73,7 @@
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
             this.cbExportQuestions = new System.Windows.Forms.CheckBox();
             this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
+            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
             this.txtASSeriesChild = new System.Windows.Forms.TextBox();
             this.lblASSeriesChild = new System.Windows.Forms.Label();
             this.btnGetQuestions = new System.Windows.Forms.Button();
@@ -326,7 +327,7 @@
             this.txtTranscript.Multiline = true;
             this.txtTranscript.Name = "txtTranscript";
             this.txtTranscript.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtTranscript.Size = new System.Drawing.Size(1043, 187);
+            this.txtTranscript.Size = new System.Drawing.Size(1046, 178);
             this.txtTranscript.TabIndex = 1;
             this.txtTranscript.Leave += new System.EventHandler(this.txtTranscript_Leave);
             // 
@@ -599,6 +600,7 @@
             // 
             this.groupBox3.Controls.Add(this.cbLevel);
             this.groupBox3.Controls.Add(this.label3);
+            this.groupBox3.Controls.Add(this.cbSendEpisodePush);
             this.groupBox3.Controls.Add(this.cbExportTranslation);
             this.groupBox3.Controls.Add(this.cbExportGrammar);
             this.groupBox3.Controls.Add(this.cbExportVocabulary);
@@ -722,6 +724,18 @@
             this.cbExportEpisodeDetail.TabIndex = 42;
             this.cbExportEpisodeDetail.Text = "Export Detail";
             this.cbExportEpisodeDetail.UseVisualStyleBackColor = true;
+            // 
+            // cbSendEpisodePush
+            // 
+            this.cbSendEpisodePush.AutoSize = true;
+            this.cbSendEpisodePush.Checked = true;
+            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
+            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
+            this.cbSendEpisodePush.Size = new System.Drawing.Size(95, 17);
+            this.cbSendEpisodePush.TabIndex = 44;
+            this.cbSendEpisodePush.Text = "Gửi push FCM";
+            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
             // 
             // txtASSeriesChild
             // 
@@ -1520,7 +1534,7 @@
             this.txtViTranscript.Location = new System.Drawing.Point(9, 26);
             this.txtViTranscript.Multiline = true;
             this.txtViTranscript.Name = "txtViTranscript";
-            this.txtViTranscript.Size = new System.Drawing.Size(1042, 201);
+            this.txtViTranscript.Size = new System.Drawing.Size(1042, 184);
             this.txtViTranscript.TabIndex = 14;
             this.txtViTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1577,7 +1591,7 @@
             this.txtEsTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtEsTranscript.Multiline = true;
             this.txtEsTranscript.Name = "txtEsTranscript";
-            this.txtEsTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtEsTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtEsTranscript.TabIndex = 17;
             this.txtEsTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1634,7 +1648,7 @@
             this.txtArTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtArTranscript.Multiline = true;
             this.txtArTranscript.Name = "txtArTranscript";
-            this.txtArTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtArTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtArTranscript.TabIndex = 17;
             this.txtArTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1691,7 +1705,7 @@
             this.txtJaTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtJaTranscript.Multiline = true;
             this.txtJaTranscript.Name = "txtJaTranscript";
-            this.txtJaTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtJaTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtJaTranscript.TabIndex = 17;
             this.txtJaTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1748,7 +1762,7 @@
             this.txtKoTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtKoTranscript.Multiline = true;
             this.txtKoTranscript.Name = "txtKoTranscript";
-            this.txtKoTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtKoTranscript.Size = new System.Drawing.Size(1048, 174);
             this.txtKoTranscript.TabIndex = 17;
             this.txtKoTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1805,7 +1819,7 @@
             this.txtPtTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtPtTranscript.Multiline = true;
             this.txtPtTranscript.Name = "txtPtTranscript";
-            this.txtPtTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtPtTranscript.Size = new System.Drawing.Size(1048, 174);
             this.txtPtTranscript.TabIndex = 17;
             this.txtPtTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1862,7 +1876,7 @@
             this.txtRuTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtRuTranscript.Multiline = true;
             this.txtRuTranscript.Name = "txtRuTranscript";
-            this.txtRuTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtRuTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtRuTranscript.TabIndex = 17;
             this.txtRuTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -1919,7 +1933,7 @@
             this.txtZhTranscript.Location = new System.Drawing.Point(9, 24);
             this.txtZhTranscript.Multiline = true;
             this.txtZhTranscript.Name = "txtZhTranscript";
-            this.txtZhTranscript.Size = new System.Drawing.Size(1045, 201);
+            this.txtZhTranscript.Size = new System.Drawing.Size(1045, 174);
             this.txtZhTranscript.TabIndex = 17;
             this.txtZhTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
             // 
@@ -2276,6 +2290,7 @@
         private System.Windows.Forms.CheckBox cbExportVocabulary;
         private System.Windows.Forms.CheckBox cbExportQuestions;
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
+        private System.Windows.Forms.CheckBox cbSendEpisodePush;
         private System.Windows.Forms.CheckBox cbExportTranslation;
         private System.Windows.Forms.ComboBox cbLevel;
         private System.Windows.Forms.Label label3;
