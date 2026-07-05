@@ -875,7 +875,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _languageManager.changeLanguage(newLocale);
                     }
                   },
-                  items: LanguageManager.supportedLocales.map<DropdownMenuItem<Locale>>((Locale locale) {
+                  items: LanguageManager.sortedSupportedLocales
+                      .map<DropdownMenuItem<Locale>>((Locale locale) {
                     return DropdownMenuItem<Locale>(
                       value: locale,
                       child: Text(_languageManager.getLanguageName(locale.languageCode)),
