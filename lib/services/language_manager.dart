@@ -9,6 +9,8 @@ import '../l10n/ja/app_ja.dart';
 import '../l10n/ru/app_ru.dart';
 import '../l10n/es/app_es.dart';
 import '../l10n/pt/app_pt.dart';
+import '../l10n/fr/app_fr.dart';
+import '../l10n/de/app_de.dart';
 
 class LanguageManager extends ChangeNotifier {
   static final LanguageManager _instance = LanguageManager._internal();
@@ -30,6 +32,8 @@ class LanguageManager extends ChangeNotifier {
     Locale('ru', ''), // Russian
     Locale('es', ''), // Spanish
     Locale('pt', ''), // Portuguese
+    Locale('fr', ''), // French
+    Locale('de', ''), // German
   ];
 
   // Tên ngôn ngữ hiển thị
@@ -43,7 +47,38 @@ class LanguageManager extends ChangeNotifier {
     'ru': 'Русский',
     'es': 'Español',
     'pt': 'Português',
+    'fr': 'Français',
+    'de': 'Deutsch',
   };
+
+  /// English names for consistent A–Z ordering in language pickers.
+  static const Map<String, String> _languageSortKeys = {
+    'ar': 'Arabic',
+    'zh': 'Chinese',
+    'de': 'German',
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'vi': 'Vietnamese',
+  };
+
+  static List<Locale> get sortedSupportedLocales {
+    final locales = List<Locale>.from(supportedLocales);
+    locales.sort(
+      (a, b) => _languageSortKey(a.languageCode).compareTo(
+        _languageSortKey(b.languageCode),
+      ),
+    );
+    return locales;
+  }
+
+  static String _languageSortKey(String languageCode) {
+    return _languageSortKeys[languageCode] ?? languageCode;
+  }
 
   Locale _currentLocale = const Locale('en', '');
   String _currentTheme = 'system';
@@ -151,6 +186,10 @@ class LanguageManager extends ChangeNotifier {
         return AppEs.texts[key] ?? AppEn.texts[key] ?? key;
       case 'pt':
         return AppPt.texts[key] ?? AppEn.texts[key] ?? key;
+      case 'fr':
+        return AppFr.texts[key] ?? AppEn.texts[key] ?? key;
+      case 'de':
+        return AppDe.texts[key] ?? AppEn.texts[key] ?? key;
       default:
         return AppEn.texts[key] ?? key;
     }
