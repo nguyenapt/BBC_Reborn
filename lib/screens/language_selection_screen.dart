@@ -18,66 +18,82 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   final LanguageManager _languageManager = LanguageManager();
   Locale? _selectedLocale;
 
-  final List<LanguageOption> _languages = [
+  static const List<LanguageOption> _allLanguages = [
     LanguageOption(
-      locale: const Locale('vi'),
-      name: 'Tiếng Việt',
-      nativeName: 'Tiếng Việt',
-      flag: '🇻🇳',
+      locale: Locale('ar'),
+      name: 'Arabic',
+      nativeName: 'العربية',
+      flag: '🇸🇦',
     ),
     LanguageOption(
-      locale: const Locale('en'),
+      locale: Locale('zh'),
+      name: 'Chinese',
+      nativeName: '中文',
+      flag: '🇨🇳',
+    ),
+    LanguageOption(
+      locale: Locale('de'),
+      name: 'German',
+      nativeName: 'Deutsch',
+      flag: '🇩🇪',
+    ),
+    LanguageOption(
+      locale: Locale('en'),
       name: 'English',
       nativeName: 'English',
       flag: '🇺🇸',
     ),
     LanguageOption(
-      locale: const Locale('zh'),
-      name: '中文',
-      nativeName: '中文',
-      flag: '🇨🇳',
-    ),
-    LanguageOption(
-      locale: const Locale('ja'),
-      name: '日本語',
-      nativeName: '日本語',
-      flag: '🇯🇵',
-    ),
-    LanguageOption(
-      locale: const Locale('ko'),
-      name: '한국어',
-      nativeName: '한국어',
-      flag: '🇰🇷',
-    ),
-    LanguageOption(
-      locale: const Locale('es'),
-      name: 'Español',
+      locale: Locale('es'),
+      name: 'Spanish',
       nativeName: 'Español',
       flag: '🇪🇸',
     ),
     LanguageOption(
-      locale: const Locale('pt'),
-      name: 'Português',
+      locale: Locale('fr'),
+      name: 'French',
+      nativeName: 'Français',
+      flag: '🇫🇷',
+    ),
+    LanguageOption(
+      locale: Locale('ja'),
+      name: 'Japanese',
+      nativeName: '日本語',
+      flag: '🇯🇵',
+    ),
+    LanguageOption(
+      locale: Locale('ko'),
+      name: 'Korean',
+      nativeName: '한국어',
+      flag: '🇰🇷',
+    ),
+    LanguageOption(
+      locale: Locale('pt'),
+      name: 'Portuguese',
       nativeName: 'Português',
       flag: '🇧🇷',
     ),
     LanguageOption(
-      locale: const Locale('ar'),
-      name: 'العربية',
-      nativeName: 'العربية',
-      flag: '🇸🇦',
-    ),
-    LanguageOption(
-      locale: const Locale('ru'),
-      name: 'Русский',
+      locale: Locale('ru'),
+      name: 'Russian',
       nativeName: 'Русский',
       flag: '🇷🇺',
     ),
+    LanguageOption(
+      locale: Locale('vi'),
+      name: 'Vietnamese',
+      nativeName: 'Tiếng Việt',
+      flag: '🇻🇳',
+    ),
   ];
+
+  late final List<LanguageOption> _languages;
 
   @override
   void initState() {
     super.initState();
+    _languages = List<LanguageOption>.from(_allLanguages)
+      ..sort((a, b) => a.name.compareTo(b.name));
     _selectedLocale = _languageManager.currentLocale;
   }
 
@@ -187,97 +203,34 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                 'You can change the language anytime in the settings',
                 style: TextStyle(
                   fontSize: 16,
-                  color: colorScheme.onSurface.withOpacity(0.74),
+                  color: colorScheme.onSurface.withValues(alpha: 0.74),
                 ),
                 textAlign: TextAlign.center,
               ),
               
-              const SizedBox(height: 40),
-              
-              // Language list
+              const SizedBox(height: 32),
+
+              // Language chips
               Expanded(
-                child: ListView.builder(
-                  itemCount: _languages.length,
-                  itemBuilder: (context, index) {
-                    final language = _languages[index];
-                    final isSelected = _selectedLocale?.languageCode == language.locale.languageCode;
-                    
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _selectedLocale = language.locale;
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isSelected 
-                                  ? colorScheme.primary.withOpacity(0.10)
-                                  : colorScheme.surfaceContainerHighest.withOpacity(0.35),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected 
-                                    ? colorScheme.primary.withOpacity(0.65)
-                                    : colorScheme.outlineVariant.withOpacity(0.55),
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                // Flag
-                                Text(
-                                  language.flag,
-                                  style: const TextStyle(fontSize: 32),
-                                ),
-                                
-                                const SizedBox(width: 16),
-                                
-                                // Language info
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        language.name,
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: isSelected 
-                                              ? colorScheme.primary
-                                              : colorScheme.onSurface,
-                                        ),
-                                      ),
-                                      if (language.name != language.nativeName)
-                                        Text(
-                                          language.nativeName,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: colorScheme.onSurface.withOpacity(0.7),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                // Check icon
-                                if (isSelected)
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: colorScheme.primary,
-                                    size: 24,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _languages.map((language) {
+                      final isSelected = _selectedLocale?.languageCode ==
+                          language.locale.languageCode;
+                      return _LanguageChip(
+                        language: language,
+                        isSelected: isSelected,
+                        onTap: () {
+                          setState(() {
+                            _selectedLocale = language.locale;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
               
@@ -319,10 +272,82 @@ class LanguageOption {
   final String nativeName;
   final String flag;
 
-  LanguageOption({
+  const LanguageOption({
     required this.locale,
     required this.name,
     required this.nativeName,
     required this.flag,
   });
+}
+
+class _LanguageChip extends StatelessWidget {
+  static const double _radius = 10;
+
+  final LanguageOption language;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LanguageChip({
+    required this.language,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_radius),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primary.withValues(alpha: 0.12)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(_radius),
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant.withValues(alpha: 0.55),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                language.flag,
+                style: const TextStyle(fontSize: 22, height: 1.1),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                language.nativeName,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.check_rounded,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
