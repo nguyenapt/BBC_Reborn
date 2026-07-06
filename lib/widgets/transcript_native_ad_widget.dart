@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/language_manager.dart';
+import 'learning_checklist_bar.dart';
 import 'native_ad_theme.dart';
 import 'passage_panel_decoration.dart';
 
@@ -227,13 +228,21 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
 
   Widget _buildEpisodeTranscriptChrome(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (_, _, adHeight) = _slotMetrics();
+    final (_, radius, adHeight) = _slotMetrics();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(
+        top: 14,
+        bottom: 14,
+        right: LearningChecklistBar.adRightClearance,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.65),
+            width: 1,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(8),
