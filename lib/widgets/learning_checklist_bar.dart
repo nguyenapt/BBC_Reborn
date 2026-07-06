@@ -3,6 +3,13 @@ import '../models/episode_learning_progress.dart';
 import '../services/language_manager.dart';
 
 class LearningChecklistBar extends StatelessWidget {
+  static const double iconSize = 40;
+  static const double laneOuterPadding = 6;
+  static const double reservedLaneWidth = iconSize + laneOuterPadding;
+  /// Khoảng trống phải cho native/banner ad — tránh chồng checklist (AdMob).
+  static const double adClearanceGap = 8;
+  static const double adRightClearance = reservedLaneWidth + adClearanceGap;
+
   final EpisodeLearningProgress? progress;
   final Color accentColor;
   final void Function(int tabIndex)? onStepTap;
@@ -111,8 +118,8 @@ class _ChecklistIcon extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: LearningChecklistBar.iconSize,
+              height: LearningChecklistBar.iconSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: step.done

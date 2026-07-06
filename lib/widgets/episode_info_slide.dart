@@ -4,6 +4,7 @@ import '../services/image_cache_service.dart';
 import '../services/language_manager.dart';
 import 'banner_ad_widget.dart';
 import 'episode_detail_tab_panel.dart';
+import 'learning_checklist_bar.dart';
 
 class EpisodeInfoSlide extends StatelessWidget {
   static const double _mainThumbWidth = 150;
@@ -36,7 +37,12 @@ class EpisodeInfoSlide extends StatelessWidget {
           children: [
             _buildCurrentEpisodeSection(context),
             const SizedBox(height: 24),
-            const BannerAdWidget(),
+            const Padding(
+              padding: EdgeInsets.only(
+                right: LearningChecklistBar.adRightClearance,
+              ),
+              child: BannerAdWidget(),
+            ),
             _buildTopEpisodesSection(context),
           ],
         ),
