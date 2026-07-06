@@ -13,6 +13,10 @@ enum NativeAdLayout {
 }
 
 class NativeAdWidget extends StatefulWidget {
+  /// Min width khuyến nghị cho TemplateType.medium (AdMob validator).
+  static const double embeddedMediumMinWidth = 320;
+  static const double embeddedMediumAdHeight = 320;
+
   final String category;
   final String? adUnitId;
   final NativeAdLayout layout;
@@ -198,65 +202,67 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   Widget _embeddedBuild(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.ads_click,
-                color: colorScheme.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: _minAttributionPx),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _languageManager.getText('adAttributionLabel'),
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.ads_click,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(minHeight: _minAttributionPx),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _languageManager.getText('adAttributionLabel'),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              if (_isAdLoading)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.primary,
+                if (_isAdLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Container(
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
+              height: NativeAdWidget.embeddedMediumAdHeight,
               child: _adBody(colorScheme),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

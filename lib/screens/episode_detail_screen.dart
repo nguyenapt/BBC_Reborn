@@ -680,7 +680,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ],
           ),
           Positioned(
-            right: 6,
+            right: LearningChecklistBar.laneOuterPadding,
             top: 0,
             bottom: _checklistBottomInset(context),
             child: SafeArea(
