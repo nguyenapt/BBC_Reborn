@@ -66,6 +66,7 @@ class AppZh {
     'speakingSttFailed': '无法识别您的语音，请更清晰地重新录音。',
     'speakingSttNotConfigured': '此版本暂不支持语音识别。',
     'speakingAnalysisFailed': '无法分析发音，请稍后重试。',
+    'speakingRecordingFailed': '无法保存录音，请重试。',
     'retry': '重试',
     'aiRateLimitError': '请求过多，请稍候再试。',
     'aiNetworkError': '网络错误，请检查连接后重试。',

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/language_manager.dart';
+import 'language_flag_icon.dart';
 
 /// Widget để chọn ngôn ngữ cho translation
 class TranslationLanguagePicker extends StatelessWidget {
@@ -13,16 +13,16 @@ class TranslationLanguagePicker extends StatelessWidget {
   });
 
   static const List<Map<String, String>> _translationLanguages = [
-    {'code': 'vi', 'name': 'Tiếng Việt', 'nativeName': 'Tiếng Việt', 'flag': '🇻🇳'},
-    {'code': 'zh', 'name': '中文', 'nativeName': '中文', 'flag': '🇨🇳'},
-    {'code': 'ja', 'name': '日本語', 'nativeName': '日本語', 'flag': '🇯🇵'},
-    {'code': 'ko', 'name': '한국어', 'nativeName': '한국어', 'flag': '🇰🇷'},
-    {'code': 'es', 'name': 'Español', 'nativeName': 'Español', 'flag': '🇪🇸'},
-    {'code': 'pt', 'name': 'Português', 'nativeName': 'Português', 'flag': '🇧🇷'},
-    {'code': 'ar', 'name': 'العربية', 'nativeName': 'العربية', 'flag': '🇸🇦'},
-    {'code': 'ru', 'name': 'Русский', 'nativeName': 'Русский', 'flag': '🇷🇺'},
-    {'code': 'fr', 'name': 'Français', 'nativeName': 'Français', 'flag': '🇫🇷'},
-    {'code': 'de', 'name': 'Deutsch', 'nativeName': 'Deutsch', 'flag': '🇩🇪'},
+    {'code': 'vi', 'name': 'Tiếng Việt', 'nativeName': 'Tiếng Việt'},
+    {'code': 'zh', 'name': '中文', 'nativeName': '中文'},
+    {'code': 'ja', 'name': '日本語', 'nativeName': '日本語'},
+    {'code': 'ko', 'name': '한국어', 'nativeName': '한국어'},
+    {'code': 'es', 'name': 'Español', 'nativeName': 'Español'},
+    {'code': 'pt', 'name': 'Português', 'nativeName': 'Português'},
+    {'code': 'ar', 'name': 'العربية', 'nativeName': 'العربية'},
+    {'code': 'ru', 'name': 'Русский', 'nativeName': 'Русский'},
+    {'code': 'fr', 'name': 'Français', 'nativeName': 'Français'},
+    {'code': 'de', 'name': 'Deutsch', 'nativeName': 'Deutsch'},
   ];
 
   static void show(
@@ -78,9 +78,9 @@ class TranslationLanguagePicker extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Text(
-                          language['flag']!,
-                          style: const TextStyle(fontSize: 24),
+                        LanguageFlagIcon(
+                          languageCode: language['code']!,
+                          size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(

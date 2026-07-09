@@ -273,14 +273,14 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                         label: 'A',
                         onTap: widget.audioService.markAbPointA,
                         colorScheme: colorScheme,
-                        selected: hasAb,
+                        selected: widget.audioService.hasAbPointA,
                       ),
                       const SizedBox(width: 4),
                       _MiniChip(
                         label: 'B',
                         onTap: widget.audioService.markAbPointB,
                         colorScheme: colorScheme,
-                        selected: hasAb,
+                        selected: widget.audioService.hasAbPointB,
                       ),
                       if (hasAb)
                         IconButton(
@@ -325,19 +325,14 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                     constraints:
                         const BoxConstraints.tightFor(width: 44, height: 44),
                     onPressed: () async {
-                      if (widget.audioService.isPlaying) {
-                        await widget.audioService.pause();
-                      } else if (widget.audioService.isPaused) {
-                        await widget.audioService.resume();
-                      } else {
-                        await widget.onPlayPressed?.call();
-                        await widget.audioService.play();
-                      }
+                      await widget.audioService.togglePlayPause(
+                        onPlayPressed: widget.onPlayPressed,
+                      );
                     },
                     icon: Icon(
                       widget.audioService.isLoading
                           ? Icons.hourglass_empty
-                          : widget.audioService.isPlaying
+                          : widget.audioService.isEffectivelyPlaying
                               ? Icons.pause
                               : Icons.play_arrow,
                       color: Theme.of(context).colorScheme.onPrimary,

@@ -1,5 +1,5 @@
 {
-  "allowedPackages": "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
+  "allowedPackages": "com.learningenglish.studyingbbc.bbc_reborn;com.learningenglish.studyingbbc.bbcReborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
   "enabled": true,
   "azureSpeechRegion": "southeastasia",
   "routes": {

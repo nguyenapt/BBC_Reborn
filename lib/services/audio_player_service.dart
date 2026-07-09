@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -56,6 +57,7 @@ class AudioPlayerService extends ChangeNotifier {
   bool get isPlaying => _playerState == AudioPlayerState.playing;
   bool get isPaused => _playerState == AudioPlayerState.paused;
   bool get isLoading => _playerState == AudioPlayerState.loading;
+  bool get isEffectivelyPlaying => _isEffectivelyPlaying;
 
   // Timer để cập nhật position
   Timer? _positionTimer;
@@ -91,6 +93,19 @@ class AudioPlayerService extends ChangeNotifier {
   String? _loadingEpisodeId;
   Future<void> _playbackChain = Future<void>.value();
 
+  Duration _lastAdvCheckPosition = Duration.zero;
+  bool _positionIsAdvancing = false;
+  bool _iosRecordingSessionActive = false;
+
+  bool get _isIOS => !kIsWeb && Platform.isIOS;
+
+  bool get _isEffectivelyPlaying {
+    if (_playerState == AudioPlayerState.paused) return false;
+    if (_playerState == AudioPlayerState.playing) return true;
+    if (!_isIOS) return false;
+    return _positionIsAdvancing;
+  }
+
   Future<T> _runPlaybackTask<T>(Future<T> Function() task) {
     final run = _playbackChain.then((_) => task());
     _playbackChain = run.then((_) {}, onError: (_) {});
@@ -107,6 +122,142 @@ class AudioPlayerService extends ChangeNotifier {
   Duration? get abRepeatStart => _abRepeatStart;
   Duration? get abRepeatEnd => _abRepeatEnd;
   bool get hasAbRepeat => _abRepeatStart != null && _abRepeatEnd != null;
+  bool get hasAbPointA => _abRepeatStart != null;
+  bool get hasAbPointB => _abRepeatEnd != null;
+
+  AudioContext _playbackAudioContext() => AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {
+            AVAudioSessionOptions.mixWithOthers,
+          },
+        ),
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: true,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+      );
+
+  AudioContext _iosRecordingAudioContext() => AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playAndRecord,
+          options: {
+            AVAudioSessionOptions.defaultToSpeaker,
+            AVAudioSessionOptions.allowBluetooth,
+            AVAudioSessionOptions.allowBluetoothA2DP,
+            AVAudioSessionOptions.mixWithOthers,
+          },
+        ),
+      );
+
+  AudioPlayerState? _mapNativeState(PlayerState state) {
+    switch (state) {
+      case PlayerState.playing:
+        return AudioPlayerState.playing;
+      case PlayerState.paused:
+        return AudioPlayerState.paused;
+      case PlayerState.stopped:
+      case PlayerState.completed:
+        return AudioPlayerState.stopped;
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _reconcilePlayerState({bool notify = true}) async {
+    if (!_isIOS) return;
+    try {
+      final mapped = _mapNativeState(_audioPlayer.state);
+      if (mapped == null || mapped == _playerState) return;
+      if (mapped == AudioPlayerState.stopped &&
+          (_positionIsAdvancing || _playerState == AudioPlayerState.playing)) {
+        return;
+      }
+      _playerState = mapped;
+      if (notify) notifyListeners();
+    } catch (e) {
+      debugPrint('reconcilePlayerState: $e');
+    }
+  }
+
+  Future<bool> _isNativePlaying() async {
+    if (!_isIOS) return _playerState == AudioPlayerState.playing;
+    try {
+      return _audioPlayer.state == PlayerState.playing;
+    } catch (_) {
+      return _playerState == AudioPlayerState.playing || _positionIsAdvancing;
+    }
+  }
+
+  void _trackPositionAdvance(Duration position) {
+    if (!_isIOS) return;
+    if (_playerState == AudioPlayerState.paused) {
+      _positionIsAdvancing = false;
+      return;
+    }
+    _positionIsAdvancing = position > _lastAdvCheckPosition;
+    _lastAdvCheckPosition = position;
+  }
+
+  Future<void> _updatePlaybackNotification(bool isPlaying) async {
+    if (_currentEpisode == null) return;
+    await _notificationService.updateNotification(
+      _currentEpisode!,
+      isPlaying,
+      duration: _totalDuration.inMilliseconds,
+      currentPosition: _currentPosition.inMilliseconds,
+    );
+  }
+
+  void _applyLegacyPlayerStateChange(PlayerState state) {
+    switch (state) {
+      case PlayerState.playing:
+        _playerState = AudioPlayerState.playing;
+        break;
+      case PlayerState.paused:
+        _playerState = AudioPlayerState.paused;
+        break;
+      case PlayerState.stopped:
+        if (_playerState == AudioPlayerState.loading) break;
+        _playerState = AudioPlayerState.stopped;
+        _currentPosition = Duration.zero;
+        break;
+      case PlayerState.completed:
+        if (_playerState == AudioPlayerState.loading) break;
+        _playerState = AudioPlayerState.stopped;
+        _currentPosition = Duration.zero;
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _applyIosPlayerStateChange(PlayerState state) {
+    switch (state) {
+      case PlayerState.playing:
+        _playerState = AudioPlayerState.playing;
+        break;
+      case PlayerState.paused:
+        _playerState = AudioPlayerState.paused;
+        _positionIsAdvancing = false;
+        break;
+      case PlayerState.stopped:
+      case PlayerState.completed:
+        if (_playerState == AudioPlayerState.loading) break;
+        if (_positionIsAdvancing) break;
+        _playerState = AudioPlayerState.stopped;
+        _positionIsAdvancing = false;
+        if (state == PlayerState.completed) {
+          _currentPosition = Duration.zero;
+        }
+        break;
+      default:
+        break;
+    }
+  }
 
   /// Initialize service
   Future<void> initialize() async {
@@ -121,24 +272,44 @@ class AudioPlayerService extends ChangeNotifier {
     });
 
     // Cấu hình AudioContext cho background playback
-    await _audioPlayer.setAudioContext(AudioContext(
-      iOS: AudioContextIOS(
-        category: AVAudioSessionCategory.playback,
-        options: {
-          AVAudioSessionOptions.defaultToSpeaker,
-          AVAudioSessionOptions.allowBluetooth,
-          AVAudioSessionOptions.allowBluetoothA2DP,
-          AVAudioSessionOptions.mixWithOthers,
-        },
-      ),
-      android: AudioContextAndroid(
-        isSpeakerphoneOn: false,
-        stayAwake: true,
-        contentType: AndroidContentType.music,
-        usageType: AndroidUsageType.media,
-        audioFocus: AndroidAudioFocus.gain,
-      ),
-    ));
+    try {
+      await _audioPlayer.setAudioContext(_playbackAudioContext());
+    } catch (e) {
+      debugPrint('initialize setAudioContext: $e');
+    }
+  }
+
+  /// Chuẩn bị audio session cho ghi âm (iOS-only).
+  Future<void> prepareForRecording() async {
+    if (!_isIOS) return;
+    final audioWasActive = _isEffectivelyPlaying ||
+        _playerState == AudioPlayerState.playing;
+    if (audioWasActive) {
+      await pause();
+    }
+    _positionIsAdvancing = false;
+    notifyListeners();
+
+    if (!audioWasActive) return;
+
+    try {
+      await _audioPlayer.setAudioContext(_iosRecordingAudioContext());
+      _iosRecordingSessionActive = true;
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+    } catch (e) {
+      debugPrint('prepareForRecording: $e');
+    }
+  }
+
+  /// Khôi phục audio session phát nhạc sau ghi âm (iOS-only).
+  Future<void> restoreAfterRecording() async {
+    if (!_isIOS || !_iosRecordingSessionActive) return;
+    _iosRecordingSessionActive = false;
+    try {
+      await _audioPlayer.setAudioContext(_playbackAudioContext());
+    } catch (e) {
+      debugPrint('restoreAfterRecording: $e');
+    }
   }
 
   void setPendingSeekPosition(Duration position) {
@@ -192,11 +363,35 @@ class AudioPlayerService extends ChangeNotifier {
     }
     _sleepTimerEndsAt = DateTime.now().add(duration);
     _sleepTimer = Timer(duration, () async {
-      await pause();
-      _sleepTimerEndsAt = null;
-      notifyListeners();
+      await _stopForSleepTimer();
     });
     notifyListeners();
+  }
+
+  Future<void> _stopForSleepTimer() async {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    notifyListeners();
+
+    if (_isIOS) {
+      try {
+        final native = _audioPlayer.state;
+        if (native == PlayerState.playing) {
+          await _audioPlayer.pause();
+        }
+      } catch (e) {
+        debugPrint('_stopForSleepTimer iOS: $e');
+      }
+      _playerState = AudioPlayerState.paused;
+      _positionIsAdvancing = false;
+      notifyListeners();
+      await _persistListeningProgress();
+      await _updatePlaybackNotification(false);
+      await _reconcilePlayerState();
+      return;
+    }
+    await pause();
   }
 
   void setSleepAfterCurrentEpisode() {
@@ -224,8 +419,13 @@ class AudioPlayerService extends ChangeNotifier {
 
       if (_sleepAfterCurrentEpisode) {
         _sleepAfterCurrentEpisode = false;
-        _playerState = AudioPlayerState.stopped;
         notifyListeners();
+        if (_isIOS) {
+          await _stopForSleepTimer();
+        } else {
+          _playerState = AudioPlayerState.stopped;
+          notifyListeners();
+        }
         if (_currentEpisode != null) {
           await _notificationService.updateNotification(
             _currentEpisode!,
@@ -584,7 +784,12 @@ class AudioPlayerService extends ChangeNotifier {
         }
 
         _playerState = AudioPlayerState.playing;
+        _positionIsAdvancing = false;
+        _lastAdvCheckPosition = _currentPosition;
         notifyListeners();
+        if (_isIOS) {
+          unawaited(_reconcilePlayerState());
+        }
 
         if (_currentEpisode != null) {
           await _notificationService.showAudioNotification(
@@ -608,6 +813,7 @@ class AudioPlayerService extends ChangeNotifier {
     _audioListenersAttached = true;
 
     _onPositionChangedSub ??= _audioPlayer.onPositionChanged.listen((Duration position) {
+      _trackPositionAdvance(position);
       _currentPosition = position;
       notifyListeners();
       _syncNotificationProgressIfNeeded();
@@ -622,76 +828,104 @@ class AudioPlayerService extends ChangeNotifier {
     });
 
     _onPlayerStateChangedSub ??= _audioPlayer.onPlayerStateChanged.listen((PlayerState state) async {
-      switch (state) {
-        case PlayerState.playing:
-          _playerState = AudioPlayerState.playing;
-          break;
-        case PlayerState.paused:
-          _playerState = AudioPlayerState.paused;
-          break;
-        case PlayerState.stopped:
-          if (_playerState == AudioPlayerState.loading) break;
-          _playerState = AudioPlayerState.stopped;
-          _currentPosition = Duration.zero;
-          break;
-        case PlayerState.completed:
-          if (_playerState == AudioPlayerState.loading) break;
-          _playerState = AudioPlayerState.stopped;
-          _currentPosition = Duration.zero;
-          break;
-        default:
-          break;
+      if (_isIOS) {
+        _applyIosPlayerStateChange(state);
+      } else {
+        _applyLegacyPlayerStateChange(state);
       }
       notifyListeners();
-      
-      // Update notification when state changes
+
       if (_currentEpisode != null) {
-        await _notificationService.updateNotification(
-          _currentEpisode!, 
+        await _updatePlaybackNotification(
           _playerState == AudioPlayerState.playing,
-          duration: _totalDuration.inMilliseconds,
-          currentPosition: _currentPosition.inMilliseconds,
         );
       }
     });
   }
 
+  /// Toggle play/pause — xử lý desync native state trên iOS.
+  Future<void> togglePlayPause({Future<void> Function()? onPlayPressed}) async {
+    if (isLoading) return;
+
+    if (isPaused) {
+      await resume();
+      return;
+    }
+    if (isPlaying || (_isIOS && _positionIsAdvancing)) {
+      await pause();
+      return;
+    }
+
+    if (_isIOS) {
+      try {
+        final native = _audioPlayer.state;
+        if (native == PlayerState.playing) {
+          await pause();
+          return;
+        }
+        if (native == PlayerState.paused) {
+          await resume();
+          return;
+        }
+      } catch (e) {
+        debugPrint('togglePlayPause iOS state check: $e');
+      }
+    }
+
+    await onPlayPressed?.call();
+    await play();
+  }
+
   /// Pause audio
   Future<void> pause() async {
+    if (_isIOS) {
+      final shouldPause = _playerState == AudioPlayerState.playing ||
+          _positionIsAdvancing ||
+          await _isNativePlaying();
+      if (!shouldPause) return;
+
+      return _runPlaybackTask(() async {
+        await _audioPlayer.pause();
+        _playerState = AudioPlayerState.paused;
+        _positionIsAdvancing = false;
+        notifyListeners();
+        await _persistListeningProgress();
+        await _updatePlaybackNotification(false);
+      });
+    }
+
     if (_playerState == AudioPlayerState.playing) {
       await _audioPlayer.pause();
       _playerState = AudioPlayerState.paused;
       notifyListeners();
       await _persistListeningProgress();
-      
-      // Update notification
-      if (_currentEpisode != null) {
-        await _notificationService.updateNotification(
-          _currentEpisode!, 
-          false,
-          duration: _totalDuration.inMilliseconds,
-          currentPosition: _currentPosition.inMilliseconds,
-        );
-      }
+      await _updatePlaybackNotification(false);
     }
   }
 
   /// Resume audio
   Future<void> resume() async {
+    if (_isIOS) {
+      final shouldResume = _playerState == AudioPlayerState.paused;
+      if (!shouldResume) {
+        try {
+          if (_audioPlayer.state != PlayerState.paused) return;
+        } catch (_) {
+          return;
+        }
+      }
+      await _audioPlayer.resume();
+      _playerState = AudioPlayerState.playing;
+      notifyListeners();
+      await _updatePlaybackNotification(true);
+      return;
+    }
+
     if (_playerState == AudioPlayerState.paused) {
       await _audioPlayer.resume();
       _playerState = AudioPlayerState.playing;
       notifyListeners();
-      
-      // Update notification
-      if (_currentEpisode != null) {
-        await _notificationService.updateNotification(
-          _currentEpisode!, 
-          true,
-          duration: _totalDuration.inMilliseconds,
-          currentPosition: _currentPosition.inMilliseconds,
-        );
-      }
+      await _updatePlaybackNotification(true);
     }
   }
 
@@ -1053,18 +1287,14 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> _handleMediaPlayPauseToggle() async {
-    if (isPlaying) {
-      await pause();
-    } else if (isPaused || _playerState == AudioPlayerState.stopped) {
-      await _handleMediaPlay();
-    }
+    await togglePlayPause();
   }
 
   void _handleAbRepeatLoop(Duration position) {
     final end = _abRepeatEnd;
     final start = _abRepeatStart;
     if (end == null || start == null) return;
-    if (_playerState != AudioPlayerState.playing) return;
+    if (!_isEffectivelyPlaying) return;
     if (position >= end) {
       unawaited(seekTo(start));
     }

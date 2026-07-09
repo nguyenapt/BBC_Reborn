@@ -20,7 +20,7 @@ let cachedAzureSpeechKey = null;
 
 const DEFAULT_SERVER_CONFIG = {
   allowedPackages:
-    "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
+    "com.learningenglish.studyingbbc.bbc_reborn;com.learningenglish.studyingbbc.bbcReborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
   enabled: true,
   azureSpeechRegion: "southeastasia",
   routes: {

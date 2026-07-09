@@ -314,7 +314,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
     _repeatAmpSub = _practiceService.onRecordingAmplitudeChanged().listen(
       _onRepeatAmplitude,
-      onError: (_) {},
+      onError: (error) {
+        debugPrint('Repeat recording amplitude error: $error');
+      },
     );
   }
 
@@ -448,7 +450,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  /// Dừng ghi thủ công và gửi phân tích ngay (nút Recording).
+  /// Dừng ghi thủ công — lưu file, chờ user bấm Gửi phân tích (tránh lỗi STT ngay khi stop).
   Future<void> _forceStopRepeatAndSendAnalysis() async {
     if (!_isRecording || _isProcessing || _repeatSelectedLine == null) return;
     if (_micStopInProgress) return;
@@ -462,59 +464,30 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       return;
     }
 
-    setState(() {
-      _isRecording = false;
-      _isProcessing = true;
-      _repeatAnalysisInProgress = true;
-      _repeatAutoStopScheduled = false;
-      _repeatRecordingStartedAt = null;
-      _repeatAwaitingSend = false;
-      _repeatPendingPath = null;
-      _repeatPendingDurationMs = null;
-    });
-    _repeatPulseController.stop();
-    _repeatPulseController.reset();
-
-    ({String path, int durationMs})? kept;
     try {
-      kept = await _practiceService.stopRecordingKeepFile();
-      await _ensureSession('repeat');
-
-      final result = await _practiceService.evaluateRecordingFile(
-        recordingPath: kept.path,
-        durationMs: kept.durationMs,
-        session: _repeatSession!,
-        episode: widget.episode,
-        mode: 'repeat',
-        lineText: _repeatSelectedLine!.text,
-        lineIndex: _lines.indexOf(_repeatSelectedLine!),
-        speaker: _repeatSelectedLine!.speaker,
-        lineStartMs: _repeatSelectedLine!.startTime,
-        lineEndMs: _repeatSelectedLine!.endTime,
-      );
-      _repeatSession = result.updatedSession;
+      final kept = await _practiceService.stopRecordingKeepFile();
       if (!mounted) return;
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
       setState(() {
-        _isProcessing = false;
-        _repeatAnalysisInProgress = false;
+        _isRecording = false;
+        _repeatAwaitingSend = true;
+        _repeatPendingPath = kept.path;
+        _repeatPendingDurationMs = kept.durationMs;
+        _repeatAutoStopScheduled = false;
+        _repeatRecordingStartedAt = null;
       });
-      await _navigateToAnalysis(result, _repeatSelectedLine!);
     } catch (e) {
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
       if (mounted) {
         setState(() {
-          _isProcessing = false;
-          _repeatAnalysisInProgress = false;
-          if (kept != null) {
-            _repeatAwaitingSend = true;
-            _repeatPendingPath = kept.path;
-            _repeatPendingDurationMs = kept.durationMs;
-          }
+          _isRecording = false;
+          _repeatAutoStopScheduled = false;
+          _repeatRecordingStartedAt = null;
         });
       }
-      _showError(
-        e,
-        onRetry: kept != null ? () => _sendRepeatAnalysis() : null,
-      );
+      _showError(e);
     } finally {
       _micStopInProgress = false;
     }
@@ -549,7 +522,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
 
     _roleplayAmpSub = _practiceService.onRecordingAmplitudeChanged().listen(
       _onRoleplayAmplitude,
-      onError: (_) {},
+      onError: (error) {
+        debugPrint('Roleplay recording amplitude error: $error');
+      },
     );
   }
 
@@ -567,60 +542,30 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
       return;
     }
 
-    setState(() {
-      _isRecording = false;
-      _isProcessing = true;
-      _roleplayAnalysisInProgress = true;
-      _roleplayAutoStopScheduled = false;
-      _roleplayRecordingStartedAt = null;
-      _roleplayAwaitingSend = false;
-      _roleplayPendingPath = null;
-      _roleplayPendingDurationMs = null;
-    });
-    _repeatPulseController.stop();
-    _repeatPulseController.reset();
-
-    ({String path, int durationMs})? kept;
     try {
-      kept = await _practiceService.stopRecordingKeepFile();
-      await _ensureSession('roleplay');
-
-      final result = await _practiceService.evaluateRecordingFile(
-        recordingPath: kept.path,
-        durationMs: kept.durationMs,
-        session: _roleplaySession!,
-        episode: widget.episode,
-        mode: 'roleplay',
-        lineText: line.text,
-        lineIndex: _lines.indexOf(line),
-        speaker: line.speaker,
-        lineStartMs: line.startTime,
-        lineEndMs: line.endTime,
-      );
-      _roleplaySession = result.updatedSession;
+      final kept = await _practiceService.stopRecordingKeepFile();
       if (!mounted) return;
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
       setState(() {
-        _isProcessing = false;
-        _roleplayAnalysisInProgress = false;
-        _roleplayIndex = _roleplayIndex + 1;
+        _isRecording = false;
+        _roleplayAwaitingSend = true;
+        _roleplayPendingPath = kept.path;
+        _roleplayPendingDurationMs = kept.durationMs;
+        _roleplayAutoStopScheduled = false;
+        _roleplayRecordingStartedAt = null;
       });
-      await _navigateToAnalysis(result, line);
     } catch (e) {
+      _repeatPulseController.stop();
+      _repeatPulseController.reset();
       if (mounted) {
         setState(() {
-          _isProcessing = false;
-          _roleplayAnalysisInProgress = false;
-          if (kept != null) {
-            _roleplayAwaitingSend = true;
-            _roleplayPendingPath = kept.path;
-            _roleplayPendingDurationMs = kept.durationMs;
-          }
+          _isRecording = false;
+          _roleplayAutoStopScheduled = false;
+          _roleplayRecordingStartedAt = null;
         });
       }
-      _showError(
-        e,
-        onRetry: kept != null ? () => _sendRoleplayAnalysis() : null,
-      );
+      _showError(e);
     } finally {
       _micStopInProgress = false;
     }

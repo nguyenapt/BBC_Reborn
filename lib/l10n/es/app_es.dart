@@ -66,6 +66,7 @@ class AppEs {
     'speakingSttFailed': 'No se pudo reconocer tu voz. Graba de nuevo con más claridad.',
     'speakingSttNotConfigured': 'El reconocimiento de voz no está disponible en esta versión.',
     'speakingAnalysisFailed': 'No se pudo analizar tu pronunciación. Inténtalo más tarde.',
+    'speakingRecordingFailed': 'No se pudo guardar la grabación. Inténtalo de nuevo.',
     'retry': 'Reintentar',
     'aiRateLimitError': 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.',
     'aiNetworkError': 'Error de red. Comprueba tu conexión e inténtalo de nuevo.',

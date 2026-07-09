@@ -66,6 +66,7 @@ class AppKo {
     'speakingSttFailed': '음성을 인식하지 못했습니다. 더 명확하게 다시 녹음해 주세요.',
     'speakingSttNotConfigured': '이 빌드에서는 음성 인식을 사용할 수 없습니다.',
     'speakingAnalysisFailed': '발음 분석에 실패했습니다. 나중에 다시 시도해 주세요.',
+    'speakingRecordingFailed': '녹음을 저장할 수 없습니다. 다시 시도해 주세요.',
     'retry': '다시 시도',
     'aiRateLimitError': '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     'aiNetworkError': '네트워크 오류입니다. 연결을 확인한 후 다시 시도해 주세요.',

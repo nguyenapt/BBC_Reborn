@@ -66,6 +66,7 @@ class AppFr {
     'speakingSttFailed': 'Impossible de reconnaître votre voix. Réenregistrez plus clairement.',
     'speakingSttNotConfigured': 'La reconnaissance vocale n\'est pas disponible sur cette version.',
     'speakingAnalysisFailed': 'Impossible d\'analyser votre prononciation. Veuillez réessayer plus tard.',
+    'speakingRecordingFailed': 'Impossible d\'enregistrer. Veuillez réessayer.',
     'aiRateLimitError': 'Trop de requêtes. Veuillez patienter un moment et réessayer.',
     'aiNetworkError': 'Erreur réseau. Vérifiez votre connexion et réessayez.',
     'noHeartsAvailable': 'Plus de cœurs disponibles. Regardez une publicité pour en gagner.',

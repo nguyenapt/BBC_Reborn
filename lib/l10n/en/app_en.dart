@@ -66,6 +66,7 @@ class AppEn {
     'speakingSttFailed': "Couldn't recognize your speech. Try recording again more clearly.",
     'speakingSttNotConfigured': 'Speech recognition is not available on this build.',
     'speakingAnalysisFailed': "Couldn't analyze your pronunciation. Please try again later.",
+    'speakingRecordingFailed': "Couldn't save your recording. Please try again.",
     'aiRateLimitError': 'Too many requests. Please wait a moment and try again.',
     'aiNetworkError': 'Network error. Please check your connection and try again.',
     'noHeartsAvailable': 'No hearts available. Watch an ad to earn more hearts.',

@@ -66,6 +66,7 @@ class AppVi {
     'speakingSttFailed': 'Không nhận dạng được giọng nói. Hãy ghi lại rõ hơn và thử lại.',
     'speakingSttNotConfigured': 'Nhận dạng giọng nói chưa sẵn sàng trên phiên bản này.',
     'speakingAnalysisFailed': 'Không thể phân tích phát âm. Vui lòng thử lại sau.',
+    'speakingRecordingFailed': 'Không thể lưu bản ghi. Vui lòng thử lại.',
     'aiRateLimitError': 'Quá nhiều yêu cầu. Vui lòng đợi một chút rồi thử lại.',
     'aiNetworkError': 'Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.',
     'noHeartsAvailable': 'Hết lượt tim. Xem quảng cáo để nhận thêm tim.',

@@ -66,6 +66,7 @@ class AppJa {
     'speakingSttFailed': '音声を認識できませんでした。もう一度はっきり録音してください。',
     'speakingSttNotConfigured': 'このビルドでは音声認識を利用できません。',
     'speakingAnalysisFailed': '発音を分析できませんでした。後でもう一度お試しください。',
+    'speakingRecordingFailed': '録音を保存できませんでした。もう一度お試しください。',
     'retry': '再試行',
     'aiRateLimitError': 'リクエストが多すぎます。しばらく待ってからもう一度お試しください。',
     'aiNetworkError': 'ネットワークエラーです。接続を確認してからもう一度お試しください。',

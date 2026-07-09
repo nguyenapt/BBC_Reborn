@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/language_manager.dart';
 import 'learning_checklist_bar.dart';
@@ -40,12 +41,17 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
   bool _isAdLoading = false;
 
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitIdAndroid =
+      'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitIdIOS =
+      'ca-app-pub-2189112136936277/3811519971';
 
   final LanguageManager _languageManager = LanguageManager();
 
   String _getAdUnitId() {
-    return kDebugMode ? _testAdUnitId : _productionAdUnitId;
+    return kDebugMode
+        ? _testAdUnitId
+        : (Platform.isIOS ? _productionAdUnitIdIOS : _productionAdUnitIdAndroid);
   }
 
   static const double _minAttributionPx = 18;

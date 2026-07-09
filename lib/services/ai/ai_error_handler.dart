@@ -100,9 +100,20 @@ class AIErrorHandler {
     if (error is SpeakingAnalysisException) {
       return _languageManager.getText('speakingAnalysisFailed');
     }
+    if (error is SpeakingRecordingException) {
+      return _languageManager.getText('speakingRecordingFailed');
+    }
     if (error is APIException) {
       if (_isSpeechTranscriptionFailure(raw)) {
         return _languageManager.getText('speakingSttFailed');
+      }
+      final lower = raw.toLowerCase();
+      if (lower.contains('package not allowed') ||
+          lower.contains('permission-denied')) {
+        return genericUserMessage;
+      }
+      if (lower.contains('app check') || lower.contains('appcheck')) {
+        return _languageManager.getText('aiNetworkError');
       }
       return genericUserMessage;
     }

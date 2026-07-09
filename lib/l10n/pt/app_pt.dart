@@ -66,6 +66,7 @@ class AppPt {
     'speakingSttFailed': 'Não foi possível reconhecer sua fala. Grave novamente com mais clareza.',
     'speakingSttNotConfigured': 'O reconhecimento de voz não está disponível nesta versão.',
     'speakingAnalysisFailed': 'Não foi possível analisar sua pronúncia. Tente novamente mais tarde.',
+    'speakingRecordingFailed': 'Não foi possível salvar a gravação. Tente novamente.',
     'retry': 'Tentar novamente',
     'aiRateLimitError': 'Muitas solicitações. Aguarde um momento e tente novamente.',
     'aiNetworkError': 'Erro de rede. Verifique sua conexão e tente novamente.',

@@ -20,6 +20,8 @@ import 'local_database_service.dart';
 import 'learning_progress_service.dart';
 import 'speaking_review_service.dart';
 import 'speaking_feedback_service.dart';
+import 'audio_player_service.dart';
+import 'ai/exceptions.dart';
 
 class SpeakingAttemptResult {
   final SpeakingAttempt attempt;
@@ -50,7 +52,11 @@ class SpeakingPracticeService {
 
   Future<bool> requestMicrophonePermission() async {
     final status = await Permission.microphone.request();
-    return status.isGranted;
+    if (status.isGranted) return true;
+    if (!kIsWeb && Platform.isIOS) {
+      return _recorder.hasPermission(request: true);
+    }
+    return false;
   }
 
   /// Luồng biên độ âm thanh khi đang ghi (dùng cho tự ngắt khi im lặng).
@@ -64,6 +70,9 @@ class SpeakingPracticeService {
     await _recorder.cancel();
     _recordingStartedAt = null;
     _currentRecordingPath = null;
+    if (!kIsWeb && Platform.isIOS) {
+      await AudioPlayerService().restoreAfterRecording();
+    }
   }
 
   /// Xóa file WAV đã giữ lại (không qua evaluate).
@@ -110,6 +119,10 @@ class SpeakingPracticeService {
       throw Exception('Microphone permission denied');
     }
 
+    if (!kIsWeb && Platform.isIOS) {
+      await AudioPlayerService().prepareForRecording();
+    }
+
     final tempDir = await getTemporaryDirectory();
     final fileName = 'speaking_${DateTime.now().millisecondsSinceEpoch}.wav';
     final path = '${tempDir.path}/$fileName';
@@ -117,29 +130,76 @@ class SpeakingPracticeService {
     _recordingStartedAt = DateTime.now();
     _currentRecordingPath = path;
 
-    await _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.wav,
-        sampleRate: 16000,
-        numChannels: 1,
-        bitRate: 16000,
-      ),
-      path: path,
-    );
+    try {
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+          bitRate: 16000,
+        ),
+        path: path,
+      );
+    } catch (e) {
+      if (!kIsWeb && Platform.isIOS) {
+        await AudioPlayerService().restoreAfterRecording();
+      }
+      rethrow;
+    }
   }
 
   /// Dừng mic, giữ file WAV để phân tích sau (tab Repeat — tự ngắt im lặng).
   Future<({String path, int durationMs})> stopRecordingKeepFile() async {
     final durationMs = _calculateDurationMs();
-    final path = await _recorder.stop();
-    final recordingPath = path ?? _currentRecordingPath;
+    String? recordingPath;
+    try {
+      try {
+        if (await _recorder.isRecording()) {
+          recordingPath = await _recorder.stop() ?? _currentRecordingPath;
+        } else {
+          recordingPath = _currentRecordingPath;
+        }
+      } catch (e) {
+        debugPrint('Speaking: recorder.stop failed: $e');
+        recordingPath = _currentRecordingPath;
+        if (recordingPath == null) rethrow;
+      }
 
-    if (recordingPath == null) {
-      throw Exception('Recording not found');
+      recordingPath = await _waitForRecordingFile(recordingPath!);
+      _recordingStartedAt = null;
+      return (path: recordingPath, durationMs: durationMs);
+    } finally {
+      if (!kIsWeb && Platform.isIOS) {
+        try {
+          await AudioPlayerService().restoreAfterRecording();
+        } catch (e) {
+          debugPrint('Speaking: restoreAfterRecording failed: $e');
+        }
+      }
+    }
+  }
+
+  Future<String> _waitForRecordingFile(String path) async {
+    if (path.isEmpty) {
+      throw SpeakingRecordingException();
     }
 
-    _recordingStartedAt = null;
-    return (path: recordingPath, durationMs: durationMs);
+    final file = File(path);
+    for (var attempt = 0; attempt < 8; attempt++) {
+      if (file.existsSync() && file.lengthSync() >= 44) {
+        return path;
+      }
+      if (!kIsWeb && Platform.isIOS) {
+        await Future<void>.delayed(Duration(milliseconds: 60 * (attempt + 1)));
+      } else if (attempt == 0) {
+        break;
+      }
+    }
+
+    if (!file.existsSync() || file.lengthSync() < 44) {
+      throw SpeakingRecordingException();
+    }
+    return path;
   }
 
   Future<SpeakingAttemptResult> evaluateRecordingFile({

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/language_manager.dart';
 import 'native_ad_theme.dart';
@@ -38,7 +39,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _isAdLoading = false;
 
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitIdAndroid =
+      'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitIdIOS =
+      'ca-app-pub-2189112136936277/3811519971';
 
   final LanguageManager _languageManager = LanguageManager();
 
@@ -48,7 +52,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     if (widget.adUnitId != null) {
       return widget.adUnitId!;
     }
-    return kDebugMode ? _testAdUnitId : _productionAdUnitId;
+    return kDebugMode
+        ? _testAdUnitId
+        : (Platform.isIOS ? _productionAdUnitIdIOS : _productionAdUnitIdAndroid);
   }
 
   @override

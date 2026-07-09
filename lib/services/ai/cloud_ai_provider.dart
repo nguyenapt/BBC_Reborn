@@ -4,6 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../app_check_service.dart';
 import 'ai_provider.dart';
 import 'exceptions.dart';
 
@@ -33,6 +34,7 @@ class CloudAIProvider implements AIProvider {
     Map<String, dynamic> payload,
   ) async {
     try {
+      await AppCheckService.instance.ensureTokenBeforeCall();
       final callable = _functions.httpsCallable(_callableName);
       // Avoid .call<Map<...>> on web — causes JSObject cast TypeError.
       final result = await callable.call({
@@ -67,6 +69,9 @@ class CloudAIProvider implements AIProvider {
     } on FirebaseException catch (e) {
       debugPrint('CloudAIProvider FirebaseException [$action]: ${e.code} ${e.message}');
       throw _mapFirebaseError(e.code, e.message, e);
+    } on AppCheckException catch (e) {
+      debugPrint('CloudAIProvider AppCheck [$action]: ${e.message}');
+      throw APIException(e.message, null, e);
     } catch (e) {
       if (e is AIException) rethrow;
       debugPrint('CloudAIProvider unexpected error [$action]: $e');
@@ -75,6 +80,12 @@ class CloudAIProvider implements AIProvider {
   }
 
   Never _mapFirebaseError(String? code, String? message, Object? original) {
+    if (code == 'failed-precondition' || code == 'unauthenticated') {
+      throw APIException(message ?? 'App Check verification failed', null, original);
+    }
+    if (code == 'permission-denied') {
+      throw APIException(message ?? 'Package not allowed', null, original);
+    }
     if (code == 'resource-exhausted') {
       throw RateLimitException(message);
     }

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/language_manager.dart';
 import '../services/user_profile_service.dart';
 import '../main.dart';
+import '../widgets/language_flag_icon.dart';
 import 'ads_support_notice_screen.dart';
 import 'onboarding_profile_screen.dart';
 
@@ -23,67 +24,56 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       locale: Locale('ar'),
       name: 'Arabic',
       nativeName: 'العربية',
-      flag: '🇸🇦',
     ),
     LanguageOption(
       locale: Locale('zh'),
       name: 'Chinese',
       nativeName: '中文',
-      flag: '🇨🇳',
     ),
     LanguageOption(
       locale: Locale('de'),
       name: 'German',
       nativeName: 'Deutsch',
-      flag: '🇩🇪',
     ),
     LanguageOption(
       locale: Locale('en'),
       name: 'English',
       nativeName: 'English',
-      flag: '🇺🇸',
     ),
     LanguageOption(
       locale: Locale('es'),
       name: 'Spanish',
       nativeName: 'Español',
-      flag: '🇪🇸',
     ),
     LanguageOption(
       locale: Locale('fr'),
       name: 'French',
       nativeName: 'Français',
-      flag: '🇫🇷',
     ),
     LanguageOption(
       locale: Locale('ja'),
       name: 'Japanese',
       nativeName: '日本語',
-      flag: '🇯🇵',
     ),
     LanguageOption(
       locale: Locale('ko'),
       name: 'Korean',
       nativeName: '한국어',
-      flag: '🇰🇷',
     ),
     LanguageOption(
       locale: Locale('pt'),
       name: 'Portuguese',
       nativeName: 'Português',
-      flag: '🇧🇷',
     ),
     LanguageOption(
       locale: Locale('ru'),
       name: 'Russian',
       nativeName: 'Русский',
-      flag: '🇷🇺',
     ),
     LanguageOption(
       locale: Locale('vi'),
       name: 'Vietnamese',
       nativeName: 'Tiếng Việt',
-      flag: '🇻🇳',
     ),
   ];
 
@@ -270,13 +260,11 @@ class LanguageOption {
   final Locale locale;
   final String name;
   final String nativeName;
-  final String flag;
 
   const LanguageOption({
     required this.locale,
     required this.name,
     required this.nativeName,
-    required this.flag,
   });
 }
 
@@ -321,9 +309,9 @@ class _LanguageChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                language.flag,
-                style: const TextStyle(fontSize: 22, height: 1.1),
+              LanguageFlagIcon(
+                languageCode: language.locale.languageCode,
+                size: 22,
               ),
               const SizedBox(width: 8),
               Text(

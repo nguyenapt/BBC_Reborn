@@ -66,6 +66,7 @@ class AppDe {
     'speakingSttFailed': 'Ihre Sprache konnte nicht erkannt werden. Bitte deutlicher aufnehmen.',
     'speakingSttNotConfigured': 'Spracherkennung ist in dieser Version nicht verfügbar.',
     'speakingAnalysisFailed': 'Aussprache konnte nicht analysiert werden. Bitte später erneut versuchen.',
+    'speakingRecordingFailed': 'Aufnahme konnte nicht gespeichert werden. Bitte erneut versuchen.',
     'aiRateLimitError': 'Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.',
     'aiNetworkError': 'Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.',
     'noHeartsAvailable': 'Keine Herzen verfügbar. Schauen Sie eine Werbung, um mehr zu erhalten.',
