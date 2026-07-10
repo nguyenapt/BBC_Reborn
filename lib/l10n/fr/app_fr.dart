@@ -86,7 +86,7 @@ class AppFr {
 
     // Rate App
     'rateApp': 'Noter l\'application',
-    'rateAppMessage': 'Si vous appréciez cette application, prenez un moment pour la noter 5 étoiles sur le Google Play Store. Cela nous aide à l\'améliorer !',
+    'rateAppMessage': 'Si vous appréciez cette application, prenez un moment pour la noter 5 étoiles sur le store. Cela nous aide à l\'améliorer !',
     'rateNow': 'Noter maintenant',
     'rateAppInSettings': 'Noter l\'application',
 

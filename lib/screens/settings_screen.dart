@@ -1050,7 +1050,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   await RateAppService.markAsRated();
-                  await RateAppService.openPlayStore();
+                  await RateAppService.openStore();
                 },
                 icon: const Icon(Icons.star),
                 label: Text(_languageManager.getText('rateNow')),

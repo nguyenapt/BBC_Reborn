@@ -86,7 +86,7 @@ class AppDe {
 
     // Rate App
     'rateApp': 'App bewerten',
-    'rateAppMessage': 'Wenn Ihnen diese App gefällt, bewerten Sie sie bitte mit 5 Sternen im Google Play Store. Das hilft uns, die App zu verbessern!',
+    'rateAppMessage': 'Wenn Ihnen diese App gefällt, bewerten Sie sie bitte mit 5 Sternen im Store. Das hilft uns, die App zu verbessern!',
     'rateNow': 'Jetzt bewerten',
     'rateAppInSettings': 'App bewerten',
 

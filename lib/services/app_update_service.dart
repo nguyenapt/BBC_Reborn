@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_update_rtdb.dart';
+import '../config/store_links.dart';
 import '../models/app_update_remote_config.dart';
 
 /// Tải và đánh giá cấu hình cập nhật từ RTDB; mở store / Android in-app update.
@@ -99,21 +100,23 @@ class AppUpdateService {
     return evaluate(pkg, remote);
   }
 
-  /// Android: nếu không có [AppUpdateRemoteConfig.storeAndroidUrl], tự dựng URL Play
-  /// từ `package_info` (`packageName` = applicationId).
+  /// iOS: ưu tiên [AppUpdateRemoteConfig.storeIosUrl] (RTDB), rồi [kIosAppStoreId].
+  /// Android: ưu tiên RTDB, không có thì dựng từ `packageName`.
   Future<Uri> resolveStoreUri(AppUpdateRemoteConfig c, TargetPlatform platform) async {
     final raw = platform == TargetPlatform.iOS ? c.storeIosUrl : c.storeAndroidUrl;
-    if (raw != null && raw.isNotEmpty) {
-      final uri = Uri.tryParse(raw);
-      if (uri != null) return uri;
+    if (isUsableStoreUrl(raw)) {
+      return Uri.parse(raw!.trim());
     }
     if (platform == TargetPlatform.iOS) {
-      return Uri.parse('https://apps.apple.com');
+      return iosAppStoreUri() ?? Uri.parse('https://apps.apple.com');
     }
     final pkg = await PackageInfo.fromPlatform();
-    return Uri.parse(
-      'https://play.google.com/store/apps/details?id=${pkg.packageName}',
-    );
+    return androidPlayStoreUri(pkg.packageName);
+  }
+
+  /// Lấy cấu hình RTDB (có cache) — dùng cho rate app / mở store.
+  Future<AppUpdateRemoteConfig?> fetchConfig({bool bypassCache = false}) {
+    return _fetchRemote(bypassCache: bypassCache);
   }
 
   Future<void> openStore(AppUpdateRemoteConfig c, TargetPlatform platform) async {

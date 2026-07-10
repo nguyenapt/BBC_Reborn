@@ -84,6 +84,13 @@ class AppKo {
     'enableReviewRemindersTitle': '복습 알림을 켤까요?',
     'enableReviewRemindersDesc':
         '알림을 켜면 저장한 문법을 복습할 시간에 맞춰 알려드릴게요.',
+
+    // Rate App
+    'rateApp': '앱 평가하기',
+    'rateAppMessage':
+        '이 앱이 마음에 드셨다면 스토어에서 별 5개 평가를 남겨 주세요. 앱 개선에 큰 도움이 됩니다!',
+    'rateNow': '지금 평가하기',
+    'rateAppInSettings': '앱 평가하기',
     
     // Audio Controls
     'play': '재생',

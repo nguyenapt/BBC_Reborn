@@ -84,6 +84,13 @@ class AppJa {
     'enableReviewRemindersTitle': '復習リマインダーを有効にしますか？',
     'enableReviewRemindersDesc':
         '通知を有効にして、保存した文法を復習する時間になったらお知らせします。',
+
+    // Rate App
+    'rateApp': 'アプリを評価',
+    'rateAppMessage':
+        'このアプリを気に入っていただけましたら、ストアで5つ星の評価をお願いします。アプリの改善に役立ちます！',
+    'rateNow': '今すぐ評価',
+    'rateAppInSettings': 'アプリを評価',
     
     // Audio Controls
     'play': '再生',

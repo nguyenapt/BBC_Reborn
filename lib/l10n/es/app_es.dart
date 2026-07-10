@@ -84,6 +84,13 @@ class AppEs {
     'enableReviewRemindersTitle': '¿Activar recordatorios de repaso?',
     'enableReviewRemindersDesc':
         'Activa las notificaciones para que podamos recordarte cuándo repasar la gramática guardada.',
+
+    // Rate App
+    'rateApp': 'Valorar la app',
+    'rateAppMessage':
+        'Si te gusta esta aplicación, tómate un momento para valorarla con 5 estrellas en la tienda. ¡Esto nos ayuda a mejorarla!',
+    'rateNow': 'Valorar ahora',
+    'rateAppInSettings': 'Valorar la app',
     
     // Audio Controls
     'play': 'Reproducir',

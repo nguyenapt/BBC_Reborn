@@ -1,6 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../config/store_links.dart';
+import '../models/app_update_remote_config.dart';
+import 'app_update_service.dart';
 import 'language_manager.dart';
 
 class RateAppService {
@@ -103,26 +109,56 @@ class RateAppService {
     await prefs.setString(_lastRatePromptDateKey, DateTime.now().toIso8601String());
   }
 
-  /// Mở Google Play Store để rate app
-  static Future<void> openPlayStore() async {
-    const String packageName = 'com.learningenglish.studyingbbc.bbc_reborn'; // Thay bằng package name thực tế
-    const String playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
-    
+  /// Mở đúng store theo nền tảng (App Store trên iOS, Play Store trên Android).
+  static Future<void> openStore() async {
+    final uri = await _resolveStoreUri();
     try {
-      final Uri url = Uri.parse(playStoreUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        throw Exception('Could not launch $playStoreUrl');
-      }
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('Error opening Play Store: $e');
-      // Fallback: mở browser
-      try {
-        await launchUrl(Uri.parse(playStoreUrl), mode: LaunchMode.externalApplication);
-      } catch (e) {
-        debugPrint('Error opening browser: $e');
+      debugPrint('Error opening store ($uri): $e');
+    }
+  }
+
+  /// Giữ tên cũ để tương thích call site cũ.
+  @Deprecated('Use openStore()')
+  static Future<void> openPlayStore() => openStore();
+
+  static Future<Uri> _resolveStoreUri() async {
+    final platform = defaultTargetPlatform;
+    AppUpdateRemoteConfig? remote;
+    try {
+      remote = await AppUpdateService.instance.fetchConfig();
+    } catch (e) {
+      debugPrint('RateApp: fetch store config failed: $e');
+    }
+    remote ??= const AppUpdateRemoteConfig();
+
+    if (platform == TargetPlatform.iOS) {
+      if (isUsableStoreUrl(remote.storeIosUrl)) {
+        final base = Uri.parse(remote.storeIosUrl!.trim());
+        return base.replace(
+          queryParameters: {
+            ...base.queryParameters,
+            'action': 'write-review',
+          },
+        );
       }
+      final fromId = iosAppStoreUri();
+      if (fromId != null) return fromId;
+      debugPrint(
+        'RateApp: thiếu App Store ID — đặt kIosAppStoreId hoặc store_ios_url trên RTDB',
+      );
+      return Uri.parse('https://apps.apple.com');
+    }
+
+    if (isUsableStoreUrl(remote.storeAndroidUrl)) {
+      return Uri.parse(remote.storeAndroidUrl!.trim());
+    }
+    try {
+      final pkg = await PackageInfo.fromPlatform();
+      return androidPlayStoreUri(pkg.packageName);
+    } catch (_) {
+      return androidPlayStoreUri();
     }
   }
 
@@ -192,8 +228,9 @@ class RateAppService {
               onPressed: () {
                 Navigator.of(context).pop();
                 markAsRated();
-                openPlayStore();
+                openStore();
               },
+
               child: Text(
                 languageManager.getText('rateNow'),
                 style: TextStyle(

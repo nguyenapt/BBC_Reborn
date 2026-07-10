@@ -84,6 +84,13 @@ class AppAr {
     'enableReviewRemindersTitle': 'تفعيل تذكيرات المراجعة؟',
     'enableReviewRemindersDesc':
         'فعّل الإشعارات لنذكّرك عندما يحين وقت مراجعة القواعد المحفوظة.',
+
+    // Rate App
+    'rateApp': 'تقييم التطبيق',
+    'rateAppMessage':
+        'إذا أعجبك هذا التطبيق، خصّص لحظة لتقييمه بـ 5 نجوم في المتجر. هذا يساعدنا على تحسين التطبيق!',
+    'rateNow': 'قيّم الآن',
+    'rateAppInSettings': 'تقييم التطبيق',
     
     // Audio Controls
     'play': 'تشغيل',

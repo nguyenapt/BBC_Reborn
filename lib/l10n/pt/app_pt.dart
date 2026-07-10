@@ -84,6 +84,13 @@ class AppPt {
     'enableReviewRemindersTitle': 'Ativar lembretes de revisão?',
     'enableReviewRemindersDesc':
         'Ative as notificações para lembrarmos você quando for hora de revisar a gramática salva.',
+
+    // Rate App
+    'rateApp': 'Avaliar o app',
+    'rateAppMessage':
+        'Se você gosta deste aplicativo, reserve um momento para avaliá-lo com 5 estrelas na loja. Isso nos ajuda a melhorar o app!',
+    'rateNow': 'Avaliar agora',
+    'rateAppInSettings': 'Avaliar o app',
     
     // Audio Controls
     'play': 'Reproduzir',

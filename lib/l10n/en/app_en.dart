@@ -86,7 +86,7 @@ class AppEn {
     
     // Rate App
     'rateApp': 'Rate App',
-    'rateAppMessage': 'If you enjoy this app, please take a moment to rate it 5 stars on Google Play Store. This helps us improve the app!',
+    'rateAppMessage': 'If you enjoy this app, please take a moment to rate it 5 stars on the store. This helps us improve the app!',
     'rateNow': 'Rate Now',
     'rateAppInSettings': 'Rate App',
     

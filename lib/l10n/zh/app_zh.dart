@@ -84,6 +84,13 @@ class AppZh {
     'enableReviewRemindersTitle': '开启复习提醒？',
     'enableReviewRemindersDesc':
         '开启通知，我们会在需要复习已保存语法时提醒你。',
+
+    // Rate App
+    'rateApp': '评价应用',
+    'rateAppMessage':
+        '如果你喜欢这款应用，请花一点时间在应用商店给出5星评价。这将帮助我们把应用做得更好！',
+    'rateNow': '立即评价',
+    'rateAppInSettings': '评价应用',
     
     // Audio Controls
     'play': '播放',

@@ -125,6 +125,18 @@ namespace playMP3
                         Sound = "default",
                     },
                 },
+                Apns = new ApnsConfig
+                {
+                    Headers = new Dictionary<string, string>
+                    {
+                        { "apns-priority", "10" },
+                    },
+                    Aps = new Aps
+                    {
+                        Sound = "default",
+                        Badge = 1,
+                    },
+                },
             };
 
             return await FirebaseMessaging.DefaultInstance

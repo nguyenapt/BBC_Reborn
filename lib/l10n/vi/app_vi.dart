@@ -86,7 +86,7 @@ class AppVi {
     
     // Rate App
     'rateApp': 'Đánh giá ứng dụng',
-    'rateAppMessage': 'Nếu bạn thích ứng dụng này, hãy dành chút thời gian để đánh giá 5 sao trên Google Play Store. Điều này sẽ giúp chúng tôi cải thiện ứng dụng tốt hơn!',
+    'rateAppMessage': 'Nếu bạn thích ứng dụng này, hãy dành chút thời gian để đánh giá 5 sao trên cửa hàng ứng dụng. Điều này sẽ giúp chúng tôi cải thiện ứng dụng tốt hơn!',
     'rateNow': 'Đánh giá ngay',
     'rateAppInSettings': 'Đánh giá ứng dụng',
     
