@@ -210,6 +210,7 @@ class AppJa {
     'email': 'メール',
     'password': 'パスワード',
     'name': '名前',
+    'loginWithApple': 'Appleでサインイン',
     'loginWithGoogle': 'Googleでログイン',
     'loginToSync': 'デバイス間でデータを同期するためにログイン',
     'syncedToCloud': 'クラウドに同期済み',

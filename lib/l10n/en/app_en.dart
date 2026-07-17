@@ -209,6 +209,7 @@ class AppEn {
     'email': 'Email',
     'password': 'Password',
     'name': 'Name',
+    'loginWithApple': 'Sign in with Apple',
     'loginWithGoogle': 'Login with Google',
     'loginToSync': 'Login to sync your data across devices',
     'syncedToCloud': 'Synced to cloud',

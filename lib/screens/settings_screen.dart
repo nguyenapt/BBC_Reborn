@@ -298,6 +298,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+              // Apple trước Google trên iOS
+              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _handleAppleLogin(),
+                    icon: const Icon(Icons.apple, size: 20),
+                    label: Text(_languageManager.getText('loginWithApple')),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               // Google login button
               SizedBox(
                 width: double.infinity,
@@ -395,6 +414,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AuthDialog(isLogin: isLogin),
     );
+  }
+
+  Future<void> _handleAppleLogin() async {
+    try {
+      final result = await _authService.loginWithApple();
+
+      if (result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_languageManager.getText('loginSuccess')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _handleGoogleLogin() async {

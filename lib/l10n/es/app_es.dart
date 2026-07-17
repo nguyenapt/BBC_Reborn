@@ -210,6 +210,7 @@ class AppEs {
     'email': 'Correo',
     'password': 'Contraseña',
     'name': 'Nombre',
+    'loginWithApple': 'Iniciar sesión con Apple',
     'loginWithGoogle': 'Iniciar sesión con Google',
     'loginToSync': 'Inicia sesión para sincronizar tus datos entre dispositivos',
     'syncedToCloud': 'Sincronizado con la nube',

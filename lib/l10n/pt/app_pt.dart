@@ -210,6 +210,7 @@ class AppPt {
     'email': 'Email',
     'password': 'Senha',
     'name': 'Nome',
+    'loginWithApple': 'Entrar com a Apple',
     'loginWithGoogle': 'Entrar com Google',
     'loginToSync': 'Entre para sincronizar seus dados entre dispositivos',
     'syncedToCloud': 'Sincronizado com a nuvem',

@@ -210,6 +210,7 @@ class AppAr {
     'email': 'البريد الإلكتروني',
     'password': 'كلمة المرور',
     'name': 'الاسم',
+    'loginWithApple': 'تسجيل الدخول بـ Apple',
     'loginWithGoogle': 'تسجيل الدخول بـ Google',
     'loginToSync': 'سجل الدخول لمزامنة بياناتك عبر الأجهزة',
     'syncedToCloud': 'مزامن مع السحابة',

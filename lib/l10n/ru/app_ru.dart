@@ -210,6 +210,7 @@ class AppRu {
     'email': 'Email',
     'password': 'Пароль',
     'name': 'Имя',
+    'loginWithApple': 'Войти через Apple',
     'loginWithGoogle': 'Войти через Google',
     'loginToSync': 'Войдите для синхронизации данных между устройствами',
     'syncedToCloud': 'Синхронизировано с облаком',

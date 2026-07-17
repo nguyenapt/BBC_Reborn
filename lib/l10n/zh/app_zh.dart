@@ -210,6 +210,7 @@ class AppZh {
     'email': '邮箱',
     'password': '密码',
     'name': '姓名',
+    'loginWithApple': '通过 Apple 登录',
     'loginWithGoogle': '使用Google登录',
     'loginToSync': '登录以在设备间同步数据',
     'syncedToCloud': '已同步到云端',

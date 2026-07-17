@@ -209,6 +209,7 @@ class AppVi {
     'email': 'Email',
     'password': 'Mật khẩu',
     'name': 'Tên',
+    'loginWithApple': 'Đăng nhập với Apple',
     'loginWithGoogle': 'Đăng nhập với Google',
     'loginToSync': 'Đăng nhập để đồng bộ dữ liệu trên các thiết bị',
     'syncedToCloud': 'Đã đồng bộ lên cloud',

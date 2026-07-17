@@ -209,6 +209,7 @@ class AppDe {
     'email': 'E-Mail',
     'password': 'Passwort',
     'name': 'Name',
+    'loginWithApple': 'Mit Apple anmelden',
     'loginWithGoogle': 'Mit Google anmelden',
     'loginToSync': 'Melden Sie sich an, um Ihre Daten geräteübergreifend zu synchronisieren',
     'syncedToCloud': 'Mit Cloud synchronisiert',

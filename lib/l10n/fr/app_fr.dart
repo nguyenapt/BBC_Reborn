@@ -209,6 +209,7 @@ class AppFr {
     'email': 'E-mail',
     'password': 'Mot de passe',
     'name': 'Nom',
+    'loginWithApple': 'Se connecter avec Apple',
     'loginWithGoogle': 'Se connecter avec Google',
     'loginToSync': 'Connectez-vous pour synchroniser vos données entre appareils',
     'syncedToCloud': 'Synchronisé avec le cloud',

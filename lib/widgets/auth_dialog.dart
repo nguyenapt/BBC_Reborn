@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/language_manager.dart';
@@ -21,9 +22,12 @@ class _AuthDialogState extends State<AuthDialog> {
   final _nameController = TextEditingController();
   final _authService = AuthService();
   final _languageManager = LanguageManager();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  bool get _showAppleSignIn =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
   void dispose() {
@@ -40,7 +44,7 @@ class _AuthDialogState extends State<AuthDialog> {
       builder: (context, child) {
         return AlertDialog(
           title: Text(
-            widget.isLogin 
+            widget.isLogin
                 ? _languageManager.getText('login')
                 : _languageManager.getText('register'),
           ),
@@ -65,14 +69,15 @@ class _AuthDialogState extends State<AuthDialog> {
                       if (value == null || value.isEmpty) {
                         return _languageManager.getText('emailRequired');
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
                         return _languageManager.getText('emailInvalid');
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Name field (only for register)
                   if (!widget.isLogin) ...[
                     TextFormField(
@@ -85,7 +90,8 @@ class _AuthDialogState extends State<AuthDialog> {
                         ),
                       ),
                       validator: (value) {
-                        if (!widget.isLogin && (value == null || value.isEmpty)) {
+                        if (!widget.isLogin &&
+                            (value == null || value.isEmpty)) {
                           return _languageManager.getText('nameRequired');
                         }
                         return null;
@@ -93,7 +99,7 @@ class _AuthDialogState extends State<AuthDialog> {
                     ),
                     const SizedBox(height: 16),
                   ],
-                  
+
                   // Password field
                   TextFormField(
                     controller: _passwordController,
@@ -103,7 +109,9 @@ class _AuthDialogState extends State<AuthDialog> {
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
                         onPressed: () {
                           setState(() {
@@ -126,7 +134,7 @@ class _AuthDialogState extends State<AuthDialog> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Login/Register button
                   SizedBox(
                     width: double.infinity,
@@ -135,7 +143,8 @@ class _AuthDialogState extends State<AuthDialog> {
                       onPressed: _isLoading ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -143,7 +152,7 @@ class _AuthDialogState extends State<AuthDialog> {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : Text(
-                              widget.isLogin 
+                              widget.isLogin
                                   ? _languageManager.getText('login')
                                   : _languageManager.getText('register'),
                               style: const TextStyle(fontSize: 16),
@@ -151,7 +160,29 @@ class _AuthDialogState extends State<AuthDialog> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
+                  // Apple trước Google trên iOS
+                  if (_showAppleSignIn) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _handleAppleLogin,
+                        icon: const Icon(Icons.apple, size: 22),
+                        label:
+                            Text(_languageManager.getText('loginWithApple')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // Google login button
                   SizedBox(
                     width: double.infinity,
@@ -163,7 +194,9 @@ class _AuthDialogState extends State<AuthDialog> {
                         height: 20,
                         decoration: const BoxDecoration(
                           image: DecorationImage(
-                            image: NetworkImage('https://developers.google.com/identity/images/g-logo.png'),
+                            image: NetworkImage(
+                              'https://developers.google.com/identity/images/g-logo.png',
+                            ),
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -201,7 +234,7 @@ class _AuthDialogState extends State<AuthDialog> {
 
     try {
       AuthResult result;
-      
+
       if (widget.isLogin) {
         result = await _authService.loginWithEmail(
           _emailController.text.trim(),
@@ -220,7 +253,7 @@ class _AuthDialogState extends State<AuthDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.isLogin 
+              widget.isLogin
                   ? _languageManager.getText('loginSuccess')
                   : _languageManager.getText('registerSuccess'),
             ),
@@ -230,7 +263,49 @@ class _AuthDialogState extends State<AuthDialog> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            content: Text(
+              result.error ?? _languageManager.getText('unknownError'),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleAppleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.loginWithApple();
+
+      if (result.isSuccess) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_languageManager.getText('loginSuccess')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.error ?? _languageManager.getText('unknownError'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -256,7 +331,7 @@ class _AuthDialogState extends State<AuthDialog> {
 
     try {
       final result = await _authService.loginWithGoogle();
-      
+
       if (result.isSuccess) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -268,7 +343,9 @@ class _AuthDialogState extends State<AuthDialog> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            content: Text(
+              result.error ?? _languageManager.getText('unknownError'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
