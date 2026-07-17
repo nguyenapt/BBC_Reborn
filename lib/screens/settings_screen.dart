@@ -230,22 +230,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Column(
-              children: [
-                Icon(
-                  Icons.account_circle,
-                  size: 40,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _languageManager.getText('account'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                if (!_authService.isLoggedIn) ...[
+            if (!_authService.isLoggedIn) ...[
+              Column(
+                children: [
+                  Icon(
+                    Icons.account_circle,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _languageManager.getText('account'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     _languageManager.getText('loginToSync'),
@@ -255,9 +255,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_authService.isLoggedIn) ...[
               _buildUserInfo(),
               const SizedBox(height: 16),
@@ -309,48 +309,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               _buildOrSignInWithSeparator(),
               const SizedBox(height: 16),
-              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleAppleLogin(),
-                    icon: const Icon(Icons.apple, size: 20),
-                    label: Text(_languageManager.getText('loginWithApple')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _handleGoogleLogin(),
-                  icon: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          'https://developers.google.com/identity/images/g-logo.png',
+              Row(
+                children: [
+                  if (!kIsWeb &&
+                      defaultTargetPlatform == TargetPlatform.iOS) ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleAppleLogin(),
+                        icon: const Icon(Icons.apple, size: 20),
+                        label: const Text('Apple'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleGoogleLogin(),
+                      icon: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              'https://developers.google.com/identity/images/g-logo.png',
+                            ),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      label: const Text('Google'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: BorderSide(color: Colors.grey[300]!),
                       ),
                     ),
                   ),
-                  label: Text(_languageManager.getText('loginWithGoogle')),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    side: BorderSide(color: Colors.grey[300]!),
-                  ),
-                ),
+                ],
               ),
             ],
           ],

@@ -161,54 +161,59 @@ class _AuthDialogState extends State<AuthDialog> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Apple trước Google trên iOS
-                  if (_showAppleSignIn) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _handleAppleLogin,
-                        icon: const Icon(Icons.apple, size: 22),
-                        label:
-                            Text(_languageManager.getText('loginWithApple')),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Google login button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _handleGoogleLogin,
-                      icon: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: const BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage(
-                              'https://developers.google.com/identity/images/g-logo.png',
+                  // Apple + Google xếp ngang (Apple trước trên iOS)
+                  Row(
+                    children: [
+                      if (_showAppleSignIn) ...[
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed:
+                                  _isLoading ? null : _handleAppleLogin,
+                              icon: const Icon(Icons.apple, size: 22),
+                              label: const Text('Apple'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
-                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                _isLoading ? null : _handleGoogleLogin,
+                            icon: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: const BoxDecoration(
+                                image: DecorationImage(
+                                  image: NetworkImage(
+                                    'https://developers.google.com/identity/images/g-logo.png',
+                                  ),
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            label: const Text('Google'),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: BorderSide(color: Colors.grey[300]!),
+                            ),
                           ),
                         ),
                       ),
-                      label: Text(_languageManager.getText('loginWithGoogle')),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        side: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
