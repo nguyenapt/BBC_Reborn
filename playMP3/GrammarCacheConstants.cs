@@ -37,6 +37,9 @@ namespace playMP3
         /// <summary>MUST_SYNC Flutter <c>QuestionSlide</c> / <c>AIQuestionService.generateQuestions</c> default count (5).</summary>
         public const int DefaultQuestionCount = 5;
 
+        /// <summary>Số từ/cụm gợi ý mặc định khi Get Vocab from transcript.</summary>
+        public const int DefaultVocabularySuggestionCount = 10;
+
         /// <summary>Gemini REST model id (playMP3 tool); intentionally flash-lite for speed/cost vs Flutter app.</summary>
         public const string GeminiModelId = "gemini-2.5-flash-lite";
     }
