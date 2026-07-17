@@ -212,6 +212,7 @@ class AppPt {
     'name': 'Nome',
     'loginWithApple': 'Entrar com a Apple',
     'loginWithGoogle': 'Entrar com Google',
+    'orSignInWith': 'ou entrar com',
     'loginToSync': 'Entre para sincronizar seus dados entre dispositivos',
     'syncedToCloud': 'Sincronizado com a nuvem',
     'logoutConfirm': 'Tem certeza de que quer sair?',

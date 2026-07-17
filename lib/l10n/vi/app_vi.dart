@@ -211,6 +211,7 @@ class AppVi {
     'name': 'Tên',
     'loginWithApple': 'Đăng nhập với Apple',
     'loginWithGoogle': 'Đăng nhập với Google',
+    'orSignInWith': 'hoặc đăng nhập bằng',
     'loginToSync': 'Đăng nhập để đồng bộ dữ liệu trên các thiết bị',
     'syncedToCloud': 'Đã đồng bộ lên cloud',
     'logoutConfirm': 'Bạn có chắc chắn muốn đăng xuất?',

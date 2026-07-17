@@ -212,6 +212,7 @@ class AppEs {
     'name': 'Nombre',
     'loginWithApple': 'Iniciar sesión con Apple',
     'loginWithGoogle': 'Iniciar sesión con Google',
+    'orSignInWith': 'o iniciar sesión con',
     'loginToSync': 'Inicia sesión para sincronizar tus datos entre dispositivos',
     'syncedToCloud': 'Sincronizado con la nube',
     'logoutConfirm': '¿Estás seguro de que quieres cerrar sesión?',

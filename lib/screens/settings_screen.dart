@@ -228,22 +228,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            Column(
               children: [
-                Icon(Icons.account_circle, color: Theme.of(context).colorScheme.secondary),
-                const SizedBox(width: 12),
+                Icon(
+                  Icons.account_circle,
+                  size: 40,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                const SizedBox(height: 8),
                 Text(
                   _languageManager.getText('account'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
+                if (!_authService.isLoggedIn) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _languageManager.getText('loginToSync'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 16),
-            
             if (_authService.isLoggedIn) ...[
-              // User info when logged in
               _buildUserInfo(),
               const SizedBox(height: 16),
               SizedBox(
@@ -262,12 +277,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ] else ...[
-              // Login/Register buttons when not logged in
-              Text(
-                _languageManager.getText('loginToSync'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -297,8 +306,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Apple trước Google trên iOS
+              const SizedBox(height: 16),
+              _buildOrSignInWithSeparator(),
+              const SizedBox(height: 16),
               if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
                 SizedBox(
                   width: double.infinity,
@@ -317,7 +327,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              // Google login button
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -327,7 +336,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 18,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: NetworkImage('https://developers.google.com/identity/images/g-logo.png'),
+                        image: NetworkImage(
+                          'https://developers.google.com/identity/images/g-logo.png',
+                        ),
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -348,46 +359,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildOrSignInWithSeparator() {
+    final lineColor = Colors.grey[300]!;
+    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Colors.grey[600],
+        );
+    return Row(
+      children: [
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            _languageManager.getText('orSignInWith'),
+            style: textStyle,
+          ),
+        ),
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
+      ],
+    );
+  }
+
   Widget _buildUserInfo() {
     final user = _authService.currentUser!;
     return Column(
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: Text(
-                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Text(
+            user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    user.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          user.name,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          user.email,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
         ),
         const SizedBox(height: 8),
         Container(

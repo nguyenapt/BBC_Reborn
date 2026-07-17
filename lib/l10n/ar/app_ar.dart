@@ -212,6 +212,7 @@ class AppAr {
     'name': 'الاسم',
     'loginWithApple': 'تسجيل الدخول بـ Apple',
     'loginWithGoogle': 'تسجيل الدخول بـ Google',
+    'orSignInWith': 'أو تسجيل الدخول باستخدام',
     'loginToSync': 'سجل الدخول لمزامنة بياناتك عبر الأجهزة',
     'syncedToCloud': 'مزامن مع السحابة',
     'logoutConfirm': 'هل أنت متأكد من تسجيل الخروج؟',

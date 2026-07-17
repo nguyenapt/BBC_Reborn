@@ -211,6 +211,7 @@ class AppEn {
     'name': 'Name',
     'loginWithApple': 'Sign in with Apple',
     'loginWithGoogle': 'Login with Google',
+    'orSignInWith': 'or sign in with',
     'loginToSync': 'Login to sync your data across devices',
     'syncedToCloud': 'Synced to cloud',
     'logoutConfirm': 'Are you sure you want to logout?',

@@ -212,6 +212,7 @@ class AppZh {
     'name': '姓名',
     'loginWithApple': '通过 Apple 登录',
     'loginWithGoogle': '使用Google登录',
+    'orSignInWith': '或使用以下方式登录',
     'loginToSync': '登录以在设备间同步数据',
     'syncedToCloud': '已同步到云端',
     'logoutConfirm': '确定要登出吗？',

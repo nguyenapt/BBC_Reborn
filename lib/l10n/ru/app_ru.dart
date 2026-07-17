@@ -212,6 +212,7 @@ class AppRu {
     'name': 'Имя',
     'loginWithApple': 'Войти через Apple',
     'loginWithGoogle': 'Войти через Google',
+    'orSignInWith': 'или войти через',
     'loginToSync': 'Войдите для синхронизации данных между устройствами',
     'syncedToCloud': 'Синхронизировано с облаком',
     'logoutConfirm': 'Вы уверены, что хотите выйти?',

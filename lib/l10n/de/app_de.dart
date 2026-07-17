@@ -211,6 +211,7 @@ class AppDe {
     'name': 'Name',
     'loginWithApple': 'Mit Apple anmelden',
     'loginWithGoogle': 'Mit Google anmelden',
+    'orSignInWith': 'oder anmelden mit',
     'loginToSync': 'Melden Sie sich an, um Ihre Daten geräteübergreifend zu synchronisieren',
     'syncedToCloud': 'Mit Cloud synchronisiert',
     'logoutConfirm': 'Möchten Sie sich wirklich abmelden?',

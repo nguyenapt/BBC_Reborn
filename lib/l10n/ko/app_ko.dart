@@ -212,6 +212,7 @@ class AppKo {
     'name': '이름',
     'loginWithApple': 'Apple로 로그인',
     'loginWithGoogle': 'Google로 로그인',
+    'orSignInWith': '또는 다음으로 로그인',
     'loginToSync': '기기 간 데이터 동기화를 위해 로그인하세요',
     'syncedToCloud': '클라우드에 동기화됨',
     'logoutConfirm': '로그아웃하시겠습니까?',

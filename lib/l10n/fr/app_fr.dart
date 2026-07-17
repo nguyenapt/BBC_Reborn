@@ -211,6 +211,7 @@ class AppFr {
     'name': 'Nom',
     'loginWithApple': 'Se connecter avec Apple',
     'loginWithGoogle': 'Se connecter avec Google',
+    'orSignInWith': 'ou se connecter avec',
     'loginToSync': 'Connectez-vous pour synchroniser vos données entre appareils',
     'syncedToCloud': 'Synchronisé avec le cloud',
     'logoutConfirm': 'Êtes-vous sûr de vouloir vous déconnecter ?',

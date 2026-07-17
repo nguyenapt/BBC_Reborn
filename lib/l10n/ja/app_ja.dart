@@ -212,6 +212,7 @@ class AppJa {
     'name': '名前',
     'loginWithApple': 'Appleでサインイン',
     'loginWithGoogle': 'Googleでログイン',
+    'orSignInWith': 'または次でサインイン',
     'loginToSync': 'デバイス間でデータを同期するためにログイン',
     'syncedToCloud': 'クラウドに同期済み',
     'logoutConfirm': 'ログアウトしますか？',
