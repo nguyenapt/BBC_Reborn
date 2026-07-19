@@ -6,6 +6,8 @@
 	<string>128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
 	<string>com.googleusercontent.apps.128498222438-hm17267tb543u524v3so193q1hqujtse</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>128498222438-49evs7frpa98f96b0glkl82oi52q2bdb.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyDqFQ2I7I1hJ8vEbe5xinI-PoSayWEpG2k</string>
 	<key>GCM_SENDER_ID</key>
@@ -18,19 +20,19 @@
 	<string>bbc-listening-english</string>
 	<key>STORAGE_BUCKET</key>
 	<string>bbc-listening-english.appspot.com</string>
-	<key>DATABASE_URL</key>
-	<string>https://bbc-listening-english.firebaseio.com</string>
 	<key>IS_ADS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_GCM_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>GOOGLE_APP_ID</key>
 	<string>1:128498222438:ios:6a28f807827da6ea0534a7</string>
+	<key>DATABASE_URL</key>
+	<string>https://bbc-listening-english.firebaseio.com</string>
 </dict>
 </plist>

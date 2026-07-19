@@ -43,6 +43,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs microphone access for speaking practice and pronunciation exercises.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use this identifier to measure ad performance and improve personalized ads. Your data is never sold.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

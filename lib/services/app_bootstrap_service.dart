@@ -7,6 +7,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'achievement_service.dart';
 import 'admob_service.dart';
 import 'app_check_service.dart';
+import 'att_tracking_service.dart';
 import 'audio_player_service.dart';
 import 'auth_service.dart';
 import 'consent_service.dart';
@@ -140,6 +141,9 @@ class AppBootstrapService {
       );
 
       if (consentService.canRequestAds) {
+        // iOS: xin ATT trước khi init Mobile Ads (Google khuyến nghị).
+        await AttTrackingService.instance.requestIfNeeded();
+
         debugPrint('📱 Initializing MobileAds...');
         await MobileAds.instance.initialize();
         debugPrint('✅ MobileAds initialized');
