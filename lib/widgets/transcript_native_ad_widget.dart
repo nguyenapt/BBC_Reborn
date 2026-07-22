@@ -43,9 +43,8 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
   static const String _productionAdUnitIdAndroid =
       'ca-app-pub-2189112136936277/7442445947';
-  // TODO(iOS): Replace with VOA AdMob iOS native unit
   static const String _productionAdUnitIdIOS =
-      'ca-app-pub-3940256099942544/2247696110';
+      'ca-app-pub-2189112136936277/5062792399';
 
   final LanguageManager _languageManager = LanguageManager();
 

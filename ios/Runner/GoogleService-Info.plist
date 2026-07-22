@@ -2,8 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>666526516629-slc27jh9me774fbpltcs7cjp97eoa4fr.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.666526516629-slc27jh9me774fbpltcs7cjp97eoa4fr</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>666526516629-jbfhm9g6fpbs7q2q4g0gruq3hnk67fa5.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw</string>
+	<string>AIzaSyCQBmTmlrWlg4upjzp1G7QgAAby4alGd9k</string>
 	<key>GCM_SENDER_ID</key>
 	<string>666526516629</string>
 	<key>PLIST_VERSION</key>
@@ -14,19 +20,19 @@
 	<string>voa-learning-english-c75fe</string>
 	<key>STORAGE_BUCKET</key>
 	<string>voa-learning-english-c75fe.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:666526516629:ios:43f43ea2a8302a0d62a29c</string>
 	<key>DATABASE_URL</key>
 	<string>https://voa-learning-english-c75fe.firebaseio.com</string>
-	<key>IS_ADS_ENABLED</key>
-	<false/>
-	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
-	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
-	<key>IS_GCM_ENABLED</key>
-	<true/>
-	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
-	<key>GOOGLE_APP_ID</key>
-	<string>1:666526516629:ios:5818cf39fcf1c5a262a29c</string>
 </dict>
 </plist>

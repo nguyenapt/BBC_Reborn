@@ -67,8 +67,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCOcuOMiBZJRHePHzjRE0PE0ot0ptFfxHw',
-    appId: '1:666526516629:ios:5818cf39fcf1c5a262a29c',
+    apiKey: 'AIzaSyCQBmTmlrWlg4upjzp1G7QgAAby4alGd9k',
+    appId: '1:666526516629:ios:43f43ea2a8302a0d62a29c',
     messagingSenderId: '666526516629',
     projectId: 'voa-learning-english-c75fe',
     databaseURL: 'https://voa-learning-english-c75fe.firebaseio.com',
