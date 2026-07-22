@@ -55,3 +55,18 @@ class SpeakingAnalysisException extends AIException {
       : super(message ?? 'Speaking analysis failed.', originalError);
 }
 
+/// Ghi âm luyện nói thất bại (file rỗng, stop recorder, v.v.).
+class SpeakingRecordingException extends AIException {
+  SpeakingRecordingException([String? message, dynamic originalError])
+      : super(message ?? 'Recording failed.', originalError);
+}
+
+/// App Check không lấy được token (debug token chưa đăng ký, attestation fail, v.v.).
+class AppCheckException extends AIException {
+  AppCheckException([String? message, dynamic originalError])
+      : super(
+          message ?? 'App Check verification failed.',
+          originalError,
+        );
+}
+

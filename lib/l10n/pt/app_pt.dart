@@ -83,6 +83,7 @@ class AppPt {
     'speakingSttFailed': 'Não foi possível reconhecer sua fala. Grave novamente com mais clareza.',
     'speakingSttNotConfigured': 'O reconhecimento de voz não está disponível nesta versão.',
     'speakingAnalysisFailed': 'Não foi possível analisar sua pronúncia. Tente novamente mais tarde.',
+    'speakingRecordingFailed': 'Não foi possível salvar a gravação. Tente novamente.',
     'retry': 'Tentar novamente',
     'aiRateLimitError': 'Muitas solicitações. Aguarde um momento e tente novamente.',
     'aiNetworkError': 'Erro de rede. Verifique sua conexão e tente novamente.',
@@ -100,6 +101,13 @@ class AppPt {
     'enableReviewRemindersTitle': 'Ativar lembretes de revisão?',
     'enableReviewRemindersDesc':
         'Ative as notificações para lembrarmos você quando for hora de revisar a gramática salva.',
+
+    // Rate App
+    'rateApp': 'Avaliar o app',
+    'rateAppMessage':
+        'Se você gosta deste aplicativo, reserve um momento para avaliá-lo com 5 estrelas na loja. Isso nos ajuda a melhorar o app!',
+    'rateNow': 'Avaliar agora',
+    'rateAppInSettings': 'Avaliar o app',
     
     // Audio Controls
     'play': 'Reproduzir',
@@ -220,7 +228,9 @@ class AppPt {
     'email': 'Email',
     'password': 'Senha',
     'name': 'Nome',
+    'loginWithApple': 'Entrar com a Apple',
     'loginWithGoogle': 'Entrar com Google',
+    'orSignInWith': 'ou entrar com',
     'loginToSync': 'Entre para sincronizar seus dados entre dispositivos',
     'syncedToCloud': 'Sincronizado com a nuvem',
     'logoutConfirm': 'Tem certeza de que quer sair?',

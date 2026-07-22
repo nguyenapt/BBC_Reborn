@@ -228,22 +228,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(Icons.account_circle, color: Theme.of(context).colorScheme.secondary),
-                const SizedBox(width: 12),
-                Text(
-                  _languageManager.getText('account'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
+            if (!_authService.isLoggedIn) ...[
+              Column(
+                children: [
+                  Icon(
+                    Icons.account_circle,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _languageManager.getText('account'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _languageManager.getText('loginToSync'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_authService.isLoggedIn) ...[
-              // User info when logged in
               _buildUserInfo(),
               const SizedBox(height: 16),
               SizedBox(
@@ -262,12 +277,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ] else ...[
-              // Login/Register buttons when not logged in
-              Text(
-                _languageManager.getText('loginToSync'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -297,30 +306,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Google login button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _handleGoogleLogin(),
-                  icon: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage('https://developers.google.com/identity/images/g-logo.png'),
-                        fit: BoxFit.contain,
+              const SizedBox(height: 16),
+              _buildOrSignInWithSeparator(),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (!kIsWeb &&
+                      defaultTargetPlatform == TargetPlatform.iOS) ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleAppleLogin(),
+                        icon: const Icon(Icons.apple, size: 20),
+                        label: const Text('Apple'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleGoogleLogin(),
+                      icon: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              'https://developers.google.com/identity/images/g-logo.png',
+                            ),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      label: const Text('Google'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: BorderSide(color: Colors.grey[300]!),
                       ),
                     ),
                   ),
-                  label: Text(_languageManager.getText('loginWithGoogle')),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    side: BorderSide(color: Colors.grey[300]!),
-                  ),
-                ),
+                ],
               ),
             ],
           ],
@@ -329,46 +362,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildOrSignInWithSeparator() {
+    final lineColor = Colors.grey[300]!;
+    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Colors.grey[600],
+        );
+    return Row(
+      children: [
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            _languageManager.getText('orSignInWith'),
+            style: textStyle,
+          ),
+        ),
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
+      ],
+    );
+  }
+
   Widget _buildUserInfo() {
     final user = _authService.currentUser!;
     return Column(
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: Text(
-                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Text(
+            user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    user.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          user.name,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          user.email,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -395,6 +441,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AuthDialog(isLogin: isLogin),
     );
+  }
+
+  Future<void> _handleAppleLogin() async {
+    try {
+      final result = await _authService.loginWithApple();
+
+      if (result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_languageManager.getText('loginSuccess')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _handleGoogleLogin() async {
@@ -875,7 +950,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _languageManager.changeLanguage(newLocale);
                     }
                   },
-                  items: LanguageManager.supportedLocales.map<DropdownMenuItem<Locale>>((Locale locale) {
+                  items: LanguageManager.sortedSupportedLocales
+                      .map<DropdownMenuItem<Locale>>((Locale locale) {
                     return DropdownMenuItem<Locale>(
                       value: locale,
                       child: Text(_languageManager.getLanguageName(locale.languageCode)),
@@ -1049,7 +1125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   await RateAppService.markAsRated();
-                  await RateAppService.openPlayStore();
+                  await RateAppService.openStore();
                 },
                 icon: const Icon(Icons.star),
                 label: Text(_languageManager.getText('rateNow')),

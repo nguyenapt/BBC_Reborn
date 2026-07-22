@@ -83,6 +83,7 @@ class AppVi {
     'speakingSttFailed': 'Không nhận dạng được giọng nói. Hãy ghi lại rõ hơn và thử lại.',
     'speakingSttNotConfigured': 'Nhận dạng giọng nói chưa sẵn sàng trên phiên bản này.',
     'speakingAnalysisFailed': 'Không thể phân tích phát âm. Vui lòng thử lại sau.',
+    'speakingRecordingFailed': 'Không thể lưu bản ghi. Vui lòng thử lại.',
     'aiRateLimitError': 'Quá nhiều yêu cầu. Vui lòng đợi một chút rồi thử lại.',
     'aiNetworkError': 'Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.',
     'noHeartsAvailable': 'Hết lượt tim. Xem quảng cáo để nhận thêm tim.',
@@ -102,7 +103,7 @@ class AppVi {
     
     // Rate App
     'rateApp': 'Đánh giá ứng dụng',
-    'rateAppMessage': 'Nếu bạn thích ứng dụng này, hãy dành chút thời gian để đánh giá 5 sao trên Google Play Store. Điều này sẽ giúp chúng tôi cải thiện ứng dụng tốt hơn!',
+    'rateAppMessage': 'Nếu bạn thích ứng dụng này, hãy dành chút thời gian để đánh giá 5 sao trên cửa hàng ứng dụng. Điều này sẽ giúp chúng tôi cải thiện ứng dụng tốt hơn!',
     'rateNow': 'Đánh giá ngay',
     'rateAppInSettings': 'Đánh giá ứng dụng',
     
@@ -226,7 +227,9 @@ class AppVi {
     'email': 'Email',
     'password': 'Mật khẩu',
     'name': 'Tên',
+    'loginWithApple': 'Đăng nhập với Apple',
     'loginWithGoogle': 'Đăng nhập với Google',
+    'orSignInWith': 'hoặc đăng nhập bằng',
     'loginToSync': 'Đăng nhập để đồng bộ dữ liệu trên các thiết bị',
     'syncedToCloud': 'Đã đồng bộ lên cloud',
     'logoutConfirm': 'Bạn có chắc chắn muốn đăng xuất?',

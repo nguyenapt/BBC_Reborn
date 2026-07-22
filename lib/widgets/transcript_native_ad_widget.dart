@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/language_manager.dart';
+import 'learning_checklist_bar.dart';
 import 'native_ad_theme.dart';
 import 'passage_panel_decoration.dart';
 
@@ -39,12 +41,18 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
   bool _isAdLoading = false;
 
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/7442445947';
+  static const String _productionAdUnitIdAndroid =
+      'ca-app-pub-2189112136936277/7442445947';
+  // TODO(iOS): Replace with VOA AdMob iOS native unit
+  static const String _productionAdUnitIdIOS =
+      'ca-app-pub-3940256099942544/2247696110';
 
   final LanguageManager _languageManager = LanguageManager();
 
   String _getAdUnitId() {
-    return kDebugMode ? _testAdUnitId : _productionAdUnitId;
+    return kDebugMode
+        ? _testAdUnitId
+        : (Platform.isIOS ? _productionAdUnitIdIOS : _productionAdUnitIdAndroid);
   }
 
   static const double _minAttributionPx = 18;
@@ -227,13 +235,21 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
 
   Widget _buildEpisodeTranscriptChrome(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final (_, _, adHeight) = _slotMetrics();
+    final (_, radius, adHeight) = _slotMetrics();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(
+        top: 14,
+        bottom: 14,
+        right: LearningChecklistBar.adRightClearance,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.65),
+            width: 1,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(8),

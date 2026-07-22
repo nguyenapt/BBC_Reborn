@@ -83,6 +83,7 @@ class AppEs {
     'speakingSttFailed': 'No se pudo reconocer tu voz. Graba de nuevo con más claridad.',
     'speakingSttNotConfigured': 'El reconocimiento de voz no está disponible en esta versión.',
     'speakingAnalysisFailed': 'No se pudo analizar tu pronunciación. Inténtalo más tarde.',
+    'speakingRecordingFailed': 'No se pudo guardar la grabación. Inténtalo de nuevo.',
     'retry': 'Reintentar',
     'aiRateLimitError': 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.',
     'aiNetworkError': 'Error de red. Comprueba tu conexión e inténtalo de nuevo.',
@@ -100,6 +101,13 @@ class AppEs {
     'enableReviewRemindersTitle': '¿Activar recordatorios de repaso?',
     'enableReviewRemindersDesc':
         'Activa las notificaciones para que podamos recordarte cuándo repasar la gramática guardada.',
+
+    // Rate App
+    'rateApp': 'Valorar la app',
+    'rateAppMessage':
+        'Si te gusta esta aplicación, tómate un momento para valorarla con 5 estrellas en la tienda. ¡Esto nos ayuda a mejorarla!',
+    'rateNow': 'Valorar ahora',
+    'rateAppInSettings': 'Valorar la app',
     
     // Audio Controls
     'play': 'Reproducir',
@@ -220,7 +228,9 @@ class AppEs {
     'email': 'Correo',
     'password': 'Contraseña',
     'name': 'Nombre',
+    'loginWithApple': 'Iniciar sesión con Apple',
     'loginWithGoogle': 'Iniciar sesión con Google',
+    'orSignInWith': 'o iniciar sesión con',
     'loginToSync': 'Inicia sesión para sincronizar tus datos entre dispositivos',
     'syncedToCloud': 'Sincronizado con la nube',
     'logoutConfirm': '¿Estás seguro de que quieres cerrar sesión?',

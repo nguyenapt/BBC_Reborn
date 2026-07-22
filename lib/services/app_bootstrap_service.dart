@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'achievement_service.dart';
 import 'admob_service.dart';
+import 'app_check_service.dart';
+import 'att_tracking_service.dart';
 import 'audio_player_service.dart';
 import 'auth_service.dart';
 import 'consent_service.dart';
@@ -57,40 +58,13 @@ class AppBootstrapService {
     }
   }
 
-  /// App Check trước cloud sync; achievement sau sync (không chặn UI).
   Future<void> _runMobileFollowUp() async {
     try {
-      await _initFirebaseAppCheck();
+      await AppCheckService.instance.ensureTokenBeforeCall();
       await UserCloudSyncService().syncInBackground();
       await AchievementService().evaluateAll();
     } catch (e) {
       debugPrint('❌ Mobile follow-up error: $e');
-    }
-  }
-
-  Future<void> _initFirebaseAppCheck() async {
-    try {
-      await FirebaseAppCheck.instance.activate(
-        androidProvider:
-            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-        appleProvider:
-            kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-      );
-      if (kDebugMode) {
-        try {
-          await FirebaseAppCheck.instance.getToken(true);
-          debugPrint('✅ App Check debug token OK');
-        } catch (e) {
-          debugPrint(
-            '⚠️ App Check chưa có debug token. Mở Logcat, filter '
-            '"DebugAppCheckProvider", copy UUID → Firebase Console → '
-            'App Check → Manage debug tokens → Add.',
-          );
-          debugPrint('   Chi tiết: $e');
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Firebase App Check error: $e');
     }
   }
 
@@ -167,6 +141,9 @@ class AppBootstrapService {
       );
 
       if (consentService.canRequestAds) {
+        // iOS: xin ATT trước khi init Mobile Ads (Google khuyến nghị).
+        await AttTrackingService.instance.requestIfNeeded();
+
         debugPrint('📱 Initializing MobileAds...');
         await MobileAds.instance.initialize();
         debugPrint('✅ MobileAds initialized');

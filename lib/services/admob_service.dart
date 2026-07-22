@@ -20,15 +20,19 @@ class AdMobService {
   static const String _testRewardedAdUnitIdAndroid = 'ca-app-pub-3940256099942544/5224354917';
   static const String _testRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
 
-  // Production Ad Unit IDs (thay thế bằng Ad Unit IDs thật khi publish)
+  // Production Ad Unit IDs (Android = VOA prod; iOS = test until VOA iOS units are created)
   static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/5455565346';
+  // TODO(iOS): Replace with VOA AdMob iOS banner unit
   static const String _prodBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716';
   static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/2362498141';
+  // TODO(iOS): Replace with VOA AdMob iOS interstitial unit
   static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
   static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/8459002389';
+  // TODO(iOS): Replace with VOA AdMob iOS app-open unit
   static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
   static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9911945041';
-  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313'; // TODO: Replace with real ID
+  // TODO(iOS): Replace with VOA AdMob iOS rewarded unit
+  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;

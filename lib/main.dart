@@ -28,6 +28,8 @@ import 'utils/double_back_exit.dart';
 import 'services/back_navigation_service.dart';
 import 'services/push_notification_service.dart';
 import 'firebase_options.dart';
+import 'services/app_check_service.dart';
+import 'services/analytics_service.dart';
 import 'widgets/app_update_prompt.dart';
 import 'theme/app_theme.dart';
 import 'widgets/floating_bottom_nav_bar.dart';
@@ -40,6 +42,8 @@ void main() async {
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await AnalyticsService.instance.activate();
+    await AppCheckService.instance.activate();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
 

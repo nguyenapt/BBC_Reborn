@@ -83,6 +83,7 @@ class AppAr {
     'speakingSttFailed': 'تعذر التعرف على صوتك. سجّل مرة أخرى بوضوح أكبر.',
     'speakingSttNotConfigured': 'التعرف على الكلام غير متاح في هذا الإصدار.',
     'speakingAnalysisFailed': 'تعذر تحليل النطق. يرجى المحاولة لاحقًا.',
+    'speakingRecordingFailed': 'تعذر حفظ التسجيل. يرجى المحاولة مرة أخرى.',
     'retry': 'إعادة المحاولة',
     'aiRateLimitError': 'طلبات كثيرة جدًا. يرجى الانتظار قليلًا والمحاولة مرة أخرى.',
     'aiNetworkError': 'خطأ في الشبكة. يرجى التحقق من الاتصال والمحاولة مرة أخرى.',
@@ -100,6 +101,13 @@ class AppAr {
     'enableReviewRemindersTitle': 'تفعيل تذكيرات المراجعة؟',
     'enableReviewRemindersDesc':
         'فعّل الإشعارات لنذكّرك عندما يحين وقت مراجعة القواعد المحفوظة.',
+
+    // Rate App
+    'rateApp': 'تقييم التطبيق',
+    'rateAppMessage':
+        'إذا أعجبك هذا التطبيق، خصّص لحظة لتقييمه بـ 5 نجوم في المتجر. هذا يساعدنا على تحسين التطبيق!',
+    'rateNow': 'قيّم الآن',
+    'rateAppInSettings': 'تقييم التطبيق',
     
     // Audio Controls
     'play': 'تشغيل',
@@ -220,7 +228,9 @@ class AppAr {
     'email': 'البريد الإلكتروني',
     'password': 'كلمة المرور',
     'name': 'الاسم',
+    'loginWithApple': 'تسجيل الدخول بـ Apple',
     'loginWithGoogle': 'تسجيل الدخول بـ Google',
+    'orSignInWith': 'أو تسجيل الدخول باستخدام',
     'loginToSync': 'سجل الدخول لمزامنة بياناتك عبر الأجهزة',
     'syncedToCloud': 'مزامن مع السحابة',
     'logoutConfirm': 'هل أنت متأكد من تسجيل الخروج؟',

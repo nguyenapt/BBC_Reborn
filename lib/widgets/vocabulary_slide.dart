@@ -12,6 +12,7 @@ import '../services/language_manager.dart';
 import '../services/admob_service.dart';
 import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
+import 'learning_checklist_bar.dart';
 import 'translation_language_picker.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
@@ -126,8 +127,31 @@ class _VocabularySlideState extends State<VocabularySlide> {
         child: Column(
           children: [
             Expanded(
-              child: NativeAdWidget(
-                category: widget.episode.category,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const margin = 12.0;
+                  final w = constraints.maxWidth;
+                  final clearance = LearningChecklistBar.adRightClearance;
+                  final adWidth =
+                      (w - clearance - margin * 2).clamp(0.0, double.infinity);
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      margin,
+                      margin,
+                      clearance + margin,
+                      margin,
+                    ),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: adWidth,
+                        child: NativeAdWidget(
+                          category: widget.episode.category,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             SizedBox(height: widget.scrollBottomInset),

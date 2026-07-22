@@ -83,6 +83,7 @@ class AppKo {
     'speakingSttFailed': '음성을 인식하지 못했습니다. 더 명확하게 다시 녹음해 주세요.',
     'speakingSttNotConfigured': '이 빌드에서는 음성 인식을 사용할 수 없습니다.',
     'speakingAnalysisFailed': '발음 분석에 실패했습니다. 나중에 다시 시도해 주세요.',
+    'speakingRecordingFailed': '녹음을 저장할 수 없습니다. 다시 시도해 주세요.',
     'retry': '다시 시도',
     'aiRateLimitError': '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     'aiNetworkError': '네트워크 오류입니다. 연결을 확인한 후 다시 시도해 주세요.',
@@ -100,6 +101,13 @@ class AppKo {
     'enableReviewRemindersTitle': '복습 알림을 켤까요?',
     'enableReviewRemindersDesc':
         '알림을 켜면 저장한 문법을 복습할 시간에 맞춰 알려드릴게요.',
+
+    // Rate App
+    'rateApp': '앱 평가하기',
+    'rateAppMessage':
+        '이 앱이 마음에 드셨다면 스토어에서 별 5개 평가를 남겨 주세요. 앱 개선에 큰 도움이 됩니다!',
+    'rateNow': '지금 평가하기',
+    'rateAppInSettings': '앱 평가하기',
     
     // Audio Controls
     'play': '재생',
@@ -220,7 +228,9 @@ class AppKo {
     'email': '이메일',
     'password': '비밀번호',
     'name': '이름',
+    'loginWithApple': 'Apple로 로그인',
     'loginWithGoogle': 'Google로 로그인',
+    'orSignInWith': '또는 다음으로 로그인',
     'loginToSync': '기기 간 데이터 동기화를 위해 로그인하세요',
     'syncedToCloud': '클라우드에 동기화됨',
     'logoutConfirm': '로그아웃하시겠습니까?',

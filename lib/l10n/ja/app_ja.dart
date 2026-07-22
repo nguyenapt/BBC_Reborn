@@ -83,6 +83,7 @@ class AppJa {
     'speakingSttFailed': '音声を認識できませんでした。もう一度はっきり録音してください。',
     'speakingSttNotConfigured': 'このビルドでは音声認識を利用できません。',
     'speakingAnalysisFailed': '発音を分析できませんでした。後でもう一度お試しください。',
+    'speakingRecordingFailed': '録音を保存できませんでした。もう一度お試しください。',
     'retry': '再試行',
     'aiRateLimitError': 'リクエストが多すぎます。しばらく待ってからもう一度お試しください。',
     'aiNetworkError': 'ネットワークエラーです。接続を確認してからもう一度お試しください。',
@@ -100,6 +101,13 @@ class AppJa {
     'enableReviewRemindersTitle': '復習リマインダーを有効にしますか？',
     'enableReviewRemindersDesc':
         '通知を有効にして、保存した文法を復習する時間になったらお知らせします。',
+
+    // Rate App
+    'rateApp': 'アプリを評価',
+    'rateAppMessage':
+        'このアプリを気に入っていただけましたら、ストアで5つ星の評価をお願いします。アプリの改善に役立ちます！',
+    'rateNow': '今すぐ評価',
+    'rateAppInSettings': 'アプリを評価',
     
     // Audio Controls
     'play': '再生',
@@ -220,7 +228,9 @@ class AppJa {
     'email': 'メール',
     'password': 'パスワード',
     'name': '名前',
+    'loginWithApple': 'Appleでサインイン',
     'loginWithGoogle': 'Googleでログイン',
+    'orSignInWith': 'または次でサインイン',
     'loginToSync': 'デバイス間でデータを同期するためにログイン',
     'syncedToCloud': 'クラウドに同期済み',
     'logoutConfirm': 'ログアウトしますか？',

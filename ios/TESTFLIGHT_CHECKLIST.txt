@@ -1,0 +1,34 @@
+VOA iOS — Checklist TestFlight (chạy trên macOS + Xcode)
+========================================================
+
+Prerequisites
+- Apple Developer team (DEVELOPMENT_TEAM trong pbxproj hiện: YZ993LL4W5)
+- Bundle ID: com.voalearningenglish.listeningskills
+- Điền ios/PROD_CREDENTIALS_TODO.txt trước khi release production ads
+
+Xcode / Apple Developer
+[ ] Mở ios/Runner.xcworkspace (không mở .xcodeproj)
+[ ] Signing & Capabilities → Team đúng
+[ ] Capabilities: Push Notifications, Sign in with Apple,
+    Background Modes (Audio, Remote notifications), App Attest
+[ ] Runner.entitlements đã gắn (aps-environment, appattest, applesignin)
+
+Firebase Console (voa-learning-english-c75fe)
+[ ] App iOS đã đăng ký đúng bundle ID
+[ ] APNs Auth Key / certificate upload cho FCM
+[ ] App Check → App Attest (và debug token cho simulator nếu cần)
+[ ] Tải GoogleService-Info.plist mới nếu thiếu OAuth client
+
+Build
+[ ] cd ios && pod install
+[ ] flutter pub get
+[ ] flutter build ipa   (hoặc Archive trong Xcode)
+[ ] Upload → TestFlight
+
+Smoke test trên device
+[ ] Cold start: Firebase + App Check không crash
+[ ] ATT prompt → ads init
+[ ] Background audio / lock screen Now Playing
+[ ] Speaking practice: mic permission string hiện đúng
+[ ] Google Sign-In + Sign in with Apple
+[ ] FCM permission + nhận notification topic episodes

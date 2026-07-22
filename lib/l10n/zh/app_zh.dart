@@ -83,6 +83,7 @@ class AppZh {
     'speakingSttFailed': '无法识别您的语音，请更清晰地重新录音。',
     'speakingSttNotConfigured': '此版本暂不支持语音识别。',
     'speakingAnalysisFailed': '无法分析发音，请稍后重试。',
+    'speakingRecordingFailed': '无法保存录音，请重试。',
     'retry': '重试',
     'aiRateLimitError': '请求过多，请稍候再试。',
     'aiNetworkError': '网络错误，请检查连接后重试。',
@@ -100,6 +101,13 @@ class AppZh {
     'enableReviewRemindersTitle': '开启复习提醒？',
     'enableReviewRemindersDesc':
         '开启通知，我们会在需要复习已保存语法时提醒你。',
+
+    // Rate App
+    'rateApp': '评价应用',
+    'rateAppMessage':
+        '如果你喜欢这款应用，请花一点时间在应用商店给出5星评价。这将帮助我们把应用做得更好！',
+    'rateNow': '立即评价',
+    'rateAppInSettings': '评价应用',
     
     // Audio Controls
     'play': '播放',
@@ -220,7 +228,9 @@ class AppZh {
     'email': '邮箱',
     'password': '密码',
     'name': '姓名',
+    'loginWithApple': '通过 Apple 登录',
     'loginWithGoogle': '使用Google登录',
+    'orSignInWith': '或使用以下方式登录',
     'loginToSync': '登录以在设备间同步数据',
     'syncedToCloud': '已同步到云端',
     'logoutConfirm': '确定要登出吗？',

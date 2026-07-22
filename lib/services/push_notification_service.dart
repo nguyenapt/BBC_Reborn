@@ -104,16 +104,67 @@ class PushNotificationService {
       if (Platform.isAndroid) {
         await Permission.notification.request();
       } else if (Platform.isIOS) {
-        await messaging.requestPermission(alert: true, badge: true, sound: true);
+        final settings = await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        debugPrint(
+          'PushNotificationService: iOS authorizationStatus='
+          '${settings.authorizationStatus}',
+        );
       }
       _permissionSetupDone = true;
     }
 
     if (subscribeToTopics) {
+      if (Platform.isIOS) {
+        await _waitForApnsToken(messaging);
+      }
       final prefs = await SharedPreferences.getInstance();
       final episodePushEnabled =
           prefs.getBool(prefKeyEpisodePushEnabled) ?? true;
-      if (episodePushEnabled) {
+      await _syncEpisodeTopicSubscription(
+        messaging,
+        enabled: episodePushEnabled,
+      );
+    }
+  }
+
+  /// iOS: FCM topic subscribe cần APNs token; poll ngắn trước khi subscribe.
+  Future<void> _waitForApnsToken(
+    FirebaseMessaging messaging, {
+    int maxAttempts = 10,
+    Duration interval = const Duration(milliseconds: 500),
+  }) async {
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        final token = await messaging.getAPNSToken();
+        if (token != null && token.isNotEmpty) {
+          debugPrint(
+            'PushNotificationService: APNs token ready '
+            '(attempt ${i + 1}/$maxAttempts)',
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint('PushNotificationService: getAPNSToken error: $e');
+      }
+      await Future<void>.delayed(interval);
+    }
+    debugPrint(
+      'PushNotificationService: APNs token still null after '
+      '${maxAttempts * interval.inMilliseconds}ms — '
+      'check Push entitlement + Firebase APNs key',
+    );
+  }
+
+  Future<void> _syncEpisodeTopicSubscription(
+    FirebaseMessaging messaging, {
+    required bool enabled,
+  }) async {
+    try {
+      if (enabled) {
         await messaging.subscribeToTopic(fcmTopicNewEpisodes);
         debugPrint(
           'PushNotificationService: subscribed to topic "$fcmTopicNewEpisodes"',
@@ -125,6 +176,11 @@ class PushNotificationService {
           '"$fcmTopicNewEpisodes" (saved preference)',
         );
       }
+    } catch (e) {
+      debugPrint(
+        'PushNotificationService: topic sync failed '
+        '(enabled=$enabled, topic=$fcmTopicNewEpisodes): $e',
+      );
     }
   }
 
@@ -148,20 +204,11 @@ class PushNotificationService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(prefKeyEpisodePushEnabled, enabled);
 
-    try {
-      final messaging = FirebaseMessaging.instance;
-      if (enabled) {
-        await messaging.subscribeToTopic(fcmTopicNewEpisodes);
-      } else {
-        await messaging.unsubscribeFromTopic(fcmTopicNewEpisodes);
-      }
-      debugPrint(
-        'PushNotificationService: topic "$fcmTopicNewEpisodes" '
-        '${enabled ? "subscribed" : "unsubscribed"}',
-      );
-    } catch (e) {
-      debugPrint('PushNotificationService: setEpisodePushEnabled failed: $e');
+    final messaging = FirebaseMessaging.instance;
+    if (enabled && Platform.isIOS) {
+      await _waitForApnsToken(messaging);
     }
+    await _syncEpisodeTopicSubscription(messaging, enabled: enabled);
   }
 
   Future<bool> getEpisodePushEnabled() async {

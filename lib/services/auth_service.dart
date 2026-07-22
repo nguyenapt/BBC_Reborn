@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'user_cloud_sync_service.dart';
 
@@ -212,6 +215,79 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Sign in with Apple — primarily for iOS (App Store Guideline 4.8).
+  Future<AuthResult> loginWithApple() async {
+    if (!_useFirebaseAuth) {
+      return AuthResult.error('Đăng nhập Apple chỉ khả dụng trên Android/iOS');
+    }
+
+    try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        return AuthResult.error('Sign in with Apple không khả dụng trên thiết bị này');
+      }
+
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final idToken = appleCredential.identityToken;
+      if (idToken == null) {
+        return AuthResult.error('Không nhận được token từ Apple');
+      }
+
+      final oauthCredential = fb.OAuthProvider('apple.com').credential(
+        idToken: idToken,
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      final userCredential =
+          await fb.FirebaseAuth.instance.signInWithCredential(oauthCredential);
+      final user = userCredential.user;
+      if (user == null) {
+        return AuthResult.error('Đăng nhập Apple thất bại');
+      }
+
+      // Apple chỉ trả tên lần đăng nhập đầu; lưu luôn nếu có.
+      final givenName = appleCredential.givenName;
+      final familyName = appleCredential.familyName;
+      final fullName = [
+        if (givenName != null && givenName.isNotEmpty) givenName,
+        if (familyName != null && familyName.isNotEmpty) familyName,
+      ].join(' ');
+      if (fullName.isNotEmpty &&
+          (user.displayName == null || user.displayName!.isEmpty)) {
+        await user.updateDisplayName(fullName);
+        await user.reload();
+      }
+
+      final refreshed = fb.FirebaseAuth.instance.currentUser ?? user;
+      _applyFirebaseUser(refreshed);
+      await _cacheUserDisplay(refreshed);
+      await UserCloudSyncService().syncOnLogin(refreshed.uid);
+      return AuthResult.success(_currentUser!);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return AuthResult.error('Đăng nhập bị hủy');
+      }
+      debugPrint('Apple Sign-In Error: $e');
+      return AuthResult.error('Lỗi đăng nhập Apple: ${e.message}');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      debugPrint('Apple Sign-In Error: $e');
+      return AuthResult.error('Lỗi đăng nhập Apple: $e');
+    }
+  }
+
   Future<void> logout() async {
     try {
       UserCloudSyncService().onUserSignedOut();
@@ -262,8 +338,24 @@ class AuthService extends ChangeNotifier {
 
   String _providerLabel(String providerId) {
     if (providerId.contains('google')) return 'google';
+    if (providerId.contains('apple')) return 'apple';
     if (providerId.contains('password')) return 'email';
     return providerId;
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    return sha256.convert(bytes).toString();
   }
 
   String _mapFirebaseAuthError(fb.FirebaseAuthException e) {

@@ -83,6 +83,7 @@ class AppEn {
     'speakingSttFailed': "Couldn't recognize your speech. Try recording again more clearly.",
     'speakingSttNotConfigured': 'Speech recognition is not available on this build.',
     'speakingAnalysisFailed': "Couldn't analyze your pronunciation. Please try again later.",
+    'speakingRecordingFailed': "Couldn't save your recording. Please try again.",
     'aiRateLimitError': 'Too many requests. Please wait a moment and try again.',
     'aiNetworkError': 'Network error. Please check your connection and try again.',
     'noHeartsAvailable': 'No hearts available. Watch an ad to earn more hearts.',
@@ -102,7 +103,7 @@ class AppEn {
     
     // Rate App
     'rateApp': 'Rate App',
-    'rateAppMessage': 'If you enjoy this app, please take a moment to rate it 5 stars on Google Play Store. This helps us improve the app!',
+    'rateAppMessage': 'If you enjoy this app, please take a moment to rate it 5 stars on the store. This helps us improve the app!',
     'rateNow': 'Rate Now',
     'rateAppInSettings': 'Rate App',
     
@@ -226,7 +227,9 @@ class AppEn {
     'email': 'Email',
     'password': 'Password',
     'name': 'Name',
+    'loginWithApple': 'Sign in with Apple',
     'loginWithGoogle': 'Login with Google',
+    'orSignInWith': 'or sign in with',
     'loginToSync': 'Login to sync your data across devices',
     'syncedToCloud': 'Synced to cloud',
     'logoutConfirm': 'Are you sure you want to logout?',
