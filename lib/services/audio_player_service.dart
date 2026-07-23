@@ -106,6 +106,11 @@ class AudioPlayerService extends ChangeNotifier {
     return _positionIsAdvancing;
   }
 
+  void _clearIosPlaybackHeuristic() {
+    _positionIsAdvancing = false;
+    _lastAdvCheckPosition = Duration.zero;
+  }
+
   Future<T> _runPlaybackTask<T>(Future<T> Function() task) {
     final run = _playbackChain.then((_) => task());
     _playbackChain = run.then((_) {}, onError: (_) {});
@@ -530,6 +535,7 @@ class AudioPlayerService extends ChangeNotifier {
     _playedFromRemote = false;
     _currentEpisode = episode;
     _playerState = AudioPlayerState.stopped;
+    _clearIosPlaybackHeuristic();
     _currentPosition = Duration.zero;
     _totalDuration = Duration.zero;
 
@@ -573,6 +579,7 @@ class AudioPlayerService extends ChangeNotifier {
         _scheduleBackgroundStreamCacheIfNeeded();
         _playedFromRemote = false;
         _playerState = AudioPlayerState.stopped;
+        _clearIosPlaybackHeuristic();
         _currentPosition = Duration.zero;
         _totalDuration = Duration.zero;
         await _audioPlayer.stop();
@@ -935,6 +942,7 @@ class AudioPlayerService extends ChangeNotifier {
       _scheduleBackgroundStreamCacheIfNeeded();
       await _audioPlayer.stop();
       _playerState = AudioPlayerState.stopped;
+      _clearIosPlaybackHeuristic();
       _currentPosition = Duration.zero;
       notifyListeners();
 
