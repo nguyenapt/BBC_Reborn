@@ -3,7 +3,7 @@ import '../models/episode_learning_progress.dart';
 import '../services/language_manager.dart';
 
 class LearningChecklistBar extends StatelessWidget {
-  static const double iconSize = 40;
+  static const double iconSize = 34;
   static const double laneOuterPadding = 6;
   static const double reservedLaneWidth = iconSize + laneOuterPadding;
   /// Khoảng trống phải cho native/banner ad — tránh chồng checklist (AdMob).
@@ -59,7 +59,7 @@ class LearningChecklistBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (int i = 0; i < steps.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
+            if (i > 0) const SizedBox(height: 8),
             _ChecklistIcon(
               step: steps[i],
               accentColor: accentColor,
@@ -141,7 +141,7 @@ class _ChecklistIcon extends StatelessWidget {
               ),
               child: Icon(
                 step.icon,
-                size: 20,
+                size: 17,
                 color: step.done ? accentColor : inactiveColor,
               ),
             ),
@@ -149,8 +149,8 @@ class _ChecklistIcon extends StatelessWidget {
               right: -2,
               bottom: -2,
               child: Container(
-                width: 15,
-                height: 15,
+                width: 13,
+                height: 13,
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
                   shape: BoxShape.circle,
@@ -170,7 +170,7 @@ class _ChecklistIcon extends StatelessWidget {
                 ),
                 child: Icon(
                   step.done ? Icons.check_rounded : Icons.close_rounded,
-                  size: 10,
+                  size: 8,
                   color: step.done ? _completedGreen : Colors.red.shade600,
                 ),
               ),

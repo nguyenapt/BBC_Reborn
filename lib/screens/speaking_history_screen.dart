@@ -166,7 +166,12 @@ class _SpeakingHistoryScreenState extends State<SpeakingHistoryScreen> {
                       );
                     }
                     return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
+                      padding: EdgeInsets.fromLTRB(
+                        6,
+                        0,
+                        6,
+                        24 + MediaQuery.viewPaddingOf(context).bottom,
+                      ),
                       itemCount: sessions.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
