@@ -1163,7 +1163,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
           ),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+            padding: EdgeInsets.fromLTRB(
+              8,
+              8,
+              8,
+              24 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
             itemCount: _lines.length + _transcriptAdPositions.length,
             itemBuilder: (context, index) {
               int adsBeforeIndex = 0;
@@ -1743,10 +1748,13 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     BuildContext context,
     Color softBg,
     Color categoryColor,
-    Color heading,
-  ) {
+    Color heading, {
+    bool padForSystemNav = false,
+  }) {
+    final safeBottom =
+        padForSystemNav ? MediaQuery.viewPaddingOf(context).bottom : 0.0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, 4, 16, 12 + safeBottom),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -1865,7 +1873,13 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
               ),
             ),
           ),
-          _buildRoleplayPersonaBar(context, softBg, categoryColor, heading),
+          _buildRoleplayPersonaBar(
+            context,
+            softBg,
+            categoryColor,
+            heading,
+            padForSystemNav: true,
+          ),
         ],
       );
     }
@@ -1881,7 +1895,12 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         _buildRoleplayPersonaBar(context, softBg, categoryColor, heading),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              28 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
             itemCount: _lines.length +
                 _transcriptAdPositions.length +
                 (_roleplayIsComplete() ? 1 : 0),

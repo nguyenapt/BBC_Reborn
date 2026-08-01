@@ -27,7 +27,7 @@ class FloatingBottomNavBar extends StatelessWidget {
 
   /// Chiều cao vùng navbar overlay (để pad nội dung scroll nếu cần).
   static double bottomInset(BuildContext context) {
-    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
     return _outerMarginBottom +
         _barVerticalPadding * 2 +
         _itemVerticalPadding * 2 +

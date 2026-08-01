@@ -109,9 +109,11 @@ class _VocabularyPracticeScreenState extends State<VocabularyPracticeScreen> {
                         ),
                       ),
                     )
-                  : Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                      child: Column(
+                  : SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                        child: Column(
                         children: [
                           Row(
                             children: [
@@ -234,6 +236,7 @@ class _VocabularyPracticeScreenState extends State<VocabularyPracticeScreen> {
                             ],
                           ),
                         ],
+                      ),
                       ),
                     ),
         );
