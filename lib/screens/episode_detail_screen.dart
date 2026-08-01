@@ -220,7 +220,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   double _contentBottomInset(BuildContext context) {
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
     return _playerHeight +
         _playerBottomOffset +
         _contentPlayerGap +
@@ -229,7 +229,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   /// Cố định — không đổi khi player mở rộng panel transcript.
   double _checklistBottomInset(BuildContext context) {
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
     return _fallbackPlayerHeight + _playerBottomOffset + safeBottom;
   }
 
@@ -711,7 +711,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           Positioned(
             left: EpisodeDetailTabPanel.contentHorizontalInset,
             right: EpisodeDetailTabPanel.contentHorizontalInset,
-            bottom: 10,
+            bottom: _playerBottomOffset +
+                MediaQuery.viewPaddingOf(context).bottom,
             child: ListenableBuilder(
               listenable: _audioService,
               builder: (context, child) {

@@ -162,13 +162,13 @@ class _QuestionSlideState extends State<QuestionSlide> {
 
     return EpisodeDetailTabPanel(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if ((_questions.isNotEmpty && !_showResults) || _showResults)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
                   children: [
                     const Spacer(),
@@ -179,6 +179,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
                         label: Text(LanguageManager().getText('checkAnswers')),
                         style: TextButton.styleFrom(
                           foregroundColor: categoryColor,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     if (_showResults)
@@ -188,42 +190,31 @@ class _QuestionSlideState extends State<QuestionSlide> {
                         label: Text(LanguageManager().getText('reset')),
                         style: TextButton.styleFrom(
                           foregroundColor: categoryColor,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                   ],
                 ),
               ),
             Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: _tabSurfaceDecoration(context),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _buildQuestionsBody(context, categoryColor),
-                    ),
-                    if (_showResults && _questions.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _buildScoreFooter(context, categoryColor),
-                    ],
-                    SizedBox(height: widget.scrollBottomInset),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _buildQuestionsBody(context, categoryColor),
+                  ),
+                  if (_showResults && _questions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildScoreFooter(context, categoryColor),
                   ],
-                ),
+                  SizedBox(height: widget.scrollBottomInset),
+                ],
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  BoxDecoration _tabSurfaceDecoration(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return BoxDecoration(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(EpisodeDetailTabPanel.panelBorderRadius),
     );
   }
 
@@ -346,8 +337,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
     final showAnswer = _showResults;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -385,19 +376,19 @@ class _QuestionSlideState extends State<QuestionSlide> {
                 child: Text(
                   question.question,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
+                    height: 1.45,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           
           // Options
           ...question.options.asMap().entries.map((entry) {
-            final optionIndex = entry.key;
             final option = entry.value;
             final isSelected = selectedAnswer == option;
             final isCorrectOption = option == question.correctAnswer;
@@ -408,7 +399,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                 onTap: showAnswer ? null : () => _selectAnswer(index, option),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: showAnswer
                         ? (isCorrectOption
@@ -445,7 +436,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
                         child: Text(
                           option,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 13,
+                            height: 1.45,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
@@ -491,7 +483,8 @@ class _QuestionSlideState extends State<QuestionSlide> {
                     child: Text(
                       question.explanation,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
+                        height: 1.45,
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                       ),
                     ),
