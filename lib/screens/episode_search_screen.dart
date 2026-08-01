@@ -152,6 +152,9 @@ class _EpisodeSearchScreenState extends State<EpisodeSearchScreen> {
     }
 
     return ListView.builder(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewPaddingOf(context).bottom + 8,
+      ),
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final episode = _results[index];
