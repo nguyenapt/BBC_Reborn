@@ -180,47 +180,49 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
       context: context,
       showDragHandle: true,
       builder: (sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                languageManager.getText('reviewQueueLabel'),
-                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  languageManager.getText('reviewQueueLabel'),
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${languageManager.getText('reviewDueNow')}: ${dueItems.length}',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        child: Text(languageManager.getText('later')),
+                      ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${languageManager.getText('reviewDueNow')}: ${dueItems.length}',
-                style: Theme.of(sheetContext).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: Text(languageManager.getText('later')),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          setState(() {
+                            currentPageIndex = 2; // My Learning
+                          });
+                        },
+                        child: Text(languageManager.getText('reviewNowLabel')),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop();
-                        setState(() {
-                          currentPageIndex = 2; // My Learning
-                        });
-                      },
-                      child: Text(languageManager.getText('reviewNowLabel')),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },

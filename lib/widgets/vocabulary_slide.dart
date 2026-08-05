@@ -162,7 +162,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
 
     return EpisodeDetailTabPanel(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -248,20 +248,9 @@ class _VocabularySlideState extends State<VocabularySlide> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           Expanded(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: ListenableBuilder(
+            child: ListenableBuilder(
                 listenable: _vocabularyService,
                 builder: (context, child) {
                   return ListView.builder(
@@ -364,12 +353,12 @@ class _VocabularySlideState extends State<VocabularySlide> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            // Meaning
+                            // Meaning — nhỏ hơn transcript line (14)
                             Text(
                               item.mean,
                               style: TextStyle(
-                                fontSize: 16,
-                                height: 1.5,
+                                fontSize: 13,
+                                height: 1.45,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
@@ -380,7 +369,7 @@ class _VocabularySlideState extends State<VocabularySlide> {
                                 child: Text(
                                   _vocabTranslations[item.vocab]!,
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontStyle: FontStyle.italic,
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
@@ -393,7 +382,6 @@ class _VocabularySlideState extends State<VocabularySlide> {
                   );
                 },
               ),
-            ),
           ),
         ],
         ),
