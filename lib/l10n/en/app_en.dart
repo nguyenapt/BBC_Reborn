@@ -236,6 +236,15 @@ class AppEn {
     'loginSuccess': 'Login successful!',
     'registerSuccess': 'Registration successful!',
     'logoutSuccess': 'Logout successful!',
+    'deleteAccount': 'Delete account',
+    'deleteAccountConfirmTitle': 'Delete account?',
+    'deleteAccountConfirmMessage':
+        'This permanently deletes your account and all synced learning data. This action cannot be undone.',
+    'deleteAccountSuccess': 'Account deleted successfully',
+    'deleteAccountFailed': 'Could not delete account',
+    'reauthRequired': 'Confirm your identity',
+    'enterPasswordToDelete':
+        'Enter your password to permanently delete this account.',
     'emailRequired': 'Email is required',
     'emailInvalid': 'Please enter a valid email',
     'passwordRequired': 'Password is required',

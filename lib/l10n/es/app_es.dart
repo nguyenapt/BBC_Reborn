@@ -237,6 +237,15 @@ class AppEs {
     'loginSuccess': '¡Inicio de sesión exitoso!',
     'registerSuccess': '¡Registro exitoso!',
     'logoutSuccess': '¡Cierre de sesión exitoso!',
+    'deleteAccount': 'Eliminar cuenta',
+    'deleteAccountConfirmTitle': '¿Eliminar cuenta?',
+    'deleteAccountConfirmMessage':
+        'Esto eliminará permanentemente tu cuenta y todos los datos de aprendizaje sincronizados. Esta acción no se puede deshacer.',
+    'deleteAccountSuccess': 'Cuenta eliminada correctamente',
+    'deleteAccountFailed': 'No se pudo eliminar la cuenta',
+    'reauthRequired': 'Confirma tu identidad',
+    'enterPasswordToDelete':
+        'Introduce tu contraseña para eliminar permanentemente esta cuenta.',
     'emailRequired': 'El correo es obligatorio',
     'emailInvalid': 'Por favor ingresa un correo válido',
     'passwordRequired': 'La contraseña es obligatoria',

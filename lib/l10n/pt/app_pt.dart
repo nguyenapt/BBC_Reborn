@@ -237,6 +237,15 @@ class AppPt {
     'loginSuccess': 'Login bem-sucedido!',
     'registerSuccess': 'Registro bem-sucedido!',
     'logoutSuccess': 'Logout bem-sucedido!',
+    'deleteAccount': 'Excluir conta',
+    'deleteAccountConfirmTitle': 'Excluir conta?',
+    'deleteAccountConfirmMessage':
+        'Isso excluirá permanentemente sua conta e todos os dados de aprendizado sincronizados. Esta ação não pode ser desfeita.',
+    'deleteAccountSuccess': 'Conta excluída com sucesso',
+    'deleteAccountFailed': 'Não foi possível excluir a conta',
+    'reauthRequired': 'Confirme sua identidade',
+    'enterPasswordToDelete':
+        'Digite sua senha para excluir permanentemente esta conta.',
     'emailRequired': 'Email é obrigatório',
     'emailInvalid': 'Por favor, insira um email válido',
     'passwordRequired': 'Senha é obrigatória',

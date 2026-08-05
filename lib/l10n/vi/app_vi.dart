@@ -236,6 +236,15 @@ class AppVi {
     'loginSuccess': 'Đăng nhập thành công!',
     'registerSuccess': 'Đăng ký thành công!',
     'logoutSuccess': 'Đăng xuất thành công!',
+    'deleteAccount': 'Xóa tài khoản',
+    'deleteAccountConfirmTitle': 'Xóa tài khoản?',
+    'deleteAccountConfirmMessage':
+        'Thao tác này sẽ xóa vĩnh viễn tài khoản và toàn bộ dữ liệu học đã đồng bộ. Không thể hoàn tác.',
+    'deleteAccountSuccess': 'Đã xóa tài khoản thành công',
+    'deleteAccountFailed': 'Không thể xóa tài khoản',
+    'reauthRequired': 'Xác nhận danh tính',
+    'enterPasswordToDelete':
+        'Nhập mật khẩu để xóa vĩnh viễn tài khoản này.',
     'emailRequired': 'Email là bắt buộc',
     'emailInvalid': 'Vui lòng nhập email hợp lệ',
     'passwordRequired': 'Mật khẩu là bắt buộc',
