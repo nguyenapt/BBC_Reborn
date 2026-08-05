@@ -18,6 +18,11 @@ class AuthService extends ChangeNotifier {
 
   static const String _userKey = 'current_user';
   static const String _isLoggedInKey = 'is_logged_in';
+
+  /// UI dùng mã này để hiện dialog nhập mật khẩu trước khi xóa account email.
+  static const String requiresRecentLoginCode = 'requires-recent-login';
+
+  /// Web client ID (client_type 3) — từ android/app/google-services.json.
   static const String _googleWebClientId =
       '128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com';
 
@@ -265,6 +270,214 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Xóa tài khoản vĩnh viễn: đảm bảo session còn hợp lệ → xóa RTDB → xóa Auth → clear local.
+  /// Với email, nếu Firebase yêu cầu đăng nhập lại mà chưa có [password],
+  /// trả về [requiresRecentLoginCode] để UI hỏi mật khẩu rồi gọi lại.
+  Future<AuthResult> deleteAccount({String? password}) async {
+    if (!_useFirebaseAuth) {
+      return AuthResult.error('Xóa tài khoản chỉ khả dụng trên Android/iOS');
+    }
+
+    final user = fb.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return AuthResult.error('Bạn chưa đăng nhập');
+    }
+
+    final uid = user.uid;
+    final provider = _primaryProvider(user);
+
+    try {
+      // Apple: re-auth + revoke + delete Auth trong một sheet; RTDB xóa sau khi re-auth OK
+      // để tránh mất data nếu user hủy Sign in with Apple.
+      if (provider == 'apple') {
+        final appleResult = await _deleteAppleAccount(user, uid: uid);
+        if (!appleResult.isSuccess) return appleResult;
+        await _clearLocalSessionAfterDelete();
+        return AuthResult.success(null);
+      }
+
+      // Email / Google: thử xóa Auth; nếu cần re-auth thì xử lý rồi mới xóa RTDB + Auth.
+      try {
+        await UserCloudSyncService().deleteUserCloudData(uid);
+        await user.delete();
+      } on fb.FirebaseAuthException catch (e) {
+        if (e.code != requiresRecentLoginCode) {
+          return AuthResult.error(_mapFirebaseAuthError(e));
+        }
+
+        if (provider == 'email' &&
+            (password == null || password.isEmpty)) {
+          return AuthResult.error(requiresRecentLoginCode);
+        }
+
+        final reauth = await _reauthenticate(
+          user,
+          provider: provider,
+          password: password,
+        );
+        if (!reauth.isSuccess) {
+          return reauth;
+        }
+
+        final refreshed = fb.FirebaseAuth.instance.currentUser;
+        if (refreshed == null) {
+          return AuthResult.error('Xác thực lại thất bại');
+        }
+
+        // RTDB có thể đã bị xóa ở lần thử trước — gọi lại an toàn.
+        await UserCloudSyncService().deleteUserCloudData(uid);
+        await refreshed.delete();
+      }
+
+      await _clearLocalSessionAfterDelete();
+      return AuthResult.success(null);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return AuthResult.error('Đăng nhập bị hủy');
+      }
+      return AuthResult.error('Lỗi xác thực Apple: ${e.message}');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+      return AuthResult.error('Lỗi xóa tài khoản: $e');
+    }
+  }
+
+  String _primaryProvider(fb.User user) {
+    if (_currentUser?.provider != null &&
+        _currentUser!.provider.isNotEmpty) {
+      return _currentUser!.provider;
+    }
+    if (user.providerData.isEmpty) return 'firebase';
+    return _providerLabel(user.providerData.first.providerId);
+  }
+
+  /// Một lần Apple sheet: re-auth → xóa RTDB → revoke token → delete Auth.
+  Future<AuthResult> _deleteAppleAccount(
+    fb.User user, {
+    required String uid,
+  }) async {
+    try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        return AuthResult.error(
+          'Sign in with Apple không khả dụng trên thiết bị này',
+        );
+      }
+
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final idToken = appleCredential.identityToken;
+      if (idToken == null) {
+        return AuthResult.error('Không nhận được token từ Apple');
+      }
+
+      final oauthCredential = fb.OAuthProvider('apple.com').credential(
+        idToken: idToken,
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
+      );
+      await user.reauthenticateWithCredential(oauthCredential);
+
+      await UserCloudSyncService().deleteUserCloudData(uid);
+
+      if (appleCredential.authorizationCode.isNotEmpty) {
+        try {
+          await fb.FirebaseAuth.instance.revokeTokenWithAuthorizationCode(
+            appleCredential.authorizationCode,
+          );
+        } catch (e) {
+          debugPrint('Apple token revoke failed: $e');
+        }
+      }
+
+      final refreshed = fb.FirebaseAuth.instance.currentUser ?? user;
+      await refreshed.delete();
+      return AuthResult.success(null);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return AuthResult.error('Đăng nhập bị hủy');
+      }
+      return AuthResult.error('Lỗi xác thực Apple: ${e.message}');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      return AuthResult.error('Lỗi xóa tài khoản Apple: $e');
+    }
+  }
+
+  Future<AuthResult> _reauthenticate(
+    fb.User user, {
+    required String provider,
+    String? password,
+  }) async {
+    try {
+      if (provider == 'email') {
+        final email = user.email;
+        if (email == null || email.isEmpty) {
+          return AuthResult.error('Không tìm thấy email tài khoản');
+        }
+        if (password == null || password.isEmpty) {
+          return AuthResult.error(requiresRecentLoginCode);
+        }
+        final credential = fb.EmailAuthProvider.credential(
+          email: email,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+        return AuthResult.success(_currentUser);
+      }
+
+      if (provider == 'google') {
+        await _googleSignIn.signOut();
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          return AuthResult.error('Đăng nhập bị hủy');
+        }
+        final googleAuth = await googleUser.authentication;
+        if (googleAuth.idToken == null) {
+          return AuthResult.error('Không lấy được idToken Google');
+        }
+        final credential = fb.GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await user.reauthenticateWithCredential(credential);
+        return AuthResult.success(_currentUser);
+      }
+
+      return AuthResult.error('Không hỗ trợ xác thực lại cho nhà cung cấp này');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      return AuthResult.error('Lỗi xác thực lại: $e');
+    }
+  }
+
+  Future<void> _clearLocalSessionAfterDelete() async {
+    UserCloudSyncService().onUserSignedOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userKey);
+    await prefs.remove(_isLoggedInKey);
+
+    _currentUser = null;
+    _isLoggedIn = false;
+    notifyListeners();
+  }
+
   void _applyFirebaseUser(fb.User fbUser) {
     final provider = fbUser.providerData.isNotEmpty
         ? _providerLabel(fbUser.providerData.first.providerId)
@@ -329,6 +542,8 @@ class AuthService extends ChangeNotifier {
         return 'Tài khoản đã bị vô hiệu hóa';
       case 'too-many-requests':
         return 'Quá nhiều lần thử. Vui lòng thử lại sau';
+      case 'requires-recent-login':
+        return requiresRecentLoginCode;
       default:
         return e.message ?? 'Lỗi xác thực (${e.code})';
     }

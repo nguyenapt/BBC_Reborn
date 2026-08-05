@@ -218,6 +218,15 @@ class AppDe {
     'loginSuccess': 'Anmeldung erfolgreich!',
     'registerSuccess': 'Registrierung erfolgreich!',
     'logoutSuccess': 'Abmeldung erfolgreich!',
+    'deleteAccount': 'Konto löschen',
+    'deleteAccountConfirmTitle': 'Konto löschen?',
+    'deleteAccountConfirmMessage':
+        'Dadurch werden Ihr Konto und alle synchronisierten Lerndaten dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.',
+    'deleteAccountSuccess': 'Konto erfolgreich gelöscht',
+    'deleteAccountFailed': 'Konto konnte nicht gelöscht werden',
+    'reauthRequired': 'Identität bestätigen',
+    'enterPasswordToDelete':
+        'Geben Sie Ihr Passwort ein, um dieses Konto dauerhaft zu löschen.',
     'emailRequired': 'E-Mail ist erforderlich',
     'emailInvalid': 'Bitte geben Sie eine gültige E-Mail ein',
     'passwordRequired': 'Passwort ist erforderlich',

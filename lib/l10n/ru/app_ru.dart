@@ -219,6 +219,15 @@ class AppRu {
     'loginSuccess': 'Успешный вход!',
     'registerSuccess': 'Успешная регистрация!',
     'logoutSuccess': 'Успешный выход!',
+    'deleteAccount': 'Удалить аккаунт',
+    'deleteAccountConfirmTitle': 'Удалить аккаунт?',
+    'deleteAccountConfirmMessage':
+        'Это навсегда удалит ваш аккаунт и все синхронизированные данные обучения. Это действие нельзя отменить.',
+    'deleteAccountSuccess': 'Аккаунт успешно удалён',
+    'deleteAccountFailed': 'Не удалось удалить аккаунт',
+    'reauthRequired': 'Подтвердите личность',
+    'enterPasswordToDelete':
+        'Введите пароль, чтобы навсегда удалить этот аккаунт.',
     'emailRequired': 'Email обязателен',
     'emailInvalid': 'Пожалуйста, введите корректный email',
     'passwordRequired': 'Пароль обязателен',

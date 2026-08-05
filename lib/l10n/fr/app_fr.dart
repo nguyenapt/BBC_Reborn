@@ -218,6 +218,15 @@ class AppFr {
     'loginSuccess': 'Connexion réussie !',
     'registerSuccess': 'Inscription réussie !',
     'logoutSuccess': 'Déconnexion réussie !',
+    'deleteAccount': 'Supprimer le compte',
+    'deleteAccountConfirmTitle': 'Supprimer le compte ?',
+    'deleteAccountConfirmMessage':
+        'Cela supprimera définitivement votre compte et toutes les données d\'apprentissage synchronisées. Cette action est irréversible.',
+    'deleteAccountSuccess': 'Compte supprimé avec succès',
+    'deleteAccountFailed': 'Impossible de supprimer le compte',
+    'reauthRequired': 'Confirmez votre identité',
+    'enterPasswordToDelete':
+        'Saisissez votre mot de passe pour supprimer définitivement ce compte.',
     'emailRequired': 'L\'e-mail est obligatoire',
     'emailInvalid': 'Veuillez entrer un e-mail valide',
     'passwordRequired': 'Le mot de passe est obligatoire',

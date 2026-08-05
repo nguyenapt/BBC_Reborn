@@ -34,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _dailyPracticeNotif = true;
   bool _wordOfDayNotif = true;
   bool _speakingReviewNotif = true;
+  bool _isDeletingAccount = false;
 
   @override
   void initState() {
@@ -128,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ColorScheme colorScheme = theme.colorScheme;
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
@@ -144,32 +146,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         right: 16,
         bottom: 16,
       ),
-      child: Row(
-        children: [          
-          // Title và subtitle
-          Expanded(
-            child: Text(
-              _languageManager.getText('settings'),
-              style: theme.textTheme.headlineSmall!.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          // App icon đơn giản
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colorScheme.surfaceVariant,
-            ),
-            child: Icon(
-              Icons.settings,
-              color: colorScheme.onSurface,
-              size: 20,
-            ),
-          ),
-        ],
+      child: Text(
+        _languageManager.getText('settings'),
+        style: theme.textTheme.headlineSmall!.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -270,6 +252,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[600],
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _isDeletingAccount ? null : _handleDeleteAccount,
+                  icon: _isDeletingAccount
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_forever_outlined),
+                  label: Text(_languageManager.getText('deleteAccount')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red[700],
+                    side: BorderSide(color: Colors.red[300]!),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -523,6 +528,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmed == true) {
       await _authService.logout();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_languageManager.getText('logoutSuccess')),
@@ -530,6 +536,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_languageManager.getText('deleteAccountConfirmTitle')),
+        content: Text(_languageManager.getText('deleteAccountConfirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_languageManager.getText('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            child: Text(_languageManager.getText('deleteAccount')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _runDeleteAccount();
+  }
+
+  Future<void> _runDeleteAccount({String? password}) async {
+    setState(() => _isDeletingAccount = true);
+
+    AuthResult result;
+    try {
+      result = await _authService.deleteAccount(password: password);
+    } catch (e) {
+      result = AuthResult.error('$e');
+    }
+
+    if (!mounted) return;
+    setState(() => _isDeletingAccount = false);
+
+    if (result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('deleteAccountSuccess')),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
+    if (result.error == AuthService.requiresRecentLoginCode) {
+      final enteredPassword = await _promptPasswordForDelete();
+      if (enteredPassword == null || enteredPassword.isEmpty || !mounted) {
+        return;
+      }
+      await _runDeleteAccount(password: enteredPassword);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.error != null && result.error!.isNotEmpty
+              ? '${_languageManager.getText('deleteAccountFailed')}: ${result.error}'
+              : _languageManager.getText('deleteAccountFailed'),
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Future<String?> _promptPasswordForDelete() async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_languageManager.getText('reauthRequired')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_languageManager.getText('enterPasswordToDelete')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: _languageManager.getText('password'),
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (value) => Navigator.pop(context, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_languageManager.getText('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            child: Text(_languageManager.getText('deleteAccount')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return password;
   }
 
   Widget _buildCacheSection() {

@@ -64,6 +64,19 @@ class UserCloudSyncService {
     _lastSyncedUid = null;
   }
 
+  /// Xóa toàn bộ dữ liệu học tập trên RTDB `users/{uid}`.
+  /// Phải gọi khi user vẫn còn authenticated.
+  Future<void> deleteUserCloudData(String uid) async {
+    if (!cloudAvailable || uid.isEmpty) return;
+    _pushTimer?.cancel();
+    try {
+      await FirebaseDatabase.instance.ref('users/$uid').remove();
+    } catch (e) {
+      debugPrint('UserCloudSyncService.deleteUserCloudData error: $e');
+      rethrow;
+    }
+  }
+
   void schedulePush() {
     if (!cloudAvailable || _uid == null || _syncing) return;
     _pushTimer?.cancel();
