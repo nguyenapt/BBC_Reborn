@@ -22,9 +22,10 @@ class AuthService extends ChangeNotifier {
   /// UI dùng mã này để hiện dialog nhập mật khẩu trước khi xóa account email.
   static const String requiresRecentLoginCode = 'requires-recent-login';
 
-  /// Web client ID — Firebase Console → voa-learning-english-c75fe (OAuth Web client).
+  /// Web client ID (client_type 3) — từ android/app/google-services.json
+  /// `other_platform_oauth_client`. Dùng làm serverClientId để lấy idToken cho Firebase.
   static const String? _googleWebClientId =
-      '666526516629-l51evdqrp1l1uq8pkcpjem6v33kjahm0.apps.googleusercontent.com';
+      '666526516629-oclcd1u0n99dg2ar94409lqp4g0e0l1u.apps.googleusercontent.com';
 
   static bool get _useFirebaseAuth =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -151,8 +152,16 @@ class AuthService extends ChangeNotifier {
         googleUser = await _googleSignIn.signIn();
       } catch (e) {
         debugPrint('Google Sign-In signIn() failed: $e');
+        final message = e.toString();
+        if (message.contains('invalid_audience') ||
+            message.contains('Audience is not a valid client ID')) {
+          return AuthResult.error(
+            'Google Sign-In cấu hình sai (invalid_audience). '
+            'Kiểm tra Web client ID (serverClientId). Chi tiết: $e',
+          );
+        }
         return AuthResult.error(
-          'Không mở được màn hình Google (SHA/package). Chi tiết: $e',
+          'Không mở được màn hình Google. Chi tiết: $e',
         );
       }
 
@@ -170,8 +179,8 @@ class AuthService extends ChangeNotifier {
             message.contains('DEVELOPER_ERROR')) {
           return AuthResult.error(
             'Google đã chọn tài khoản nhưng không lấy được token (lỗi 10). '
-            'Kiểm tra Web client ID trên Firebase Authentication → Google '
-            '(phải là l51evd...). Tắt/bật lại Google provider rồi build AAB mới.',
+            'Kiểm tra SHA fingerprint / Web client ID trên Firebase. '
+            'Chi tiết: $e',
           );
         }
         return AuthResult.error('Lỗi lấy token Google: $e');

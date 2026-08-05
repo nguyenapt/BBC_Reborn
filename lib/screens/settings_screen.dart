@@ -129,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ColorScheme colorScheme = theme.colorScheme;
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
