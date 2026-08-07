@@ -7,7 +7,7 @@ namespace playMP3
     /// </summary>
     public static class GrammarCacheConstants
     {
-        /// <summary>AIConfig.grammarPromptVersion</summary>
+        /// <summary>AIConfig.grammarPromptVersion (sentence-level only).</summary>
         public const string GrammarPromptVersion = "v2_detailed_learning_no_quiz";
 
         /// <summary>
@@ -17,10 +17,21 @@ namespace playMP3
         /// </summary>
         public const string GrammarModelVersion = "gemini:gemini-2.5-flash:gpt-4o-mini";
 
+        /// <summary>
+        /// playMP3 single-shot passage fill. MUST_SYNC Flutter lookup when reading prewarmed
+        /// <c>ai_cache/grammar_passage</c> — distinct from app progressive
+        /// <c>${grammarPromptVersion}_passage_v2_slim_progressive</c>.
+        /// </summary>
+        public const string GrammarPassagePromptVersion = "v2_detailed_learning_no_quiz_passage_v2_slim_single";
+
+        /// <summary>MUST_SYNC Flutter passage schemaVersion for single-shot cache keys.</summary>
+        public const string GrammarPassageSchemaVersion = "v2_passage_v2_slim_single";
+
         public const string FirebaseRtdbBaseUrl = "https://bbc-listening-english.firebaseio.com";
 
         public const string AiCachePath = "ai_cache";
         public const string GrammarByEpisodePath = "grammar_by_episode";
+        public const string GrammarPassagePath = "grammar_passage";
         public const string VocabularyByEpisodePath = "vocabulary_by_episode";
 
         /// <summary>transcriptLineIndex / lineNumber / lineKey are 0-based (line_0 = first line). Re-upload RTDB after changing from old 1-based keys.</summary>
@@ -36,6 +47,18 @@ namespace playMP3
 
         /// <summary>MUST_SYNC Flutter <c>QuestionSlide</c> / <c>AIQuestionService.generateQuestions</c> default count (5).</summary>
         public const int DefaultQuestionCount = 5;
+
+        /// <summary>RTDB child segment names under <c>ai_cache</c> (cleanup UI).</summary>
+        public static readonly string[] AiCacheNodeNames =
+        {
+            "grammar",
+            "grammar_by_episode",
+            "grammar_passage",
+            "questions",
+            "translations",
+            "vocabulary",
+            "vocabulary_by_episode",
+        };
 
         /// <summary>Gemini REST model id (playMP3 tool); intentionally flash-lite for speed/cost vs Flutter app.</summary>
         public const string GeminiModelId = "gemini-2.5-flash-lite";

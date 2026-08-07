@@ -248,12 +248,19 @@
     <Compile Include="TranslationsFirebaseCacheWriter.cs" />
     <Compile Include="QuestionsGeminiService.cs" />
     <Compile Include="QuestionsFirebaseCacheWriter.cs" />
+    <Compile Include="AiCacheExpiryCleaner.cs" />
     <Compile Include="EpisodeFcmSender.cs" />
     <Compile Include="FrmMain.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="FrmMain.Designer.cs">
       <DependentUpon>FrmMain.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FrmAiCacheCleanup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmAiCacheCleanup.Designer.cs">
+      <DependentUpon>FrmAiCacheCleanup.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

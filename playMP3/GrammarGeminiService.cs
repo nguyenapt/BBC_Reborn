@@ -29,14 +29,37 @@ namespace playMP3
         /// <summary>Multiple keys: on 429 / 401 / 403 try next key. Single key: keep long 429 backoff retries on same key.</summary>
         public static async Task<JObject> ExplainGrammarAsync(IReadOnlyList<string> apiKeys, string englishSentence, string targetLanguageLabel)
         {
+            return await RunGrammarPromptAsync(apiKeys, BuildPrompt(englishSentence, targetLanguageLabel)).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Single-shot passage grammar (overall + sentenceAnalyses in one call).
+        /// Used by playMP3 to prewarm cache without Flutter's progressive 2-request split.
+        /// </summary>
+        public static Task<JObject> ExplainGrammarPassageAsync(string apiKey, string passage, string targetLanguageLabel)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey))
+                throw new InvalidOperationException("GEMINI_API_KEY (or passed apiKey) is required for grammar passage fill.");
+            return ExplainGrammarPassageAsync(new[] { apiKey.Trim() }, passage, targetLanguageLabel);
+        }
+
+        public static async Task<JObject> ExplainGrammarPassageAsync(
+            IReadOnlyList<string> apiKeys,
+            string passage,
+            string targetLanguageLabel)
+        {
+            return await RunGrammarPromptAsync(apiKeys, BuildPassagePrompt(passage, targetLanguageLabel)).ConfigureAwait(false);
+        }
+
+        private static async Task<JObject> RunGrammarPromptAsync(IReadOnlyList<string> apiKeys, string prompt)
+        {
             var keys = NormalizeKeys(apiKeys);
             if (keys.Count == 0)
                 throw new InvalidOperationException("Cần ít nhất một Gemini API key hợp lệ.");
 
             if (keys.Count == 1)
-                return await ExplainGrammarSingleKeyWith429RetryAsync(keys[0], englishSentence, targetLanguageLabel).ConfigureAwait(false);
+                return await ExplainGrammarSingleKeyWith429RetryAsync(keys[0], prompt).ConfigureAwait(false);
 
-            var prompt = BuildPrompt(englishSentence, targetLanguageLabel);
             var bodyObj = BuildRequestBody(prompt);
             string lastDetail = null;
 
@@ -151,12 +174,8 @@ namespace playMP3
             return ParseGrammarJson(text);
         }
 
-        private static async Task<JObject> ExplainGrammarSingleKeyWith429RetryAsync(
-            string apiKey,
-            string englishSentence,
-            string targetLanguageLabel)
+        private static async Task<JObject> ExplainGrammarSingleKeyWith429RetryAsync(string apiKey, string prompt)
         {
-            var prompt = BuildPrompt(englishSentence, targetLanguageLabel);
             var bodyObj = BuildRequestBody(prompt);
             var url = BuildGeminiUrl(apiKey);
             var non429Failures = 0;
@@ -318,6 +337,46 @@ Rules:
 Important: Return ONLY the JSON object, nothing else.";
         }
 
+        /// <summary>Slim passage schema — aligned with Flutter gemini_provider.explainGrammarPassage.</summary>
+        private static string BuildPassagePrompt(string passage, string targetLanguageLabel)
+        {
+            return @"Analyze this English passage for grammar learning.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Passage: """ + (passage ?? "").Replace("\"", "\\\"") + @"""
+
+Return format (JSON object only, slim):
+{
+  ""overall"": {
+    ""grammarTheme"": ""main grammar theme in this passage"",
+    ""usageSummary"": ""concise summary in " + targetLanguageLabel + @""",
+    ""keyStructures"": [""structure1"", ""structure2""]
+  },
+  ""sentenceAnalyses"": [
+    {
+      ""sentenceText"": ""exact sentence from passage"",
+      ""mainStructure"": ""main grammar structure"",
+      ""usageInContext"": ""contextual usage in " + targetLanguageLabel + @""",
+      ""phraseBreakdown"": [
+        {
+          ""phrase"": ""exact phrase from sentence"",
+          ""structure"": ""phrase structure"",
+          ""usage"": ""phrase usage in " + targetLanguageLabel + @"""
+        }
+      ],
+      ""examples"": [""example 1"", ""example 2""],
+      ""commonMistakes"": [""mistake 1"", ""mistake 2""]
+    }
+  ]
+}
+
+Rules:
+- Keep output concise and learner-friendly in " + targetLanguageLabel + @".
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
+- Cover each meaningful sentence (a single-line passage may have one analysis).
+Important: Return ONLY the JSON object, nothing else.";
+        }
+
         /// <summary>Merge API fields with sentence for Flutter GrammarExplanation.fromJson.</summary>
         public static JObject ToFlutterGrammarData(JObject apiResponse, string englishSentence)
         {
@@ -332,6 +391,67 @@ Important: Return ONLY the JSON object, nothing else.";
             if (string.IsNullOrWhiteSpace(o["explanation"]?.ToString()))
                 o["explanation"] = "";
             return o;
+        }
+
+        /// <summary>
+        /// Map single-shot passage JSON to Flutter GrammarExplanation shape
+        /// (overall + sentenceAnalyses, plus top-level grammarPoint/explanation for display).
+        /// Does not write sentence-only schema into grammar_by_episode.
+        /// </summary>
+        public static JObject ToFlutterGrammarPassageData(JObject apiResponse, string passage)
+        {
+            var src = apiResponse ?? new JObject();
+            var overall = src["overall"] as JObject ?? new JObject();
+            var analyses = src["sentenceAnalyses"] as JArray ?? new JArray();
+            var theme = overall["grammarTheme"]?.ToString();
+            if (string.IsNullOrWhiteSpace(theme))
+                theme = "Grammar Overview";
+            var usage = overall["usageSummary"]?.ToString() ?? "";
+            if (overall["keyStructures"] == null || overall["keyStructures"].Type == JTokenType.Null)
+                overall["keyStructures"] = new JArray();
+            overall["grammarTheme"] = theme;
+            overall["usageSummary"] = usage;
+
+            var first = analyses.Count > 0 ? analyses[0] as JObject : null;
+            var highlighted = new JArray();
+            var commonMistakes = new JArray();
+            if (first != null)
+            {
+                var phrases = first["phraseBreakdown"] as JArray;
+                if (phrases != null)
+                {
+                    foreach (var p in phrases)
+                    {
+                        var phrase = (p as JObject)?["phrase"]?.ToString();
+                        if (!string.IsNullOrWhiteSpace(phrase))
+                            highlighted.Add(phrase.Trim());
+                    }
+                }
+                var mistakes = first["commonMistakes"] as JArray;
+                if (mistakes != null)
+                {
+                    foreach (var m in mistakes)
+                    {
+                        var s = m?.ToString();
+                        if (!string.IsNullOrWhiteSpace(s))
+                            commonMistakes.Add(s.Trim());
+                    }
+                }
+            }
+
+            return new JObject
+            {
+                ["sentence"] = passage ?? "",
+                ["passageText"] = passage ?? "",
+                ["grammarPoint"] = theme,
+                ["explanation"] = usage,
+                ["highlightedWords"] = highlighted,
+                ["overall"] = overall,
+                ["sentenceAnalyses"] = analyses,
+                ["rulePattern"] = first?["mainStructure"]?.ToString() ?? "",
+                ["whyThisForm"] = first?["usageInContext"]?.ToString() ?? "",
+                ["commonMistakes"] = commonMistakes,
+            };
         }
     }
 }

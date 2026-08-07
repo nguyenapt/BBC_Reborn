@@ -488,9 +488,16 @@ Return JSON format:
   "antonyms": ["word3"],
   "exampleSentences": ["sentence1", "sentence2"],
   "collocations": ["collocation1", "collocation2"],
+  "synonymDetails": [{"word": "word1", "meaning": "short gloss"}],
+  "antonymDetails": [{"word": "word3", "meaning": "short gloss"}],
+  "collocationDetails": [{"word": "collocation1", "meaning": "short gloss"}],
   "pronunciation": "/pronunciation/",
   "wordForm": "noun"
 }
+
+Rules:
+- Keep synonyms/antonyms/collocations as plain string arrays (legacy).
+- Always also fill *Details with the same terms plus a concise English meaning/gloss.
 
 JSON:''';
     

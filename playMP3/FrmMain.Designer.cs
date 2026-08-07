@@ -66,12 +66,13 @@
             this.btnConfig = new System.Windows.Forms.Button();
             this.cbCloudService = new System.Windows.Forms.ComboBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
+            this.btnPurgeAiCache = new System.Windows.Forms.Button();
             this.cbExportTranslation = new System.Windows.Forms.CheckBox();
             this.cbExportGrammar = new System.Windows.Forms.CheckBox();
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
             this.cbExportQuestions = new System.Windows.Forms.CheckBox();
             this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
-            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
             this.txtASSeriesChild = new System.Windows.Forms.TextBox();
             this.lblASSeriesChild = new System.Windows.Forms.Label();
             this.btnGetQuestions = new System.Windows.Forms.Button();
@@ -125,6 +126,7 @@
             this.colVocabZhMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colVocabZhObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btnSubmitAndAddNew = new System.Windows.Forms.Button();
+            this.btnExportJson = new System.Windows.Forms.Button();
             this.txtDuration = new System.Windows.Forms.NumericUpDown();
             this.btnGetLink = new System.Windows.Forms.Button();
             this.txtThumb = new System.Windows.Forms.TextBox();
@@ -205,6 +207,7 @@
             this.dataGridViewTextBoxColumn30 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.GrammarExplainationZh = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btngetGrammarExplaimation = new System.Windows.Forms.Button();
+            this.btnGetGrammarPassage = new System.Windows.Forms.Button();
             this.statusStripGrammar = new System.Windows.Forms.StatusStrip();
             this.toolStripProgressGrammar = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripStatusLabelGrammar = new System.Windows.Forms.ToolStripStatusLabel();
@@ -610,6 +613,7 @@
             this.groupBox3.Controls.Add(this.btnGetVocabTransLateAndObject);
             this.groupBox3.Controls.Add(this.tabControl2);
             this.groupBox3.Controls.Add(this.btnSubmitAndAddNew);
+            this.groupBox3.Controls.Add(this.btnExportJson);
             this.groupBox3.Controls.Add(this.txtDuration);
             this.groupBox3.Controls.Add(this.btnGetLink);
             this.groupBox3.Controls.Add(this.txtThumb);
@@ -645,6 +649,28 @@
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Firebase";
+            // 
+            // cbSendEpisodePush
+            // 
+            this.cbSendEpisodePush.AutoSize = true;
+            this.cbSendEpisodePush.Checked = true;
+            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
+            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
+            this.cbSendEpisodePush.Size = new System.Drawing.Size(93, 17);
+            this.cbSendEpisodePush.TabIndex = 44;
+            this.cbSendEpisodePush.Text = "Gửi push FCM";
+            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
+            // 
+            // btnPurgeAiCache
+            // 
+            this.btnPurgeAiCache.Location = new System.Drawing.Point(1070, 1028);
+            this.btnPurgeAiCache.Name = "btnPurgeAiCache";
+            this.btnPurgeAiCache.Size = new System.Drawing.Size(150, 59);
+            this.btnPurgeAiCache.TabIndex = 47;
+            this.btnPurgeAiCache.Text = "Purge expired AI cache";
+            this.btnPurgeAiCache.UseVisualStyleBackColor = true;
+            this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
             // 
             // cbExportTranslation
             // 
@@ -695,18 +721,6 @@
             this.cbExportEpisodeDetail.TabIndex = 42;
             this.cbExportEpisodeDetail.Text = "Export Detail";
             this.cbExportEpisodeDetail.UseVisualStyleBackColor = true;
-            // 
-            // cbSendEpisodePush
-            // 
-            this.cbSendEpisodePush.AutoSize = true;
-            this.cbSendEpisodePush.Checked = true;
-            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
-            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
-            this.cbSendEpisodePush.Size = new System.Drawing.Size(95, 17);
-            this.cbSendEpisodePush.TabIndex = 44;
-            this.cbSendEpisodePush.Text = "Gửi push FCM";
-            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
             // 
             // txtASSeriesChild
             // 
@@ -1203,6 +1217,16 @@
             this.btnSubmitAndAddNew.Text = "Submit and Add New";
             this.btnSubmitAndAddNew.UseVisualStyleBackColor = true;
             this.btnSubmitAndAddNew.Click += new System.EventHandler(this.btnSubmitAndAddNew_Click);
+            // 
+            // btnExportJson
+            // 
+            this.btnExportJson.Location = new System.Drawing.Point(75, 927);
+            this.btnExportJson.Name = "btnExportJson";
+            this.btnExportJson.Size = new System.Drawing.Size(185, 59);
+            this.btnExportJson.TabIndex = 48;
+            this.btnExportJson.Text = "Export JSON";
+            this.btnExportJson.UseVisualStyleBackColor = true;
+            this.btnExportJson.Click += new System.EventHandler(this.btnExportJson_Click);
             // 
             // txtDuration
             // 
@@ -1946,13 +1970,23 @@
             // 
             // btngetGrammarExplaimation
             // 
-            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1008);
+            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1028);
             this.btngetGrammarExplaimation.Name = "btngetGrammarExplaimation";
-            this.btngetGrammarExplaimation.Size = new System.Drawing.Size(164, 79);
+            this.btngetGrammarExplaimation.Size = new System.Drawing.Size(164, 59);
             this.btngetGrammarExplaimation.TabIndex = 23;
             this.btngetGrammarExplaimation.Text = "Get Grammar Explaination";
             this.btngetGrammarExplaimation.UseVisualStyleBackColor = true;
             this.btngetGrammarExplaimation.Click += new System.EventHandler(this.btngetGrammarExplaimation_Click);
+            // 
+            // btnGetGrammarPassage
+            // 
+            this.btnGetGrammarPassage.Location = new System.Drawing.Point(1226, 1028);
+            this.btnGetGrammarPassage.Name = "btnGetGrammarPassage";
+            this.btnGetGrammarPassage.Size = new System.Drawing.Size(164, 59);
+            this.btnGetGrammarPassage.TabIndex = 24;
+            this.btnGetGrammarPassage.Text = "Get Grammar Passage";
+            this.btnGetGrammarPassage.UseVisualStyleBackColor = true;
+            this.btnGetGrammarPassage.Click += new System.EventHandler(this.btnGetGrammarPassage_Click);
             // 
             // statusStripGrammar
             // 
@@ -1985,7 +2019,7 @@
             this.groupBox4.Controls.Add(this.btnPlay);
             this.groupBox4.Controls.Add(this.btnForward);
             this.groupBox4.Controls.Add(this.btnReward);
-            this.groupBox4.Location = new System.Drawing.Point(855, 929);
+            this.groupBox4.Location = new System.Drawing.Point(861, 927);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(359, 100);
             this.groupBox4.TabIndex = 101;
@@ -1998,6 +2032,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(2214, 1119);
             this.Controls.Add(this.groupBox4);
+            this.Controls.Add(this.btnPurgeAiCache);
+            this.Controls.Add(this.btnGetGrammarPassage);
             this.Controls.Add(this.btngetGrammarExplaimation);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.groupBox3);
@@ -2141,6 +2177,7 @@
         private System.Windows.Forms.NumericUpDown txtDuration;
         private System.Windows.Forms.Label label22;
         private System.Windows.Forms.Button btnSubmitAndAddNew;
+        private System.Windows.Forms.Button btnExportJson;
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.TabPage tabPage2;
@@ -2176,6 +2213,7 @@
         private System.Windows.Forms.Label label30;
         private System.Windows.Forms.DataGridView grvZhRow;
         private System.Windows.Forms.Button btngetGrammarExplaimation;
+        private System.Windows.Forms.Button btnGetGrammarPassage;
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;
@@ -2262,6 +2300,7 @@
         private System.Windows.Forms.CheckBox cbExportQuestions;
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
         private System.Windows.Forms.CheckBox cbSendEpisodePush;
+        private System.Windows.Forms.Button btnPurgeAiCache;
         private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }
