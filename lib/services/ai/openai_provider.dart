@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'ai_provider.dart';
 import 'exceptions.dart';
 import 'json_parser_helper.dart';
+import 'grammar_passage_dual_map.dart';
 import '../../config/ai_config.dart';
 
 /// OpenAI Provider (Backup) - Using HTTP directly
@@ -290,6 +291,15 @@ JSON:''';
     } catch (e) {
       throw InvalidResponseException('Failed to parse grammar explanation JSON: $e');
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageSingle(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final raw = await explainGrammarPassage(passage, targetLanguage);
+    return toFlutterGrammarPassageData(raw, passage);
   }
 
   @override

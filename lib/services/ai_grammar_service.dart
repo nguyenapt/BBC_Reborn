@@ -86,14 +86,19 @@ class AIGrammarService {
     final backupProvider = AIProviderFactory.getBackupProvider();
 
     try {
-      // Try primary provider first with retry
+      // Try primary provider first with retry — passage single-shot dual-map (playMP3-aligned).
       Map<String, dynamic>? response;
       try {
         response = await AIErrorHandler.withRetry(
-          () => primaryProvider.explainGrammar(sentence, targetLanguage),
+          () => primaryProvider.explainGrammarPassageSingle(
+            sentence,
+            targetLanguage,
+          ),
           maxRetries: 1, // Only 1 retry, then fallback
         );
-        debugPrint('✅ Primary provider (Gemini) grammar explanation successful');
+        debugPrint(
+          '✅ Primary provider grammar passage-single explanation successful',
+        );
       } catch (e) {
         debugPrint('⚠️ Primary provider failed: $e');
         
@@ -102,8 +107,13 @@ class AIGrammarService {
           debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
           try {
             if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammar(sentence, targetLanguage);
-              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+              response = await backupProvider.explainGrammarPassageSingle(
+                sentence,
+                targetLanguage,
+              );
+              debugPrint(
+                '✅ Backup provider grammar passage-single explanation successful',
+              );
             } else {
               rethrow;
             }
@@ -116,8 +126,13 @@ class AIGrammarService {
           debugPrint('⚠️ Trying backup provider due to API error...');
           try {
             if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammar(sentence, targetLanguage);
-              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+              response = await backupProvider.explainGrammarPassageSingle(
+                sentence,
+                targetLanguage,
+              );
+              debugPrint(
+                '✅ Backup provider grammar passage-single explanation successful',
+              );
             } else {
               rethrow;
             }
@@ -134,9 +149,9 @@ class AIGrammarService {
         throw Exception('Grammar explanation failed: no result');
       }
 
-      final explanationObj = _mapResponseToModel(sentence, response);
+      final explanationObj = _mapCachedGrammarToModel(sentence, response);
 
-      // Save to both local and Firebase cache
+      // Save dual-map (overall + sentenceAnalyses + legacy) to local + grammar_by_episode.
       await _cache.saveGrammarToCache(
         sentence,
         languageCode,
