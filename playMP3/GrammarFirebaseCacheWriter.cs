@@ -57,5 +57,46 @@ namespace playMP3
             if (!byEpisodeResp.IsSuccessStatusCode)
                 throw new InvalidOperationException("Firebase PUT " + (int)byEpisodeResp.StatusCode + " " + byEpisodeUrl + " " + byEpisodeBody);
         }
+
+        /// <summary>
+        /// PUT <c>ai_cache/grammar_passage/{hash}/{lang}.json</c> only.
+        /// Prefer dual-map via <see cref="PutGrammarCacheAsync"/> for playMP3 passage fill
+        /// (grammar_by_episode) to avoid duplicate caches; this method kept for optional tools.
+        /// </summary>
+        public static async Task PutGrammarPassageCacheAsync(
+            string passage,
+            string languageCode,
+            string episodeId,
+            JObject grammarPassageDataMap)
+        {
+            if (string.IsNullOrWhiteSpace(episodeId))
+                throw new ArgumentException("episodeId required.", nameof(episodeId));
+
+            var modelVersion = GrammarCacheConstants.GrammarModelVersion;
+            var promptVersion = GrammarCacheConstants.GrammarPassagePromptVersion;
+            var schemaVersion = GrammarCacheConstants.GrammarPassageSchemaVersion;
+            var passageHash = GrammarCacheKeyHelper.GrammarPassageHashPathSegment(
+                passage, languageCode, episodeId, modelVersion, promptVersion, schemaVersion);
+            var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
+            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+                      + "/" + GrammarCacheConstants.GrammarPassagePath + "/" + passageHash + "/" + safeLang + ".json";
+
+            var normalizedData = (grammarPassageDataMap ?? new JObject()).DeepClone() as JObject ?? new JObject();
+            normalizedData["episodeId"] = episodeId.Trim();
+            normalizedData["sourceSentence"] = (passage ?? string.Empty).Trim();
+            normalizedData["passageText"] = (passage ?? string.Empty).Trim();
+            normalizedData["schemaVersion"] = schemaVersion;
+
+            var dto = GrammarAiCacheEntryDto.FromGrammarMap(
+                normalizedData,
+                GrammarCacheConstants.AiCacheEntryVersion,
+                GrammarCacheConstants.AiCacheTtlDays);
+            var json = JsonConvert.SerializeObject(dto);
+
+            var resp = await Http.PutAsync(url, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException("Firebase PUT " + (int)resp.StatusCode + " " + url + " " + body);
+        }
     }
 }

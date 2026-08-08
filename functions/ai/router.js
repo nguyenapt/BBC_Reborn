@@ -2,13 +2,14 @@ const {callGemini} = require("./providers/gemini");
 const {callOpenAI} = require("./providers/openai");
 const {callAzureStt} = require("./providers/azureStt");
 const {callWhisperStt} = require("./providers/whisperStt");
-const {buildPromptForAction} = require("./prompts");
+const {buildPromptForAction, toFlutterGrammarPassageData} = require("./prompts");
 const {parseJsonObject, parseJsonArray} = require("./jsonParser");
 
 const JSON_ARRAY_ACTIONS = new Set(["generateQuestions"]);
 const JSON_OBJECT_ACTIONS = new Set([
   "translateVocabularyBatch",
   "explainGrammar",
+  "explainGrammarPassageSingle",
   "explainGrammarPassageOverall",
   "explainGrammarPassageSentences",
   "enhanceVocabulary",
@@ -80,6 +81,15 @@ function parseActionResponse(action, rawResponse, payload) {
 
   if (JSON_ARRAY_ACTIONS.has(action)) {
     return parseJsonArray(rawResponse);
+  }
+
+  if (action === "explainGrammarPassageSingle") {
+    const json = parseJsonObject(rawResponse);
+    const passage = String(payload.passage ?? payload.sentence ?? "");
+    return toFlutterGrammarPassageData(
+        /** @type {Record<string, unknown>} */ (json),
+        passage,
+    );
   }
 
   if (JSON_OBJECT_ACTIONS.has(action)) {

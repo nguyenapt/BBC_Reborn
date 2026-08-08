@@ -1,4 +1,4 @@
-﻿namespace playMP3
+namespace playMP3
 {
     partial class frmMain
     {
@@ -66,12 +66,13 @@
             this.btnConfig = new System.Windows.Forms.Button();
             this.cbCloudService = new System.Windows.Forms.ComboBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
+            this.btnPurgeAiCache = new System.Windows.Forms.Button();
             this.cbExportTranslation = new System.Windows.Forms.CheckBox();
             this.cbExportGrammar = new System.Windows.Forms.CheckBox();
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
             this.cbExportQuestions = new System.Windows.Forms.CheckBox();
             this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
-            this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
             this.txtASSeriesChild = new System.Windows.Forms.TextBox();
             this.lblASSeriesChild = new System.Windows.Forms.Label();
             this.btnGetQuestions = new System.Windows.Forms.Button();
@@ -124,7 +125,18 @@
             this.colVocabZhText = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colVocabZhMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colVocabZhObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageVocabFr = new System.Windows.Forms.TabPage();
+            this.grvVocabFr = new System.Windows.Forms.DataGridView();
+            this.colVocabFrText = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabFrMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabFrObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageVocabDe = new System.Windows.Forms.TabPage();
+            this.grvVocabDe = new System.Windows.Forms.DataGridView();
+            this.colVocabDeText = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabDeMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabDeObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btnSubmitAndAddNew = new System.Windows.Forms.Button();
+            this.btnExportJson = new System.Windows.Forms.Button();
             this.txtDuration = new System.Windows.Forms.NumericUpDown();
             this.btnGetLink = new System.Windows.Forms.Button();
             this.txtThumb = new System.Windows.Forms.TextBox();
@@ -204,7 +216,20 @@
             this.grvZhRow = new System.Windows.Forms.DataGridView();
             this.dataGridViewTextBoxColumn30 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.GrammarExplainationZh = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageFr = new System.Windows.Forms.TabPage();
+            this.txtFrTranscript = new System.Windows.Forms.TextBox();
+            this.labelFrTranscript = new System.Windows.Forms.Label();
+            this.grvFrRow = new System.Windows.Forms.DataGridView();
+            this.colFrRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.GrammarExplainationFr = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageDe = new System.Windows.Forms.TabPage();
+            this.txtDeTranscript = new System.Windows.Forms.TextBox();
+            this.labelDeTranscript = new System.Windows.Forms.Label();
+            this.grvDeRow = new System.Windows.Forms.DataGridView();
+            this.colDeRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.GrammarExplainationDe = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btngetGrammarExplaimation = new System.Windows.Forms.Button();
+            this.btnGetGrammarPassage = new System.Windows.Forms.Button();
             this.statusStripGrammar = new System.Windows.Forms.StatusStrip();
             this.toolStripProgressGrammar = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripStatusLabelGrammar = new System.Windows.Forms.ToolStripStatusLabel();
@@ -233,6 +258,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabRu)).BeginInit();
             this.tabPage18.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabZh)).BeginInit();
+            this.tabPageVocabFr.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabFr)).BeginInit();
+            this.tabPageVocabDe.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabDe)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.txtDuration)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -252,6 +281,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.grvRuRow)).BeginInit();
             this.tabPage9.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvZhRow)).BeginInit();
+            this.tabPageFr.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvFrRow)).BeginInit();
+            this.tabPageDe.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvDeRow)).BeginInit();
             this.statusStripGrammar.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.SuspendLayout();
@@ -610,6 +643,7 @@
             this.groupBox3.Controls.Add(this.btnGetVocabTransLateAndObject);
             this.groupBox3.Controls.Add(this.tabControl2);
             this.groupBox3.Controls.Add(this.btnSubmitAndAddNew);
+            this.groupBox3.Controls.Add(this.btnExportJson);
             this.groupBox3.Controls.Add(this.txtDuration);
             this.groupBox3.Controls.Add(this.btnGetLink);
             this.groupBox3.Controls.Add(this.txtThumb);
@@ -645,6 +679,28 @@
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Firebase";
+            // 
+            // cbSendEpisodePush
+            // 
+            this.cbSendEpisodePush.AutoSize = true;
+            this.cbSendEpisodePush.Checked = true;
+            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
+            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
+            this.cbSendEpisodePush.Size = new System.Drawing.Size(93, 17);
+            this.cbSendEpisodePush.TabIndex = 44;
+            this.cbSendEpisodePush.Text = "Gửi push FCM";
+            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
+            // 
+            // btnPurgeAiCache
+            // 
+            this.btnPurgeAiCache.Location = new System.Drawing.Point(1070, 1028);
+            this.btnPurgeAiCache.Name = "btnPurgeAiCache";
+            this.btnPurgeAiCache.Size = new System.Drawing.Size(150, 59);
+            this.btnPurgeAiCache.TabIndex = 47;
+            this.btnPurgeAiCache.Text = "Purge expired AI cache";
+            this.btnPurgeAiCache.UseVisualStyleBackColor = true;
+            this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
             // 
             // cbExportTranslation
             // 
@@ -695,18 +751,6 @@
             this.cbExportEpisodeDetail.TabIndex = 42;
             this.cbExportEpisodeDetail.Text = "Export Detail";
             this.cbExportEpisodeDetail.UseVisualStyleBackColor = true;
-            // 
-            // cbSendEpisodePush
-            // 
-            this.cbSendEpisodePush.AutoSize = true;
-            this.cbSendEpisodePush.Checked = true;
-            this.cbSendEpisodePush.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbSendEpisodePush.Location = new System.Drawing.Point(17, 911);
-            this.cbSendEpisodePush.Name = "cbSendEpisodePush";
-            this.cbSendEpisodePush.Size = new System.Drawing.Size(95, 17);
-            this.cbSendEpisodePush.TabIndex = 44;
-            this.cbSendEpisodePush.Text = "Gửi push FCM";
-            this.cbSendEpisodePush.UseVisualStyleBackColor = true;
             // 
             // txtASSeriesChild
             // 
@@ -774,6 +818,8 @@
             this.tabControl2.Controls.Add(this.tabPage16);
             this.tabControl2.Controls.Add(this.tabPage17);
             this.tabControl2.Controls.Add(this.tabPage18);
+            this.tabControl2.Controls.Add(this.tabPageVocabFr);
+            this.tabControl2.Controls.Add(this.tabPageVocabDe);
             this.tabControl2.Location = new System.Drawing.Point(6, 539);
             this.tabControl2.Name = "tabControl2";
             this.tabControl2.SelectedIndex = 0;
@@ -1194,6 +1240,98 @@
             this.colVocabZhObject.HeaderText = "Vocab Object";
             this.colVocabZhObject.Name = "colVocabZhObject";
             // 
+            // tabPageVocabFr
+            // 
+            this.tabPageVocabFr.Controls.Add(this.grvVocabFr);
+            this.tabPageVocabFr.Location = new System.Drawing.Point(4, 22);
+            this.tabPageVocabFr.Name = "tabPageVocabFr";
+            this.tabPageVocabFr.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageVocabFr.Size = new System.Drawing.Size(608, 217);
+            this.tabPageVocabFr.TabIndex = 9;
+            this.tabPageVocabFr.Text = "Fr";
+            this.tabPageVocabFr.UseVisualStyleBackColor = true;
+            // 
+            // grvVocabFr
+            // 
+            this.grvVocabFr.AllowUserToAddRows = false;
+            this.grvVocabFr.AllowUserToDeleteRows = false;
+            this.grvVocabFr.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvVocabFr.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colVocabFrText,
+            this.colVocabFrMeaning,
+            this.colVocabFrObject});
+            this.grvVocabFr.Location = new System.Drawing.Point(7, 6);
+            this.grvVocabFr.Name = "grvVocabFr";
+            this.grvVocabFr.Size = new System.Drawing.Size(595, 205);
+            this.grvVocabFr.TabIndex = 21;
+            // 
+            // colVocabFrText
+            // 
+            this.colVocabFrText.DataPropertyName = "DisplayText";
+            this.colVocabFrText.HeaderText = "Text";
+            this.colVocabFrText.MinimumWidth = 100;
+            this.colVocabFrText.Name = "colVocabFrText";
+            // 
+            // colVocabFrMeaning
+            // 
+            this.colVocabFrMeaning.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colVocabFrMeaning.DataPropertyName = "Meaning";
+            this.colVocabFrMeaning.HeaderText = "Meaning";
+            this.colVocabFrMeaning.MinimumWidth = 100;
+            this.colVocabFrMeaning.Name = "colVocabFrMeaning";
+            // 
+            // colVocabFrObject
+            // 
+            this.colVocabFrObject.DataPropertyName = "EnhancementJson";
+            this.colVocabFrObject.HeaderText = "Vocab Object";
+            this.colVocabFrObject.Name = "colVocabFrObject";
+            // 
+            // tabPageVocabDe
+            // 
+            this.tabPageVocabDe.Controls.Add(this.grvVocabDe);
+            this.tabPageVocabDe.Location = new System.Drawing.Point(4, 22);
+            this.tabPageVocabDe.Name = "tabPageVocabDe";
+            this.tabPageVocabDe.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageVocabDe.Size = new System.Drawing.Size(608, 217);
+            this.tabPageVocabDe.TabIndex = 10;
+            this.tabPageVocabDe.Text = "De";
+            this.tabPageVocabDe.UseVisualStyleBackColor = true;
+            // 
+            // grvVocabDe
+            // 
+            this.grvVocabDe.AllowUserToAddRows = false;
+            this.grvVocabDe.AllowUserToDeleteRows = false;
+            this.grvVocabDe.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvVocabDe.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colVocabDeText,
+            this.colVocabDeMeaning,
+            this.colVocabDeObject});
+            this.grvVocabDe.Location = new System.Drawing.Point(7, 6);
+            this.grvVocabDe.Name = "grvVocabDe";
+            this.grvVocabDe.Size = new System.Drawing.Size(595, 205);
+            this.grvVocabDe.TabIndex = 22;
+            // 
+            // colVocabDeText
+            // 
+            this.colVocabDeText.DataPropertyName = "DisplayText";
+            this.colVocabDeText.HeaderText = "Text";
+            this.colVocabDeText.MinimumWidth = 100;
+            this.colVocabDeText.Name = "colVocabDeText";
+            // 
+            // colVocabDeMeaning
+            // 
+            this.colVocabDeMeaning.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colVocabDeMeaning.DataPropertyName = "Meaning";
+            this.colVocabDeMeaning.HeaderText = "Meaning";
+            this.colVocabDeMeaning.MinimumWidth = 100;
+            this.colVocabDeMeaning.Name = "colVocabDeMeaning";
+            // 
+            // colVocabDeObject
+            // 
+            this.colVocabDeObject.DataPropertyName = "EnhancementJson";
+            this.colVocabDeObject.HeaderText = "Vocab Object";
+            this.colVocabDeObject.Name = "colVocabDeObject";
+            // 
             // btnSubmitAndAddNew
             // 
             this.btnSubmitAndAddNew.Location = new System.Drawing.Point(270, 927);
@@ -1203,6 +1341,16 @@
             this.btnSubmitAndAddNew.Text = "Submit and Add New";
             this.btnSubmitAndAddNew.UseVisualStyleBackColor = true;
             this.btnSubmitAndAddNew.Click += new System.EventHandler(this.btnSubmitAndAddNew_Click);
+            // 
+            // btnExportJson
+            // 
+            this.btnExportJson.Location = new System.Drawing.Point(75, 927);
+            this.btnExportJson.Name = "btnExportJson";
+            this.btnExportJson.Size = new System.Drawing.Size(185, 59);
+            this.btnExportJson.TabIndex = 48;
+            this.btnExportJson.Text = "Export JSON";
+            this.btnExportJson.UseVisualStyleBackColor = true;
+            this.btnExportJson.Click += new System.EventHandler(this.btnExportJson_Click);
             // 
             // txtDuration
             // 
@@ -1468,6 +1616,8 @@
             this.tabControl1.Controls.Add(this.tabPage7);
             this.tabControl1.Controls.Add(this.tabPage8);
             this.tabControl1.Controls.Add(this.tabPage9);
+            this.tabControl1.Controls.Add(this.tabPageFr);
+            this.tabControl1.Controls.Add(this.tabPageDe);
             this.tabControl1.Location = new System.Drawing.Point(502, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -1944,15 +2094,139 @@
             this.GrammarExplainationZh.Name = "GrammarExplainationZh";
             this.GrammarExplainationZh.Width = 200;
             // 
+            // tabPageFr
+            // 
+            this.tabPageFr.Controls.Add(this.txtFrTranscript);
+            this.tabPageFr.Controls.Add(this.labelFrTranscript);
+            this.tabPageFr.Controls.Add(this.grvFrRow);
+            this.tabPageFr.Location = new System.Drawing.Point(4, 22);
+            this.tabPageFr.Name = "tabPageFr";
+            this.tabPageFr.Size = new System.Drawing.Size(1057, 889);
+            this.tabPageFr.TabIndex = 9;
+            this.tabPageFr.Text = "Fr";
+            this.tabPageFr.UseVisualStyleBackColor = true;
+            // 
+            // txtFrTranscript
+            // 
+            this.txtFrTranscript.Location = new System.Drawing.Point(9, 24);
+            this.txtFrTranscript.Multiline = true;
+            this.txtFrTranscript.Name = "txtFrTranscript";
+            this.txtFrTranscript.Size = new System.Drawing.Size(1045, 174);
+            this.txtFrTranscript.TabIndex = 17;
+            this.txtFrTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
+            // 
+            // labelFrTranscript
+            // 
+            this.labelFrTranscript.AutoSize = true;
+            this.labelFrTranscript.Location = new System.Drawing.Point(6, 7);
+            this.labelFrTranscript.Name = "labelFrTranscript";
+            this.labelFrTranscript.Size = new System.Drawing.Size(54, 13);
+            this.labelFrTranscript.TabIndex = 16;
+            this.labelFrTranscript.Text = "Transcript";
+            // 
+            // grvFrRow
+            // 
+            this.grvFrRow.AllowUserToAddRows = false;
+            this.grvFrRow.AllowUserToDeleteRows = false;
+            this.grvFrRow.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvFrRow.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colFrRowContent,
+            this.GrammarExplainationFr});
+            this.grvFrRow.Location = new System.Drawing.Point(6, 231);
+            this.grvFrRow.Name = "grvFrRow";
+            this.grvFrRow.Size = new System.Drawing.Size(1048, 655);
+            this.grvFrRow.TabIndex = 15;
+            // 
+            // colFrRowContent
+            // 
+            this.colFrRowContent.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colFrRowContent.DataPropertyName = "RowContent";
+            this.colFrRowContent.HeaderText = "Row Content";
+            this.colFrRowContent.Name = "colFrRowContent";
+            // 
+            // GrammarExplainationFr
+            // 
+            this.GrammarExplainationFr.DataPropertyName = "GrammarExplanationSummary";
+            this.GrammarExplainationFr.HeaderText = "Grammar Explaination";
+            this.GrammarExplainationFr.Name = "GrammarExplainationFr";
+            this.GrammarExplainationFr.Width = 200;
+            // 
+            // tabPageDe
+            // 
+            this.tabPageDe.Controls.Add(this.txtDeTranscript);
+            this.tabPageDe.Controls.Add(this.labelDeTranscript);
+            this.tabPageDe.Controls.Add(this.grvDeRow);
+            this.tabPageDe.Location = new System.Drawing.Point(4, 22);
+            this.tabPageDe.Name = "tabPageDe";
+            this.tabPageDe.Size = new System.Drawing.Size(1057, 889);
+            this.tabPageDe.TabIndex = 10;
+            this.tabPageDe.Text = "De";
+            this.tabPageDe.UseVisualStyleBackColor = true;
+            // 
+            // txtDeTranscript
+            // 
+            this.txtDeTranscript.Location = new System.Drawing.Point(9, 24);
+            this.txtDeTranscript.Multiline = true;
+            this.txtDeTranscript.Name = "txtDeTranscript";
+            this.txtDeTranscript.Size = new System.Drawing.Size(1045, 174);
+            this.txtDeTranscript.TabIndex = 17;
+            this.txtDeTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
+            // 
+            // labelDeTranscript
+            // 
+            this.labelDeTranscript.AutoSize = true;
+            this.labelDeTranscript.Location = new System.Drawing.Point(6, 7);
+            this.labelDeTranscript.Name = "labelDeTranscript";
+            this.labelDeTranscript.Size = new System.Drawing.Size(54, 13);
+            this.labelDeTranscript.TabIndex = 16;
+            this.labelDeTranscript.Text = "Transcript";
+            // 
+            // grvDeRow
+            // 
+            this.grvDeRow.AllowUserToAddRows = false;
+            this.grvDeRow.AllowUserToDeleteRows = false;
+            this.grvDeRow.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvDeRow.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colDeRowContent,
+            this.GrammarExplainationDe});
+            this.grvDeRow.Location = new System.Drawing.Point(6, 231);
+            this.grvDeRow.Name = "grvDeRow";
+            this.grvDeRow.Size = new System.Drawing.Size(1048, 655);
+            this.grvDeRow.TabIndex = 15;
+            // 
+            // colDeRowContent
+            // 
+            this.colDeRowContent.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colDeRowContent.DataPropertyName = "RowContent";
+            this.colDeRowContent.HeaderText = "Row Content";
+            this.colDeRowContent.Name = "colDeRowContent";
+            // 
+            // GrammarExplainationDe
+            // 
+            this.GrammarExplainationDe.DataPropertyName = "GrammarExplanationSummary";
+            this.GrammarExplainationDe.HeaderText = "Grammar Explaination";
+            this.GrammarExplainationDe.Name = "GrammarExplainationDe";
+            this.GrammarExplainationDe.Width = 200;
+            // 
             // btngetGrammarExplaimation
             // 
-            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1008);
+            this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1028);
             this.btngetGrammarExplaimation.Name = "btngetGrammarExplaimation";
-            this.btngetGrammarExplaimation.Size = new System.Drawing.Size(164, 79);
+            this.btngetGrammarExplaimation.Size = new System.Drawing.Size(164, 59);
             this.btngetGrammarExplaimation.TabIndex = 23;
             this.btngetGrammarExplaimation.Text = "Get Grammar Explaination";
             this.btngetGrammarExplaimation.UseVisualStyleBackColor = true;
             this.btngetGrammarExplaimation.Click += new System.EventHandler(this.btngetGrammarExplaimation_Click);
+            // 
+            // btnGetGrammarPassage
+            // 
+            this.btnGetGrammarPassage.Location = new System.Drawing.Point(1226, 1028);
+            this.btnGetGrammarPassage.Name = "btnGetGrammarPassage";
+            this.btnGetGrammarPassage.Size = new System.Drawing.Size(164, 59);
+            this.btnGetGrammarPassage.TabIndex = 24;
+            this.btnGetGrammarPassage.Text = "Get Grammar Passage";
+            this.btnGetGrammarPassage.UseVisualStyleBackColor = true;
+            this.btnGetGrammarPassage.Click += new System.EventHandler(this.btnGetGrammarPassage_Click);
             // 
             // statusStripGrammar
             // 
@@ -1985,7 +2259,7 @@
             this.groupBox4.Controls.Add(this.btnPlay);
             this.groupBox4.Controls.Add(this.btnForward);
             this.groupBox4.Controls.Add(this.btnReward);
-            this.groupBox4.Location = new System.Drawing.Point(855, 929);
+            this.groupBox4.Location = new System.Drawing.Point(861, 927);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(359, 100);
             this.groupBox4.TabIndex = 101;
@@ -1998,6 +2272,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(2214, 1119);
             this.Controls.Add(this.groupBox4);
+            this.Controls.Add(this.btnPurgeAiCache);
+            this.Controls.Add(this.btnGetGrammarPassage);
             this.Controls.Add(this.btngetGrammarExplaimation);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.groupBox3);
@@ -2040,6 +2316,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabRu)).EndInit();
             this.tabPage18.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabZh)).EndInit();
+            this.tabPageVocabFr.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabFr)).EndInit();
+            this.tabPageVocabDe.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabDe)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.txtDuration)).EndInit();
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
@@ -2068,6 +2348,12 @@
             this.tabPage9.ResumeLayout(false);
             this.tabPage9.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvZhRow)).EndInit();
+            this.tabPageFr.ResumeLayout(false);
+            this.tabPageFr.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvFrRow)).EndInit();
+            this.tabPageDe.ResumeLayout(false);
+            this.tabPageDe.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvDeRow)).EndInit();
             this.statusStripGrammar.ResumeLayout(false);
             this.statusStripGrammar.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -2141,6 +2427,7 @@
         private System.Windows.Forms.NumericUpDown txtDuration;
         private System.Windows.Forms.Label label22;
         private System.Windows.Forms.Button btnSubmitAndAddNew;
+        private System.Windows.Forms.Button btnExportJson;
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.TabPage tabPage2;
@@ -2175,7 +2462,20 @@
         private System.Windows.Forms.TextBox txtZhTranscript;
         private System.Windows.Forms.Label label30;
         private System.Windows.Forms.DataGridView grvZhRow;
+        private System.Windows.Forms.TabPage tabPageFr;
+        private System.Windows.Forms.TextBox txtFrTranscript;
+        private System.Windows.Forms.Label labelFrTranscript;
+        private System.Windows.Forms.DataGridView grvFrRow;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colFrRowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationFr;
+        private System.Windows.Forms.TabPage tabPageDe;
+        private System.Windows.Forms.TextBox txtDeTranscript;
+        private System.Windows.Forms.Label labelDeTranscript;
+        private System.Windows.Forms.DataGridView grvDeRow;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colDeRowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationDe;
         private System.Windows.Forms.Button btngetGrammarExplaimation;
+        private System.Windows.Forms.Button btnGetGrammarPassage;
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;
@@ -2198,6 +2498,16 @@
         private System.Windows.Forms.DataGridView grvVocabRu;
         private System.Windows.Forms.TabPage tabPage18;
         private System.Windows.Forms.DataGridView grvVocabZh;
+        private System.Windows.Forms.TabPage tabPageVocabFr;
+        private System.Windows.Forms.DataGridView grvVocabFr;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabFrText;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabFrMeaning;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabFrObject;
+        private System.Windows.Forms.TabPage tabPageVocabDe;
+        private System.Windows.Forms.DataGridView grvVocabDe;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeText;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeMeaning;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeObject;
         private System.Windows.Forms.Button btnGetVocabTransLateAndObject;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
         private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationVi;
@@ -2262,6 +2572,7 @@
         private System.Windows.Forms.CheckBox cbExportQuestions;
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
         private System.Windows.Forms.CheckBox cbSendEpisodePush;
+        private System.Windows.Forms.Button btnPurgeAiCache;
         private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }
