@@ -407,6 +407,8 @@ Important: Return ONLY the JSON object, nothing else.";
             if (string.IsNullOrWhiteSpace(theme))
                 theme = "Grammar Overview";
             var usage = overall["usageSummary"]?.ToString() ?? "";
+            if (string.IsNullOrWhiteSpace(usage))
+                usage = theme; // old apps require non-empty explanation
             if (overall["keyStructures"] == null || overall["keyStructures"].Type == JTokenType.Null)
                 overall["keyStructures"] = new JArray();
             overall["grammarTheme"] = theme;

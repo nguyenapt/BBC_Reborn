@@ -59,8 +59,9 @@ namespace playMP3
         }
 
         /// <summary>
-        /// PUT <c>ai_cache/grammar_passage/{hash}/{lang}.json</c> only — does not write grammar_by_episode
-        /// so sentence-level app cache stays unchanged.
+        /// PUT <c>ai_cache/grammar_passage/{hash}/{lang}.json</c> only.
+        /// Prefer dual-map via <see cref="PutGrammarCacheAsync"/> for playMP3 passage fill
+        /// (grammar_by_episode) to avoid duplicate caches; this method kept for optional tools.
         /// </summary>
         public static async Task PutGrammarPassageCacheAsync(
             string passage,

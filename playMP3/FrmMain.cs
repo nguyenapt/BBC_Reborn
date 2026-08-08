@@ -53,7 +53,7 @@ namespace playMP3
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow };
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
             foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
@@ -61,7 +61,7 @@ namespace playMP3
             }
 
             foreach (var g in new DataGridView[] {
-                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh })
+                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe })
             {
                 ApplyVocabGridStyle(g);
             }
@@ -257,6 +257,8 @@ namespace playMP3
             if (ReferenceEquals(tb, txtPtTranscript)) return grvPtRow;
             if (ReferenceEquals(tb, txtRuTranscript)) return grvRuRow;
             if (ReferenceEquals(tb, txtZhTranscript)) return grvZhRow;
+            if (ReferenceEquals(tb, txtFrTranscript)) return grvFrRow;
+            if (ReferenceEquals(tb, txtDeTranscript)) return grvDeRow;
             return null;
         }
 
@@ -860,6 +862,8 @@ namespace playMP3
             grvVocabPt.DataSource = null;
             grvVocabRu.DataSource = null;
             grvVocabZh.DataSource = null;
+            grvVocabFr.DataSource = null;
+            grvVocabDe.DataSource = null;
 
             int nextNumber = int.Parse(txtNumber.Text) + 1;
 
@@ -1040,10 +1044,8 @@ namespace playMP3
                 ai["translations"] = translations;
 
             var grammar = CollectGrammarExport(episodeId);
-            if (grammar["grammar"] is JArray gArr && gArr.Count > 0)
+            if (grammar["grammar_by_episode"] is JArray gArr && gArr.Count > 0)
                 ai["grammar_by_episode"] = gArr;
-            if (grammar["grammar_passage"] is JArray pArr && pArr.Count > 0)
-                ai["grammar_passage"] = pArr;
 
             var vocabulary = CollectVocabularyExport(episodeId);
             if (vocabulary.Count > 0)
@@ -1072,6 +1074,8 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1115,8 +1119,7 @@ namespace playMP3
         {
             var result = new JObject
             {
-                ["grammar"] = new JArray(),
-                ["grammar_passage"] = new JArray(),
+                ["grammar_by_episode"] = new JArray(),
             };
             var englishRows = grvRow.DataSource as BindingList<EpisodeRowModel>;
             if (englishRows == null || englishRows.Count == 0)
@@ -1133,10 +1136,11 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
-            var sentenceArr = (JArray)result["grammar"];
-            var passageArr = (JArray)result["grammar_passage"];
+            var byEpisodeArr = (JArray)result["grammar_by_episode"];
 
             foreach (var loc in locales)
             {
@@ -1168,30 +1172,16 @@ namespace playMP3
                     if (string.IsNullOrEmpty(sentence))
                         continue;
 
-                    var isPassage = data["overall"] != null || data["sentenceAnalyses"] != null;
-                    if (isPassage)
+                    // Sentence-only or passage dual-map — same export path as RTDB upload.
+                    byEpisodeArr.Add(new JObject
                     {
-                        passageArr.Add(new JObject
-                        {
-                            ["lang"] = langCode,
-                            ["lineNumber"] = i,
-                            ["sentence"] = sentence,
-                            ["pathHint"] = "ai_cache/grammar_passage",
-                            ["data"] = data,
-                        });
-                    }
-                    else
-                    {
-                        sentenceArr.Add(new JObject
-                        {
-                            ["lang"] = langCode,
-                            ["lineNumber"] = i,
-                            ["lineKey"] = "line_" + i,
-                            ["sentence"] = sentence,
-                            ["pathHint"] = "ai_cache/grammar_by_episode/" + episodeId + "/line_" + i + "/" + langCode,
-                            ["data"] = data,
-                        });
-                    }
+                        ["lang"] = langCode,
+                        ["lineNumber"] = i,
+                        ["lineKey"] = "line_" + i,
+                        ["sentence"] = sentence,
+                        ["pathHint"] = "ai_cache/grammar_by_episode/" + episodeId + "/line_" + i + "/" + langCode,
+                        ["data"] = data,
+                    });
                 }
             }
 
@@ -1215,6 +1205,8 @@ namespace playMP3
                 Tuple.Create(grvVocabPt, "pt"),
                 Tuple.Create(grvVocabRu, "ru"),
                 Tuple.Create(grvVocabZh, "zh"),
+                Tuple.Create(grvVocabFr, "fr"),
+                Tuple.Create(grvVocabDe, "de"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1349,7 +1341,7 @@ namespace playMP3
             }
 
             // Tab locale không có transcript (0 dòng) sẽ được bỏ qua khi fill grammar.
-            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow };
+            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
             foreach (var g in grids)
             {
                 int c = GetEpisodeRowCount(g);
@@ -1377,6 +1369,8 @@ namespace playMP3
                 case "pt": return "Portuguese";
                 case "ar": return "Arabic";
                 case "ru": return "Russian";
+                case "fr": return "French";
+                case "de": return "German";
                 case "en": return "English";
                 default: return "English";
             }
@@ -1487,7 +1481,7 @@ namespace playMP3
             var prevEn = grvVocabEn.DataSource as BindingList<VocabularyGridRowModel>;
             var localeGrids = new[]
             {
-                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh
+                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe
             };
             var prevLocales = new BindingList<VocabularyGridRowModel>[localeGrids.Length];
             for (var g = 0; g < localeGrids.Length; g++)
@@ -1565,6 +1559,8 @@ namespace playMP3
                 Tuple.Create(grvVocabPt, "pt"),
                 Tuple.Create(grvVocabRu, "ru"),
                 Tuple.Create(grvVocabZh, "zh"),
+                Tuple.Create(grvVocabFr, "fr"),
+                Tuple.Create(grvVocabDe, "de"),
             };
 
             foreach (var loc in localeSpecs)
@@ -1820,6 +1816,8 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
             var grammarBtnOriginalText = btngetGrammarExplaimation.Text;
@@ -1938,6 +1936,8 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
             var grammarBtnOriginalText = btnGetGrammarPassage.Text;
@@ -2016,7 +2016,7 @@ namespace playMP3
             if (grammarJobOk)
             {
                 MessageBox.Show(this,
-                    "Đã điền grammar passage (1 request/dòng) cho các tab có transcript. Export Grammar sẽ ghi ai_cache/grammar_passage (không ghi đè grammar_by_episode).",
+                    "Đã điền grammar passage (1 request/dòng) cho các tab có transcript. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
                     "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2089,6 +2089,8 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
             foreach (var loc in locales)
@@ -2123,19 +2125,10 @@ namespace playMP3
 
                     try
                     {
-                        // Passage JSON (overall / sentenceAnalyses) → grammar_passage only.
-                        // Sentence JSON → grammar + grammar_by_episode (unchanged for old apps).
-                        var isPassage = data["overall"] != null || data["sentenceAnalyses"] != null;
-                        if (isPassage)
-                        {
-                            await GrammarFirebaseCacheWriter.PutGrammarPassageCacheAsync(
-                                sentence, langCode, episodeId, data).ConfigureAwait(true);
-                        }
-                        else
-                        {
-                            await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
-                                sentence, langCode, episodeId, data, i).ConfigureAwait(true);
-                        }
+                        // Sentence schema or passage dual-map → same path (grammar + grammar_by_episode).
+                        // Dual payload keeps grammarPoint/explanation for old apps + overall/sentenceAnalyses for new apps.
+                        await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
+                            sentence, langCode, episodeId, data, i).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -2170,6 +2163,8 @@ namespace playMP3
                 Tuple.Create(grvVocabPt, "pt"),
                 Tuple.Create(grvVocabRu, "ru"),
                 Tuple.Create(grvVocabZh, "zh"),
+                Tuple.Create(grvVocabFr, "fr"),
+                Tuple.Create(grvVocabDe, "de"),
             };
 
             foreach (var spec in localeSpecs)
@@ -2255,6 +2250,8 @@ namespace playMP3
                 Tuple.Create(grvPtRow, "pt"),
                 Tuple.Create(grvRuRow, "ru"),
                 Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
             };
 
             foreach (var spec in localeSpecs)
