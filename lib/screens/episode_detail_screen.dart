@@ -473,7 +473,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               // Episode Name Header
               Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(4, 8, 10, 6),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               border: Border(
@@ -484,40 +484,45 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               ),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category Badge and Episode Name - Cùng một dòng
+                // Category badge + episode name
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Category Badge
                     Container(
-                      margin: const EdgeInsets.only(right: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: categoryColor,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         _episode.category,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    // Episode Name
+                    const SizedBox(width: 8),
                     Expanded(
                       child: SelectableText(
                         _episode.episodeName,
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.left,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          fontStyle: FontStyle.italic,
                           height: 1.3,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          letterSpacing: 0.15,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.92),
                         ),
                         contextMenuBuilder: (context, editableTextState) {
                           return AdaptiveTextSelectionToolbar.buttonItems(
@@ -526,16 +531,21 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                               ContextMenuButtonItem(
                                 label: 'Copy',
                                 onPressed: () {
-                                  final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                  final selectedText = editableTextState
+                                      .textEditingValue.selection
+                                      .textInside(
                                     editableTextState.textEditingValue.text,
                                   );
                                   if (selectedText.isNotEmpty) {
-                                    Clipboard.setData(ClipboardData(text: selectedText));
+                                    Clipboard.setData(
+                                      ClipboardData(text: selectedText),
+                                    );
                                     editableTextState.hideToolbar();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          _languageManager.getText('copiedToClipboard'),
+                                          _languageManager
+                                              .getText('copiedToClipboard'),
                                         ),
                                       ),
                                     );
@@ -545,7 +555,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                               ContextMenuButtonItem(
                                 label: 'Translate',
                                 onPressed: () {
-                                  final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                  final selectedText = editableTextState
+                                      .textEditingValue.selection
+                                      .textInside(
                                     editableTextState.textEditingValue.text,
                                   );
                                   if (selectedText.isNotEmpty) {
@@ -561,46 +573,54 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                // Duration and Date - Cùng một dòng
+                const SizedBox(height: 6),
+                // Duration · published date
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Duration and Date (bỏ date nếu là Other Programs category)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _episode.duration,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                        // Chỉ hiển thị date nếu không phải Other Programs category
-                        if (!_isOtherProgramsCategory(_episode.category)) ...[
-                          const SizedBox(width: 16),
-                          Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDate(_episode.publishedDate),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Icon(
+                      Icons.access_time,
+                      size: 13,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
                     ),
+                    const SizedBox(width: 3),
+                    Text(
+                      _episode.duration,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                    ),
+                    if (!_isOtherProgramsCategory(_episode.category)) ...[
+                      const SizedBox(width: 10),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 13,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          _formatDate(_episode.publishedDate),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
