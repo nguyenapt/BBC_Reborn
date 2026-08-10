@@ -447,7 +447,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
                       return Padding(
                         key: _lineKeys[transcriptIndex],
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
@@ -482,7 +482,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ]
                                 : null,
                           ),
-                          padding: EdgeInsets.all(isActive ? 12 : 8),
+                          padding: EdgeInsets.all(isActive ? 8 : 5),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -527,12 +527,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               SelectableText(
                                 quoted,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  height: 1.55,
+                                  height: 1.4,
                                   fontStyle: FontStyle.normal,
                                   fontWeight:
                                       isActive ? FontWeight.w600 : FontWeight.normal,
@@ -590,12 +590,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                               ),
                               if (_lineTranslations.containsKey(line.text))
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 6),
+                                  padding: const EdgeInsets.only(top: 4),
                                   child: SelectableText(
                                     _lineTranslations[line.text]!,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      height: 1.4,
+                                      height: 1.35,
                                       fontStyle: FontStyle.italic,
                                       color: Theme.of(context)
                                           .colorScheme
@@ -608,12 +608,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   _translations != null &&
                                   !_lineTranslations.containsKey(line.text))
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 6),
+                                  padding: const EdgeInsets.only(top: 4),
                                   child: SelectableText(
                                     _translations![line.text] ?? '',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      height: 1.4,
+                                      height: 1.35,
                                       fontStyle: FontStyle.italic,
                                       color: Theme.of(context)
                                           .colorScheme
@@ -622,10 +622,10 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     ),
                                   ),
                                 ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               Wrap(
                                 spacing: 12,
-                                runSpacing: 6,
+                                runSpacing: 4,
                                 children: [
                                   if (hasTimeInfo)
                                     InkWell(

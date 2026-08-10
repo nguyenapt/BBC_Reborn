@@ -67,7 +67,6 @@ namespace playMP3
             this.cbCloudService = new System.Windows.Forms.ComboBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.cbSendEpisodePush = new System.Windows.Forms.CheckBox();
-            this.btnPurgeAiCache = new System.Windows.Forms.Button();
             this.cbExportTranslation = new System.Windows.Forms.CheckBox();
             this.cbExportGrammar = new System.Windows.Forms.CheckBox();
             this.cbExportVocabulary = new System.Windows.Forms.CheckBox();
@@ -75,9 +74,12 @@ namespace playMP3
             this.cbExportEpisodeDetail = new System.Windows.Forms.CheckBox();
             this.txtASSeriesChild = new System.Windows.Forms.TextBox();
             this.lblASSeriesChild = new System.Windows.Forms.Label();
+            this.lblLevel = new System.Windows.Forms.Label();
+            this.cbLevel = new System.Windows.Forms.ComboBox();
             this.btnGetQuestions = new System.Windows.Forms.Button();
             this.label12 = new System.Windows.Forms.Label();
             this.grvQuestions = new System.Windows.Forms.DataGridView();
+            this.btnGetVocabFromTranscript = new System.Windows.Forms.Button();
             this.btnGetVocabTransLateAndObject = new System.Windows.Forms.Button();
             this.tabControl2 = new System.Windows.Forms.TabControl();
             this.tabPage10 = new System.Windows.Forms.TabPage();
@@ -166,6 +168,7 @@ namespace playMP3
             this.label9 = new System.Windows.Forms.Label();
             this.label40 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
+            this.btnPurgeAiCache = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -637,9 +640,12 @@ namespace playMP3
             this.groupBox3.Controls.Add(this.cbExportEpisodeDetail);
             this.groupBox3.Controls.Add(this.txtASSeriesChild);
             this.groupBox3.Controls.Add(this.lblASSeriesChild);
+            this.groupBox3.Controls.Add(this.lblLevel);
+            this.groupBox3.Controls.Add(this.cbLevel);
             this.groupBox3.Controls.Add(this.btnGetQuestions);
             this.groupBox3.Controls.Add(this.label12);
             this.groupBox3.Controls.Add(this.grvQuestions);
+            this.groupBox3.Controls.Add(this.btnGetVocabFromTranscript);
             this.groupBox3.Controls.Add(this.btnGetVocabTransLateAndObject);
             this.groupBox3.Controls.Add(this.tabControl2);
             this.groupBox3.Controls.Add(this.btnSubmitAndAddNew);
@@ -691,16 +697,6 @@ namespace playMP3
             this.cbSendEpisodePush.TabIndex = 44;
             this.cbSendEpisodePush.Text = "Gửi push FCM";
             this.cbSendEpisodePush.UseVisualStyleBackColor = true;
-            // 
-            // btnPurgeAiCache
-            // 
-            this.btnPurgeAiCache.Location = new System.Drawing.Point(1070, 1028);
-            this.btnPurgeAiCache.Name = "btnPurgeAiCache";
-            this.btnPurgeAiCache.Size = new System.Drawing.Size(150, 59);
-            this.btnPurgeAiCache.TabIndex = 47;
-            this.btnPurgeAiCache.Text = "Purge expired AI cache";
-            this.btnPurgeAiCache.UseVisualStyleBackColor = true;
-            this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
             // 
             // cbExportTranslation
             // 
@@ -768,6 +764,31 @@ namespace playMP3
             this.lblASSeriesChild.TabIndex = 40;
             this.lblASSeriesChild.Text = "Another Series";
             // 
+            // lblLevel
+            // 
+            this.lblLevel.AutoSize = true;
+            this.lblLevel.Location = new System.Drawing.Point(351, 166);
+            this.lblLevel.Name = "lblLevel";
+            this.lblLevel.Size = new System.Drawing.Size(33, 13);
+            this.lblLevel.TabIndex = 47;
+            this.lblLevel.Text = "Level";
+            // 
+            // cbLevel
+            // 
+            this.cbLevel.FormattingEnabled = true;
+            this.cbLevel.Items.AddRange(new object[] {
+            "--Select--",
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2"});
+            this.cbLevel.Location = new System.Drawing.Point(406, 163);
+            this.cbLevel.Name = "cbLevel";
+            this.cbLevel.Size = new System.Drawing.Size(217, 21);
+            this.cbLevel.TabIndex = 48;
+            // 
             // btnGetQuestions
             // 
             this.btnGetQuestions.Location = new System.Drawing.Point(476, 381);
@@ -796,6 +817,16 @@ namespace playMP3
             this.grvQuestions.Name = "grvQuestions";
             this.grvQuestions.Size = new System.Drawing.Size(529, 111);
             this.grvQuestions.TabIndex = 19;
+            // 
+            // btnGetVocabFromTranscript
+            // 
+            this.btnGetVocabFromTranscript.Location = new System.Drawing.Point(476, 505);
+            this.btnGetVocabFromTranscript.Name = "btnGetVocabFromTranscript";
+            this.btnGetVocabFromTranscript.Size = new System.Drawing.Size(145, 31);
+            this.btnGetVocabFromTranscript.TabIndex = 47;
+            this.btnGetVocabFromTranscript.Text = "Get Vocab from transcript";
+            this.btnGetVocabFromTranscript.UseVisualStyleBackColor = true;
+            this.btnGetVocabFromTranscript.Click += new System.EventHandler(this.btnGetVocabFromTranscript_Click);
             // 
             // btnGetVocabTransLateAndObject
             // 
@@ -1482,7 +1513,7 @@ namespace playMP3
             this.txtVocab.Multiline = true;
             this.txtVocab.Name = "txtVocab";
             this.txtVocab.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtVocab.Size = new System.Drawing.Size(530, 115);
+            this.txtVocab.Size = new System.Drawing.Size(529, 81);
             this.txtVocab.TabIndex = 15;
             this.txtVocab.Leave += new System.EventHandler(this.txtVocab_Leave);
             // 
@@ -1530,10 +1561,8 @@ namespace playMP3
             // 
             // cbType
             // 
+            this.cbType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbType.FormattingEnabled = true;
-            this.cbType.Items.AddRange(new object[] {
-            "BBC",
-            "VOA"});
             this.cbType.Location = new System.Drawing.Point(404, 28);
             this.cbType.Name = "cbType";
             this.cbType.Size = new System.Drawing.Size(82, 21);
@@ -1604,6 +1633,16 @@ namespace playMP3
             this.label11.Size = new System.Drawing.Size(16, 13);
             this.label11.TabIndex = 11;
             this.label11.Text = "Id";
+            // 
+            // btnPurgeAiCache
+            // 
+            this.btnPurgeAiCache.Location = new System.Drawing.Point(1070, 1028);
+            this.btnPurgeAiCache.Name = "btnPurgeAiCache";
+            this.btnPurgeAiCache.Size = new System.Drawing.Size(150, 59);
+            this.btnPurgeAiCache.TabIndex = 47;
+            this.btnPurgeAiCache.Text = "Purge expired AI cache";
+            this.btnPurgeAiCache.UseVisualStyleBackColor = true;
+            this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
             // 
             // tabControl1
             // 
@@ -2508,6 +2547,7 @@ namespace playMP3
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeText;
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeMeaning;
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeObject;
+        private System.Windows.Forms.Button btnGetVocabFromTranscript;
         private System.Windows.Forms.Button btnGetVocabTransLateAndObject;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
         private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationVi;
@@ -2567,6 +2607,8 @@ namespace playMP3
         private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationEn;
         private System.Windows.Forms.TextBox txtASSeriesChild;
         private System.Windows.Forms.Label lblASSeriesChild;
+        private System.Windows.Forms.Label lblLevel;
+        private System.Windows.Forms.ComboBox cbLevel;
         private System.Windows.Forms.CheckBox cbExportGrammar;
         private System.Windows.Forms.CheckBox cbExportVocabulary;
         private System.Windows.Forms.CheckBox cbExportQuestions;
