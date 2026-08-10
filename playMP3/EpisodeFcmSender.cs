@@ -12,56 +12,91 @@ namespace playMP3
 {
     /// <summary>
     /// Gửi FCM topic "episodes" sau khi playMP3 upload episode — khớp app Flutter.
+    /// Hỗ trợ nhiều Firebase project (BBC / VOA) qua named <see cref="FirebaseApp"/>.
     /// </summary>
     public static class EpisodeFcmSender
     {
         public const string FcmTopicNewEpisodes = "episodes";
         public const string AndroidChannelId = "bbc_episode_push";
 
+        public const string ProfileBbc = "bbc";
+        public const string ProfileVoa = "voa";
+
         private static readonly object InitLock = new object();
-        private static bool _initialized;
+        private static readonly HashSet<string> ConfiguredProfiles =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        public static bool IsConfigured => _initialized;
-
-        public static void Configure(string serviceAccountPath)
+        public static bool IsProfileConfigured(string profileName)
         {
-            if (string.IsNullOrWhiteSpace(serviceAccountPath))
-                throw new InvalidOperationException("FcmServiceAccountPath is not set in service.config.");
+            if (string.IsNullOrWhiteSpace(profileName))
+                return false;
+            lock (InitLock)
+                return ConfiguredProfiles.Contains(profileName.Trim());
+        }
 
+        public static void Configure(string profileName, string serviceAccountPath)
+        {
+            if (string.IsNullOrWhiteSpace(profileName))
+                throw new ArgumentException("profileName is required.", nameof(profileName));
+            if (string.IsNullOrWhiteSpace(serviceAccountPath))
+                throw new InvalidOperationException(
+                    "FCM service account path is not set in service.config for profile " + profileName + ".");
+
+            var name = profileName.Trim();
             var path = ResolvePath(serviceAccountPath);
             if (!File.Exists(path))
                 throw new FileNotFoundException("FCM service account not found: " + path);
 
             lock (InitLock)
             {
-                if (_initialized)
+                if (ConfiguredProfiles.Contains(name))
                     return;
 
-                if (FirebaseApp.DefaultInstance == null)
+                FirebaseApp existing = null;
+                try
+                {
+                    existing = FirebaseApp.GetInstance(name);
+                }
+                catch (InvalidOperationException)
+                {
+                    existing = null;
+                }
+
+                if (existing == null)
                 {
                     FirebaseApp.Create(new AppOptions
                     {
                         Credential = GoogleCredential.FromFile(path),
-                    });
+                    }, name);
                 }
 
-                _initialized = true;
+                ConfiguredProfiles.Add(name);
             }
         }
 
-        public static bool TryConfigure(string serviceAccountPath)
+        /// <summary>
+        /// Configure FCM for a profile. Env <c>GOOGLE_APPLICATION_CREDENTIALS</c> is only used for BBC.
+        /// </summary>
+        public static bool TryConfigure(string profileName, string serviceAccountPath)
         {
-            var env = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
-            if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
+            var name = (profileName ?? "").Trim();
+            if (name.Length == 0)
+                return false;
+
+            if (string.Equals(name, ProfileBbc, StringComparison.OrdinalIgnoreCase))
             {
-                try
+                var env = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+                if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
                 {
-                    Configure(env);
-                    return true;
-                }
-                catch
-                {
-                    // fall through to config path
+                    try
+                    {
+                        Configure(name, env);
+                        return true;
+                    }
+                    catch
+                    {
+                        // fall through to config path
+                    }
                 }
             }
 
@@ -70,7 +105,7 @@ namespace playMP3
 
             try
             {
-                Configure(serviceAccountPath);
+                Configure(name, serviceAccountPath);
                 return true;
             }
             catch
@@ -80,13 +115,19 @@ namespace playMP3
         }
 
         public static async Task<string> SendNewEpisodeAsync(
+            string profileName,
             Episode episode,
             string episodeKey,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (!_initialized)
+            var name = (profileName ?? "").Trim();
+            if (name.Length == 0)
+                throw new ArgumentException("profileName is required.", nameof(profileName));
+
+            if (!IsProfileConfigured(name))
                 throw new InvalidOperationException(
-                    "FCM not configured. Set FcmServiceAccountPath in service.config or GOOGLE_APPLICATION_CREDENTIALS.");
+                    "FCM not configured for profile \"" + name + "\". "
+                    + "Set FcmServiceAccountPath / FcmServiceAccountPathVOA in service.config.");
 
             if (episode == null)
                 throw new ArgumentNullException(nameof(episode));
@@ -125,9 +166,22 @@ namespace playMP3
                         Sound = "default",
                     },
                 },
+                Apns = new ApnsConfig
+                {
+                    Headers = new Dictionary<string, string>
+                    {
+                        { "apns-priority", "10" },
+                    },
+                    Aps = new Aps
+                    {
+                        Sound = "default",
+                        Badge = 1,
+                    },
+                },
             };
 
-            return await FirebaseMessaging.DefaultInstance
+            var app = FirebaseApp.GetInstance(name);
+            return await FirebaseMessaging.GetMessaging(app)
                 .SendAsync(message, cancellationToken)
                 .ConfigureAwait(false);
         }

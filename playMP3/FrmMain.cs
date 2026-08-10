@@ -78,13 +78,20 @@ namespace playMP3
             if (cbSendEpisodePush != null)
                 cbSendEpisodePush.Checked = ConfigModel.SendEpisodePush;
 
-            cbCloudService.DataSource = this.ConfigModel.CloudServices;
             cbCloudService.DisplayMember = "Name";
             cbCloudService.ValueMember = "Name";
+            cbCloudService.DataSource = this.ConfigModel.CloudServices;
 
-            cbType.DataSource = this.ConfigModel.EpisodeTypes;
-            cbType.DisplayMember = "Name";
-            cbType.ValueMember = "Name";
+            var preferredCloud = ConfigModel.CloudServices.FirstOrDefault(x => x.IsSelected)
+                                 ?? ConfigModel.CloudServices.FirstOrDefault();
+            if (preferredCloud != null)
+            {
+                cbCloudService.SelectedItem = preferredCloud;
+                ConfigModel.SelectedCloudService = preferredCloud;
+            }
+
+            // Filter Type theo Cloud Service (BBC → BBC, VOA → VOA).
+            ApplyEpisodeTypeFilterForCloudService();
 
             // UI: only show AS-series child field when category == "AS".
             // (Designer does not wire cbCategory.SelectedIndexChanged.)
@@ -94,6 +101,179 @@ namespace playMP3
                 cbType.SelectedIndexChanged += (_, __) => UpdateASSeriesChildVisibility();
 
             UpdateASSeriesChildVisibility();
+            UpdateCbLevelEnabled();
+            UpdateSendEpisodePushLabel();
+        }
+
+        private bool IsVoaCloudService()
+        {
+            var name = (cbCloudService?.SelectedItem as CloudService)?.Name
+                       ?? ConfigModel.SelectedCloudService?.Name;
+            return string.Equals(name, "VOA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string ResolveFcmProfileName()
+        {
+            return IsVoaCloudService()
+                ? EpisodeFcmSender.ProfileVoa
+                : EpisodeFcmSender.ProfileBbc;
+        }
+
+        private string ResolveFcmServiceAccountPath()
+        {
+            if (IsVoaCloudService())
+                return ConfigModel.FcmServiceAccountPathVoa;
+            return ConfigModel.FcmServiceAccountPath;
+        }
+
+        private void UpdateSendEpisodePushLabel()
+        {
+            if (cbSendEpisodePush == null)
+                return;
+
+            var path = ResolveFcmServiceAccountPath();
+            if (string.IsNullOrWhiteSpace(path) && !IsVoaCloudService())
+            {
+                var env = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+                if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
+                    path = env;
+            }
+
+            var fileName = string.IsNullOrWhiteSpace(path)
+                ? null
+                : Path.GetFileNameWithoutExtension(path.Trim());
+
+            cbSendEpisodePush.Text = string.IsNullOrWhiteSpace(fileName)
+                ? "Gửi push FCM"
+                : "Gửi push FCM (" + fileName + ")";
+        }
+
+        /// <summary>BBC cloud → Type BBC; VOA cloud → Type VOA; khác → tất cả EpisodeTypes.</summary>
+        private void ApplyEpisodeTypeFilterForCloudService()
+        {
+            if (cbType == null || ConfigModel.EpisodeTypes == null || ConfigModel.EpisodeTypes.Count == 0)
+                return;
+
+            // UI selection là nguồn đúng (tránh SelectedCloudService lệch).
+            var cloud = cbCloudService?.SelectedItem as CloudService;
+            if (cloud != null)
+                ConfigModel.SelectedCloudService = cloud;
+
+            var cloudName = (cloud?.Name ?? ConfigModel.SelectedCloudService?.Name ?? string.Empty).Trim();
+            var forceMatchCloud = string.Equals(cloudName, "BBC", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase);
+
+            List<EpisodeTypeModel> filtered;
+            if (forceMatchCloud)
+            {
+                filtered = ConfigModel.EpisodeTypes
+                    .Where(t => string.Equals((t.Name ?? string.Empty).Trim(), cloudName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                filtered = ConfigModel.EpisodeTypes.ToList();
+            }
+
+            EpisodeTypeModel toSelect = null;
+            if (forceMatchCloud)
+            {
+                // Luôn chọn Type trùng cloud — không giữ BBC khi đổi sang VOA.
+                toSelect = filtered.FirstOrDefault();
+            }
+            else
+            {
+                var previousName = (cbType.SelectedItem as EpisodeTypeModel)?.Name
+                                   ?? ConfigModel.SelectedEpisodeType?.Name;
+                if (!string.IsNullOrEmpty(previousName))
+                {
+                    toSelect = filtered.FirstOrDefault(t =>
+                        string.Equals(t.Name, previousName, StringComparison.OrdinalIgnoreCase));
+                }
+                if (toSelect == null)
+                    toSelect = filtered.FirstOrDefault(t => t.IsSelected) ?? filtered.FirstOrDefault();
+            }
+
+            // Tránh NRE trong SelectedIndexChanged khi clear/rebind (làm ComboBox giữ list cũ).
+            cbType.SelectedIndexChanged -= cbType_SelectedIndexChanged;
+            cbType.BeginUpdate();
+            try
+            {
+                cbType.DataSource = null;
+                cbType.Items.Clear();
+                cbType.DisplayMember = "Name";
+                foreach (var t in filtered)
+                    cbType.Items.Add(t);
+
+                if (toSelect != null)
+                {
+                    cbType.SelectedItem = toSelect;
+                    ConfigModel.SelectedEpisodeType = toSelect;
+                    if (cbCategory != null)
+                    {
+                        cbCategory.DataSource = toSelect.EpisodeCategories;
+                        cbCategory.DisplayMember = "Category";
+                        cbCategory.ValueMember = "Category";
+                    }
+                }
+            }
+            finally
+            {
+                cbType.EndUpdate();
+                cbType.SelectedIndexChanged += cbType_SelectedIndexChanged;
+            }
+
+            // BBC/VOA chỉ còn 1 Type hợp lệ — khóa dropdown để khỏi chọn nhầm.
+            cbType.Enabled = !forceMatchCloud || filtered.Count != 1;
+        }
+
+        private void UpdateCbLevelEnabled()
+        {
+            if (cbLevel == null) return;
+            var enabled = IsVoaCloudService();
+            cbLevel.Enabled = enabled;
+            if (lblLevel != null)
+                lblLevel.Enabled = enabled;
+            if (!enabled)
+            {
+                cbLevel.SelectedIndex = 0;
+            }
+        }
+
+        private void ApplyVoaLevelToEpisode(Episode episode)
+        {
+            if (!IsVoaCloudService() || cbLevel == null || !cbLevel.Enabled)
+            {
+                episode.Level = null;
+                return;
+            }
+
+            var selectedLevel = (cbLevel.Text ?? string.Empty).Trim();
+            episode.Level = string.IsNullOrEmpty(selectedLevel) || selectedLevel == "--Select--"
+                ? null
+                : selectedLevel;
+        }
+
+        private static Dictionary<string, object> BuildListEpisodePayload(Episode episode)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["Category"] = episode.Category,
+                ["EpisodeName"] = episode.EpisodeName,
+                ["FileUrl"] = episode.FileUrl,
+                ["Id"] = episode.Id,
+                ["IsNew"] = episode.IsNew,
+                ["PublishedDate"] = episode.PublishedDate,
+                ["GrammarVocabularyCacheKeys"] = episode.GrammarVocabularyCacheKeys,
+                ["Summary"] = episode.Summary,
+                ["ThumbImage"] = episode.ThumbImage,
+                ["Year"] = episode.Year,
+            };
+
+            if (!string.IsNullOrEmpty(episode.Level))
+                payload["Level"] = episode.Level;
+
+            return payload;
         }
 
         private void UpdateASSeriesChildVisibility()
@@ -529,6 +709,10 @@ namespace playMP3
                 if (fcmPathNode != null)
                     ConfigModel.FcmServiceAccountPath = (fcmPathNode.InnerText ?? string.Empty).Trim();
 
+                var fcmVoaPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPathVOA");
+                if (fcmVoaPathNode != null)
+                    ConfigModel.FcmServiceAccountPathVoa = (fcmVoaPathNode.InnerText ?? string.Empty).Trim();
+
                 var sendPushNode = m_xmld.SelectSingleNode("/Configurations/SendEpisodePush");
                 if (sendPushNode != null)
                 {
@@ -665,6 +849,7 @@ namespace playMP3
             episode.Vocabularies = listVocabulary;
             episode.Summary = txtSummary.Text;
             episode.Grammar = txtGrammar.Text;
+            ApplyVoaLevelToEpisode(episode);
 
             var canonicalEpisodeId = episode.Id.ToString();
             var episodeIdForCacheKeys = canonicalEpisodeId;
@@ -680,19 +865,7 @@ namespace playMP3
             {
                 await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
 
-                var listEpisode = new
-                {
-                    episode.Category,
-                    episode.EpisodeName,
-                    episode.FileUrl,
-                    episode.Id,
-                    episode.IsNew,
-                    episode.PublishedDate,
-                    episode.GrammarVocabularyCacheKeys,
-                    episode.Summary,
-                    episode.ThumbImage,
-                    episode.Year
-                };
+                var listEpisode = BuildListEpisodePayload(episode);
 
                 await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
 
@@ -714,12 +887,17 @@ namespace playMP3
             {
                 try
                 {
-                    if (!EpisodeFcmSender.TryConfigure(ConfigModel.FcmServiceAccountPath))
+                    var fcmProfile = ResolveFcmProfileName();
+                    var fcmPath = ResolveFcmServiceAccountPath();
+                    if (!EpisodeFcmSender.TryConfigure(fcmProfile, fcmPath))
                     {
+                        var hint = IsVoaCloudService()
+                            ? "thêm FcmServiceAccountPathVOA trong service.config."
+                            : "thêm FcmServiceAccountPath trong service.config "
+                              + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.";
                         MessageBox.Show(
                             this,
-                            "FCM chưa cấu hình: thêm FcmServiceAccountPath trong service.config "
-                            + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.",
+                            "FCM chưa cấu hình cho " + fcmProfile.ToUpperInvariant() + ": " + hint,
                             "Push FCM",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Warning);
@@ -727,9 +905,10 @@ namespace playMP3
                     else
                     {
                         var messageId = await EpisodeFcmSender.SendNewEpisodeAsync(
+                            fcmProfile,
                             episode,
                             txtNumber.Text).ConfigureAwait(true);
-                        Debug.WriteLine("EpisodeFcmSender: sent message " + messageId);
+                        Debug.WriteLine("EpisodeFcmSender[" + fcmProfile + "]: sent message " + messageId);
                     }
                 }
                 catch (Exception ex)
@@ -757,7 +936,10 @@ namespace playMP3
 
         private void cbType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var selectedEpisode = ((EpisodeTypeModel)(cbType.SelectedItem));
+            var selectedEpisode = cbType.SelectedItem as EpisodeTypeModel;
+            if (selectedEpisode == null)
+                return;
+
             cbCategory.DataSource = selectedEpisode.EpisodeCategories;
             cbCategory.DisplayMember = "Category";
             cbCategory.ValueMember = "Category";
@@ -766,10 +948,17 @@ namespace playMP3
 
         private void cbCloudService_SelectedIndexChanged(object sender, EventArgs e)
         {
-            txtUrl.Text = ((CloudService)(cbCloudService.SelectedItem)).Url;
-            txtApiKey.Text = ((CloudService)(cbCloudService.SelectedItem)).ApiKey;
-            txtSecret.Text = ((CloudService)(cbCloudService.SelectedItem)).Secret;
-            ConfigModel.SelectedCloudService = ((CloudService)(cbCloudService.SelectedItem));
+            var selected = cbCloudService.SelectedItem as CloudService;
+            if (selected == null)
+                return;
+
+            txtUrl.Text = selected.Url;
+            txtApiKey.Text = selected.ApiKey;
+            txtSecret.Text = selected.Secret;
+            ConfigModel.SelectedCloudService = selected;
+            ApplyEpisodeTypeFilterForCloudService();
+            UpdateCbLevelEnabled();
+            UpdateSendEpisodePushLabel();
             cbType.Focus();
         }
 
@@ -956,6 +1145,8 @@ namespace playMP3
                 ["ThumbImage"] = episode.ThumbImage,
                 ["Year"] = episode.Year,
             };
+            if (!string.IsNullOrEmpty(episode.Level))
+                listEpisode["Level"] = episode.Level;
 
             var root = new JObject
             {
@@ -1032,6 +1223,7 @@ namespace playMP3
             episode.Vocabularies = listVocabulary;
             episode.Summary = txtSummary.Text;
             episode.Grammar = txtGrammar.Text;
+            ApplyVoaLevelToEpisode(episode);
             return episode;
         }
 
@@ -1529,6 +1721,90 @@ namespace playMP3
             grvVocabEn.Refresh();
             foreach (var grid in localeGrids)
                 grid.Refresh();
+        }
+
+        private async void btnGetVocabFromTranscript_Click(object sender, EventArgs e)
+        {
+            var transcript = (txtTranscript.Text ?? "").Trim();
+            if (transcript.Length == 0)
+            {
+                MessageBox.Show(this,
+                    "Chưa có transcript tiếng Anh (txtTranscript).",
+                    "Vocabulary",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            var apiKeys = TryResolveGeminiApiKeys();
+            if (apiKeys == null || apiKeys.Count == 0)
+            {
+                MessageBox.Show(this,
+                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc <GeminiApiKey> trong service.config.",
+                    "Vocabulary",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            var count = GrammarCacheConstants.DefaultVocabularySuggestionCount;
+            var btnText = btnGetVocabFromTranscript.Text;
+            var formTitleOriginal = Text;
+            btnGetVocabFromTranscript.Enabled = false;
+            var ok = false;
+            var filled = 0;
+            try
+            {
+                SetGrammarJobUiBusy(true, "Đang lấy vocabulary từ transcript (Gemini)…");
+                Text = formTitleOriginal + " — Vocab from transcript…";
+                SetGrammarJobUiDetail("Extract vocab × " + count);
+
+                var pairs = await VocabularyGeminiService.ExtractVocabularyFromTranscriptAsync(apiKeys, transcript, count)
+                    .ConfigureAwait(true);
+
+                var sb = new StringBuilder();
+                foreach (var p in pairs)
+                {
+                    var word = (p.Item1 ?? "").Trim();
+                    if (word.Length == 0)
+                        continue;
+                    var meaning = (p.Item2 ?? "").Trim();
+                    if (sb.Length > 0)
+                        sb.AppendLine();
+                    sb.Append(word);
+                    sb.Append(" : ");
+                    sb.Append(meaning);
+                    filled++;
+                }
+
+                if (filled == 0)
+                {
+                    MessageBox.Show(this, "Không parse được vocabulary từ Gemini.", "Vocabulary",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                txtVocab.Text = sb.ToString();
+                FillVocabGridsFromTxtVocab();
+                ok = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Vocabulary", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Text = formTitleOriginal;
+                SetGrammarJobUiBusy(false);
+                btnGetVocabFromTranscript.Text = btnText;
+                btnGetVocabFromTranscript.Enabled = true;
+            }
+
+            if (ok)
+            {
+                MessageBox.Show(this, "Đã điền " + filled + " từ/cụm vào txtVocab (word : meaning).", "Vocabulary",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private async void btnGetVocabTransLateAndObject_Click(object sender, EventArgs e)

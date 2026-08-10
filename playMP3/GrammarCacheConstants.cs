@@ -48,6 +48,9 @@ namespace playMP3
         /// <summary>MUST_SYNC Flutter <c>QuestionSlide</c> / <c>AIQuestionService.generateQuestions</c> default count (5).</summary>
         public const int DefaultQuestionCount = 5;
 
+        /// <summary>Số từ/cụm gợi ý mặc định khi Get Vocab from transcript.</summary>
+        public const int DefaultVocabularySuggestionCount = 10;
+
         /// <summary>RTDB child segment names under <c>ai_cache</c> (cleanup UI).</summary>
         public static readonly string[] AiCacheNodeNames =
         {
