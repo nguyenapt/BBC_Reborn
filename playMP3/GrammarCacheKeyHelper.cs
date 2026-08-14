@@ -54,6 +54,45 @@ namespace playMP3
         }
 
         /// <summary>
+        /// MUST_SYNC Flutter <c>CacheKeyHelper.grammarPassageKey</c>.
+        /// Local key form: <c>grammar_passage_{hash}_{lang}</c>; RTDB segment strips the prefix.
+        /// </summary>
+        public static string GrammarPassageKey(
+            string passage,
+            string languageCode,
+            string episodeId,
+            string modelVersion,
+            string promptVersion,
+            string schemaVersion)
+        {
+            var scopedPayload = string.Join("|", new[]
+            {
+                (passage ?? string.Empty).Trim(),
+                (episodeId ?? string.Empty).Trim(),
+                (modelVersion ?? string.Empty).Trim(),
+                (promptVersion ?? string.Empty).Trim(),
+                (schemaVersion ?? string.Empty).Trim(),
+            });
+            var hash = HashString(scopedPayload);
+            return "grammar_passage_" + hash + "_" + (languageCode ?? string.Empty).Trim();
+        }
+
+        /// <summary>Path segment for .../ai_cache/grammar_passage/{segment}/{lang}.json</summary>
+        public static string GrammarPassageHashPathSegment(
+            string passage,
+            string languageCode,
+            string episodeId,
+            string modelVersion,
+            string promptVersion,
+            string schemaVersion)
+        {
+            var key = GrammarPassageKey(passage, languageCode, episodeId, modelVersion, promptVersion, schemaVersion);
+            if (key.StartsWith("grammar_passage_", StringComparison.Ordinal))
+                return key.Substring("grammar_passage_".Length);
+            return key;
+        }
+
+        /// <summary>
         /// Episode grammar RTDB segment — 0-based (line_0 = first transcript row). MUST_SYNC Flutter grammarEpisodeLineKey.
         /// </summary>
         public static string GrammarEpisodeLineKey(string sentence, int lineNumber = -1)

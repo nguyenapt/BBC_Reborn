@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace playMP3.Base
 {
@@ -29,5 +30,8 @@ namespace playMP3.Base
         public string ThumbImage { get; set; }
         public string Actor { get; set; }
         public int Duration { get; set; }
+        /// <summary>CEFR level (A1–C2) — chỉ export khi cloud service VOA.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string Level { get; set; }
     }
 }

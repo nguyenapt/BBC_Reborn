@@ -29,6 +29,95 @@ namespace playMP3
             return await RunPromptPlainAsync(apiKeys, prompt).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Gợi ý vocabulary từ transcript tiếng Anh — mỗi phần tử là (word, English meaning gloss).
+        /// </summary>
+        public static async Task<List<Tuple<string, string>>> ExtractVocabularyFromTranscriptAsync(
+            IReadOnlyList<string> apiKeys,
+            string transcript,
+            int count)
+        {
+            if (count < 1)
+                count = 1;
+
+            var prompt = BuildExtractFromTranscriptPrompt(transcript ?? "", count);
+            var raw = await RunPromptPlainAsync(apiKeys, prompt).ConfigureAwait(false);
+            return ParseExtractedVocabulary(raw, count);
+        }
+
+        private static string BuildExtractFromTranscriptPrompt(string transcript, int count)
+        {
+            var esc = (transcript ?? "").Replace("\"", "\\\"");
+            return @"From this English learning transcript, extract up to " + count.ToString(CultureInfo.InvariantCulture) + @" vocabulary words or short phrases for English learners.
+
+CRITICAL — topic relevance:
+- Infer the main topic/theme of the article from the transcript.
+- Every selected word/phrase MUST be clearly related to that topic (topic-specific terms, key concepts, domain vocabulary used in the piece).
+- Do NOT pick random ""useful"" words that are only generic English (e.g. everyday verbs/adverbs) unless they are central to the article's subject.
+- Prefer words/phrases that actually appear in the transcript (or their dictionary lemma) and help learners understand this specific content.
+
+Also focus on less-common words, idioms, and phrasal verbs when they support the topic. Avoid ultra-basic words (a, the, is, are, and, to, of…).
+You MUST return ONLY a valid JSON array, no markdown, no explanations, no other text.
+
+Transcript: """ + esc + @"""
+
+Return format (JSON array only):
+[
+  { ""word"": ""example word or phrase"", ""meaning"": ""short English definition/gloss"" }
+]
+
+Important:
+- Return at most " + count.ToString(CultureInfo.InvariantCulture) + @" items.
+- ""word"" must be the English lemma/phrase as it appears or its dictionary form, and topic-relevant.
+- ""meaning"" must be a concise English gloss (not a translation into another language).
+- Return ONLY the JSON array, nothing else.";
+        }
+
+        private static List<Tuple<string, string>> ParseExtractedVocabulary(string raw, int maxCount)
+        {
+            var list = new List<Tuple<string, string>>();
+            var trimmed = StripMarkdownJsonFence((raw ?? "").Trim()).Trim();
+            var token = JToken.Parse(trimmed);
+            if (!(token is JArray arr))
+                throw new InvalidOperationException("Vocab from transcript: Gemini không trả về JSON array.");
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in arr)
+            {
+                if (list.Count >= maxCount)
+                    break;
+
+                string word = null;
+                string meaning = null;
+                if (item is JObject jo)
+                {
+                    word = (jo["word"] ?? jo["text"] ?? jo["vocab"] ?? jo["lemma"])?.ToString();
+                    meaning = (jo["meaning"] ?? jo["mean"] ?? jo["definition"] ?? jo["gloss"])?.ToString();
+                }
+                else if (item is JArray pair && pair.Count >= 1)
+                {
+                    word = pair[0]?.ToString();
+                    meaning = pair.Count >= 2 ? pair[1]?.ToString() : "";
+                }
+                else if (item is JValue jv)
+                {
+                    word = jv.ToString();
+                    meaning = "";
+                }
+
+                word = (word ?? "").Trim();
+                meaning = (meaning ?? "").Trim();
+                if (word.Length == 0)
+                    continue;
+                if (!seen.Add(word))
+                    continue;
+
+                list.Add(Tuple.Create(word, meaning));
+            }
+
+            return list;
+        }
+
         public static Task<string> TranslateMeaningAsync(IReadOnlyList<string> apiKeys, string englishMeaning, string targetLanguageLabel)
         {
             var prompt = @"Translate the following English vocabulary definition/gloss into " + targetLanguageLabel + @".
@@ -123,10 +212,16 @@ Return format (JSON object only):
   ""antonyms"": [""word3""],
   ""exampleSentences"": [""sentence1"", ""sentence2""],
   ""collocations"": [""collocation1"", ""collocation2""],
+  ""synonymDetails"": [{""word"": ""word1"", ""meaning"": ""short gloss""}],
+  ""antonymDetails"": [{""word"": ""word3"", ""meaning"": ""short gloss""}],
+  ""collocationDetails"": [{""word"": ""collocation1"", ""meaning"": ""short gloss""}],
   ""pronunciation"": ""/pronunciation/"",
   ""wordForm"": ""noun""
 }
 
+Rules:
+- Keep synonyms/antonyms/collocations as plain string arrays (legacy).
+- Always also fill *Details with the same terms plus a concise English meaning/gloss.
 Important: Return ONLY the JSON object, nothing else.";
         }
 
