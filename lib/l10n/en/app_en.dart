@@ -161,6 +161,7 @@ class AppEn {
     'savedToMyLearning': 'Saved to My Hub',
     'removedFromSavedGrammar': 'Removed from saved grammar',
     'grammarExplanationTitle': 'Grammar Explanation',
+    'analyzingGrammar': 'Analyzing grammar...',
     'sentenceLabel': 'Sentence:',
     'explanationLabel': 'Explanation:',
     'rulePatternLabel': 'Rule Pattern',
