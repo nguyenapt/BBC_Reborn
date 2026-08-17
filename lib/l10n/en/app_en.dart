@@ -454,6 +454,38 @@ class AppEn {
     'notifDailyPractice': 'Daily practice reminder (9 AM)',
     'notifWordOfDay': 'Word of the day (8 AM)',
     'notifSpeakingReview': 'Speaking review reminders',
-    'heartEarnHint': 'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartEarnHintCredit':
+        '1 heart unlocks ~{credits} learning energy per episode (translate, grammar, vocabulary…) or {speaking} speaking tries. Watch an ad for +{rewardHearts} hearts, or complete your daily goal.',
+    'heartEarnHint':
+        'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartEarnHintLegacy':
+        'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartOpenPassTitle': 'Unlock learning energy for this episode',
+    'heartOpenPassBody':
+        'Use 1 heart to unlock {credits} learning energy for translate, grammar, and vocabulary on this episode.',
+    'heartUseOneHeart': 'Use 1 heart (+{credits} energy)',
+    'heartRefillWithHeart': 'Use another heart (+{credits} energy)',
+    'heartNoCreditsTitle': 'No learning energy left on this episode',
+    'heartNoCreditsBody':
+        'Watch an ad for +{adCredits} energy to keep learning. You can also spend another heart (+{credits} energy) if a refill is still available.',
+    'heartWatchAdCredits': 'Watch ad (+{credits} energy)',
+    'heartWatchAdHearts': 'Watch ad (+{count} hearts)',
+    'heartEarnedCount': '❤️ You earned {count} heart(s)!',
+    'heartCreditsRemaining': '{count} learning energy left on this episode',
+    'heartCreditPanelHint':
+        'Learning energy covers translate, grammar, and vocabulary on this episode. Cached content is free. Ads or a heart refill both add +{adCredits} energy (1 heart refill max per episode).',
+    'heartCreditPanelHeartsLeft': 'Hearts today: {hearts}/{max}',
+    'heartCreditsEarnedCount': '+{count} energy on this episode',
+    'heartDailyCapTitle': 'Daily learning energy limit reached',
+    'heartDailyCapBody':
+        'You have used today’s learning energy. Try again tomorrow, or watch an ad for more energy if available.',
+    'heartSpeakingTicketTitle': 'Start speaking session',
+    'heartSpeakingTicketBody': 'Use 1 heart for {count} pronunciation checks.',
+    'heartSpeakingUseHeart': 'Use 1 heart (+{count} tries)',
+    'heartSpeakingNoAttemptsTitle': 'No speaking tries left',
+    'heartSpeakingWatchAd': 'Watch ad (+{count} tries)',
+    'heartSpeakingAttemptsLeft': '{count} speaking tries left',
+    'heartWatchAdRecover': 'Watch ad to recover hearts',
+    'adLoadingTryAgain': 'Ad is loading, please try again in a moment',
   };
 }

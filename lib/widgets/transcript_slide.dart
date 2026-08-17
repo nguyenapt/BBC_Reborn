@@ -9,12 +9,9 @@ import '../utils/category_colors.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../models/grammar_explanation.dart';
 import '../services/learning_progress_service.dart';
 import '../services/language_manager.dart';
-import '../services/admob_service.dart';
-import '../services/heart_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/learning_analytics_service.dart';
 import '../services/review_reminder_service.dart';
@@ -23,6 +20,7 @@ import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
+import 'heart_economy_ui.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -984,6 +982,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
           _lineTranslations[lineText] = translated;
           _lineTranslating[lineText] = false;
         });
+        unawaited(HeartEconomyUi.maybeShowCreditsSnack(context, episodeId));
       }
     } catch (e) {
       debugPrint('Error translating line: $e');
@@ -1001,73 +1000,30 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
-  /// Show error SnackBar with appropriate action button
-  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
-  void _showErrorSnackBar(
+  /// Show error with Episode Pass / credits / hearts sheets when needed.
+  Future<void> _showErrorSnackBar(
     BuildContext context,
     dynamic error, {
     required VoidCallback onRetry,
-  }) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
-    
-    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
-      // Show "Watch Ads" button for NoHeartsException
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Watch Ads',
-            textColor: Theme.of(context).colorScheme.onInverseSurface,
-            onPressed: () {
-              if (admobService.isRewardedAdReady()) {
-                admobService.showRewardedAd(
-                  onRewarded: () {
-                    heartService.earnHeart();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Color(0xFF7A5CFF),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    // Retry the action after earning heart
-                    Future.delayed(const Duration(milliseconds: 500), onRetry);
-                  },
-                  onAdFailedToShow: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to show ad: $error'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  },
-                );
-              } else {
-                admobService.createRewardedAd();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ad is loading, please try again in a moment'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
+  }) async {
+    final episodeId = widget.episode.id ?? '';
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry,
+      episodeId: episodeId,
+    );
+    if (handled || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AIErrorHandler.getErrorMessage(error)),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: onRetry,
         ),
-      );
-    } else {
-      // Show "Retry" button for other errors
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: onRetry,
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../config/ai_config.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/grammar_explanation.dart';
 import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
@@ -7,7 +8,6 @@ import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
-import 'heart_service.dart';
 
 /// Service for AI-powered grammar explanation
 class AIGrammarService {
@@ -74,12 +74,25 @@ class AIGrammarService {
     );
 
     if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      await AICacheService.consumeHeartIfFirebase(
+        cacheHit.tier,
+        episodeId: episodeId,
+      );
+      if (cacheHit.tier == AICacheTier.firebase) {
+        await _cache.materializeGrammarLocal(
+          sentence,
+          languageCode,
+          cacheHit.data,
+          episodeId: episodeId,
+          modelVersion: modelVersion,
+          promptVersion: promptVersion,
+        );
+      }
       debugPrint('Using cached grammar explanation for sentence');
       return _mapCachedGrammarToModel(sentence, cacheHit.data);
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -215,7 +228,21 @@ class AIGrammarService {
       try {
         final cached =
             _mapPassageResponseToModel(normalizedPassage, cacheHit.data);
-        await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+        await AICacheService.consumeHeartIfFirebase(
+          cacheHit.tier,
+          episodeId: episodeId,
+        );
+        if (cacheHit.tier == AICacheTier.firebase) {
+          await _cache.materializeGrammarPassageLocal(
+            normalizedPassage,
+            languageCode,
+            cacheHit.data,
+            episodeId: episodeId,
+            modelVersion: modelVersion,
+            promptVersion: promptVersion,
+            schemaVersion: schemaVersion,
+          );
+        }
         return GrammarPassageProgressiveResult(
           initial: cached,
           full: Future.value(cached),
@@ -226,7 +253,7 @@ class AIGrammarService {
       }
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();

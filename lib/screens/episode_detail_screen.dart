@@ -458,7 +458,11 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               return Padding(
                 padding: const EdgeInsets.only(left: 4, right: 10),
                 child: Center(
-                  child: HeartWidget(panelTop: panelTop, compact: true),
+                  child: HeartWidget(
+                    panelTop: panelTop,
+                    compact: true,
+                    episodeId: _episode.id,
+                  ),
                 ),
               );
             },
