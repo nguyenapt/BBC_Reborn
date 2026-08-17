@@ -161,6 +161,7 @@ class AppVi {
     'savedToMyLearning': 'Đã lưu vào My Hub',
     'removedFromSavedGrammar': 'Đã xóa khỏi ngữ pháp đã lưu',
     'grammarExplanationTitle': 'Giải thích ngữ pháp',
+    'analyzingGrammar': 'Đang phân tích ngữ pháp...',
     'sentenceLabel': 'Câu:',
     'explanationLabel': 'Giải thích:',
     'rulePatternLabel': 'Mẫu cấu trúc',
