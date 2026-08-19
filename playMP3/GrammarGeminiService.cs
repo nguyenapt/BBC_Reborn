@@ -51,6 +51,23 @@ namespace playMP3
             return await RunGrammarPromptAsync(apiKeys, BuildPassagePrompt(passage, targetLanguageLabel)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Translate learner-facing fields of a canonical English grammar JSON into
+        /// <paramref name="targetLanguageLabel"/>. Quotes from the transcript stay English.
+        /// </summary>
+        public static async Task<JObject> TranslateGrammarPassageJsonAsync(
+            IReadOnlyList<string> apiKeys,
+            JObject englishJson,
+            string targetLanguageLabel)
+        {
+            if (englishJson == null)
+                throw new ArgumentNullException(nameof(englishJson));
+            var raw = await RunGrammarPromptAsync(
+                apiKeys,
+                BuildTranslateGrammarJsonPrompt(englishJson, targetLanguageLabel)).ConfigureAwait(false);
+            return MergeTranslatedGrammarJson(englishJson, raw);
+        }
+
         private static async Task<JObject> RunGrammarPromptAsync(IReadOnlyList<string> apiKeys, string prompt)
         {
             var keys = NormalizeKeys(apiKeys);
@@ -375,6 +392,106 @@ Rules:
 - phraseBreakdown is optional; include only important grammar-bearing phrases.
 - Cover each meaningful sentence (a single-line passage may have one analysis).
 Important: Return ONLY the JSON object, nothing else.";
+        }
+
+        /// <summary>
+        /// Translate pedagogical fields; keep transcript quotes identical to English JSON.
+        /// </summary>
+        private static string BuildTranslateGrammarJsonPrompt(JObject englishJson, string targetLanguageLabel)
+        {
+            var json = (englishJson ?? new JObject()).ToString(Formatting.None);
+            return @"Translate the LEARNER-FACING fields of this English grammar JSON into " + targetLanguageLabel + @".
+You MUST return ONLY a valid JSON object with the SAME schema and the SAME array lengths.
+
+KEEP these fields EXACTLY as in the input (English quotes from the transcript):
+- sentence, passageText, sentenceText
+- highlightedWords (array of exact fragments)
+- phrase (inside each phraseBreakdown item)
+- examples (keep English example sentences)
+
+TRANSLATE into " + targetLanguageLabel + @":
+- grammarPoint, explanation, whyThisForm, rulePattern
+- overall.grammarTheme, overall.usageSummary, overall.keyStructures
+- mainStructure, usageInContext, structure, usage
+- commonMistakes, rewriteExercise
+
+Do not add or remove sentenceAnalyses or phraseBreakdown items.
+Do not invent new quotes from the transcript.
+
+English JSON:
+" + json + @"
+
+JSON object only:";
+        }
+
+        /// <summary>
+        /// Force transcript quotes from the English canonical JSON onto the translation.
+        /// </summary>
+        public static JObject MergeTranslatedGrammarJson(JObject english, JObject translated)
+        {
+            if (english == null)
+                return translated ?? new JObject();
+            var result = (JObject)(translated ?? english).DeepClone();
+            CopyToken(result, english, "sentence");
+            CopyToken(result, english, "passageText");
+            CopyToken(result, english, "highlightedWords");
+
+            var enAnalyses = english["sentenceAnalyses"] as JArray;
+            if (enAnalyses != null)
+            {
+                var trAnalyses = result["sentenceAnalyses"] as JArray ?? new JArray();
+                result["sentenceAnalyses"] = trAnalyses;
+                while (trAnalyses.Count < enAnalyses.Count)
+                    trAnalyses.Add(enAnalyses[trAnalyses.Count].DeepClone());
+                while (trAnalyses.Count > enAnalyses.Count)
+                    trAnalyses.RemoveAt(trAnalyses.Count - 1);
+
+                for (var i = 0; i < enAnalyses.Count; i++)
+                {
+                    var enA = enAnalyses[i] as JObject;
+                    var trA = trAnalyses[i] as JObject;
+                    if (enA == null)
+                        continue;
+                    if (trA == null)
+                    {
+                        trAnalyses[i] = enA.DeepClone();
+                        continue;
+                    }
+                    CopyToken(trA, enA, "sentenceText");
+                    CopyToken(trA, enA, "examples");
+                    var enPhrases = enA["phraseBreakdown"] as JArray;
+                    if (enPhrases == null)
+                        continue;
+                    var trPhrases = trA["phraseBreakdown"] as JArray ?? new JArray();
+                    trA["phraseBreakdown"] = trPhrases;
+                    while (trPhrases.Count < enPhrases.Count)
+                        trPhrases.Add(enPhrases[trPhrases.Count].DeepClone());
+                    while (trPhrases.Count > enPhrases.Count)
+                        trPhrases.RemoveAt(trPhrases.Count - 1);
+                    for (var j = 0; j < enPhrases.Count; j++)
+                    {
+                        var enPh = enPhrases[j] as JObject;
+                        var trPh = trPhrases[j] as JObject;
+                        if (enPh == null)
+                            continue;
+                        if (trPh == null)
+                        {
+                            trPhrases[j] = enPh.DeepClone();
+                            continue;
+                        }
+                        CopyToken(trPh, enPh, "phrase");
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static void CopyToken(JObject dest, JObject source, string name)
+        {
+            var t = source[name];
+            if (t != null)
+                dest[name] = t.DeepClone();
         }
 
         /// <summary>Merge API fields with sentence for Flutter GrammarExplanation.fromJson.</summary>
