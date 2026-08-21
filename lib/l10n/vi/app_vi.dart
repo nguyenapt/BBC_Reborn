@@ -470,6 +470,38 @@ class AppVi {
     'notifDailyPractice': 'Nhắc luyện tập (9:00)',
     'notifWordOfDay': 'Từ trong ngày (8:00)',
     'notifSpeakingReview': 'Nhắc ôn speaking',
-    'heartEarnHint': 'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartEarnHintCredit':
+        '1 tim mở ~{credits} năng lượng học trên mỗi episode (dịch, ngữ pháp, từ vựng…) hoặc {speaking} lần speaking. Xem quảng cáo nhận +{rewardHearts} tim, hoặc hoàn thành mục tiêu ngày.',
+    'heartEarnHint':
+        'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartEarnHintLegacy':
+        'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartOpenPassTitle': 'Mở năng lượng học cho episode này',
+    'heartOpenPassBody':
+        'Dùng 1 ❤️ để mở {credits} năng lượng học cho dịch, ngữ pháp, từ vựng trên episode này.',
+    'heartUseOneHeart': 'Dùng 1 ❤️ (+{credits} năng lượng)',
+    'heartRefillWithHeart': 'Dùng thêm 1 ❤️ (+{credits} năng lượng)',
+    'heartNoCreditsTitle': 'Hết năng lượng học trên episode',
+    'heartNoCreditsBody':
+        'Xem quảng cáo để +{adCredits} năng lượng và tiếp tục học. Bạn cũng có thể dùng thêm 1 tim (+{credits} năng lượng) nếu còn lượt nạp.',
+    'heartWatchAdCredits': 'Xem quảng cáo (+{credits} năng lượng)',
+    'heartWatchAdHearts': 'Xem quảng cáo (+{count} tim)',
+    'heartEarnedCount': '❤️ Bạn nhận {count} tim!',
+    'heartCreditsRemaining': 'Còn {count} năng lượng học trên episode này',
+    'heartCreditPanelHint':
+        'Năng lượng học dùng cho dịch, ngữ pháp, từ vựng trên episode. Cache đã tải sẵn không trừ. Xem quảng cáo hoặc dùng tim đều +{adCredits} năng lượng (tim tối đa 1 lần/episode).',
+    'heartCreditPanelHeartsLeft': 'Tim hôm nay: {hearts}/{max}',
+    'heartCreditsEarnedCount': '+{count} năng lượng trên episode này',
+    'heartDailyCapTitle': 'Đã đạt giới hạn năng lượng học hôm nay',
+    'heartDailyCapBody':
+        'Bạn đã dùng hết năng lượng học trong ngày. Thử lại ngày mai, hoặc xem quảng cáo để thêm năng lượng nếu còn.',
+    'heartSpeakingTicketTitle': 'Mở phiên speaking',
+    'heartSpeakingTicketBody': 'Dùng 1 ❤️ để có {count} lần đánh giá phát âm.',
+    'heartSpeakingUseHeart': 'Dùng 1 ❤️ (+{count} lần)',
+    'heartSpeakingNoAttemptsTitle': 'Hết lượt speaking',
+    'heartSpeakingWatchAd': 'Xem quảng cáo (+{count} lần)',
+    'heartSpeakingAttemptsLeft': 'Còn {count} lần speaking',
+    'heartWatchAdRecover': 'Xem quảng cáo để nhận tim',
+    'adLoadingTryAgain': 'Quảng cáo đang tải, thử lại sau giây lát',
   };
 }

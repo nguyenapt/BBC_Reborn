@@ -371,6 +371,30 @@ Important: Return ONLY the JSON object, nothing else.''';
   }
 
   @override
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final prompt = buildTranslateGrammarPassageJsonPrompt(
+      englishJson,
+      targetLanguage,
+    );
+    final response = await _callGemini(prompt);
+    try {
+      final parsed = JsonParserHelper.parseJsonObject(response);
+      final merged = preserveGrammarQuotesFromEnglish(englishJson, parsed);
+      final passage = englishJson['sentence']?.toString() ??
+          englishJson['passageText']?.toString() ??
+          '';
+      return toFlutterGrammarPassageData(merged, passage);
+    } catch (e) {
+      throw InvalidResponseException(
+        'Failed to parse translated grammar JSON: $e',
+      );
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,
     String targetLanguage,

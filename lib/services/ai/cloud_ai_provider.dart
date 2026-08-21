@@ -147,6 +147,27 @@ class CloudAIProvider implements AIProvider {
   }
 
   @override
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final data = await _callAction('translateGrammarPassageJson', {
+      'englishJson': englishJson,
+      'targetLanguage': targetLanguage,
+    });
+    final passage = englishJson['sentence']?.toString() ??
+        englishJson['passageText']?.toString() ??
+        '';
+    return toFlutterGrammarPassageData(
+      preserveGrammarQuotesFromEnglish(
+        englishJson,
+        Map<String, dynamic>.from(data as Map),
+      ),
+      passage,
+    );
+  }
+
+  @override
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,
     String targetLanguage,

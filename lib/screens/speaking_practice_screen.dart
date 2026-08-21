@@ -10,14 +10,12 @@ import '../models/speaking_attempt.dart';
 import '../models/speaking_feedback.dart';
 import '../models/speaking_session.dart';
 import '../models/transcript_line.dart';
-import '../services/admob_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../services/audio_player_service.dart';
-import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import '../services/speaking_practice_service.dart';
+import '../widgets/heart_economy_ui.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'speaking_ai_analysis_screen.dart';
@@ -768,65 +766,21 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  void _showError(dynamic error, {VoidCallback? onRetry}) {
+  void _showError(dynamic error, {VoidCallback? onRetry}) async {
     if (!mounted) return;
-    final message = AIErrorHandler.getErrorMessage(error);
     final lm = LanguageManager();
 
-    if (error is NoHeartsException) {
-      final heartService = HeartService();
-      final admobService = AdMobService();
-      if (heartService.canEarnMoreHearts && !kIsWeb) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('No hearts available.'),
-            action: SnackBarAction(
-              label: 'Watch Ads',
-              textColor: Theme.of(context).colorScheme.onInverseSurface,
-              onPressed: () {
-                if (admobService.isRewardedAdReady()) {
-                  admobService.showRewardedAd(
-                    onRewarded: () {
-                      heartService.earnHeart();
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('❤️ You earned 1 heart!'),
-                          backgroundColor: Color(0xFF7A5CFF),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    onAdFailedToShow: (adError) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to show ad: $adError'),
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                        ),
-                      );
-                    },
-                  );
-                } else {
-                  admobService.createRewardedAd();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ad is loading, please try again in a moment'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-          ),
-        );
-        return;
-      }
-    }
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry ?? () {},
+      episodeId: widget.episode.id ?? '',
+    );
+    if (handled || !mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(AIErrorHandler.getErrorMessage(error)),
         action: onRetry != null
             ? SnackBarAction(
                 label: lm.getText('retry'),

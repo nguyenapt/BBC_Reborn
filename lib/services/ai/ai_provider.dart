@@ -27,6 +27,12 @@ abstract class AIProvider {
     String targetLanguage,
   );
 
+  /// Translate learner-facing fields of canonical English grammar JSON.
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  );
+
   /// Explain grammar for a full passage (multi-sentence)
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,

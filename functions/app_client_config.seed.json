@@ -1,0 +1,13 @@
+{
+  "heart_system": {
+    "allow_credit": true,
+    "heart_number": 5,
+    "credit_number": 10,
+    "speaking_ticket_number": 10,
+    "rewarded_hearts": 1,
+    "rewarded_credits": 5,
+    "daily_live_cap": 80,
+    "ad_topup_max_per_day": 5,
+    "heart_refill_max_per_episode": 1
+  }
+}
