@@ -493,12 +493,69 @@ class AudioPlayerService extends ChangeNotifier {
         return stream;
       }
     }
-    final remote = _getRemoteAudioUrl(episode);
+
+    var remote = _getRemoteAudioUrl(episode);
+    if (remote == null && id.isNotEmpty) {
+      remote = await _recoverRemoteAudioUrl(episode);
+    }
     debugLogDataSource(
       'Audio',
       'episodeId=$id | Source: remote HTTP (Storage/API URL) | ${_truncateForLog(remote)}',
     );
     return remote;
+  }
+
+  /// Khi fileUrl local đã bị xóa (clear cache) mà không còn remote trong memory.
+  Future<String?> _recoverRemoteAudioUrl(Episode episode) async {
+    final id = episode.id ?? '';
+    if (id.isEmpty) return null;
+
+    try {
+      final restored = await _localDatabaseService.restoreRemoteFileUrlIfLocalMissing(id);
+      if (restored != null) {
+        final fromDb = _getRemoteAudioUrl(restored);
+        if (fromDb != null) {
+          if (_currentEpisode?.id == id) {
+            _updateCurrentEpisode(restored);
+          }
+          return fromDb;
+        }
+      }
+    } catch (e) {
+      debugPrint('restoreRemoteFileUrlIfLocalMissing failed: $e');
+    }
+
+    try {
+      final full = await FirebaseService.fetchEpisodeFull(episode);
+      final remote = full != null ? _getRemoteAudioUrl(full) : null;
+      if (full != null && remote != null) {
+        final fixed = Episode(
+          id: full.id ?? episode.id,
+          actor: full.actor.isNotEmpty ? full.actor : episode.actor,
+          category: full.category.isNotEmpty ? full.category : episode.category,
+          duration: full.duration,
+          publishedDate: full.publishedDate,
+          episodeName: full.episodeName.isNotEmpty ? full.episodeName : episode.episodeName,
+          transcript: full.transcript.isNotEmpty ? full.transcript : episode.transcript,
+          thumbImage: full.thumbImage.isNotEmpty ? full.thumbImage : episode.thumbImage,
+          fileUrl: remote,
+          secondFileUrl: full.secondFileUrl ?? episode.secondFileUrl,
+          summary: full.summary ?? episode.summary,
+          year: full.year ?? episode.year,
+          transcriptHtml: full.transcriptHtml ?? episode.transcriptHtml,
+          vocabulary: full.vocabulary ?? episode.vocabulary,
+          vocabularies: full.vocabularies ?? episode.vocabularies,
+        );
+        await _localDatabaseService.upsertEpisode(fixed);
+        if (_currentEpisode?.id == id) {
+          _updateCurrentEpisode(fixed);
+        }
+        return remote;
+      }
+    } catch (e) {
+      debugPrint('recover remote audio via Firebase failed: $e');
+    }
+    return null;
   }
 
   String _truncateForLog(String? s, [int max = 96]) {
@@ -853,10 +910,29 @@ class AudioPlayerService extends ChangeNotifier {
 
   /// Check download status
   Future<bool> _checkDownloadStatus(String episodeId) async {
+    if (episodeId.isEmpty) return false;
+
     final fileUrl = await _localDatabaseService.getEpisodeFileUrl(episodeId);
-    if (fileUrl == null || fileUrl.isEmpty) return false;
+    if (fileUrl == null || fileUrl.isEmpty) {
+      // Có thể file chỉ nằm trong downloads/ mà chưa ghi DB
+      final manual =
+          await _downloadService.downloadedEpisodePathIfExists(episodeId);
+      return manual != null;
+    }
+    if (_isRemoteUrl(fileUrl)) return false;
+
     final exists = await _downloadService.fileExists(fileUrl);
-    if (!exists) return false;
+    if (!exists) {
+      final restored =
+          await _localDatabaseService.restoreRemoteFileUrlIfLocalMissing(episodeId);
+      if (restored != null &&
+          _currentEpisode != null &&
+          _currentEpisode!.id == episodeId) {
+        _updateCurrentEpisode(restored);
+        _currentAudioUrl = await _resolvePlaybackUrl(restored);
+      }
+      return false;
+    }
     if (_currentEpisode != null && _currentEpisode!.id == episodeId) {
       final updatedEpisode = _copyEpisodeWithFileUrl(_currentEpisode!, fileUrl);
       _updateCurrentEpisode(updatedEpisode);
@@ -886,18 +962,32 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   String? _getRemoteAudioUrl(Episode episode) {
-    final primary = episode.fileUrl ?? '';
-    if (primary.isNotEmpty && _isRemoteUrl(primary)) {
-      return primary;
-    }
-    final fallback = episode.secondFileUrl ?? '';
-    if (fallback.isNotEmpty) {
-      return fallback;
+    for (final candidate in [episode.fileUrl, episode.secondFileUrl]) {
+      if (candidate != null &&
+          candidate.isNotEmpty &&
+          _isRemoteUrl(candidate)) {
+        return candidate;
+      }
     }
     return null;
   }
 
-  Episode _copyEpisodeWithFileUrl(Episode episode, String fileUrl) {
+  /// Ghi local path vào fileUrl nhưng giữ URL remote ở secondFileUrl để còn stream sau khi xóa download.
+  Episode _copyEpisodeWithFileUrl(Episode episode, String localFileUrl) {
+    final existingFile = episode.fileUrl;
+    final existingSecond = episode.secondFileUrl;
+
+    String? preservedRemote;
+    if (existingFile != null &&
+        existingFile.isNotEmpty &&
+        _isRemoteUrl(existingFile)) {
+      preservedRemote = existingFile;
+    } else if (existingSecond != null &&
+        existingSecond.isNotEmpty &&
+        _isRemoteUrl(existingSecond)) {
+      preservedRemote = existingSecond;
+    }
+
     return Episode(
       id: episode.id,
       actor: episode.actor,
@@ -907,8 +997,8 @@ class AudioPlayerService extends ChangeNotifier {
       episodeName: episode.episodeName,
       transcript: episode.transcript,
       thumbImage: episode.thumbImage,
-      fileUrl: fileUrl,
-      secondFileUrl: episode.secondFileUrl,
+      fileUrl: localFileUrl,
+      secondFileUrl: preservedRemote ?? episode.secondFileUrl,
       summary: episode.summary,
       year: episode.year,
       transcriptHtml: episode.transcriptHtml,

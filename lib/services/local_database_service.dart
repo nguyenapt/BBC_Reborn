@@ -9,6 +9,7 @@ import '../models/episode.dart';
 import '../models/speaking_attempt.dart';
 import '../models/speaking_session.dart';
 import '../models/speaking_stats.dart';
+import 'episode_download_service.dart';
 
 class LocalDatabaseService {
   static final LocalDatabaseService _instance = LocalDatabaseService._internal();
@@ -423,6 +424,90 @@ class LocalDatabaseService {
       debugPrint('Error decoding episode data: $e');
     }
     return null;
+  }
+
+  bool _isRemoteAudioUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  /// Khi file local đã bị xóa: đưa URL remote từ secondFileUrl về fileUrl (nếu có).
+  /// Trả về episode đã sửa, hoặc null nếu không cần/không sửa được.
+  Future<Episode?> restoreRemoteFileUrlIfLocalMissing(String episodeId) async {
+    if (episodeId.isEmpty || kIsWeb) return null;
+    final episode = await getEpisodeById(episodeId);
+    if (episode == null) return null;
+
+    final fileUrl = episode.fileUrl;
+    if (fileUrl == null || fileUrl.isEmpty || _isRemoteAudioUrl(fileUrl)) {
+      return null;
+    }
+
+    // Còn file local thì không đụng.
+    try {
+      if (await EpisodeDownloadService().fileExists(fileUrl)) return null;
+    } catch (_) {}
+
+    final second = episode.secondFileUrl;
+    final restoredFileUrl = _isRemoteAudioUrl(second) ? second : null;
+    if (restoredFileUrl == null && !_isRemoteAudioUrl(fileUrl)) {
+      // Xóa path local chết; giữ secondFileUrl nguyên.
+      final cleared = Episode(
+        id: episode.id,
+        actor: episode.actor,
+        category: episode.category,
+        duration: episode.duration,
+        publishedDate: episode.publishedDate,
+        episodeName: episode.episodeName,
+        transcript: episode.transcript,
+        thumbImage: episode.thumbImage,
+        fileUrl: null,
+        secondFileUrl: episode.secondFileUrl,
+        summary: episode.summary,
+        year: episode.year,
+        transcriptHtml: episode.transcriptHtml,
+        vocabulary: episode.vocabulary,
+        vocabularies: episode.vocabularies,
+      );
+      await upsertEpisode(cleared);
+      return cleared;
+    }
+
+    final fixed = Episode(
+      id: episode.id,
+      actor: episode.actor,
+      category: episode.category,
+      duration: episode.duration,
+      publishedDate: episode.publishedDate,
+      episodeName: episode.episodeName,
+      transcript: episode.transcript,
+      thumbImage: episode.thumbImage,
+      fileUrl: restoredFileUrl,
+      secondFileUrl: episode.secondFileUrl,
+      summary: episode.summary,
+      year: episode.year,
+      transcriptHtml: episode.transcriptHtml,
+      vocabulary: episode.vocabulary,
+      vocabularies: episode.vocabularies,
+    );
+    await upsertEpisode(fixed);
+    return fixed;
+  }
+
+  /// Quét toàn bộ episodes: path local không còn file → khôi phục remote URL.
+  Future<void> restoreRemoteAudioUrlsAfterLocalFilesRemoved() async {
+    if (kIsWeb) return;
+    final db = await database;
+    final rows = await db.query('episodes', columns: ['id']);
+    for (final row in rows) {
+      final id = row['id']?.toString();
+      if (id == null || id.isEmpty) continue;
+      try {
+        await restoreRemoteFileUrlIfLocalMissing(id);
+      } catch (e) {
+        debugPrint('restoreRemoteAudioUrls for $id failed: $e');
+      }
+    }
   }
 
   Future<List<Episode>> getEpisodesByCategoryYear(String category, int year) async {

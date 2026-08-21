@@ -241,6 +241,28 @@ class AppPt {
     'clearImageCacheDialogBody':
         'Tem certeza de que deseja limpar todas as imagens em cache?',
     'clearImageCacheSuccess': 'Cache de imagens limpo com sucesso',
+    'storageAndCache': 'Armazenamento e cache',
+    'manageAppCache': 'Gerenciar dados em cache neste dispositivo',
+    'manageAppCacheHint':
+        'Escolha o que limpar. O progresso e os favoritos são mantidos.',
+    'totalCacheSize': 'Tamanho total',
+    'cacheCategoryImages': 'Imagens',
+    'cacheCategoryImagesDesc': 'Capas e miniaturas dos episódios',
+    'cacheCategoryAudioStream': 'Cache de áudio em streaming',
+    'cacheCategoryAudioStreamDesc': 'Áudio temporário salvo durante o streaming',
+    'cacheCategoryDownloads': 'Episódios baixados',
+    'cacheCategoryDownloadsDesc':
+        'Remove downloads offline. Você pode baixar novamente depois.',
+    'cacheCategoryAiLocal': 'Cache local de IA',
+    'cacheCategoryAiLocalDesc': 'Traduções e respostas de IA salvas no dispositivo',
+    'selectAll': 'Selecionar tudo',
+    'deselectAll': 'Desmarcar tudo',
+    'clearSelectedCache': 'Limpar seleção',
+    'clearCacheConfirmTitle': 'Limpar o cache selecionado?',
+    'clearCacheConfirmBody':
+        'O seguinte será limpo: {items}. Esta ação não pode ser desfeita.',
+    'clearCacheSuccess': 'Cache selecionado limpo',
+    'clearCacheFailed': 'Não foi possível limpar o cache',
     'copiedToClipboard': 'Copiado',
     'googleTranslateOpenFailed': 'Não foi possível abrir o Google Tradutor',
     'transcriptPlayFromSeconds': 'Reproduzir a partir de {seconds}s',

@@ -259,6 +259,28 @@ class StorageService {
     }
   }
 
+  /// Ước lượng dung lượng AI cache local (UTF-16 code units ≈ 2 bytes/char).
+  Future<int> getAICacheSize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int total = 0;
+      for (final key in prefs.getKeys()) {
+        if (!key.startsWith(_aiCachePrefix)) continue;
+        total += key.length * 2;
+        final value = prefs.get(key);
+        if (value is String) {
+          total += value.length * 2;
+        } else if (value != null) {
+          total += value.toString().length * 2;
+        }
+      }
+      return total;
+    } catch (e) {
+      debugPrint('Error getting AI cache size: $e');
+      return 0;
+    }
+  }
+
   /// Clear all data
   Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
