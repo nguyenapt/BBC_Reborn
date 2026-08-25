@@ -468,6 +468,7 @@ class LocalDatabaseService {
         transcriptHtml: episode.transcriptHtml,
         vocabulary: episode.vocabulary,
         vocabularies: episode.vocabularies,
+        rtdbPath: episode.rtdbPath,
       );
       await upsertEpisode(cleared);
       return cleared;
@@ -489,6 +490,7 @@ class LocalDatabaseService {
       transcriptHtml: episode.transcriptHtml,
       vocabulary: episode.vocabulary,
       vocabularies: episode.vocabularies,
+      rtdbPath: episode.rtdbPath,
     );
     await upsertEpisode(fixed);
     return fixed;
@@ -745,6 +747,7 @@ class LocalDatabaseService {
       transcriptHtml: map['transcriptHtml']?.toString(),
       vocabulary: map['vocabulary']?.toString(),
       vocabularies: map['vocabularies'] as List<dynamic>?,
+      rtdbPath: map['rtdbPath']?.toString(),
     );
   }
 

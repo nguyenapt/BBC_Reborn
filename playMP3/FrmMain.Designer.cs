@@ -169,6 +169,7 @@ namespace playMP3
             this.label40 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
             this.btnPurgeAiCache = new System.Windows.Forms.Button();
+            this.btnMigrateRtdbPath = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -1644,6 +1645,16 @@ namespace playMP3
             this.btnPurgeAiCache.UseVisualStyleBackColor = true;
             this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
             // 
+            // btnMigrateRtdbPath
+            // 
+            this.btnMigrateRtdbPath.Location = new System.Drawing.Point(914, 1029);
+            this.btnMigrateRtdbPath.Name = "btnMigrateRtdbPath";
+            this.btnMigrateRtdbPath.Size = new System.Drawing.Size(150, 59);
+            this.btnMigrateRtdbPath.TabIndex = 48;
+            this.btnMigrateRtdbPath.Text = "Migrate RtdbPath";
+            this.btnMigrateRtdbPath.UseVisualStyleBackColor = true;
+            this.btnMigrateRtdbPath.Click += new System.EventHandler(this.btnMigrateRtdbPath_Click);
+            // 
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tabPage1);
@@ -2312,6 +2323,7 @@ namespace playMP3
             this.ClientSize = new System.Drawing.Size(2214, 1119);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.btnPurgeAiCache);
+            this.Controls.Add(this.btnMigrateRtdbPath);
             this.Controls.Add(this.btnGetGrammarPassage);
             this.Controls.Add(this.btngetGrammarExplaimation);
             this.Controls.Add(this.tabControl1);
@@ -2615,6 +2627,7 @@ namespace playMP3
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
         private System.Windows.Forms.CheckBox cbSendEpisodePush;
         private System.Windows.Forms.Button btnPurgeAiCache;
+        private System.Windows.Forms.Button btnMigrateRtdbPath;
         private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }

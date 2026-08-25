@@ -270,6 +270,9 @@ namespace playMP3
                 ["Year"] = episode.Year,
             };
 
+            if (!string.IsNullOrEmpty(episode.RtdbPath))
+                payload["RtdbPath"] = episode.RtdbPath;
+
             if (!string.IsNullOrEmpty(episode.Level))
                 payload["Level"] = episode.Level;
 
@@ -860,6 +863,7 @@ namespace playMP3
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
 
             if (exportEpisodeDetail)
             {
@@ -1132,6 +1136,8 @@ namespace playMP3
             var canonicalEpisodeId = episode.Id.ToString();
             episode.GrammarVocabularyCacheKeys = BuildGrammarVocabularyCacheKeysCsv(canonicalEpisodeId);
 
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+
             var listEpisode = new JObject
             {
                 ["Category"] = episode.Category,
@@ -1144,6 +1150,7 @@ namespace playMP3
                 ["Summary"] = episode.Summary,
                 ["ThumbImage"] = episode.ThumbImage,
                 ["Year"] = episode.Year,
+                ["RtdbPath"] = episode.RtdbPath,
             };
             if (!string.IsNullOrEmpty(episode.Level))
                 listEpisode["Level"] = episode.Level;
@@ -1155,6 +1162,7 @@ namespace playMP3
                 ["episodeNumber"] = txtNumber.Text,
                 ["homeNumber"] = txtHomeNumber.Text,
                 ["categoryPath"] = categoryPath,
+                ["rtdbPath"] = episode.RtdbPath,
                 ["listPath"] = "List/" + categoryPath + "/" + txtNumber.Text,
                 ["episode"] = JObject.FromObject(episode),
                 ["listEpisode"] = listEpisode,
@@ -1504,6 +1512,37 @@ namespace playMP3
             }
 
             using (var dlg = new FrmAiCacheCleanup(secret))
+            {
+                dlg.ShowDialog(this);
+            }
+        }
+
+        private void btnMigrateRtdbPath_Click(object sender, EventArgs e)
+        {
+            var secret = (txtSecret.Text ?? string.Empty).Trim();
+            var url = (txtUrl.Text ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(secret))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase secret vào txtSecret trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtSecret.Focus();
+                return;
+            }
+            if (string.IsNullOrEmpty(url))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase URL vào txtUrl trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtUrl.Focus();
+                return;
+            }
+
+            using (var dlg = new FrmRtdbPathMigrate(url, secret))
             {
                 dlg.ShowDialog(this);
             }
