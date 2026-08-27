@@ -1,4 +1,4 @@
-package com.learningenglish.studyingbbc.bbc_reborn
+package com.learn.speak.british.english
 
 import android.content.BroadcastReceiver
 import android.content.Context

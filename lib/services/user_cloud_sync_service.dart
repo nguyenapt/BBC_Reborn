@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/daily_activity_summary.dart';
+import '../config/rtdb_paths.dart';
 import 'achievement_service.dart';
 import 'api_daily_cache_service.dart';
 import 'daily_goal_service.dart';
@@ -37,7 +38,7 @@ enum CloudPushPriority {
 /// Chỉ hoạt động khi đã đăng nhập Firebase — user chưa login giữ nguyên local-only.
 class UserCloudSyncService {
   static const int schemaVersion = 1;
-  static const String _legacyBaseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _legacyBaseUrl = RtdbPaths.baseUrl;
   static const Duration _urgentDebounce = Duration(seconds: 30);
   static const Duration _normalDebounce = Duration(seconds: 60);
   static const Duration _listeningDebounce = Duration(minutes: 3);

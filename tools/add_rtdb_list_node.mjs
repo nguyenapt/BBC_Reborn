@@ -1,12 +1,12 @@
 /**
- * Tạo tree `List` (bản mỏng) từ export RTDB đầy đủ — bỏ Transcript, TranscriptHtml,
- * Vocabulary, Vocabularies, Grammar.
+ * Tạo tree `category/List` (bản mỏng) từ export RTDB British (gom dưới `category/`).
+ * Bỏ Transcript, TranscriptHtml, Vocabulary, Vocabularies, Grammar.
  *
- * Inject `RtdbPath` = parentPath + '/' + key khi thiếu (để Flutter hydrate 1 GET).
+ * Inject `RtdbPath` = `category/` + parentPath + '/' + key khi thiếu.
  *
- * Ghi:
- * - database-list-17042026.json — nội dung nhánh List (HomePage, 6M, …) **không** bọc thêm key `List`
- * - database - 17042026.json — toàn bộ DB **không** gồm key List
+ * Input giả định: export full DB với top-level `category`, `config`, `ai_cache`, …
+ * Output:
+ * - database-list-british.json — nội dung nhánh `category/List` (không bọc thêm key List)
  *
  * Chạy: node tools/add_rtdb_list_node.mjs
  */
@@ -16,8 +16,10 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
-const INPUT = path.join(root, 'database - 17042026.json');
-const OUTPUT_LIST = path.join(root, 'database-list-17042026.json');
+const INPUT = path.join(root, 'docs/rtdb_seed_british.json');
+const OUTPUT_LIST = path.join(root, 'database-list-british.json');
+
+const CATEGORY_ROOT = 'category';
 
 const DROP_KEYS = new Set([
   'Transcript',
@@ -42,7 +44,9 @@ function slimEpisode(ep, rtdbPath) {
   const o = { ...ep };
   for (const k of DROP_KEYS) delete o[k];
   if (rtdbPath && (!o.RtdbPath || String(o.RtdbPath).trim() === '')) {
-    o.RtdbPath = rtdbPath;
+    o.RtdbPath = rtdbPath.startsWith(`${CATEGORY_ROOT}/`)
+      ? rtdbPath
+      : `${CATEGORY_ROOT}/${rtdbPath}`;
   }
   return o;
 }
@@ -72,7 +76,7 @@ function slimHomePage(hp) {
   if (!hp || typeof hp !== 'object') return hp;
   const out = {};
   for (const [k, v] of Object.entries(hp)) {
-    const parent = `HomePage/${k}`;
+    const parent = `${CATEGORY_ROOT}/List/HomePage/${k}`;
     if (k === 'Grammar') {
       if (Array.isArray(v)) {
         out[k] = v.map((ep, i) => slimEpisode(ep, `${parent}/${i}`));
@@ -97,28 +101,35 @@ function isYearKeyedObject(obj) {
   return keys.every((k) => /^\d{4}$/.test(k));
 }
 
-function buildListTree(data) {
+/**
+ * @param {object} categoryNode — nội dung dưới top-level `category`
+ */
+function buildListTree(categoryNode) {
   const List = {};
 
-  if (data.HomePage) {
-    List.HomePage = slimHomePage(data.HomePage);
+  if (categoryNode.List?.HomePage) {
+    List.HomePage = slimHomePage(categoryNode.List.HomePage);
+  } else if (categoryNode.HomePage) {
+    List.HomePage = slimHomePage(categoryNode.HomePage);
   }
 
-  const skip = new Set(['HomePage', 'AppUpdate', 'ai_cache', 'List']);
+  const skip = new Set(['HomePage', 'List', 'Grammar']);
 
-  for (const key of Object.keys(data)) {
+  for (const key of Object.keys(categoryNode)) {
     if (skip.has(key)) continue;
-    const val = data[key];
+    const val = categoryNode[key];
     if (isYearKeyedObject(val)) {
       List[key] = {};
       for (const [year, content] of Object.entries(val)) {
-        List[key][year] = slimYearContent(content, `${key}/${year}`);
+        List[key][year] = slimYearContent(
+          content,
+          `${CATEGORY_ROOT}/${key}/${year}`,
+        );
       }
     } else if (Array.isArray(val)) {
-      List[key] = slimYearContent(val, key);
+      List[key] = slimYearContent(val, `${CATEGORY_ROOT}/${key}`);
     } else if (val && typeof val === 'object') {
-      // AS / flat category maps
-      List[key] = slimYearContent(val, key);
+      List[key] = slimYearContent(val, `${CATEGORY_ROOT}/${key}`);
     }
   }
 
@@ -127,17 +138,18 @@ function buildListTree(data) {
 
 function main() {
   console.log('Reading', INPUT);
+  if (!fs.existsSync(INPUT)) {
+    console.error('Input not found:', INPUT);
+    process.exit(1);
+  }
   const raw = fs.readFileSync(INPUT, 'utf8');
   const data = JSON.parse(raw);
+  const categoryNode = data.category ?? data;
 
-  delete data.List;
-  const listTree = buildListTree(data);
+  const listTree = buildListTree(categoryNode);
 
   fs.writeFileSync(OUTPUT_LIST, JSON.stringify(listTree, null, 2), 'utf8');
-  console.log('Wrote', OUTPUT_LIST);
-
-  fs.writeFileSync(INPUT, JSON.stringify(data, null, 2), 'utf8');
-  console.log('Wrote', INPUT, '(no List key). Top-level keys:', Object.keys(data).sort().join(', '));
+  console.log('Wrote', OUTPUT_LIST, '(import under category/List)');
 }
 
 main();

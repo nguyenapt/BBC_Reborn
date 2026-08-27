@@ -27,6 +27,10 @@ namespace playMP3
         /// <summary>MUST_SYNC Flutter passage schemaVersion for single-shot cache keys.</summary>
         public const string GrammarPassageSchemaVersion = "v2_passage_v2_slim_single";
 
+        /// <summary>
+        /// BBC RTDB default. At runtime AI writers / cleanup use <see cref="ActiveRtdbContext.BaseUrl"/>
+        /// (set when the user selects a cloud service).
+        /// </summary>
         public const string FirebaseRtdbBaseUrl = "https://bbc-listening-english.firebaseio.com";
 
         public const string AiCachePath = "ai_cache";

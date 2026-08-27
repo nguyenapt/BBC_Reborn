@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../config/rtdb_paths.dart';
 import '../models/ai_cache_entry.dart';
 import '../utils/cache_key_helper.dart';
 
@@ -11,8 +12,8 @@ class AIFirebaseCacheService {
   factory AIFirebaseCacheService() => _instance;
   AIFirebaseCacheService._internal();
 
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
-  static const String _cachePath = 'ai_cache';
+  static const String _baseUrl = RtdbPaths.baseUrl;
+  static const String _cachePath = RtdbPaths.aiCache;
   static const String _grammarByEpisodePath = 'grammar_by_episode';
   static const String _vocabularyByEpisodePath = 'vocabulary_by_episode';
   static const int _cacheVersion = 1;

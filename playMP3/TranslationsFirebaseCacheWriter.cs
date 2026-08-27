@@ -31,7 +31,7 @@ namespace playMP3
                 ["originalLanguageCode"] = languageCode ?? string.Empty,
             };
 
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/translations/" + safeEpisodeId + "/" + safeLang + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(

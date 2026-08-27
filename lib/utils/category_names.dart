@@ -1,5 +1,6 @@
 class CategoryNames {
   static const Map<String, String> _categoryMapping = {
+    'AAE': 'Accent & British English',
     '6M': '6 Minutes Conversation',
     'TEWS': 'The English We Speak',
     'REE': 'Real Easy English',

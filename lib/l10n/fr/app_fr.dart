@@ -1,10 +1,10 @@
 class AppFr {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Apprendre l\'anglais en 6 minutes',
+    'appTitle': 'Apprendre à parler l\'anglais britannique',
     'welcomeMessage': 'Bienvenue dans Apprendre l\'anglais en 6 minutes !',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'homeTitleMain': 'Speak British',
+    'homeTitleSub': 'English',
     'continueLearning': 'Continuer à apprendre',
     'reviewToday': 'Réviser aujourd\'hui',
     'newEpisode': 'Nouvel épisode',
@@ -25,7 +25,7 @@ class AppFr {
     'checklistPractice': 'Pratique',
     'dueVocabCount': '{count} mots à réviser',
     'dueGrammarCount': '{count} points de grammaire à réviser',
-    'homeHeroTitle': 'Bienvenue dans Learning English 6 minutes',
+    'homeHeroTitle': 'Bienvenue dans Learn Speak British English',
     'homeHeroSubtitle': 'Pratiquez l\'écoute chaque jour avec des leçons courtes et modernes.',
     'startPracticingListening': 'Commencer à pratiquer l\'écoute',
     'chooseListeningCategory': 'Choisissez une catégorie d\'écoute',

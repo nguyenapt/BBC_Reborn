@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bbc_reborn/services/ai/grammar_passage_dual_map.dart';
-import 'package:bbc_reborn/models/grammar_explanation.dart';
+import 'package:learn_speak_british_english/services/ai/grammar_passage_dual_map.dart';
+import 'package:learn_speak_british_english/models/grammar_explanation.dart';
 
 void main() {
   group('toFlutterGrammarPassageData', () {

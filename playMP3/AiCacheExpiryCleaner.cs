@@ -360,7 +360,7 @@ namespace playMP3
         private static string BuildUrl(string relativePath, string authToken, bool shallow)
         {
             var path = (relativePath ?? string.Empty).Trim().Trim('/');
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + path + ".json?auth="
+            var url = ActiveRtdbContext.BaseUrl + "/" + path + ".json?auth="
                       + Uri.EscapeDataString(authToken ?? string.Empty);
             if (shallow)
                 url += "&shallow=true";

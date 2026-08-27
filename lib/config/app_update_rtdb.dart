@@ -1,8 +1,11 @@
+import 'rtdb_paths.dart';
+
 /// RTDB endpoint cho cấu hình nhắc cập nhật app.
 ///
-/// Tạo node **`AppUpdate`** trong Firebase Realtime Database (cùng project `bbc-listening-english`)
-/// với JSON tối thiểu. Mỗi lần release: tăng `latest_build` (và `latest_version` nếu đổi semver);
-/// khi cần chặn bản cũ: đặt `min_build` / `min_supported_version`.
+/// Node: `config/app_client_config/app_update` trên project
+/// `speak-british-english`. Mỗi lần release: tăng `latest_build`
+/// (và `latest_version` nếu đổi semver); khi cần chặn bản cũ: đặt
+/// `min_build` / `min_supported_version`.
 ///
 /// Ví dụ:
 /// ```json
@@ -21,5 +24,4 @@
 ///   `...?id=<packageName>` từ `package_info`.
 /// - Bỏ trống hoặc `null`: trường tương ứng không dùng.
 /// - Ưu tiên so sánh **số build** (`min_build`, `latest_build`) nếu có; bổ sung semver nếu không đủ.
-const String kAppUpdateRtdbUrl =
-    'https://bbc-listening-english.firebaseio.com/AppUpdate.json';
+final String kAppUpdateRtdbUrl = RtdbPaths.jsonUrl(RtdbPaths.appUpdate);

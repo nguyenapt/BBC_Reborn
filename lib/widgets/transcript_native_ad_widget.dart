@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -43,12 +44,18 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
   bool _isAdLoading = false;
 
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitIdAndroid =
+      'ca-app-pub-3414812429495926/2594772074';
+  static const String _productionAdUnitIdIOS =
+      'ca-app-pub-3414812429495926/4665190197';
 
   final LanguageManager _languageManager = LanguageManager();
 
   String _getAdUnitId() {
-    return kDebugMode ? _testAdUnitId : _productionAdUnitId;
+    if (kDebugMode) return _testAdUnitId;
+    return Platform.isAndroid
+        ? _productionAdUnitIdAndroid
+        : _productionAdUnitIdIOS;
   }
 
   static const double _minAttributionPx = 18;

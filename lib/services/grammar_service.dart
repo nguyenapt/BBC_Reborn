@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import '../config/rtdb_paths.dart';
 import '../models/grammar.dart';
 import '../utils/debug_source_log.dart';
 import 'api_daily_cache_keys.dart';
@@ -8,8 +9,8 @@ import 'local_database_service.dart';
 import 'web_api_daily_cache.dart';
 
 class GrammarService {
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
-  static const String _grammarPath = 'HomePage/Grammar';
+  static const String _baseUrl = RtdbPaths.baseUrl;
+  static const String _grammarPath = RtdbPaths.grammarList;
 
   final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
 
@@ -54,7 +55,10 @@ class GrammarService {
         return parseGrammarsFromJsonString(cached);
       }
 
-      debugLogDataSource('GrammarList', 'RTDB REST GET .../HomePage/Grammar.json');
+      debugLogDataSource(
+        'GrammarList',
+        'RTDB REST GET .../${RtdbPaths.grammarList}.json',
+      );
       final response = await http.get(
         Uri.parse('$_baseUrl/$_grammarPath.json'),
         headers: {'Accept': 'application/json'},

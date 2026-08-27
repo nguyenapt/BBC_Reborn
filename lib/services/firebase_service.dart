@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
+import '../config/app_categories.dart';
 import '../config/rtdb_list_config.dart';
+import '../config/rtdb_paths.dart';
 import '../models/category.dart';
 import '../models/episode.dart';
 import '../utils/debug_source_log.dart';
@@ -10,7 +12,7 @@ import 'local_database_service.dart';
 import 'web_api_daily_cache.dart';
 
 class FirebaseService {
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _baseUrl = RtdbPaths.baseUrl;
 
   final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
 
@@ -50,29 +52,24 @@ class FirebaseService {
       return parseHomePageFromJsonBody(cached);
     }
 
-    debugLogDataSource('HomePage', 'RTDB REST GET .../List/HomePage.json or HomePage.json');
+    debugLogDataSource(
+      'HomePage',
+      'RTDB REST GET .../${RtdbPaths.homeList}.json',
+    );
     final body = await fetchHomePageJsonBody();
     await _apiCacheDb.upsertApiDailyCache(key, body, DateTime.now());
     return parseHomePageFromJsonBody(body);
   }
 
+  /// Chỉ đọc slim home: `category/List/HomePage` (không fallback HomePage full).
   static Future<String> fetchHomePageJsonBody() async {
-    if (RtdbListConfig.useSlimListPaths) {
-      final slim = await http.get(
-        Uri.parse('$_baseUrl/List/HomePage.json'),
-        headers: {'Accept': 'application/json'},
-      );
-      if (slim.statusCode == 200 &&
-          slim.body.isNotEmpty &&
-          slim.body != 'null') {
-        return slim.body;
-      }
-    }
     final response = await http.get(
-      Uri.parse('$_baseUrl/HomePage.json'),
+      Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.homeList)),
       headers: {'Accept': 'application/json'},
     );
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 &&
+        response.body.isNotEmpty &&
+        response.body != 'null') {
       return response.body;
     }
     throw Exception('Failed to load data: ${response.statusCode}');
@@ -84,6 +81,11 @@ class FirebaseService {
 
     data.forEach((categoryName, categoryData) {
       if (categoryName == 'Grammar') {
+        return;
+      }
+      if (!AppCategories.isEnabled(categoryName) &&
+          categoryName != 'AS') {
+        // AS handled separately; other codes outside enabled set are skipped.
         return;
       }
       if (categoryData is List) {
@@ -115,39 +117,21 @@ class FirebaseService {
     return categories;
   }
 
-  // Lấy tất cả episodes từ một category cụ thể
+  // Lấy tất cả episodes từ một category cụ thể (slim home slot)
   Future<List<Episode>> getEpisodesByCategory(String categoryName) async {
     try {
-      if (RtdbListConfig.useSlimListPaths) {
-        final slim = await http.get(
-          Uri.parse('$_baseUrl/List/HomePage/$categoryName.json'),
-          headers: {'Accept': 'application/json'},
-        );
-        if (slim.statusCode == 200 && slim.body.isNotEmpty && slim.body != 'null') {
-          final dynamic data = json.decode(slim.body);
-          return _parseCategoryYearPayload(data);
-        }
-      }
-
       final response = await http.get(
-        Uri.parse('$_baseUrl/HomePage/$categoryName.json'),
+        Uri.parse(RtdbPaths.jsonUrl('${RtdbPaths.homeList}/$categoryName')),
         headers: {'Accept': 'application/json'},
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<Episode> episodes = [];
-
-        data.forEach((episodeId, episodeData) {
-          if (episodeData is Map<String, dynamic>) {
-            episodes.add(Episode.fromJson(episodeData, episodeId));
-          }
-        });
-
-        return episodes;
-      } else {
-        throw Exception('Failed to load episodes: ${response.statusCode}');
+      if (response.statusCode == 200 &&
+          response.body.isNotEmpty &&
+          response.body != 'null') {
+        final dynamic data = json.decode(response.body);
+        return _parseCategoryYearPayload(data);
       }
+      throw Exception('Failed to load episodes: ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching episodes: $e');
     }
@@ -247,11 +231,19 @@ class FirebaseService {
 
     if (episodeKey != null && episodeKey.isNotEmpty) {
       if (yearInt != null && yearInt > 1800) {
-        pathsToTry.add('$_baseUrl/$category/$yearInt/$episodeKey.json');
-        pathsToTry.add('$_baseUrl/AS/$category/$yearInt/$episodeKey.json');
+        pathsToTry.add(
+          RtdbPaths.jsonUrl(RtdbPaths.categoryFull(category, '$yearInt') + '/$episodeKey'),
+        );
+        pathsToTry.add(
+          RtdbPaths.jsonUrl(RtdbPaths.asFull(category, '$yearInt') + '/$episodeKey'),
+        );
       }
-      pathsToTry.add('$_baseUrl/$category/$episodeKey.json');
-      pathsToTry.add('$_baseUrl/AS/$category/$episodeKey.json');
+      pathsToTry.add(
+        RtdbPaths.jsonUrl('${RtdbPaths.categoryFull(category)}/$episodeKey'),
+      );
+      pathsToTry.add(
+        RtdbPaths.jsonUrl('${RtdbPaths.asFull(category)}/$episodeKey'),
+      );
     }
 
     for (final url in pathsToTry) {
@@ -303,7 +295,7 @@ class FirebaseService {
     return html != null && html.isNotEmpty;
   }
 
-  /// Chỉ cho phép path an toàn: `6M/2026/11`, `AS/OF/11`, …
+  /// Chỉ cho phép path an toàn: `category/AAE/2026/11`, `category/AS/OF/11`, …
   static String? _sanitizeRtdbPath(String? raw) {
     if (raw == null) return null;
     var path = raw.trim().replaceAll('\\', '/');
@@ -315,7 +307,7 @@ class FirebaseService {
     }
     if (path.isEmpty || path.contains('..')) return null;
     if (!RegExp(r'^[A-Za-z0-9_/\-]+$').hasMatch(path)) return null;
-    return path;
+    return RtdbPaths.normalizeEpisodePath(path);
   }
 
   static Future<Episode?> _fetchEpisodeAtRtdbPath(
@@ -379,9 +371,9 @@ class FirebaseService {
       yearParsed = partial.publishedDate.year;
     }
     if (yearParsed != null && yearParsed > 1800) {
-      return 'Request detail → GET /$category/$yearParsed/$id.json (fallback, chưa có RtdbPath)';
+      return 'Request detail → GET /${RtdbPaths.categoryFull(category, '$yearParsed')}/$id.json (fallback, chưa có RtdbPath)';
     }
-    return 'Request detail → GET /$category/$id.json (fallback, không year)';
+    return 'Request detail → GET /${RtdbPaths.categoryFull(category)}/$id.json (fallback, không year)';
   }
 
   /// Kết quả [fetchEpisodeFullWithSource] — dùng snackbar debug.
@@ -425,10 +417,10 @@ class FirebaseService {
     }
 
     if (yearParsed != null && yearParsed > 1800) {
-      final yearPath = '$category/$yearParsed/$id';
+      final yearPath = RtdbPaths.categoryFull(category, '$yearParsed') + '/$id';
       try {
         final direct = await http.get(
-          Uri.parse('$_baseUrl/$yearPath.json'),
+          Uri.parse(RtdbPaths.jsonUrl(yearPath)),
           headers: {'Accept': 'application/json'},
         );
         if (direct.statusCode == 200 &&
@@ -446,10 +438,10 @@ class FirebaseService {
         }
       } catch (_) {}
 
-      final asYearPath = 'AS/$category/$yearParsed/$id';
+      final asYearPath = RtdbPaths.asFull(category, '$yearParsed') + '/$id';
       try {
         final asYear = await http.get(
-          Uri.parse('$_baseUrl/$asYearPath.json'),
+          Uri.parse(RtdbPaths.jsonUrl(asYearPath)),
           headers: {'Accept': 'application/json'},
         );
         if (asYear.statusCode == 200 &&
@@ -471,17 +463,18 @@ class FirebaseService {
         final bulk = await getCategoryDataLegacyFull(category, yearParsed);
         for (final e in bulk) {
           if (_episodeIdsMatch(e.id ?? '', id)) {
-            final label = 'bulk GET /$category/$yearParsed.json (match id)';
+            final label =
+                'bulk GET /${RtdbPaths.categoryFull(category, '$yearParsed')}.json (match id)';
             _debugEpisodeDetailFetch(label);
             return EpisodeFullFetchOutcome(e, label);
           }
         }
       } catch (_) {}
 
-      final asBulkPath = 'AS/$category/$yearParsed';
+      final asBulkPath = RtdbPaths.asFull(category, '$yearParsed');
       try {
         final asYearBulk = await http.get(
-          Uri.parse('$_baseUrl/$asBulkPath.json'),
+          Uri.parse(RtdbPaths.jsonUrl(asBulkPath)),
           headers: {'Accept': 'application/json'},
         );
         if (asYearBulk.statusCode == 200 &&
@@ -500,10 +493,10 @@ class FirebaseService {
       } catch (_) {}
     }
 
-    final flatPath = '$category/$id';
+    final flatPath = '${RtdbPaths.categoryFull(category)}/$id';
     try {
       final direct = await http.get(
-        Uri.parse('$_baseUrl/$flatPath.json'),
+        Uri.parse(RtdbPaths.jsonUrl(flatPath)),
         headers: {'Accept': 'application/json'},
       );
       if (direct.statusCode == 200 &&
@@ -521,10 +514,10 @@ class FirebaseService {
       }
     } catch (_) {}
 
-    final asFlatPath = 'AS/$category/$id';
+    final asFlatPath = '${RtdbPaths.asFull(category)}/$id';
     try {
       final asDirect = await http.get(
-        Uri.parse('$_baseUrl/$asFlatPath.json'),
+        Uri.parse(RtdbPaths.jsonUrl(asFlatPath)),
         headers: {'Accept': 'application/json'},
       );
       if (asDirect.statusCode == 200 &&
@@ -546,7 +539,8 @@ class FirebaseService {
       final bulk = await getCategoryDataWithoutYearLegacyFull(category);
       for (final e in bulk) {
         if (_episodeIdsMatch(e.id ?? '', id)) {
-          final label = 'bulk GET /$category.json (match id)';
+          final label =
+              'bulk GET /${RtdbPaths.categoryFull(category)}.json (match id)';
           _debugEpisodeDetailFetch(label);
           return EpisodeFullFetchOutcome(e, label);
         }
@@ -557,7 +551,8 @@ class FirebaseService {
       final asBulk = await getAnotherSeriesFullBulk(category);
       for (final e in asBulk) {
         if (_episodeIdsMatch(e.id ?? '', id)) {
-          final label = 'bulk GET /AS/$category.json (match id)';
+          final label =
+              'bulk GET /${RtdbPaths.asFull(category)}.json (match id)';
           _debugEpisodeDetailFetch(label);
           return EpisodeFullFetchOutcome(e, label);
         }
@@ -581,13 +576,13 @@ class FirebaseService {
     return (await fetchEpisodeFullWithSource(partial)).episode;
   }
 
-  /// Luôn đọc `/{category}/{year}.json` (đầy đủ), không qua `List/`.
+  /// Luôn đọc `category/{category}/{year}.json` (đầy đủ), không qua List.
   static Future<List<Episode>> getCategoryDataLegacyFull(
     String category,
     int year,
   ) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/$category/$year.json'),
+      Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.categoryFull(category, '$year'))),
       headers: {'Accept': 'application/json'},
     );
     if (response.statusCode != 200) {
@@ -597,12 +592,12 @@ class FirebaseService {
     return _parseCategoryYearPayload(data);
   }
 
-  /// Luôn đọc `/{category}.json` (đầy đủ).
+  /// Luôn đọc `category/{category}.json` (đầy đủ).
   static Future<List<Episode>> getCategoryDataWithoutYearLegacyFull(
     String category,
   ) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/$category.json'),
+      Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.categoryFull(category))),
       headers: {'Accept': 'application/json'},
     );
     if (response.statusCode != 200) {
@@ -617,7 +612,9 @@ class FirebaseService {
     try {
       if (RtdbListConfig.useSlimListPaths) {
         final slim = await http.get(
-          Uri.parse('$_baseUrl/List/$category/$year.json'),
+          Uri.parse(
+            RtdbPaths.jsonUrl(RtdbPaths.categoryList(category, '$year')),
+          ),
           headers: {'Accept': 'application/json'},
         );
         if (slim.statusCode == 200 &&
@@ -629,7 +626,7 @@ class FirebaseService {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/$category/$year.json'),
+        Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.categoryFull(category, '$year'))),
         headers: {'Accept': 'application/json'},
       );
 
@@ -649,7 +646,7 @@ class FirebaseService {
     try {
       if (RtdbListConfig.useSlimListPaths) {
         final slim = await http.get(
-          Uri.parse('$_baseUrl/List/$category.json'),
+          Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.categoryList(category))),
           headers: {'Accept': 'application/json'},
         );
         if (slim.statusCode == 200 &&
@@ -661,7 +658,7 @@ class FirebaseService {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/$category.json'),
+        Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.categoryFull(category))),
         headers: {'Accept': 'application/json'},
       );
 
@@ -680,14 +677,12 @@ class FirebaseService {
   // Another Series (AS) helpers
   // =========================
 
-  /// `List` (slim) parent path cho AS.
-  /// - Home: `List/HomePage/AS` (hoặc legacy `HomePage/AS`)
-  /// - Other: `List/AS` (hoặc legacy `AS`)
+  /// `List` (slim) parent path cho AS dưới `category/`.
   static String anotherSeriesListParentPath({required bool forHomePage}) {
     if (RtdbListConfig.useSlimListPaths) {
-      return forHomePage ? 'List/HomePage/AS' : 'List/AS';
+      return forHomePage ? '${RtdbPaths.homeList}/AS' : '${RtdbPaths.listRoot}/AS';
     }
-    return forHomePage ? 'HomePage/AS' : 'AS';
+    return forHomePage ? '${RtdbPaths.homeList}/AS' : '${RtdbPaths.categoryRoot}/AS';
   }
 
   static bool _holdsAnotherSeriesEpisodePayload(dynamic v) {
@@ -804,7 +799,8 @@ class FirebaseService {
   }) async {
     // Luôn ưu tiên `List/...` vì payload mỏng, đúng chuẩn sub keys (OF/EIM/...)
     // Kể cả khi build tắt RTDB_SLIM_LIST, Android vẫn nên thử `List/AS` trước.
-    final preferredListParent = forHomePage ? 'List/HomePage/AS' : 'List/AS';
+    final preferredListParent =
+        forHomePage ? '${RtdbPaths.homeList}/AS' : '${RtdbPaths.listRoot}/AS';
     final legacyParent = anotherSeriesListParentPath(forHomePage: forHomePage);
     try {
       // Ưu tiên shallow để giảm payload (List/* trước)
@@ -817,7 +813,7 @@ class FirebaseService {
 
       // Fallback: GET JSON thường (List/* trước)
       final resPreferred = await http.get(
-        Uri.parse('$_baseUrl/$preferredListParent.json'),
+        Uri.parse(RtdbPaths.jsonUrl(preferredListParent)),
         headers: {'Accept': 'application/json'},
       );
       if (resPreferred.statusCode == 200 &&
@@ -828,7 +824,7 @@ class FirebaseService {
       }
 
       final resLegacy = await http.get(
-        Uri.parse('$_baseUrl/$legacyParent.json'),
+        Uri.parse(RtdbPaths.jsonUrl(legacyParent)),
         headers: {'Accept': 'application/json'},
       );
       if (resLegacy.statusCode == 200 &&
@@ -838,7 +834,7 @@ class FirebaseService {
         if (keys.isNotEmpty) return keys;
       }
 
-      // Fallback: nếu node `List/AS` chưa có/đã đổi, thử đọc key trực tiếp từ tree đầy đủ `/AS.json`.
+      // Fallback: đọc key từ tree đầy đủ `category/AS`.
       return await _fetchAnotherSeriesSubKeysFromFullTree();
     } catch (_) {
       return await _fetchAnotherSeriesSubKeysFromFullTree();
@@ -846,14 +842,15 @@ class FirebaseService {
   }
 
   static Future<List<String>> _fetchAnotherSeriesSubKeysFromFullTree() async {
+    final asRoot = '${RtdbPaths.categoryRoot}/AS';
     // Thử lấy key theo shallow ở tree đầy đủ trước (nhanh và nhẹ)
-    final shallow = await _fetchShallowKeys('AS');
+    final shallow = await _fetchShallowKeys(asRoot);
     if (shallow.isNotEmpty) return shallow;
 
     // Fallback cuối: tải payload đầy đủ (có thể lớn)
     try {
       final res = await http.get(
-        Uri.parse('$_baseUrl/AS.json'),
+        Uri.parse(RtdbPaths.jsonUrl(asRoot)),
         headers: {'Accept': 'application/json'},
       );
       if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {
@@ -944,7 +941,7 @@ class FirebaseService {
     required bool forHomePage,
   }) async {
     final preferredListParent =
-        forHomePage ? 'List/HomePage/AS' : 'List/AS';
+        forHomePage ? '${RtdbPaths.homeList}/AS' : '${RtdbPaths.listRoot}/AS';
     final legacyParent = anotherSeriesListParentPath(forHomePage: forHomePage);
 
     final fromList = await _fetchAnotherSeriesListAtPath(
@@ -964,11 +961,11 @@ class FirebaseService {
     return getAnotherSeriesFullBulk(sub);
   }
 
-  /// Lấy bulk đầy đủ cho Another Series từ tree `AS/{sub}`.
+  /// Lấy bulk đầy đủ cho Another Series từ tree `category/AS/{sub}`.
   static Future<List<Episode>> getAnotherSeriesFullBulk(String sub) async {
     try {
       final res = await http.get(
-        Uri.parse('$_baseUrl/AS/$sub.json'),
+        Uri.parse(RtdbPaths.jsonUrl(RtdbPaths.asFull(sub))),
         headers: {'Accept': 'application/json'},
       );
       if (res.statusCode != 200 || res.body.isEmpty || res.body == 'null') {

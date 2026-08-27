@@ -8,6 +8,7 @@ import '../models/episode.dart';
 import '../models/vocabulary_item.dart';
 import '../services/firebase_service.dart';
 import '../services/episode_cache_service.dart';
+import '../config/app_categories.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../services/episode_detail_open_helper.dart';
@@ -120,10 +121,13 @@ class _HomePageState extends State<HomePage> {
       print('Loading home page data...');
       final categories = await _firebaseService.getHomePageData();
       final anotherSeries = await _loadAnotherSeriesCategories();
-      final bsaEpisodes =
-          await _episodeCacheService.getAnotherSeriesFixedCategoryEpisodes('BSA');
-      final bsaCategory =
-          bsaEpisodes.isNotEmpty ? Category(name: 'BSA', episodes: bsaEpisodes) : null;
+      Category? bsaCategory;
+      if (AppCategories.isEnabled('BSA')) {
+        final bsaEpisodes =
+            await _episodeCacheService.getAnotherSeriesFixedCategoryEpisodes('BSA');
+        bsaCategory =
+            bsaEpisodes.isNotEmpty ? Category(name: 'BSA', episodes: bsaEpisodes) : null;
+      }
       print('Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}');
 
       _preloadImages(categories, anotherSeries, bsaCategory: bsaCategory);
@@ -150,6 +154,7 @@ class _HomePageState extends State<HomePage> {
           await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: true);
       final list = <Category>[];
       for (final sub in subKeys) {
+        if (!AppCategories.isEnabled(sub)) continue;
         final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
           sub,
           forHomePage: true,

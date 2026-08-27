@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy to service.config next to playMP3.exe and fill secrets.
+  Do not commit real API keys / RTDB secrets / FCM service-account paths with credentials.
+-->
+<Configurations>
+  <EpisodeTypes>
+    <EpisodeType isselected="true">
+      <Name>BBC</Name>
+      <Category isselected="true" issupportyear="true">6M</Category>
+      <Category issupportyear="true">TEWS</Category>
+      <Category issupportyear="false">AS</Category>
+    </EpisodeType>
+    <EpisodeType>
+      <Name>VOA</Name>
+      <Category isselected="true" issupportyear="false">LearningEnglish</Category>
+    </EpisodeType>
+    <EpisodeType>
+      <Name>British</Name>
+      <Category isselected="true" issupportyear="true">AAE</Category>
+      <!-- Add 6M, TEWS, … when seeded on British RTDB -->
+    </EpisodeType>
+  </EpisodeTypes>
+
+  <CloudServices>
+    <CloudService isselected="true">
+      <Name>BBC</Name>
+      <Url>https://bbc-listening-english.firebaseio.com</Url>
+      <ApiKey>YOUR_BBC_API_KEY</ApiKey>
+      <Secret>YOUR_BBC_RTDB_SECRET</Secret>
+      <Storage>YOUR_BBC_STORAGE_BUCKET.appspot.com</Storage>
+    </CloudService>
+    <CloudService>
+      <Name>VOA</Name>
+      <Url>https://YOUR_VOA_RTDB.firebaseio.com</Url>
+      <ApiKey>YOUR_VOA_API_KEY</ApiKey>
+      <Secret>YOUR_VOA_RTDB_SECRET</Secret>
+      <Storage>YOUR_VOA_STORAGE_BUCKET.appspot.com</Storage>
+    </CloudService>
+    <CloudService>
+      <Name>British</Name>
+      <Url>https://speak-british-english-default-rtdb.firebaseio.com</Url>
+      <ApiKey>YOUR_BRITISH_API_KEY</ApiKey>
+      <Secret>YOUR_BRITISH_RTDB_SECRET</Secret>
+      <Storage>speak-british-english.firebasestorage.app</Storage>
+    </CloudService>
+  </CloudServices>
+
+  <GeminiApiKey>YOUR_GEMINI_API_KEY</GeminiApiKey>
+  <GeminiRequestDelayMs>4500</GeminiRequestDelayMs>
+
+  <FcmServiceAccountPath>path/to/bbc-fcm-sa.json</FcmServiceAccountPath>
+  <FcmServiceAccountPathVOA>path/to/voa-fcm-sa.json</FcmServiceAccountPathVOA>
+  <FcmServiceAccountPathBritish>path/to/british-fcm-sa.json</FcmServiceAccountPathBritish>
+
+  <SendEpisodePush>true</SendEpisodePush>
+</Configurations>

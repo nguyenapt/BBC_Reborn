@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = bbc_reborn
+PRODUCT_NAME = Learn Speak British English
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.learningenglish.studyingbbc.bbcReborn
+PRODUCT_BUNDLE_IDENTIFIER = com.learn.speak.british.english
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 com.learningenglish.studyingbbc. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 com.learn.speak.british.english. All rights reserved.

@@ -13,15 +13,22 @@ namespace playMP3
     {
         private readonly string _baseUrl;
         private readonly string _authToken;
+        private readonly RtdbLayoutKind _layout;
         private JObject _root;
         private List<RtdbPathMigrator.EpisodeLeaf> _previewLeaves = new List<RtdbPathMigrator.EpisodeLeaf>();
         private CancellationTokenSource _cts;
         private bool _busy;
 
         public FrmRtdbPathMigrate(string firebaseBaseUrl, string firebaseAuthSecret)
+            : this(firebaseBaseUrl, firebaseAuthSecret, RtdbLayoutKind.BbcLegacy)
+        {
+        }
+
+        public FrmRtdbPathMigrate(string firebaseBaseUrl, string firebaseAuthSecret, RtdbLayoutKind layout)
         {
             _baseUrl = firebaseBaseUrl ?? string.Empty;
             _authToken = firebaseAuthSecret ?? string.Empty;
+            _layout = layout;
             InitializeComponent();
         }
 
@@ -48,8 +55,8 @@ namespace playMP3
                     txtFile.Text = dlg.FileName;
                     PopulateNodes();
                     _previewLeaves.Clear();
-                    lblStatus.Text = "Đã load JSON. Chọn node rồi Preview.";
-                    AppendLog("Loaded " + dlg.FileName);
+                    lblStatus.Text = "Đã load JSON. Layout=" + _layout + ". Chọn node rồi Preview.";
+                    AppendLog("Loaded " + dlg.FileName + " (layout=" + _layout + ")");
                 }
                 catch (Exception ex)
                 {
@@ -62,7 +69,7 @@ namespace playMP3
         {
             clbNodes.Items.Clear();
             if (_root == null) return;
-            foreach (var path in RtdbPathMigrator.LoadSelectableNodes(_root))
+            foreach (var path in RtdbPathMigrator.LoadSelectableNodes(_root, _layout))
                 clbNodes.Items.Add(path, false);
         }
 
@@ -106,7 +113,7 @@ namespace playMP3
                 return;
             }
 
-            _previewLeaves = RtdbPathMigrator.EnumerateEpisodeLeaves(_root, selected);
+            _previewLeaves = RtdbPathMigrator.EnumerateEpisodeLeaves(_root, selected, _layout);
             var needPatch = _previewLeaves.Count(l => !l.AlreadyHasCorrectPath && !l.Unresolved);
             var already = _previewLeaves.Count(l => l.AlreadyHasCorrectPath);
             var unresolved = _previewLeaves.Count(l => l.Unresolved);
@@ -168,7 +175,8 @@ namespace playMP3
                     _previewLeaves,
                     logProgress,
                     pctProgress,
-                    ct).ConfigureAwait(true);
+                    ct,
+                    _layout).ConfigureAwait(true);
 
                 lblStatus.Text = string.Format(
                     "Xong: full={0}, list={1}, homeSlots={2}, skip={3}, listMissing={4}, unresolved={5}, fail={6}",

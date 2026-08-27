@@ -1,10 +1,10 @@
 class AppZh {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC英语学习',
+    'appTitle': '学说英式英语',
     'welcomeMessage': '欢迎来到「6分钟学习英语」！',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'homeTitleMain': 'Speak British',
+    'homeTitleSub': 'English',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
@@ -25,7 +25,7 @@ class AppZh {
     'checklistPractice': 'Practice',
     'dueVocabCount': '{count} words to review',
     'dueGrammarCount': '{count} grammar to review',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to Learn Speak British English',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

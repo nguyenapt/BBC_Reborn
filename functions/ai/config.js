@@ -20,7 +20,7 @@ let cachedAzureSpeechKey = null;
 
 const DEFAULT_SERVER_CONFIG = {
   allowedPackages:
-    "com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
+    "com.learn.speak.british.english;com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
   enabled: true,
   azureSpeechRegion: "southeastasia",
   routes: {
@@ -111,7 +111,7 @@ async function loadServerConfig() {
 
   ensureAdmin();
   try {
-    const snap = await admin.database().ref("ai_server_config").once("value");
+    const snap = await admin.database().ref("config/ai_server_config").once("value");
     const val = snap.val();
     cachedServerConfig = mergeServerConfig(val);
   } catch {

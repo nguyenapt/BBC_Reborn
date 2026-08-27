@@ -19,7 +19,7 @@ namespace playMP3
         {
             var wordHash = GrammarCacheKeyHelper.HashString((word ?? string.Empty).Trim().ToLowerInvariant());
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var vocabularyUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var vocabularyUrl = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                                 + "/vocabulary/" + wordHash + "/" + safeLang + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(
@@ -35,7 +35,7 @@ namespace playMP3
             if (!string.IsNullOrWhiteSpace(episodeId))
             {
                 var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
-                var byEpisodeUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+                var byEpisodeUrl = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                                    + "/" + GrammarCacheConstants.VocabularyByEpisodePath + "/" + safeEpisodeId + "/" + wordHash + ".json";
 
                 var existingTranslationMap = new JObject();

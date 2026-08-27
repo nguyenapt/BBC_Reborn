@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bbc_reborn/main.dart';
+import 'package:learn_speak_british_english/main.dart';
 
 void main() {
   testWidgets('App starts without crashing', (WidgetTester tester) async {

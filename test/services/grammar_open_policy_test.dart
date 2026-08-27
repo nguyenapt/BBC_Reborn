@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bbc_reborn/models/grammar_explanation.dart';
+import 'package:learn_speak_british_english/models/grammar_explanation.dart';
 
 void main() {
   group('GrammarOpenPolicy.displayLanguageCode', () {

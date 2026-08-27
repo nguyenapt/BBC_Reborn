@@ -3,23 +3,23 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com</string>
+	<string>964027440046-p32a700kkhga0o8rsrrvcs8a2q8uqo96.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.128498222438-hm17267tb543u524v3so193q1hqujtse</string>
+	<string>com.googleusercontent.apps.964027440046-p32a700kkhga0o8rsrrvcs8a2q8uqo96</string>
 	<key>API_KEY</key>
-	<string>AIzaSyDqFQ2I7I1hJ8vEbe5xinI-PoSayWEpG2k</string>
+	<string>AIzaSyDqESLPnt8jIPIJYLhbVySS-VQSkOpmRGE</string>
 	<key>GCM_SENDER_ID</key>
-	<string>128498222438</string>
+	<string>964027440046</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.learningenglish.studyingbbc.bbcReborn</string>
+	<string>com.learn.speak.british.english</string>
 	<key>PROJECT_ID</key>
-	<string>bbc-listening-english</string>
+	<string>speak-british-english</string>
 	<key>STORAGE_BUCKET</key>
-	<string>bbc-listening-english.appspot.com</string>
+	<string>speak-british-english.firebasestorage.app</string>
 	<key>DATABASE_URL</key>
-	<string>https://bbc-listening-english.firebaseio.com</string>
+	<string>https://speak-british-english-default-rtdb.firebaseio.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false/>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true/>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:128498222438:ios:6a28f807827da6ea0534a7</string>
+	<string>1:964027440046:ios:78619b6a01eca95f54863f</string>
 </dict>
 </plist>

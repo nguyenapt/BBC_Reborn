@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/rtdb_paths.dart';
 import '../models/episode.dart';
 import 'api_daily_cache_service.dart';
 
@@ -8,7 +9,7 @@ class FirebaseStorageService {
   factory FirebaseStorageService() => _instance;
   FirebaseStorageService._internal();
 
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _baseUrl = RtdbPaths.baseUrl;
   static const String _favouritesPath = 'user_favourites';
   static const String _vocabulariesPath = 'user_vocabularies';
 

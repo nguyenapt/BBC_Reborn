@@ -12,13 +12,14 @@ namespace playMP3
 {
     /// <summary>
     /// Backfill field <c>RtdbPath</c> lên RTDB full + List từ file JSON export full DB.
-    /// HomePage / List/HomePage: resolve path full tree theo Id (2 năm gần nhất nếu category có year).
+    /// HomePage / List/HomePage (BBC) hoặc <c>category/List/HomePage</c> (British):
+    /// resolve path full tree theo Id (2 năm gần nhất nếu category có year).
     /// </summary>
     public static class RtdbPathMigrator
     {
         private const int RecentYearLookupCount = 2;
 
-        private static readonly HashSet<string> ExcludedTopLevel = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> ExcludedTopLevelBbc = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "ai_cache",
             "users",
@@ -29,7 +30,14 @@ namespace playMP3
             "user_favourites",
         };
 
-        private static readonly HashSet<string> HomePageRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> ExcludedTopLevelBritish = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ai_cache",
+            "users",
+            "config",
+        };
+
+        private static readonly HashSet<string> HomePageRootsBbc = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "HomePage",
             "NewHomePage",
@@ -37,13 +45,13 @@ namespace playMP3
 
         public sealed class EpisodeLeaf
         {
-            /// <summary>Path full tree (6M/2026/11) — giá trị ghi vào field RtdbPath.</summary>
+            /// <summary>Path full tree (6M/2026/11 hoặc category/AAE/…) — giá trị ghi vào field RtdbPath.</summary>
             public string RtdbPath { get; set; }
 
-            /// <summary>Slot HomePage/NewHomePage (HomePage/6M/0).</summary>
+            /// <summary>Slot HomePage/NewHomePage. Null với British (chỉ list home).</summary>
             public string HomePageSlotPath { get; set; }
 
-            /// <summary>Slot List/HomePage/… tương ứng (nếu có).</summary>
+            /// <summary>Slot List/HomePage/… hoặc category/List/HomePage/…</summary>
             public string ListHomePageSlotPath { get; set; }
 
             public JObject Episode { get; set; }
@@ -66,27 +74,59 @@ namespace playMP3
             public int Failed { get; set; }
         }
 
+        private static HashSet<string> GetExcludedTopLevel(RtdbLayoutKind layout)
+        {
+            return layout == RtdbLayoutKind.BritishGrouped
+                ? ExcludedTopLevelBritish
+                : ExcludedTopLevelBbc;
+        }
+
         /// <summary>
         /// Paths chọn được: category/year, AS/sub, HomePage/…, List/HomePage/…
+        /// (British: <c>category/*</c>, <c>category/List/HomePage</c>).
         /// </summary>
         public static List<string> LoadSelectableNodes(JObject root)
+        {
+            return LoadSelectableNodes(root, RtdbLayoutKind.BbcLegacy);
+        }
+
+        public static List<string> LoadSelectableNodes(JObject root, RtdbLayoutKind layout)
         {
             var nodes = new List<string>();
             if (root == null) return nodes;
 
-            foreach (var prop in root.Properties())
+            if (layout == RtdbLayoutKind.BritishGrouped)
             {
-                if (ExcludedTopLevel.Contains(prop.Name)) continue;
-                if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase)) continue;
-                if (prop.Value == null || prop.Value.Type == JTokenType.Null) continue;
+                var categoryRoot = root["category"] as JObject;
+                if (categoryRoot != null)
+                {
+                    foreach (var prop in categoryRoot.Properties())
+                    {
+                        if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        if (prop.Value == null || prop.Value.Type == JTokenType.Null) continue;
+                        AddSelectableFromTree(nodes, "category/" + prop.Name, prop.Value);
+                    }
 
-                AddSelectableFromTree(nodes, prop.Name, prop.Value);
+                    if (categoryRoot["List"]?["HomePage"] is JObject listHomePage)
+                        AddSelectableFromTree(nodes, "category/List/HomePage", listHomePage);
+                }
             }
-
-            var listNode = root["List"] as JObject;
-            if (listNode?["HomePage"] is JObject listHomePage)
+            else
             {
-                AddSelectableFromTree(nodes, "List/HomePage", listHomePage);
+                var excluded = GetExcludedTopLevel(layout);
+                foreach (var prop in root.Properties())
+                {
+                    if (excluded.Contains(prop.Name)) continue;
+                    if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (prop.Value == null || prop.Value.Type == JTokenType.Null) continue;
+
+                    AddSelectableFromTree(nodes, prop.Name, prop.Value);
+                }
+
+                var listNode = root["List"] as JObject;
+                if (listNode?["HomePage"] is JObject listHomePage)
+                    AddSelectableFromTree(nodes, "List/HomePage", listHomePage);
             }
 
             nodes.Sort(StringComparer.OrdinalIgnoreCase);
@@ -98,6 +138,8 @@ namespace playMP3
             if (string.IsNullOrEmpty(prefix)) return false;
             return string.Equals(prefix, "List/HomePage", StringComparison.OrdinalIgnoreCase)
                 || prefix.StartsWith("List/HomePage/", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(prefix, "category/List/HomePage", StringComparison.OrdinalIgnoreCase)
+                || prefix.StartsWith("category/List/HomePage/", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(prefix, "HomePage", StringComparison.OrdinalIgnoreCase)
                 || prefix.StartsWith("HomePage/", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(prefix, "NewHomePage", StringComparison.OrdinalIgnoreCase)
@@ -143,6 +185,14 @@ namespace playMP3
             JObject root,
             IEnumerable<string> selectedPaths)
         {
+            return EnumerateEpisodeLeaves(root, selectedPaths, RtdbLayoutKind.BbcLegacy);
+        }
+
+        public static List<EpisodeLeaf> EnumerateEpisodeLeaves(
+            JObject root,
+            IEnumerable<string> selectedPaths,
+            RtdbLayoutKind layout)
+        {
             var selected = new HashSet<string>(
                 (selectedPaths ?? Enumerable.Empty<string>())
                     .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -152,28 +202,53 @@ namespace playMP3
             var leaves = new List<EpisodeLeaf>();
             if (root == null || selected.Count == 0) return leaves;
 
-            var idIndex = BuildEpisodeIdIndex(root);
+            var idIndex = BuildEpisodeIdIndex(root, layout);
 
-            var walkListHome = selected.Any(s =>
-                s.StartsWith("List/HomePage", StringComparison.OrdinalIgnoreCase));
-
-            foreach (var prop in root.Properties())
+            if (layout == RtdbLayoutKind.BritishGrouped)
             {
-                if (ExcludedTopLevel.Contains(prop.Name)) continue;
-                if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase)) continue;
-                WalkToken(prop.Value, prop.Name, selected, leaves, root, idIndex);
+                var categoryRoot = root["category"] as JObject;
+                if (categoryRoot != null)
+                {
+                    foreach (var prop in categoryRoot.Properties())
+                    {
+                        if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        WalkToken(prop.Value, "category/" + prop.Name, selected, leaves, root, idIndex, layout);
+                    }
+                }
+
+                var walkListHome = selected.Any(s =>
+                    s.StartsWith("category/List/HomePage", StringComparison.OrdinalIgnoreCase));
+                if (walkListHome && root["category"]?["List"]?["HomePage"] != null)
+                {
+                    WalkToken(root["category"]["List"]["HomePage"], "category/List/HomePage",
+                        selected, leaves, root, idIndex, layout);
+                }
             }
-
-            if (walkListHome && root["List"]?["HomePage"] != null)
+            else
             {
-                WalkToken(root["List"]["HomePage"], "List/HomePage", selected, leaves, root, idIndex);
+                var excluded = GetExcludedTopLevel(layout);
+                var walkListHome = selected.Any(s =>
+                    s.StartsWith("List/HomePage", StringComparison.OrdinalIgnoreCase));
+
+                foreach (var prop in root.Properties())
+                {
+                    if (excluded.Contains(prop.Name)) continue;
+                    if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase)) continue;
+                    WalkToken(prop.Value, prop.Name, selected, leaves, root, idIndex, layout);
+                }
+
+                if (walkListHome && root["List"]?["HomePage"] != null)
+                {
+                    WalkToken(root["List"]["HomePage"], "List/HomePage", selected, leaves, root, idIndex, layout);
+                }
             }
 
             return leaves
                 .GroupBy(l => (l.IsHomePageSlot ? l.HomePageSlotPath ?? l.ListHomePageSlotPath : l.RtdbPath) ?? "",
                     StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
-                .OrderBy(l => l.RtdbPath ?? l.HomePageSlotPath, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(l => l.RtdbPath ?? l.HomePageSlotPath ?? l.ListHomePageSlotPath, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
@@ -189,6 +264,20 @@ namespace playMP3
             IProgress<string> log,
             IProgress<int> progressPercent,
             CancellationToken cancellationToken)
+        {
+            return await MigrateAsync(
+                baseUrl, authSecret, leaves, log, progressPercent, cancellationToken,
+                RtdbLayoutKind.BbcLegacy).ConfigureAwait(false);
+        }
+
+        public static async Task<MigrateResult> MigrateAsync(
+            string baseUrl,
+            string authSecret,
+            IList<EpisodeLeaf> leaves,
+            IProgress<string> log,
+            IProgress<int> progressPercent,
+            CancellationToken cancellationToken,
+            RtdbLayoutKind layout)
         {
             var result = new MigrateResult();
             if (leaves == null || leaves.Count == 0) return result;
@@ -223,13 +312,13 @@ namespace playMP3
                         {
                             await PatchHomePageSlotsAsync(
                                 http, baseTrim, authSecret, leaf, path, patchJson,
-                                result, log, cancellationToken).ConfigureAwait(false);
+                                result, log, cancellationToken, layout).ConfigureAwait(false);
                         }
                         else
                         {
                             await PatchCategoryLeafAsync(
                                 http, baseTrim, authSecret, leaf, path, patchJson,
-                                result, log, cancellationToken).ConfigureAwait(false);
+                                result, log, cancellationToken, layout).ConfigureAwait(false);
                         }
                     }
                     catch (OperationCanceledException)
@@ -240,7 +329,7 @@ namespace playMP3
                     {
                         result.Failed++;
                         log?.Report("FAIL "
-                            + (leaf.RtdbPath ?? leaf.HomePageSlotPath ?? "?")
+                            + (leaf.RtdbPath ?? leaf.HomePageSlotPath ?? leaf.ListHomePageSlotPath ?? "?")
                             + " — " + ex.Message);
                     }
 
@@ -261,7 +350,8 @@ namespace playMP3
             string patchJson,
             MigrateResult result,
             IProgress<string> log,
-            CancellationToken ct)
+            CancellationToken ct,
+            RtdbLayoutKind layout)
         {
             if (leaf.AlreadyHasCorrectPath)
             {
@@ -275,7 +365,8 @@ namespace playMP3
                 log?.Report("PATCH full " + path);
             }
 
-            await PatchListMirrorAsync(http, baseTrim, authSecret, "List/" + path, path, patchJson, result, log, ct)
+            var listPath = RtdbLayoutStrategy.BuildListMirrorPath(layout, path);
+            await PatchListMirrorAsync(http, baseTrim, authSecret, listPath, path, patchJson, result, log, ct)
                 .ConfigureAwait(false);
         }
 
@@ -288,7 +379,8 @@ namespace playMP3
             string patchJson,
             MigrateResult result,
             IProgress<string> log,
-            CancellationToken ct)
+            CancellationToken ct,
+            RtdbLayoutKind layout)
         {
             var slotPaths = new List<string>();
             if (!string.IsNullOrWhiteSpace(leaf.HomePageSlotPath))
@@ -329,8 +421,9 @@ namespace playMP3
                     log?.Report("PATCH full (from Home lookup) " + resolvedFullPath);
                 }
 
+                var listPath = RtdbLayoutStrategy.BuildListMirrorPath(layout, resolvedFullPath);
                 await PatchListMirrorAsync(
-                    http, baseTrim, authSecret, "List/" + resolvedFullPath, resolvedFullPath,
+                    http, baseTrim, authSecret, listPath, resolvedFullPath,
                     patchJson, result, log, ct).ConfigureAwait(false);
             }
             else
@@ -376,15 +469,29 @@ namespace playMP3
             return (path ?? string.Empty).Trim().Trim('/').Replace('\\', '/');
         }
 
-        private static Dictionary<string, string> BuildEpisodeIdIndex(JObject root)
+        private static Dictionary<string, string> BuildEpisodeIdIndex(JObject root, RtdbLayoutKind layout)
         {
             var index = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (root == null) return index;
 
+            if (layout == RtdbLayoutKind.BritishGrouped)
+            {
+                var categoryRoot = root["category"] as JObject;
+                if (categoryRoot == null) return index;
+                foreach (var prop in categoryRoot.Properties())
+                {
+                    if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    IndexToken(prop.Value, "category/" + prop.Name, index);
+                }
+                return index;
+            }
+
+            var excluded = GetExcludedTopLevel(layout);
             foreach (var prop in root.Properties())
             {
-                if (ExcludedTopLevel.Contains(prop.Name)) continue;
-                if (HomePageRoots.Contains(prop.Name)) continue;
+                if (excluded.Contains(prop.Name)) continue;
+                if (HomePageRootsBbc.Contains(prop.Name)) continue;
                 if (string.Equals(prop.Name, "List", StringComparison.OrdinalIgnoreCase)) continue;
                 IndexToken(prop.Value, prop.Name, index);
             }
@@ -445,6 +552,15 @@ namespace playMP3
             JObject episode,
             Dictionary<string, string> idIndex)
         {
+            return ResolveFullRtdbPath(root, episode, idIndex, RtdbLayoutKind.BbcLegacy);
+        }
+
+        public static string ResolveFullRtdbPath(
+            JObject root,
+            JObject episode,
+            Dictionary<string, string> idIndex,
+            RtdbLayoutKind layout)
+        {
             if (episode == null || root == null) return null;
 
             var id = episode["Id"]?.ToString()?.Trim();
@@ -456,17 +572,24 @@ namespace playMP3
             var category = episode["Category"]?.ToString()?.Trim();
             if (string.IsNullOrEmpty(category)) return null;
 
-            var asNode = root["AS"]?[category];
+            JToken searchRoot = layout == RtdbLayoutKind.BritishGrouped
+                ? root["category"]
+                : root;
+            if (searchRoot == null) return null;
+
+            var pathPrefix = layout == RtdbLayoutKind.BritishGrouped ? "category/" : "";
+
+            var asNode = searchRoot["AS"]?[category];
             if (asNode != null)
             {
-                var asPath = FindEpisodeIdInTree(asNode, id, "AS/" + category, RecentYearLookupCount);
+                var asPath = FindEpisodeIdInTree(asNode, id, pathPrefix + "AS/" + category, RecentYearLookupCount);
                 if (asPath != null) return asPath;
             }
 
-            var catNode = root[category];
+            var catNode = searchRoot[category];
             if (catNode != null)
             {
-                var catPath = FindEpisodeIdInTree(catNode, id, category, RecentYearLookupCount);
+                var catPath = FindEpisodeIdInTree(catNode, id, pathPrefix + category, RecentYearLookupCount);
                 if (catPath != null) return catPath;
             }
 
@@ -556,7 +679,8 @@ namespace playMP3
             HashSet<string> selected,
             List<EpisodeLeaf> leaves,
             JObject root,
-            Dictionary<string, string> idIndex)
+            Dictionary<string, string> idIndex,
+            RtdbLayoutKind layout)
         {
             if (token == null || token.Type == JTokenType.Null) return;
 
@@ -567,7 +691,7 @@ namespace playMP3
                 if (LooksLikeEpisode(obj))
                 {
                     if (IsHomePageSlotPath(normalizedPath))
-                        AddHomePageLeaf(leaves, normalizedPath, obj, root, idIndex, selected);
+                        AddHomePageLeaf(leaves, normalizedPath, obj, root, idIndex, selected, layout);
                     else if (IsPathSelected(normalizedPath, selected))
                         AddCategoryLeaf(leaves, normalizedPath, obj);
                     return;
@@ -578,7 +702,7 @@ namespace playMP3
                     foreach (var yearProp in obj.Properties())
                     {
                         var yearPath = normalizedPath + "/" + yearProp.Name;
-                        WalkEpisodesUnderContainer(yearProp.Value, yearPath, selected, leaves, root, idIndex);
+                        WalkEpisodesUnderContainer(yearProp.Value, yearPath, selected, leaves, root, idIndex, layout);
                     }
                     return;
                 }
@@ -586,20 +710,22 @@ namespace playMP3
                 foreach (var child in obj.Properties())
                 {
                     if (string.Equals(child.Name, "Grammar", StringComparison.OrdinalIgnoreCase)
-                        && normalizedPath.StartsWith("HomePage", StringComparison.OrdinalIgnoreCase))
+                        && (normalizedPath.StartsWith("HomePage", StringComparison.OrdinalIgnoreCase)
+                            || normalizedPath.StartsWith("category/List/HomePage", StringComparison.OrdinalIgnoreCase)
+                            || normalizedPath.StartsWith("List/HomePage", StringComparison.OrdinalIgnoreCase)))
                         continue;
 
                     var childPath = normalizedPath + "/" + child.Name;
                     if (child.Value is JObject childObj && LooksLikeEpisode(childObj))
                     {
                         if (IsHomePageSlotPath(childPath))
-                            AddHomePageLeaf(leaves, childPath, childObj, root, idIndex, selected);
+                            AddHomePageLeaf(leaves, childPath, childObj, root, idIndex, selected, layout);
                         else if (IsPathSelected(childPath, selected) || IsPathSelected(normalizedPath, selected))
                             AddCategoryLeaf(leaves, childPath, childObj);
                     }
                     else
                     {
-                        WalkToken(child.Value, childPath, selected, leaves, root, idIndex);
+                        WalkToken(child.Value, childPath, selected, leaves, root, idIndex, layout);
                     }
                 }
                 return;
@@ -613,7 +739,7 @@ namespace playMP3
                     if (item == null || !LooksLikeEpisode(item)) continue;
                     var itemPath = normalizedPath + "/" + i;
                     if (IsHomePageSlotPath(itemPath))
-                        AddHomePageLeaf(leaves, itemPath, item, root, idIndex, selected);
+                        AddHomePageLeaf(leaves, itemPath, item, root, idIndex, selected, layout);
                     else if (IsPathSelected(itemPath, selected) || IsPathSelected(normalizedPath, selected))
                         AddCategoryLeaf(leaves, itemPath, item);
                 }
@@ -626,7 +752,8 @@ namespace playMP3
             HashSet<string> selected,
             List<EpisodeLeaf> leaves,
             JObject root,
-            Dictionary<string, string> idIndex)
+            Dictionary<string, string> idIndex,
+            RtdbLayoutKind layout)
         {
             if (token is JObject map)
             {
@@ -636,13 +763,13 @@ namespace playMP3
                     {
                         var epPath = path + "/" + ep.Name;
                         if (IsHomePageSlotPath(epPath))
-                            AddHomePageLeaf(leaves, epPath, epObj, root, idIndex, selected);
+                            AddHomePageLeaf(leaves, epPath, epObj, root, idIndex, selected, layout);
                         else if (IsPathSelected(epPath, selected) || IsPathSelected(path, selected))
                             AddCategoryLeaf(leaves, epPath, epObj);
                     }
                     else
                     {
-                        WalkToken(ep.Value, path + "/" + ep.Name, selected, leaves, root, idIndex);
+                        WalkToken(ep.Value, path + "/" + ep.Name, selected, leaves, root, idIndex, layout);
                     }
                 }
             }
@@ -654,7 +781,7 @@ namespace playMP3
                     if (item == null || !LooksLikeEpisode(item)) continue;
                     var itemPath = path + "/" + i;
                     if (IsHomePageSlotPath(itemPath))
-                        AddHomePageLeaf(leaves, itemPath, item, root, idIndex, selected);
+                        AddHomePageLeaf(leaves, itemPath, item, root, idIndex, selected, layout);
                     else if (IsPathSelected(itemPath, selected) || IsPathSelected(path, selected))
                         AddCategoryLeaf(leaves, itemPath, item);
                 }
@@ -666,6 +793,7 @@ namespace playMP3
             if (string.IsNullOrEmpty(path)) return false;
             return path.StartsWith("HomePage/", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith("List/HomePage/", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("category/List/HomePage/", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith("NewHomePage/", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -675,19 +803,25 @@ namespace playMP3
             JObject episode,
             JObject root,
             Dictionary<string, string> idIndex,
-            HashSet<string> selected)
+            HashSet<string> selected,
+            RtdbLayoutKind layout)
         {
             if (!IsPathSelected(slotPath, selected)
                 && !IsPathSelected(ParentPath(slotPath), selected))
                 return;
 
-            var resolved = ResolveFullRtdbPath(root, episode, idIndex);
+            var resolved = ResolveFullRtdbPath(root, episode, idIndex, layout);
             var existing = episode["RtdbPath"]?.ToString();
 
             string homeSlot;
             string listHomeSlot;
 
-            if (slotPath.StartsWith("List/HomePage/", StringComparison.OrdinalIgnoreCase))
+            if (slotPath.StartsWith("category/List/HomePage/", StringComparison.OrdinalIgnoreCase))
+            {
+                listHomeSlot = slotPath;
+                homeSlot = null;
+            }
+            else if (slotPath.StartsWith("List/HomePage/", StringComparison.OrdinalIgnoreCase))
             {
                 listHomeSlot = slotPath;
                 homeSlot = "HomePage/" + slotPath.Substring("List/HomePage/".Length);

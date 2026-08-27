@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'package:bbc_reborn/models/vocabulary_item.dart';
-import 'package:bbc_reborn/models/vocabulary_practice_state.dart';
-import 'package:bbc_reborn/services/vocabulary_practice_service.dart';
+import 'package:learn_speak_british_english/models/vocabulary_item.dart';
+import 'package:learn_speak_british_english/models/vocabulary_practice_state.dart';
+import 'package:learn_speak_british_english/services/vocabulary_practice_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

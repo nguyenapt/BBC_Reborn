@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "bbc_reborn (Android Next-Gen Ads)",
+      "name": "Learn Speak British English (Android Next-Gen Ads)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "name": "bbc_reborn (Android Next-Gen Ads · profile)",
+      "name": "Learn Speak British English (Android Next-Gen Ads · profile)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "name": "bbc_reborn (Android Next-Gen Ads · release)",
+      "name": "Learn Speak British English (Android Next-Gen Ads · release)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "name": "bbc_reborn (iOS / legacy GMA)",
+      "name": "Learn Speak British English (iOS / legacy GMA)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart"

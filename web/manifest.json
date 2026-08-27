@@ -1,11 +1,11 @@
 {
-    "name": "Learning English with B.B.C",
-    "short_name": "BBC Learning",
+    "name": "Learn Speak British English",
+    "short_name": "Learn Speak BE",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Learn English through listening with B.B.C Learning English",
+    "description": "Learn Speak British English - Học nói tiếng Anh Anh (British English).",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

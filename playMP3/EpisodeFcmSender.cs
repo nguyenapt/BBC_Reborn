@@ -21,6 +21,7 @@ namespace playMP3
 
         public const string ProfileBbc = "bbc";
         public const string ProfileVoa = "voa";
+        public const string ProfileBritish = "british";
 
         private static readonly object InitLock = new object();
         private static readonly HashSet<string> ConfiguredProfiles =
@@ -127,7 +128,7 @@ namespace playMP3
             if (!IsProfileConfigured(name))
                 throw new InvalidOperationException(
                     "FCM not configured for profile \"" + name + "\". "
-                    + "Set FcmServiceAccountPath / FcmServiceAccountPathVOA in service.config.");
+                    + "Set FcmServiceAccountPath / FcmServiceAccountPathVOA / FcmServiceAccountPathBritish in service.config.");
 
             if (episode == null)
                 throw new ArgumentNullException(nameof(episode));

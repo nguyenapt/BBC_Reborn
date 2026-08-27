@@ -28,9 +28,9 @@ namespace playMP3
                 sentence, languageCode, episodeId, modelVersion, promptVersion);
             var sentenceLineKey = GrammarCacheKeyHelper.GrammarEpisodeLineKey(sentence, lineNumber);
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var legacyUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var legacyUrl = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                             + "/grammar/" + sentenceHash + "/" + safeLang + ".json";
-            var byEpisodeUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var byEpisodeUrl = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                                + "/" + GrammarCacheConstants.GrammarByEpisodePath + "/" + safeEpisodeId + "/" + sentenceLineKey + "/" + safeLang + ".json";
 
             var normalizedData = (grammarDataMap ?? new JObject()).DeepClone() as JObject ?? new JObject();
@@ -78,7 +78,7 @@ namespace playMP3
             var passageHash = GrammarCacheKeyHelper.GrammarPassageHashPathSegment(
                 passage, languageCode, episodeId, modelVersion, promptVersion, schemaVersion);
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/" + GrammarCacheConstants.GrammarPassagePath + "/" + passageHash + "/" + safeLang + ".json";
 
             var normalizedData = (grammarPassageDataMap ?? new JObject()).DeepClone() as JObject ?? new JObject();

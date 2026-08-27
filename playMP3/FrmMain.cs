@@ -88,9 +88,10 @@ namespace playMP3
             {
                 cbCloudService.SelectedItem = preferredCloud;
                 ConfigModel.SelectedCloudService = preferredCloud;
+                ActiveRtdbContext.Set(preferredCloud.Url ?? txtUrl.Text, preferredCloud.Secret ?? txtSecret.Text);
             }
 
-            // Filter Type theo Cloud Service (BBC → BBC, VOA → VOA).
+            // Filter Type theo Cloud Service (BBC → BBC, VOA → VOA, British → British).
             ApplyEpisodeTypeFilterForCloudService();
 
             // UI: only show AS-series child field when category == "AS".
@@ -112,15 +113,38 @@ namespace playMP3
             return string.Equals(name, "VOA", StringComparison.OrdinalIgnoreCase);
         }
 
+        private bool IsBritishCloudService()
+        {
+            var name = (cbCloudService?.SelectedItem as CloudService)?.Name
+                       ?? ConfigModel.SelectedCloudService?.Name;
+            return string.Equals(name, "British", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string CurrentCloudServiceName()
+        {
+            return ((cbCloudService?.SelectedItem as CloudService)?.Name
+                    ?? ConfigModel.SelectedCloudService?.Name
+                    ?? string.Empty).Trim();
+        }
+
+        private RtdbLayoutKind CurrentRtdbLayout()
+        {
+            return RtdbLayoutStrategy.ResolveFromCloudName(CurrentCloudServiceName());
+        }
+
         private string ResolveFcmProfileName()
         {
-            return IsVoaCloudService()
-                ? EpisodeFcmSender.ProfileVoa
-                : EpisodeFcmSender.ProfileBbc;
+            if (IsBritishCloudService())
+                return EpisodeFcmSender.ProfileBritish;
+            if (IsVoaCloudService())
+                return EpisodeFcmSender.ProfileVoa;
+            return EpisodeFcmSender.ProfileBbc;
         }
 
         private string ResolveFcmServiceAccountPath()
         {
+            if (IsBritishCloudService())
+                return ConfigModel.FcmServiceAccountPathBritish;
             if (IsVoaCloudService())
                 return ConfigModel.FcmServiceAccountPathVoa;
             return ConfigModel.FcmServiceAccountPath;
@@ -132,7 +156,7 @@ namespace playMP3
                 return;
 
             var path = ResolveFcmServiceAccountPath();
-            if (string.IsNullOrWhiteSpace(path) && !IsVoaCloudService())
+            if (string.IsNullOrWhiteSpace(path) && !IsVoaCloudService() && !IsBritishCloudService())
             {
                 var env = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
                 if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
@@ -148,7 +172,7 @@ namespace playMP3
                 : "Gửi push FCM (" + fileName + ")";
         }
 
-        /// <summary>BBC cloud → Type BBC; VOA cloud → Type VOA; khác → tất cả EpisodeTypes.</summary>
+        /// <summary>BBC cloud → Type BBC; VOA → VOA; British → British; khác → tất cả EpisodeTypes.</summary>
         private void ApplyEpisodeTypeFilterForCloudService()
         {
             if (cbType == null || ConfigModel.EpisodeTypes == null || ConfigModel.EpisodeTypes.Count == 0)
@@ -161,7 +185,8 @@ namespace playMP3
 
             var cloudName = (cloud?.Name ?? ConfigModel.SelectedCloudService?.Name ?? string.Empty).Trim();
             var forceMatchCloud = string.Equals(cloudName, "BBC", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase);
+                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(cloudName, "British", StringComparison.OrdinalIgnoreCase);
 
             List<EpisodeTypeModel> filtered;
             if (forceMatchCloud)
@@ -716,6 +741,10 @@ namespace playMP3
                 if (fcmVoaPathNode != null)
                     ConfigModel.FcmServiceAccountPathVoa = (fcmVoaPathNode.InnerText ?? string.Empty).Trim();
 
+                var fcmBritishPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPathBritish");
+                if (fcmBritishPathNode != null)
+                    ConfigModel.FcmServiceAccountPathBritish = (fcmBritishPathNode.InnerText ?? string.Empty).Trim();
+
                 var sendPushNode = m_xmld.SelectSingleNode("/Configurations/SendEpisodePush");
                 if (sendPushNode != null)
                 {
@@ -863,27 +892,25 @@ namespace playMP3
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
-            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+            var layout = CurrentRtdbLayout();
+            episode.RtdbPath = RtdbLayoutStrategy.BuildRtdbPathField(layout, categoryPath, txtNumber.Text);
 
             if (exportEpisodeDetail)
             {
-                await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                var fullPath = RtdbLayoutStrategy.BuildFullEpisodePath(layout, categoryPath, txtNumber.Text);
+                await firebaseClient.Child(fullPath).PatchAsync(episode).ConfigureAwait(true);
 
                 var listEpisode = BuildListEpisodePayload(episode);
-
-                await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+                var listPath = RtdbLayoutStrategy.BuildListEpisodePath(layout, categoryPath, txtNumber.Text);
+                await firebaseClient.Child(listPath).PatchAsync(listEpisode).ConfigureAwait(true);
 
                 if (!string.IsNullOrEmpty(txtHomeNumber.Text))
                 {
-                    if (cbType.Text == "BBC")
-                    {
-                        await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                        await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-                    }
-                    if (cbType.Text == "VOA")
-                    {
-                        await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                    }
+                    if (RtdbLayoutStrategy.TryGetHomeFullPath(layout, txtHomeNumber.Text, out var homeFullPath))
+                        await firebaseClient.Child(homeFullPath).PatchAsync(episode).ConfigureAwait(true);
+
+                    if (RtdbLayoutStrategy.TryGetHomeListPath(layout, txtHomeNumber.Text, out var homeListPath))
+                        await firebaseClient.Child(homeListPath).PatchAsync(listEpisode).ConfigureAwait(true);
                 }
             }
 
@@ -895,10 +922,14 @@ namespace playMP3
                     var fcmPath = ResolveFcmServiceAccountPath();
                     if (!EpisodeFcmSender.TryConfigure(fcmProfile, fcmPath))
                     {
-                        var hint = IsVoaCloudService()
-                            ? "thêm FcmServiceAccountPathVOA trong service.config."
-                            : "thêm FcmServiceAccountPath trong service.config "
-                              + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.";
+                        string hint;
+                        if (IsBritishCloudService())
+                            hint = "thêm FcmServiceAccountPathBritish trong service.config.";
+                        else if (IsVoaCloudService())
+                            hint = "thêm FcmServiceAccountPathVOA trong service.config.";
+                        else
+                            hint = "thêm FcmServiceAccountPath trong service.config "
+                                   + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.";
                         MessageBox.Show(
                             this,
                             "FCM chưa cấu hình cho " + fcmProfile.ToUpperInvariant() + ": " + hint,
@@ -960,6 +991,7 @@ namespace playMP3
             txtApiKey.Text = selected.ApiKey;
             txtSecret.Text = selected.Secret;
             ConfigModel.SelectedCloudService = selected;
+            ActiveRtdbContext.Set(txtUrl.Text, txtSecret.Text);
             ApplyEpisodeTypeFilterForCloudService();
             UpdateCbLevelEnabled();
             UpdateSendEpisodePushLabel();
@@ -1136,7 +1168,8 @@ namespace playMP3
             var canonicalEpisodeId = episode.Id.ToString();
             episode.GrammarVocabularyCacheKeys = BuildGrammarVocabularyCacheKeysCsv(canonicalEpisodeId);
 
-            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+            var layout = CurrentRtdbLayout();
+            episode.RtdbPath = RtdbLayoutStrategy.BuildRtdbPathField(layout, categoryPath, txtNumber.Text);
 
             var listEpisode = new JObject
             {
@@ -1163,22 +1196,23 @@ namespace playMP3
                 ["homeNumber"] = txtHomeNumber.Text,
                 ["categoryPath"] = categoryPath,
                 ["rtdbPath"] = episode.RtdbPath,
-                ["listPath"] = "List/" + categoryPath + "/" + txtNumber.Text,
+                ["listPath"] = RtdbLayoutStrategy.BuildListEpisodePath(layout, categoryPath, txtNumber.Text),
                 ["episode"] = JObject.FromObject(episode),
                 ["listEpisode"] = listEpisode,
             };
 
             if (!string.IsNullOrEmpty(txtHomeNumber.Text))
             {
-                if (cbType.Text == "BBC")
+                if (RtdbLayoutStrategy.TryGetHomeFullPath(layout, txtHomeNumber.Text, out var homeFullPath))
                 {
-                    root["homePagePath"] = "HomePage/" + txtHomeNumber.Text;
-                    root["listHomePagePath"] = "List/HomePage/" + txtHomeNumber.Text;
+                    if (layout == RtdbLayoutKind.VoaLegacy)
+                        root["newHomePagePath"] = homeFullPath;
+                    else
+                        root["homePagePath"] = homeFullPath;
                 }
-                else if (cbType.Text == "VOA")
-                {
-                    root["newHomePagePath"] = "NewHomePage/" + txtHomeNumber.Text;
-                }
+
+                if (RtdbLayoutStrategy.TryGetHomeListPath(layout, txtHomeNumber.Text, out var homeListPath))
+                    root["listHomePagePath"] = homeListPath;
             }
 
             root["ai_cache"] = BuildAiCacheExportPayload(canonicalEpisodeId);
@@ -1542,7 +1576,7 @@ namespace playMP3
                 return;
             }
 
-            using (var dlg = new FrmRtdbPathMigrate(url, secret))
+            using (var dlg = new FrmRtdbPathMigrate(url, secret, CurrentRtdbLayout()))
             {
                 dlg.ShowDialog(this);
             }

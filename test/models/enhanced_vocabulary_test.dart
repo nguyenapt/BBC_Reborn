@@ -1,7 +1,7 @@
-import 'package:bbc_reborn/config/ai_config.dart';
-import 'package:bbc_reborn/models/enhanced_vocabulary.dart';
-import 'package:bbc_reborn/models/vocabulary_item.dart';
-import 'package:bbc_reborn/utils/cache_key_helper.dart';
+import 'package:learn_speak_british_english/config/ai_config.dart';
+import 'package:learn_speak_british_english/models/enhanced_vocabulary.dart';
+import 'package:learn_speak_british_english/models/vocabulary_item.dart';
+import 'package:learn_speak_british_english/utils/cache_key_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

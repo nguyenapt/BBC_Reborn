@@ -24,6 +24,9 @@ namespace playMP3.Base
         /// <summary>Path to Firebase service account JSON for FCM VOA project (Configurations/FcmServiceAccountPathVOA).</summary>
         public string FcmServiceAccountPathVoa { get; set; }
 
+        /// <summary>Path to Firebase service account JSON for FCM British project (Configurations/FcmServiceAccountPathBritish).</summary>
+        public string FcmServiceAccountPathBritish { get; set; }
+
         /// <summary>Default on/off for episode push; UI checkbox can override per submit.</summary>
         public bool SendEpisodePush { get; set; } = true;
 

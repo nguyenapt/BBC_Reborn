@@ -24,7 +24,7 @@ namespace playMP3
             };
 
             var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = ActiveRtdbContext.BaseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/questions/" + safeEpisodeId + "/" + count + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(

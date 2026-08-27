@@ -1,12 +1,18 @@
 {
   "rules": {
-    "app_client_config": {
-      ".read": true,
-      ".write": false
+    "config": {
+      "app_client_config": {
+        ".read": true,
+        ".write": false
+      },
+      "ai_server_config": {
+        ".read": false,
+        ".write": false
+      }
     },
-    "ai_server_config": {
-      ".read": false,
-      ".write": false
+    "category": {
+      ".read": true,
+      ".write": "auth != null"
     },
     "ai_cache": {
       ".read": true,
