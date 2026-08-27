@@ -125,7 +125,15 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   void _onAudioServiceEpisodeChanged() {
     final current = _audioService.currentEpisode;
-    if (current == null || current.id == _episode.id) return;
+    if (current == null) return;
+    if (current.id == _episode.id) {
+      // Hydrate lần đầu có thể xong trước khi currentEpisode được gán.
+      if (_mustFetchFullEpisode(_episode) && !_hydratingFullEpisode && mounted) {
+        setState(() => _hydratingFullEpisode = true);
+        Future.microtask(_hydrateFullEpisodeIfNeeded);
+      }
+      return;
+    }
 
     final inCategory = widget.categoryEpisodes.any((e) => e.id == current.id);
     if (!inCategory) return;
@@ -343,9 +351,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
-      // Bỏ qua nếu user/auto-play đã chuyển sang episode khác trong lúc fetch.
-      if (_episode.id != targetId ||
-          _audioService.currentEpisode?.id != targetId) {
+      // Không đòi currentEpisode khớp: cold start nó còn null khi đang stop().
+      if (_episode.id != targetId) {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }

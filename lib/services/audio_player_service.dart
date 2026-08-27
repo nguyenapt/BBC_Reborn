@@ -376,6 +376,14 @@ class AudioPlayerService extends ChangeNotifier {
         _playerState = AudioPlayerState.stopped;
         _currentPosition = Duration.zero;
         _totalDuration = Duration.zero;
+        // Gán identity trước stop() để hydrate transcript không bị drop.
+        _currentEpisode = episode;
+        _currentCategoryEpisodes = categoryEpisodes;
+        _currentEpisodeIndex =
+            categoryEpisodes.indexWhere((e) => e.id == episode.id);
+        if (_currentEpisodeIndex == -1) {
+          _currentEpisodeIndex = 0;
+        }
         await _audioPlayer.stop();
       }
 
