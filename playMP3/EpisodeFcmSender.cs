@@ -155,6 +155,7 @@ namespace playMP3
                     ["year"] = year,
                     ["episodeKey"] = episodeKey,
                     ["episodeId"] = episode.Id.ToString(),
+                    ["rtdbPath"] = episode.RtdbPath ?? string.Empty,
                     ["click_action"] = "FLUTTER_NOTIFICATION_CLICK",
                 },
                 Android = new AndroidConfig

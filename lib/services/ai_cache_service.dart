@@ -195,6 +195,7 @@ class AICacheService {
     }
     final firebase =
         await getTranslationFromFirebaseCache(episodeId, languageCode);
+    // getTranslationFromFirebaseCache đã materialize local (cacheMap) khi HIT.
     if (firebase != null && firebase.isNotEmpty) {
       return (data: firebase, tier: AICacheTier.firebase);
     }

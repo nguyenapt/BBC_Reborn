@@ -16,6 +16,7 @@ class FavouriteEpisode {
   final String? transcriptHtml;
   final String? vocabulary;
   final List<dynamic>? vocabularies;
+  final String? rtdbPath;
   final DateTime savedAt;
 
   FavouriteEpisode({
@@ -34,6 +35,7 @@ class FavouriteEpisode {
     this.transcriptHtml,
     this.vocabulary,
     this.vocabularies,
+    this.rtdbPath,
     required this.savedAt,
   });
 
@@ -55,6 +57,7 @@ class FavouriteEpisode {
       transcriptHtml: episode.transcriptHtml,
       vocabulary: episode.vocabulary,
       vocabularies: episode.vocabularies,
+      rtdbPath: episode.rtdbPath,
       savedAt: DateTime.now(),
     );
   }
@@ -77,6 +80,7 @@ class FavouriteEpisode {
       transcriptHtml: json['transcriptHtml'],
       vocabulary: json['vocabulary'],
       vocabularies: json['vocabularies'],
+      rtdbPath: json['rtdbPath']?.toString(),
       savedAt: DateTime.parse(json['savedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
@@ -99,6 +103,7 @@ class FavouriteEpisode {
       'transcriptHtml': transcriptHtml,
       'vocabulary': vocabulary,
       'vocabularies': vocabularies,
+      'rtdbPath': rtdbPath,
       'savedAt': savedAt.toIso8601String(),
     };
   }
@@ -121,6 +126,7 @@ class FavouriteEpisode {
       transcriptHtml: transcriptHtml,
       vocabulary: vocabulary,
       vocabularies: vocabularies,
+      rtdbPath: rtdbPath,
     );
   }
 

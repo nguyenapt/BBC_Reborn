@@ -4,4 +4,6 @@ class ApiDailyCacheKeys {
 
   static const String homePage = 'HomePage';
   static const String grammarList = 'GrammarList';
+  static const String anotherSeriesSubKeysHome = 'AS_SubKeys_Home';
+  static const String anotherSeriesSubKeysList = 'AS_SubKeys_List';
 }

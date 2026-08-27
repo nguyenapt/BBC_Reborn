@@ -250,6 +250,7 @@
     <Compile Include="QuestionsFirebaseCacheWriter.cs" />
     <Compile Include="AiCacheExpiryCleaner.cs" />
     <Compile Include="EpisodeFcmSender.cs" />
+    <Compile Include="RtdbPathMigrator.cs" />
     <Compile Include="FrmMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -261,6 +262,12 @@
     </Compile>
     <Compile Include="FrmAiCacheCleanup.Designer.cs">
       <DependentUpon>FrmAiCacheCleanup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FrmRtdbPathMigrate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmRtdbPathMigrate.Designer.cs">
+      <DependentUpon>FrmRtdbPathMigrate.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -30,6 +30,12 @@ namespace playMP3.Base
         public string ThumbImage { get; set; }
         public string Actor { get; set; }
         public int Duration { get; set; }
+        /// <summary>
+        /// RTDB path tới node episode (không leading /, không .json), vd. 6M/2026/11 hoặc AS/OF/11.
+        /// Flutter hydrate detail bằng GET /{RtdbPath}.json.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string RtdbPath { get; set; }
         /// <summary>CEFR level (A1–C2) — chỉ export khi cloud service VOA.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Level { get; set; }

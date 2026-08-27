@@ -179,7 +179,7 @@ class _HomePageState extends State<HomePage> {
       ...anotherSeries,
       if (bsaCategory != null) bsaCategory,
     ]) {
-      final episodes = category.episodes.take(3); // Only preload first 3 episodes
+      final episodes = category.episodes.take(1); // Preload 1 thumb/category — giảm Storage egress
       for (final episode in episodes) {
         if (episode.thumbImage.isNotEmpty) {
           imageUrls.add(episode.thumbImage);

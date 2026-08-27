@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../config/ai_config.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/grammar_explanation.dart';
 import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
@@ -18,11 +19,10 @@ class AIGrammarService {
   final AICacheService _cache = AICacheService();
   final LanguageManager _languageManager = LanguageManager();
 
-  /// Get target language code from LanguageManager
-  String _getTargetLanguage() {
-    final locale = _languageManager.currentLocale;
-    // Map locale to language name for AI
-    switch (locale.languageCode) {
+  /// Map locale code to English language name for the AI prompt.
+  String _getTargetLanguage([String? languageCode]) {
+    final code = languageCode ?? _languageManager.currentLocale.languageCode;
+    switch (code) {
       case 'vi':
         return 'Vietnamese';
       case 'zh':
@@ -48,25 +48,30 @@ class AIGrammarService {
     }
   }
 
-  /// Explain grammar in a sentence
+  /// Explain grammar in a sentence.
+  ///
+  /// [languageCode] overrides the app locale (used when switching EN vs target
+  /// inside the grammar popup).
   Future<GrammarExplanation> explainSentence(
     String sentence,
     String episodeId, {
     int? lineNumber,
+    String? languageCode,
   }) async {
     if (!AIConfig.enableGrammar) {
       throw APIException('Grammar feature is temporarily disabled.');
     }
 
-    final targetLanguage = _getTargetLanguage();
-    final languageCode = _languageManager.currentLocale.languageCode;
+    final resolvedLanguageCode =
+        languageCode ?? _languageManager.currentLocale.languageCode;
+    final targetLanguage = _getTargetLanguage(resolvedLanguageCode);
     final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
     const promptVersion = AIConfig.grammarPromptVersion;
 
     // [lineNumber] = transcript line index (0-based); RTDB path is line_{index}.
     final cacheHit = await _cache.lookupGrammar(
       sentence,
-      languageCode,
+      resolvedLanguageCode,
       episodeId: episodeId,
       lineNumber: lineNumber,
       modelVersion: modelVersion,
@@ -154,7 +159,7 @@ class AIGrammarService {
       // Save dual-map (overall + sentenceAnalyses + legacy) to local + grammar_by_episode.
       await _cache.saveGrammarToCache(
         sentence,
-        languageCode,
+        resolvedLanguageCode,
         explanationObj.toJson(),
         episodeId: episodeId,
         lineNumber: lineNumber,
@@ -167,6 +172,95 @@ class AIGrammarService {
       debugPrint('Error explaining grammar: $e');
       rethrow;
     }
+  }
+
+  /// Open-path for a transcript line: peek EN + target cache, then pick or generate.
+  Future<GrammarSentenceResolveResult> resolveSentenceExplanation(
+    String sentence,
+    String episodeId, {
+    int? lineNumber,
+  }) async {
+    if (!AIConfig.enableGrammar) {
+      throw APIException('Grammar feature is temporarily disabled.');
+    }
+
+    final targetLang = _languageManager.currentLocale.languageCode;
+    final modelVersion =
+        '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
+    const promptVersion = AIConfig.grammarPromptVersion;
+
+    Future<({Map<String, dynamic> data, AICacheTier tier})?> peek(String lang) {
+      return _cache.lookupGrammar(
+        sentence,
+        lang,
+        episodeId: episodeId,
+        lineNumber: lineNumber,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+    }
+
+    if (targetLang == GrammarOpenPolicy.englishCode) {
+      final explanation = await explainSentence(
+        sentence,
+        episodeId,
+        lineNumber: lineNumber,
+        languageCode: GrammarOpenPolicy.englishCode,
+      );
+      return GrammarSentenceResolveResult(
+        explanation: explanation,
+        displayLanguageCode: GrammarOpenPolicy.englishCode,
+        englishAvailable: true,
+        targetAvailable: true,
+      );
+    }
+
+    final peeked = await Future.wait([
+      peek(GrammarOpenPolicy.englishCode),
+      peek(targetLang),
+    ]);
+    final enHit = peeked[0];
+    final targetHit = peeked[1];
+    final englishAvailable = enHit != null;
+    final targetAvailable = targetHit != null;
+    final displayLang = GrammarOpenPolicy.displayLanguageCode(
+      targetLanguageCode: targetLang,
+      englishAvailable: englishAvailable,
+      targetAvailable: targetAvailable,
+    );
+
+    if (displayLang == targetLang && targetHit != null) {
+      await AICacheService.consumeHeartIfFirebase(targetHit.tier);
+      return GrammarSentenceResolveResult(
+        explanation: _mapCachedGrammarToModel(sentence, targetHit.data),
+        displayLanguageCode: targetLang,
+        englishAvailable: englishAvailable,
+        targetAvailable: true,
+      );
+    }
+
+    if (displayLang == GrammarOpenPolicy.englishCode && enHit != null) {
+      await AICacheService.consumeHeartIfFirebase(enHit.tier);
+      return GrammarSentenceResolveResult(
+        explanation: _mapCachedGrammarToModel(sentence, enHit.data),
+        displayLanguageCode: GrammarOpenPolicy.englishCode,
+        englishAvailable: true,
+        targetAvailable: targetAvailable,
+      );
+    }
+
+    final explanation = await explainSentence(
+      sentence,
+      episodeId,
+      lineNumber: lineNumber,
+      languageCode: targetLang,
+    );
+    return GrammarSentenceResolveResult(
+      explanation: explanation,
+      displayLanguageCode: targetLang,
+      englishAvailable: false,
+      targetAvailable: true,
+    );
   }
 
   /// Explain grammar for a full passage with fallback to sentence-level flow
