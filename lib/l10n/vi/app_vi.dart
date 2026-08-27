@@ -413,7 +413,6 @@ class AppVi {
     'sleepTimerEndOfEpisode': 'Hết episode này',
     'sleepTimerOff': 'Tắt',
     'sleepTimerMinutes': '{minutes} phút',
-    'autoPlayNowPlaying': 'Đang phát: {title}',
     'autoPlayEnabledHint':
         'Đã bật tự phát tiếp. Episode kế tiếp trong danh mục sẽ tự động phát.',
 

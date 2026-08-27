@@ -397,7 +397,6 @@ class AppJa {
     'sleepTimerEndOfEpisode': 'このエピソードの終わり',
     'sleepTimerOff': 'オフ',
     'sleepTimerMinutes': '{minutes}分',
-    'autoPlayNowPlaying': '再生中: {title}',
     'autoPlayEnabledHint': '自動再生がオンです。このカテゴリの次のエピソードが自動で再生されます。',
   };
 }
