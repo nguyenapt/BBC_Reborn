@@ -391,7 +391,6 @@ class AppZh {
     'sleepTimerEndOfEpisode': '本集结束',
     'sleepTimerOff': '关闭',
     'sleepTimerMinutes': '{minutes} 分钟',
-    'autoPlayNowPlaying': '正在播放：{title}',
     'autoPlayEnabledHint': '已开启自动连播，本分类的下一集将自动播放。',
   };
 }

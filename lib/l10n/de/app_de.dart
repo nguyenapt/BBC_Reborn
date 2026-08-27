@@ -409,7 +409,6 @@ class AppDe {
     'sleepTimerEndOfEpisode': 'Ende der Folge',
     'sleepTimerOff': 'Aus',
     'sleepTimerMinutes': '{minutes} Min.',
-    'autoPlayNowPlaying': 'Wird abgespielt: {title}',
     'autoPlayEnabledHint':
         'Automatische Wiedergabe ist aktiv. Die nächste Folge in dieser Kategorie wird automatisch abgespielt.',
 

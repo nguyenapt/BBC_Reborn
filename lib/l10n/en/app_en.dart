@@ -408,7 +408,6 @@ class AppEn {
     'sleepTimerEndOfEpisode': 'End of episode',
     'sleepTimerOff': 'Off',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
 

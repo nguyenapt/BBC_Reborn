@@ -146,19 +146,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(_episode);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        content: Text(
-          _languageManager.getTextWithParams(
-            'autoPlayNowPlaying',
-            {'title': _episode.episodeName},
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _onAutoPlayEnabledFirstTime() async {
