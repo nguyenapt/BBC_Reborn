@@ -248,6 +248,28 @@ class AppEn {
     'clearImageCacheDialogBody':
         'Are you sure you want to clear all cached images?',
     'clearImageCacheSuccess': 'Image cache cleared successfully',
+    'storageAndCache': 'Storage & Cache',
+    'manageAppCache': 'Manage cached data on this device',
+    'manageAppCacheHint':
+        'Choose what to clear. Learning progress and favourites are kept.',
+    'totalCacheSize': 'Total size',
+    'cacheCategoryImages': 'Images',
+    'cacheCategoryImagesDesc': 'Episode cover images and thumbnails',
+    'cacheCategoryAudioStream': 'Audio stream cache',
+    'cacheCategoryAudioStreamDesc': 'Temporary audio saved while streaming',
+    'cacheCategoryDownloads': 'Downloaded episodes',
+    'cacheCategoryDownloadsDesc':
+        'Removes offline downloads. You can download again later.',
+    'cacheCategoryAiLocal': 'AI local cache',
+    'cacheCategoryAiLocalDesc': 'Cached translations and AI responses on device',
+    'selectAll': 'Select all',
+    'deselectAll': 'Deselect all',
+    'clearSelectedCache': 'Clear selected',
+    'clearCacheConfirmTitle': 'Clear selected cache?',
+    'clearCacheConfirmBody':
+        'The following will be cleared: {items}. This cannot be undone.',
+    'clearCacheSuccess': 'Selected cache cleared',
+    'clearCacheFailed': 'Could not clear cache',
     'copiedToClipboard': 'Copied',
     'googleTranslateOpenFailed': 'Could not open Google Translate',
     'transcriptPlayFromSeconds': 'Play from {seconds}s',
@@ -386,7 +408,6 @@ class AppEn {
     'sleepTimerEndOfEpisode': 'End of episode',
     'sleepTimerOff': 'Off',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
 

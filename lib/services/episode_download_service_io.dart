@@ -122,4 +122,46 @@ class EpisodeDownloadService {
   Future<bool> fileExists(String path) async {
     return File(path).exists();
   }
+
+  Future<int> getStreamCacheSize() async {
+    return _directorySize(await _streamCacheDir());
+  }
+
+  Future<int> getDownloadsSize() async {
+    return _directorySize(await _downloadsDir());
+  }
+
+  Future<void> clearStreamCache() async {
+    await _clearDirectoryContents(await _streamCacheDir());
+  }
+
+  Future<void> clearAllDownloads() async {
+    await _clearDirectoryContents(await _downloadsDir());
+  }
+
+  Future<int> _directorySize(Directory dir) async {
+    try {
+      if (!await dir.exists()) return 0;
+      int total = 0;
+      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        if (entity is File) {
+          total += await entity.length();
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<void> _clearDirectoryContents(Directory dir) async {
+    try {
+      if (!await dir.exists()) return;
+      await for (final entity in dir.list(recursive: false, followLinks: false)) {
+        try {
+          await entity.delete(recursive: true);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
 }

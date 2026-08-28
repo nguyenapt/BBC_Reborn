@@ -14,6 +14,8 @@ class Episode {
   final String? transcriptHtml;
   final String? vocabulary;
   final List<dynamic>? vocabularies;
+  /// RTDB path tới node full (vd. `6M/2026/11`, `AS/OF/11`) — hydrate detail bằng GET trực tiếp.
+  final String? rtdbPath;
 
   Episode({
     required this.actor,
@@ -31,6 +33,7 @@ class Episode {
     this.transcriptHtml,
     this.vocabulary,
     this.vocabularies,
+    this.rtdbPath,
   });
 
   factory Episode.fromJson(Map<String, dynamic> json, String episodeId) {
@@ -50,6 +53,7 @@ class Episode {
       transcriptHtml: json['TranscriptHtml']?.toString(),
       vocabulary: json['Vocabulary']?.toString(),
       vocabularies: json['Vocabularies'] as List<dynamic>?,
+      rtdbPath: json['RtdbPath']?.toString(),
     );
   }
 
@@ -107,6 +111,7 @@ class Episode {
       'fileUrl': fileUrl,
       'secondFileUrl': secondFileUrl,
       'id': id,
+      'rtdbPath': rtdbPath,
     };
   }
 
