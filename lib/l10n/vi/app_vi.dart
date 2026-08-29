@@ -342,6 +342,9 @@ class AppVi {
     'speakingRecording': 'Đang ghi âm',
     'speakingSendAnalysis': 'Gửi phân tích',
     'speakingHintSendAnalysis': 'Chạm để chuyển lời nói và xem nhận xét AI.',
+    'speakingRecordingMaxLengthStopped':
+        'Đã đạt giới hạn {limit}, tự dừng ghi.',
+    'speakingRecordingLimitSeconds': '{seconds} giây',
     'speakingRepeatAutoStopHint':
         'Ứng dụng tự dừng khi bạn ngừng nói. Sau đó hãy gửi để phân tích.',
     'speakingRepeatTapToStopHint':

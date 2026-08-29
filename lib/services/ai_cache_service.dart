@@ -152,14 +152,14 @@ class AICacheService {
   // ========== Firebase Integration Methods ==========
 
   /// Trừ heart/credit nếu không phải local cache.
-  /// [episodeId] bắt buộc khi [HeartService.allowCredit] để trừ episode credit.
+  /// [episodeId] bắt buộc khi [HeartService.useEpisodeCredits] để trừ episode credit.
   static Future<void> consumeHeartIfFirebase(
     AICacheTier tier, {
     String? episodeId,
   }) async {
     if (tier == AICacheTier.local) return;
     final hearts = HeartService();
-    if (hearts.allowCredit) {
+    if (hearts.useEpisodeCredits) {
       await hearts.consumeEpisodeCredit(
         episodeId ?? HeartService.miscScopeId,
         isLiveApi: false,
@@ -174,7 +174,7 @@ class AICacheService {
   /// Trừ 1 heart (legacy) hoặc 1 episode credit + đếm live soft-cap (credit mode).
   static Future<void> consumeForLiveAi({String? episodeId}) async {
     final hearts = HeartService();
-    if (hearts.allowCredit) {
+    if (hearts.useEpisodeCredits) {
       await hearts.consumeEpisodeCredit(
         episodeId ?? HeartService.miscScopeId,
         isLiveApi: true,
