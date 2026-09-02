@@ -171,7 +171,7 @@ class _HomePageState extends State<HomePage> {
     final imageUrls = <String>[];
     
     for (final category in [...categories, ...anotherSeries]) {
-      final episodes = category.episodes.take(3); // Only preload first 3 episodes
+      final episodes = category.episodes.take(1); // Preload 1 thumb/category — giảm Storage egress
       for (final episode in episodes) {
         if (episode.thumbImage.isNotEmpty) {
           imageUrls.add(episode.thumbImage);
@@ -716,46 +716,20 @@ class _HomePageState extends State<HomePage> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
+                  for (final code in CategoryNames.primaryTabCodes)
+                    if (code != 'AS' || CategoryNames.showAnotherSeries)
+                      _buildCategoryCard(
+                        width: cardWidth,
+                        letter: code == 'AS' ? 'A' : code[0],
+                        title: CategoryNames.displayNameLines(code)[0],
+                        subtitle: CategoryNames.displayNameLines(code)[1],
+                        color: cardColor,
+                        badgeColor: theme.colorScheme.primary,
+                        onTap: () => _navigateToCategory(code),
+                      ),
                   _buildCategoryCard(
                     width: cardWidth,
-                    letter: 'A',
-                    title: _languageManager.getText('categoryAmerican'),
-                    subtitle: _languageManager.getText('categoryStory'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('AMS'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'L',
-                    title: _languageManager.getText('categoryLets'),
-                    subtitle: _languageManager.getText('categoryLearnEnglish'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('LLE'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'O',
-                    title: _languageManager.getText('categoryOur'),
-                    subtitle: _languageManager.getText('categoryNarrative'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('ON'),
-                  ),
-                  if (CategoryNames.showAnotherSeries)
-                    _buildCategoryCard(
-                      width: cardWidth,
-                      letter: 'A',
-                      title: _languageManager.getText('categoryAnother'),
-                      subtitle: _languageManager.getText('categorySeries'),
-                      color: cardColor,
-                      badgeColor: theme.colorScheme.primary,
-                      onTap: () => _navigateToCategory('AS'),
-                    ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'E',
+                    letter: 'G',
                     title: _languageManager.getText('categoryEnglish'),
                     subtitle: _languageManager.getText('categoryGrammar'),
                     color: cardColor,
@@ -957,7 +931,7 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Priority sections: AMS -> LLE -> ON
+          // Priority sections: CD -> EK -> ON
           SliverList(
             delegate: SliverChildListDelegate(
               [

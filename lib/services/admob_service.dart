@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/ads_interstitial_fallback_screen.dart';
+import 'consent_service.dart';
 
 class AdMobService {
   static final AdMobService _instance = AdMobService._internal();
@@ -33,6 +34,39 @@ class AdMobService {
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
   bool _isLoadingInterstitial = false;
+  /// True after UMP allows ads and [MobileAds.instance.initialize] completes.
+  bool _sdkInitialized = false;
+
+  bool get isSdkInitialized => _sdkInitialized;
+
+  /// Call only after `await MobileAds.instance.initialize()`.
+  void markSdkInitialized() {
+    _sdkInitialized = true;
+  }
+
+  bool _guardSdkReady(String action) {
+    if (kIsWeb) return false;
+    if (_sdkInitialized) return true;
+    debugPrint('AdMob: skip $action — MobileAds not initialized yet');
+    return false;
+  }
+
+  /// Chờ UMP + [MobileAds.instance.initialize] (tối đa [timeout]).
+  Future<bool> waitUntilSdkReady({
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    if (kIsWeb) return false;
+    if (_sdkInitialized) return true;
+    final deadline = DateTime.now().add(timeout);
+    while (!_sdkInitialized && DateTime.now().isBefore(deadline)) {
+      final consent = ConsentService();
+      if (consent.consentFlowFinished && !consent.canRequestAds) {
+        return false;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    return _sdkInitialized;
+  }
   DateTime? _lastInterstitialShownAt;
   int _interstitialShownCount = 0;
   AppOpenAd? _appOpenAd;
@@ -110,6 +144,9 @@ class AdMobService {
     if (kIsWeb) {
       throw UnsupportedError('Banner ads không được hỗ trợ trên web');
     }
+    if (!_guardSdkReady('createBannerAd')) {
+      throw StateError('MobileAds SDK not initialized');
+    }
     final adUnitId = _getBannerAdUnitId();
     
     return BannerAd(
@@ -139,10 +176,7 @@ class AdMobService {
 
   // Tạo Interstitial Ad (preload). Bỏ qua nếu đã có ad hoặc đang load.
   void createInterstitialAd() {
-    if (kIsWeb) {
-      print('Interstitial ads không được hỗ trợ trên web');
-      return;
-    }
+    if (!_guardSdkReady('createInterstitialAd')) return;
     if (_interstitialAd != null) {
       return;
     }
@@ -311,10 +345,7 @@ class AdMobService {
 
   // Tạo App Open Ad (idempotent)
   Future<void> createAppOpenAd() async {
-    if (kIsWeb) {
-      print('App Open ads không được hỗ trợ trên web');
-      return;
-    }
+    if (!_guardSdkReady('createAppOpenAd')) return;
     if (_isLoadingAppOpenAd || _appOpenAd != null) return;
     final adUnitId = _getAppOpenAdUnitId();
     _isLoadingAppOpenAd = true;
@@ -427,10 +458,7 @@ class AdMobService {
 
   // Tạo Rewarded Ad
   void createRewardedAd() {
-    if (kIsWeb) {
-      print('Rewarded ads không được hỗ trợ trên web');
-      return;
-    }
+    if (!_guardSdkReady('createRewardedAd')) return;
     final adUnitId = _getRewardedAdUnitId();
     
     RewardedAd.load(

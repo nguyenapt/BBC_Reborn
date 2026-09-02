@@ -17,6 +17,7 @@ class FavouriteEpisode {
   final String? vocabulary;
   final List<dynamic>? vocabularies;
   final String? level;
+  final String? rtdbPath;
   final DateTime savedAt;
 
   FavouriteEpisode({
@@ -36,6 +37,7 @@ class FavouriteEpisode {
     this.vocabulary,
     this.vocabularies,
     this.level,
+    this.rtdbPath,
     required this.savedAt,
   });
 
@@ -58,6 +60,7 @@ class FavouriteEpisode {
       vocabulary: episode.vocabulary,
       vocabularies: episode.vocabularies,
       level: episode.level,
+      rtdbPath: episode.rtdbPath,
       savedAt: DateTime.now(),
     );
   }
@@ -81,6 +84,7 @@ class FavouriteEpisode {
       vocabulary: json['vocabulary'],
       vocabularies: json['vocabularies'],
       level: json['level']?.toString(),
+      rtdbPath: json['rtdbPath']?.toString(),
       savedAt: DateTime.parse(json['savedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
@@ -104,6 +108,7 @@ class FavouriteEpisode {
       'vocabulary': vocabulary,
       'vocabularies': vocabularies,
       'level': level,
+      'rtdbPath': rtdbPath,
       'savedAt': savedAt.toIso8601String(),
     };
   }
@@ -127,6 +132,7 @@ class FavouriteEpisode {
       vocabulary: vocabulary,
       vocabularies: vocabularies,
       level: level,
+      rtdbPath: rtdbPath,
     );
   }
 

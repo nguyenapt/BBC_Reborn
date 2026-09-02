@@ -1,16 +1,18 @@
 class CategoryNames {
   /// Tab Categories + thứ tự Home category cards.
-  static const List<String> primaryTabCodes = ['AMS', 'LLE', 'ON', 'AS'];
+  static const List<String> primaryTabCodes = ['CD', 'EK', 'ON', 'AS'];
 
   /// Section episode ưu tiên trên Home (không gồm AS — AS là multi-category).
-  static const List<String> homePrioritySectionCodes = ['AMS', 'LLE', 'ON'];
+  static const List<String> homePrioritySectionCodes = ['CD', 'EK', 'ON'];
 
-  /// Nội dung tab Another Series (NC + SC).
-  static const List<String> anotherSeriesSubCodes = ['NC', 'SC'];
+  /// Nội dung tab Another Series (AMS, LLE, NC, SC).
+  static const List<String> anotherSeriesSubCodes = ['AMS', 'LLE', 'NC', 'SC'];
 
   static const bool showAnotherSeries = true;
 
   static const Map<String, String> _categoryMapping = {
+    'CD': 'Civil Discourse',
+    'EK': 'Endless Knot',
     'AMS': 'American Story',
     'LLE': "Let's Learn English",
     'ON': 'Our Narrative',
@@ -31,13 +33,23 @@ class CategoryNames {
     'EIM': 'English In Minute',
   };
 
-  /// TabBar line-1 / line-2 l10n keys for [primaryTabCodes].
-  static const Map<String, List<String>> primaryTabLabelKeys = {
-    'AMS': ['categoryAmerican', 'categoryStory'],
-    'LLE': ['categoryLets', 'categoryLearnEnglish'],
-    'ON': ['categoryOur', 'categoryNarrative'],
-    'AS': ['categoryAnother', 'categorySeries'],
-  };
+  /// TabBar line-1 / line-2 — derived from English [getDisplayName], not l10n.
+  static List<String> primaryTabDisplayLines(String categoryCode) {
+    return displayNameLines(categoryCode);
+  }
+
+  /// Split English programme name for two-line UI (tabs, home cards). Never localized.
+  static List<String> displayNameLines(String categoryCode) {
+    if (categoryCode == 'AS') {
+      return ['Another', 'Series'];
+    }
+    final name = getDisplayName(categoryCode);
+    final lastSpace = name.lastIndexOf(' ');
+    if (lastSpace <= 0) {
+      return [name, ''];
+    }
+    return [name.substring(0, lastSpace), name.substring(lastSpace + 1)];
+  }
 
   /// Sub-category codes under RTDB `AS` (legacy). Thêm mã mới khi có series mới.
   static const Set<String> anotherSeriesSubcategoryCodes = {'OF', 'EIM'};
@@ -57,6 +69,7 @@ class CategoryNames {
   /// Opening these categories from Home should select the Another Series tab (`AS`).
   static bool opensAnotherSeriesTab(String categoryCode) {
     if (!showAnotherSeries) return false;
+    if (categoryCode == 'AS') return true;
     return anotherSeriesSubCodes.contains(categoryCode);
   }
 

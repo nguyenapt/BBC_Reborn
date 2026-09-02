@@ -128,6 +128,119 @@ Important: Return ONLY the JSON object, nothing else.`,
 }
 
 /**
+ * Single-shot passage prompt (overall + sentenceAnalyses) — aligned with playMP3 BuildPassagePrompt.
+ * @param {string} passage
+ * @param {string} targetLanguage
+ * @returns {{prompt: string, systemPrompt: string}}
+ */
+function buildExplainGrammarPassageSinglePrompt(passage, targetLanguage) {
+  return {
+    prompt: `Analyze this English passage for grammar learning.
+You MUST return ONLY a valid JSON object, no markdown, no explanations, no other text.
+
+Passage: "${passage}"
+
+Return format (JSON object only, slim):
+{
+  "overall": {
+    "grammarTheme": "main grammar theme in this passage",
+    "usageSummary": "concise summary in ${targetLanguage}",
+    "keyStructures": ["structure1", "structure2"]
+  },
+  "sentenceAnalyses": [
+    {
+      "sentenceText": "exact sentence from passage",
+      "mainStructure": "main grammar structure",
+      "usageInContext": "contextual usage in ${targetLanguage}",
+      "phraseBreakdown": [
+        {
+          "phrase": "exact phrase from sentence",
+          "structure": "phrase structure",
+          "usage": "phrase usage in ${targetLanguage}"
+        }
+      ],
+      "examples": ["example 1", "example 2"],
+      "commonMistakes": ["mistake 1", "mistake 2"]
+    }
+  ]
+}
+
+Rules:
+- Keep output concise and learner-friendly in ${targetLanguage}.
+- phraseBreakdown is optional; include only important grammar-bearing phrases.
+- Cover each meaningful sentence (a single-line passage may have one analysis).
+Important: Return ONLY the JSON object, nothing else.`,
+    systemPrompt:
+      "You are a multilingual English grammar coach. Always return strict JSON only and write explanations in the requested target language.",
+  };
+}
+
+/**
+ * Dual-map for Flutter / old apps — matches playMP3 ToFlutterGrammarPassageData.
+ * Keeps overall + sentenceAnalyses and synthesizes grammarPoint/explanation (non-empty).
+ * @param {Record<string, unknown>} apiResponse
+ * @param {string} passage
+ * @returns {Record<string, unknown>}
+ */
+function toFlutterGrammarPassageData(apiResponse, passage) {
+  const src = apiResponse && typeof apiResponse === "object" ? apiResponse : {};
+  const overallSrc =
+    src.overall && typeof src.overall === "object" && !Array.isArray(src.overall) ?
+      /** @type {Record<string, unknown>} */ (src.overall) :
+      {};
+  /** @type {Record<string, unknown>} */
+  const overall = {...overallSrc};
+  const analyses = Array.isArray(src.sentenceAnalyses) ? src.sentenceAnalyses : [];
+
+  let theme = String(overall.grammarTheme ?? "").trim();
+  if (!theme) theme = "Grammar Overview";
+  let usage = String(overall.usageSummary ?? "").trim();
+  if (!usage) usage = theme; // old apps require non-empty explanation
+  overall.grammarTheme = theme;
+  overall.usageSummary = usage;
+  if (!Array.isArray(overall.keyStructures)) {
+    overall.keyStructures = [];
+  }
+
+  const first =
+    analyses.length > 0 && analyses[0] && typeof analyses[0] === "object" ?
+      /** @type {Record<string, unknown>} */ (analyses[0]) :
+      null;
+  /** @type {string[]} */
+  const highlighted = [];
+  /** @type {string[]} */
+  const commonMistakes = [];
+  if (first) {
+    const phrases = Array.isArray(first.phraseBreakdown) ? first.phraseBreakdown : [];
+    for (const p of phrases) {
+      if (!p || typeof p !== "object") continue;
+      const phrase = String(
+          /** @type {Record<string, unknown>} */ (p).phrase ?? "",
+      ).trim();
+      if (phrase) highlighted.push(phrase);
+    }
+    const mistakes = Array.isArray(first.commonMistakes) ? first.commonMistakes : [];
+    for (const m of mistakes) {
+      const s = String(m ?? "").trim();
+      if (s) commonMistakes.push(s);
+    }
+  }
+
+  return {
+    sentence: passage ?? "",
+    passageText: passage ?? "",
+    grammarPoint: theme,
+    explanation: usage,
+    highlightedWords: highlighted,
+    overall,
+    sentenceAnalyses: analyses,
+    rulePattern: first ? String(first.mainStructure ?? "") : "",
+    whyThisForm: first ? String(first.usageInContext ?? "") : "",
+    commonMistakes,
+  };
+}
+
+/**
  * @param {string} passage
  * @param {string} targetLanguage
  * @returns {{prompt: string, systemPrompt: string}}
@@ -249,10 +362,16 @@ Return format (JSON object only):
   "antonyms": ["word3"],
   "exampleSentences": ["sentence1", "sentence2"],
   "collocations": ["collocation1", "collocation2"],
+  "synonymDetails": [{"word": "word1", "meaning": "short gloss"}],
+  "antonymDetails": [{"word": "word3", "meaning": "short gloss"}],
+  "collocationDetails": [{"word": "collocation1", "meaning": "short gloss"}],
   "pronunciation": "/pronunciation/",
   "wordForm": "noun"
 }
 
+Rules:
+- Keep synonyms/antonyms/collocations as plain string arrays (legacy).
+- Always also fill *Details with the same terms plus a concise English meaning/gloss.
 Important: Return ONLY the JSON object, nothing else.`,
     systemPrompt:
       "You are a helpful English vocabulary teacher. Always return valid JSON only.",
@@ -322,6 +441,15 @@ function buildPromptForAction(action, payload) {
           String(payload.sentence ?? ""),
           String(payload.targetLanguage ?? "English"),
       );
+    case "explainGrammarPassageSingle": {
+      const passageText = String(
+          payload.passage ?? payload.sentence ?? "",
+      );
+      return buildExplainGrammarPassageSinglePrompt(
+          passageText,
+          String(payload.targetLanguage ?? "English"),
+      );
+    }
     case "explainGrammarPassageOverall":
       return buildExplainGrammarPassageOverallPrompt(
           String(payload.passage ?? ""),
@@ -357,4 +485,5 @@ function buildPromptForAction(action, payload) {
 module.exports = {
   buildPromptForAction,
   buildTranslatePrompt,
+  toFlutterGrammarPassageData,
 };

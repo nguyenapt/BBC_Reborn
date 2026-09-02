@@ -278,6 +278,28 @@ class AppEs {
     'clearImageCacheDialogBody':
         '¿Seguro que quieres borrar todas las imágenes en caché?',
     'clearImageCacheSuccess': 'Caché de imágenes borrado correctamente',
+    'storageAndCache': 'Almacenamiento y caché',
+    'manageAppCache': 'Gestionar datos en caché en este dispositivo',
+    'manageAppCacheHint':
+        'Elige qué borrar. Se conservan el progreso y los favoritos.',
+    'totalCacheSize': 'Tamaño total',
+    'cacheCategoryImages': 'Imágenes',
+    'cacheCategoryImagesDesc': 'Portadas y miniaturas de episodios',
+    'cacheCategoryAudioStream': 'Caché de audio en streaming',
+    'cacheCategoryAudioStreamDesc': 'Audio temporal guardado al reproducir en streaming',
+    'cacheCategoryDownloads': 'Episodios descargados',
+    'cacheCategoryDownloadsDesc':
+        'Elimina las descargas sin conexión. Podrás volver a descargarlas.',
+    'cacheCategoryAiLocal': 'Caché local de IA',
+    'cacheCategoryAiLocalDesc': 'Traducciones y respuestas de IA guardadas en el dispositivo',
+    'selectAll': 'Seleccionar todo',
+    'deselectAll': 'Deseleccionar todo',
+    'clearSelectedCache': 'Borrar selección',
+    'clearCacheConfirmTitle': '¿Borrar la caché seleccionada?',
+    'clearCacheConfirmBody':
+        'Se borrará lo siguiente: {items}. Esta acción no se puede deshacer.',
+    'clearCacheSuccess': 'Caché seleccionada borrada',
+    'clearCacheFailed': 'No se pudo borrar la caché',
     'copiedToClipboard': 'Copiado',
     'googleTranslateOpenFailed': 'No se pudo abrir Google Translate',
     'transcriptPlayFromSeconds': 'Reproducir desde {seconds} s',
@@ -418,7 +440,6 @@ class AppEs {
     'sleepTimerEndOfEpisode': 'Fin del episodio',
     'sleepTimerOff': 'Apagar',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Reproduciendo: {title}',
     'autoPlayEnabledHint':
         'La reproducción automática está activada. El siguiente episodio de esta categoría se reproducirá solo.',
   };

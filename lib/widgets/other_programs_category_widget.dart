@@ -37,7 +37,6 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
       final style = SeriesSubBadgeStyle.forCode(
         categoryName,
         colorScheme,
-        languageManager,
       );
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
@@ -279,7 +278,6 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
                               final style = SeriesSubBadgeStyle.forCode(
                                 episode.category,
                                 colorScheme,
-                                languageManager,
                               );
                               return CompactGhostBadge(
                                 icon: style.icon,
@@ -434,8 +432,14 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   IconData _getCategoryIcon(String code) {
     switch (code) {
+      case 'CD':
+        return Icons.groups_outlined;
+      case 'EK':
+        return Icons.all_inclusive_outlined;
       case 'AMS':
         return Icons.auto_stories_outlined;
+      case 'LLE':
+        return Icons.school_outlined;
       case 'ON':
         return Icons.article_outlined;
       case 'NC':

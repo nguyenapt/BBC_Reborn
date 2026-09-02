@@ -19,7 +19,7 @@ class AIFirebaseCacheService {
   static const int _cacheVersion = 1;
   static const int _defaultTtlDays = 90;
 
-  /// playMP3 upload path (primary); Flutter legacy used root without [_cachePath].
+  /// Primary path under `ai_cache/` (legacy root path removed to cut dual GET/PUT cost).
   List<String> _grammarByEpisodeUrls(
     String safeEpisodeId,
     String lineKey,
@@ -27,7 +27,6 @@ class AIFirebaseCacheService {
   ) =>
       [
         '$_baseUrl/$_cachePath/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json',
-        '$_baseUrl/$_grammarByEpisodePath/$safeEpisodeId/$lineKey/$safeLanguageCode.json',
       ];
 
   List<String> _vocabularyByEpisodeUrls(
@@ -36,7 +35,6 @@ class AIFirebaseCacheService {
   ) =>
       [
         '$_baseUrl/$_cachePath/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json',
-        '$_baseUrl/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json',
       ];
 
   Future<Map<String, dynamic>?> _fetchCacheEntryData(
@@ -60,6 +58,7 @@ class AIFirebaseCacheService {
     return cacheEntry.data;
   }
 
+  /// Shared cache: mọi client đều được PUT (không cần login).
   Future<void> _putCacheEntryToUrls(
     List<String> urls,
     AICacheEntry cacheEntry, {
@@ -81,6 +80,21 @@ class AIFirebaseCacheService {
       }
     }
   }
+
+  Future<http.Response?> _putJson(String url, String body) async {
+    return http
+        .put(
+          Uri.parse(url),
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        )
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<void> _deleteUrl(String url) async {
+    await http.delete(Uri.parse(url)).timeout(const Duration(seconds: 5));
+  }
+
   static const int _vocabularyTtlDays = 180; // Vocabulary changes less frequently
 
   /// Get translation from Firebase cache
@@ -251,19 +265,20 @@ class AIFirebaseCacheService {
         ttlDays: _defaultTtlDays,
       );
 
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 10));
+      final response = await _putJson(url, json.encode(cacheEntry.toJson()));
       
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         debugPrint('✅ Successfully saved translation to Firebase cache: $episodeId/$languageCode');
         debugPrint('   Response: ${response.statusCode}');
       } else {
-        debugPrint('⚠️ Firebase save returned status ${response.statusCode}');
-        debugPrint('   Response body: ${response.body}');
-        throw Exception('Firebase save failed: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          '⚠️ Firebase save returned status ${response?.statusCode} body=${response?.body}',
+        );
+        if (response != null) {
+          throw Exception(
+            'Firebase save failed: ${response.statusCode} - ${response.body}',
+          );
+        }
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Error saving translation to Firebase: $e');
@@ -326,16 +341,12 @@ class AIFirebaseCacheService {
         final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
         final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
         
-        final response = await http.put(
-          Uri.parse(url),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(cacheEntry.toJson()),
-        ).timeout(const Duration(seconds: 10));
+        final response = await _putJson(url, json.encode(cacheEntry.toJson()));
         
-        if (response.statusCode == 200) {
+        if (response != null && response.statusCode == 200) {
           debugPrint('✅ Successfully merged line translation to existing Firebase cache: $episodeId/$languageCode (lineNumber: $lineNumber)');
         } else {
-          debugPrint('⚠️ Firebase merge returned status ${response.statusCode}');
+          debugPrint('⚠️ Firebase merge returned status ${response?.statusCode}');
         }
       } else {
         // Create new translation entry with this single line and correct lineNumber
@@ -363,16 +374,12 @@ class AIFirebaseCacheService {
         final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
         final url = '$_baseUrl/$_cachePath/translations/$safeEpisodeId/$safeLanguageCode.json';
         
-        final response = await http.put(
-          Uri.parse(url),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(cacheEntry.toJson()),
-        ).timeout(const Duration(seconds: 10));
+        final response = await _putJson(url, json.encode(cacheEntry.toJson()));
         
-        if (response.statusCode == 200) {
+        if (response != null && response.statusCode == 200) {
           debugPrint('✅ Successfully saved new line translation to Firebase: $episodeId/$languageCode (lineNumber: $lineNumber)');
         } else {
-          debugPrint('⚠️ Firebase save returned status ${response.statusCode}');
+          debugPrint('⚠️ Firebase save returned status ${response?.statusCode}');
         }
       }
     } catch (e, stackTrace) {
@@ -532,11 +539,7 @@ class AIFirebaseCacheService {
         ttlDays: _defaultTtlDays,
       );
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 5));
+      await _putJson(url, json.encode(cacheEntry.toJson()));
       
       debugPrint('Saved grammar to Firebase cache: $sentenceHash');
     } catch (e) {
@@ -613,11 +616,7 @@ class AIFirebaseCacheService {
         version: _cacheVersion,
         ttlDays: _defaultTtlDays,
       );
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 5));
+      await _putJson(url, json.encode(cacheEntry.toJson()));
     } catch (e) {
       debugPrint('Error saving grammar passage to Firebase: $e');
     }
@@ -678,11 +677,7 @@ class AIFirebaseCacheService {
         ttlDays: _defaultTtlDays,
       );
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 5));
+      await _putJson(url, json.encode(cacheEntry.toJson()));
       
       debugPrint('Saved questions to Firebase cache: $episodeId/$count');
     } catch (e) {
@@ -790,11 +785,7 @@ class AIFirebaseCacheService {
         ttlDays: _vocabularyTtlDays,
       );
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(cacheEntry.toJson()),
-      ).timeout(const Duration(seconds: 5));
+      await _putJson(url, json.encode(cacheEntry.toJson()));
       
       debugPrint('Saved vocabulary to Firebase cache: $wordHash');
     } catch (e) {
@@ -813,12 +804,12 @@ class AIFirebaseCacheService {
       if (languageCode != null) {
         // Invalidate specific language
         final url = '$_baseUrl/$_cachePath/translations/$episodeId/$languageCode.json';
-        await http.delete(Uri.parse(url)).timeout(const Duration(seconds: 5));
+        await _deleteUrl(url);
         debugPrint('Invalidated translation cache: $episodeId/$languageCode');
       } else {
         // Invalidate all languages for this episode
         final url = '$_baseUrl/$_cachePath/translations/$episodeId.json';
-        await http.delete(Uri.parse(url)).timeout(const Duration(seconds: 5));
+        await _deleteUrl(url);
         debugPrint('Invalidated all translation cache for episode: $episodeId');
       }
     } catch (e) {
@@ -830,7 +821,7 @@ class AIFirebaseCacheService {
   Future<void> invalidateQuestions(String episodeId) async {
     try {
       final url = '$_baseUrl/$_cachePath/questions/$episodeId.json';
-      await http.delete(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      await _deleteUrl(url);
       debugPrint('Invalidated questions cache for episode: $episodeId');
     } catch (e) {
       debugPrint('Error invalidating questions cache: $e');
@@ -852,15 +843,14 @@ class AIFirebaseCacheService {
         accessCount = (data['count'] as int? ?? 0) + 1;
       }
 
-      await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
+      await _putJson(
+        url,
+        json.encode({
           'episodeId': episodeId,
           'count': accessCount,
           'lastAccessed': DateTime.now().toIso8601String(),
         }),
-      ).timeout(const Duration(seconds: 5));
+      );
     } catch (e) {
       debugPrint('Error tracking episode access: $e');
       // Fail silently

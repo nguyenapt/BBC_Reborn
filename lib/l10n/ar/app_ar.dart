@@ -277,6 +277,28 @@ class AppAr {
     'clearImageCacheDialogBody':
         'هل أنت متأكد أنك تريد مسح جميع الصور المخزنة مؤقتاً؟',
     'clearImageCacheSuccess': 'تم مسح ذاكرة التخزين المؤقت للصور بنجاح',
+    'storageAndCache': 'التخزين والذاكرة المؤقتة',
+    'manageAppCache': 'إدارة بيانات الذاكرة المؤقتة على هذا الجهاز',
+    'manageAppCacheHint':
+        'اختر ما تريد مسحه. يتم الاحتفاظ بتقدم التعلم والمفضلة.',
+    'totalCacheSize': 'الحجم الإجمالي',
+    'cacheCategoryImages': 'الصور',
+    'cacheCategoryImagesDesc': 'أغلفة الحلقات والصور المصغرة',
+    'cacheCategoryAudioStream': 'ذاكرة مؤقتة للصوت المتدفق',
+    'cacheCategoryAudioStreamDesc': 'صوت مؤقت محفوظ أثناء البث',
+    'cacheCategoryDownloads': 'الحلقات التي تم تنزيلها',
+    'cacheCategoryDownloadsDesc':
+        'يزيل التنزيلات دون اتصال. يمكنك تنزيلها لاحقاً.',
+    'cacheCategoryAiLocal': 'ذاكرة مؤقتة محلية للذكاء الاصطناعي',
+    'cacheCategoryAiLocalDesc': 'الترجمات وردود الذكاء الاصطناعي المحفوظة على الجهاز',
+    'selectAll': 'تحديد الكل',
+    'deselectAll': 'إلغاء تحديد الكل',
+    'clearSelectedCache': 'مسح المحدد',
+    'clearCacheConfirmTitle': 'مسح الذاكرة المؤقتة المحددة؟',
+    'clearCacheConfirmBody':
+        'سيتم مسح ما يلي: {items}. لا يمكن التراجع عن هذا الإجراء.',
+    'clearCacheSuccess': 'تم مسح الذاكرة المؤقتة المحددة',
+    'clearCacheFailed': 'تعذر مسح الذاكرة المؤقتة',
     'copiedToClipboard': 'تم النسخ',
     'googleTranslateOpenFailed': 'تعذر فتح Google Translate',
     'transcriptPlayFromSeconds': 'التشغيل من {seconds} ث',
@@ -415,7 +437,6 @@ class AppAr {
     'sleepTimerEndOfEpisode': 'End of episode',
     'sleepTimerOff': 'Off',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
   };

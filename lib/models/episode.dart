@@ -16,6 +16,8 @@ class Episode {
   final List<dynamic>? vocabularies;
   /// CEFR level (A1–C2) — chỉ có trên episode VOA.
   final String? level;
+  /// RTDB path tới node full (vd. `6M/2026/11`, `AS/OF/11`) — hydrate detail bằng GET trực tiếp.
+  final String? rtdbPath;
 
   Episode({
     required this.actor,
@@ -34,6 +36,7 @@ class Episode {
     this.vocabulary,
     this.vocabularies,
     this.level,
+    this.rtdbPath,
   });
 
   bool get hasLevel =>
@@ -66,6 +69,7 @@ class Episode {
       vocabulary: json['Vocabulary']?.toString(),
       vocabularies: json['Vocabularies'] as List<dynamic>?,
       level: json['Level']?.toString() ?? json['level']?.toString(),
+      rtdbPath: json['RtdbPath']?.toString(),
     );
   }
 
@@ -124,6 +128,7 @@ class Episode {
       'secondFileUrl': secondFileUrl,
       'id': id,
       'level': level,
+      'rtdbPath': rtdbPath,
     };
   }
 

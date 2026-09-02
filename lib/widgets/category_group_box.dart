@@ -187,6 +187,10 @@ class CategoryGroupBox extends StatelessWidget {
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName) {
+      case 'CD':
+        return Icons.groups_outlined;
+      case 'EK':
+        return Icons.all_inclusive_outlined;
       case 'AMS':
         return Icons.auto_stories_outlined;
       case 'LLE':

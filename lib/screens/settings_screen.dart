@@ -4,9 +4,10 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/language_manager.dart';
 import '../services/auth_service.dart';
-import '../services/image_cache_service.dart';
+import '../services/app_cache_manager.dart';
 import '../services/rate_app_service.dart';
 import '../widgets/auth_dialog.dart';
+import '../widgets/clear_cache_bottom_sheet.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 import '../services/push_notification_service.dart';
 import '../services/consent_service.dart';
@@ -22,7 +23,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final LanguageManager _languageManager = LanguageManager();
   final AuthService _authService = AuthService();
-  final ImageCacheService _imageCacheService = ImageCacheService();
+  final AppCacheManager _cacheManager = AppCacheManager();
   final ConsentService _consentService = ConsentService();
   int _cacheSize = 0;
   bool _isLoadingCacheSize = true;
@@ -93,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadCacheSize() async {
-    final size = await _imageCacheService.getCacheSize();
+    final size = await _cacheManager.getTotalSize();
     if (mounted) {
       setState(() {
         _cacheSize = size;
@@ -666,7 +667,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Icon(Icons.storage, color: Colors.blue),
                 const SizedBox(width: 12),
                 Text(
-                  _languageManager.getText('imageCache'),
+                  _languageManager.getText('storageAndCache'),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -676,7 +677,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _languageManager.getText('manageImageCache'),
+              _languageManager.getText('manageAppCache'),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -687,7 +688,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _languageManager.getText('cacheSize'),
+                  _languageManager.getText('totalCacheSize'),
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 _isLoadingCacheSize
@@ -697,7 +698,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(
-                        _imageCacheService.formatCacheSize(_cacheSize),
+                        _cacheManager.formatSize(_cacheSize),
                         style: TextStyle(color: Colors.grey[600]),
                       ),
               ],
@@ -707,7 +708,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _handleClearCache,
+                    onPressed: _handleManageCache,
                     icon: const Icon(Icons.clear_all),
                     label: Text(_languageManager.getText('clearCache')),
                     style: OutlinedButton.styleFrom(
@@ -732,42 +733,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _handleClearCache() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_languageManager.getText('clearImageCacheDialogTitle')),
-        content: Text(_languageManager.getText('clearImageCacheDialogBody')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(_languageManager.getText('cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(_languageManager.getText('delete')),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _imageCacheService.clearCache();
+  Future<void> _handleManageCache() async {
+    final cleared = await ClearCacheBottomSheet.show(context);
+    if (cleared == true && mounted) {
       await _loadCacheSize();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_languageManager.getText('clearImageCacheSuccess')),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('clearCacheSuccess')),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
   Future<void> _handleRefreshCacheSize() async {
+    setState(() => _isLoadingCacheSize = true);
     await _loadCacheSize();
   }
 

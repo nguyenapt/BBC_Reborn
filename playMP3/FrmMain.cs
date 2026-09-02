@@ -48,22 +48,25 @@ namespace playMP3
         Boolean isPlay = false;
         int intCursorPos;
         readonly Dictionary<DataGridView, Label> _transcriptRowCountLabels = new Dictionary<DataGridView, Label>();
+        CancellationTokenSource _grammarJobCts;
+        DataGridViewCheckBoxHeaderCell _grammarSelectHeaderCell;
 
         public frmMain()
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            var transcriptGrids = new DataGridView[] {
-                grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
             foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
                 EnsureTranscriptRowCountLabel(g);
             }
+            ApplyEnglishGrammarSelectColumn(grvRow);
+            grvRow.CellValueChanged += GrvRow_GrammarSelectedCellValueChanged;
+            grvRow.CurrentCellDirtyStateChanged += GrvRow_GrammarSelectedDirtyStateChanged;
 
             foreach (var g in new DataGridView[] {
-                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh,
-                grvVocabFr, grvVocabDe })
+                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe })
             {
                 ApplyVocabGridStyle(g);
             }
@@ -80,11 +83,19 @@ namespace playMP3
             if (cbSendEpisodePush != null)
                 cbSendEpisodePush.Checked = ConfigModel.SendEpisodePush;
 
-            cbCloudService.DataSource = this.ConfigModel.CloudServices;
             cbCloudService.DisplayMember = "Name";
             cbCloudService.ValueMember = "Name";
+            cbCloudService.DataSource = this.ConfigModel.CloudServices;
 
-            // Filter Type theo Cloud Service (BBC ↔ BBC, VOA ↔ VOA).
+            var preferredCloud = ConfigModel.CloudServices.FirstOrDefault(x => x.IsSelected)
+                                 ?? ConfigModel.CloudServices.FirstOrDefault();
+            if (preferredCloud != null)
+            {
+                cbCloudService.SelectedItem = preferredCloud;
+                ConfigModel.SelectedCloudService = preferredCloud;
+            }
+
+            // Filter Type theo Cloud Service (BBC → BBC, VOA → VOA).
             ApplyEpisodeTypeFilterForCloudService();
 
             // UI: only show AS-series child field when category == "AS".
@@ -101,64 +112,9 @@ namespace playMP3
 
         private bool IsVoaCloudService()
         {
-            return string.Equals(
-                ConfigModel.SelectedCloudService?.Name,
-                "VOA",
-                StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>BBC cloud → Type BBC; VOA cloud → Type VOA; khác → tất cả EpisodeTypes.</summary>
-        private void ApplyEpisodeTypeFilterForCloudService()
-        {
-            if (cbType == null || ConfigModel.EpisodeTypes == null || ConfigModel.EpisodeTypes.Count == 0)
-                return;
-
-            var cloudName = (ConfigModel.SelectedCloudService?.Name
-                             ?? (cbCloudService?.SelectedItem as CloudService)?.Name
-                             ?? string.Empty).Trim();
-
-            List<EpisodeTypeModel> filtered;
-            if (string.Equals(cloudName, "BBC", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase))
-            {
-                filtered = ConfigModel.EpisodeTypes
-                    .Where(t => string.Equals(t.Name, cloudName, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-            }
-            else
-            {
-                filtered = ConfigModel.EpisodeTypes.ToList();
-            }
-
-            if (filtered.Count == 0)
-                filtered = ConfigModel.EpisodeTypes.ToList();
-
-            var previousName = (cbType.SelectedItem as EpisodeTypeModel)?.Name
-                               ?? ConfigModel.SelectedEpisodeType?.Name;
-
-            cbType.DataSource = null;
-            cbType.DisplayMember = "Name";
-            cbType.ValueMember = "Name";
-            cbType.DataSource = filtered;
-
-            EpisodeTypeModel toSelect = null;
-            if (!string.IsNullOrEmpty(previousName))
-            {
-                toSelect = filtered.FirstOrDefault(t =>
-                    string.Equals(t.Name, previousName, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if (toSelect == null)
-                toSelect = filtered.FirstOrDefault(t => t.IsSelected) ?? filtered.FirstOrDefault();
-
-            if (toSelect != null)
-            {
-                cbType.SelectedItem = toSelect;
-                ConfigModel.SelectedEpisodeType = toSelect;
-                cbCategory.DataSource = toSelect.EpisodeCategories;
-                cbCategory.DisplayMember = "Category";
-                cbCategory.ValueMember = "Category";
-            }
+            var name = (cbCloudService?.SelectedItem as CloudService)?.Name
+                       ?? ConfigModel.SelectedCloudService?.Name;
+            return string.Equals(name, "VOA", StringComparison.OrdinalIgnoreCase);
         }
 
         private string ResolveFcmProfileName()
@@ -197,11 +153,92 @@ namespace playMP3
                 : "Gửi push FCM (" + fileName + ")";
         }
 
+        /// <summary>BBC cloud → Type BBC; VOA cloud → Type VOA; khác → tất cả EpisodeTypes.</summary>
+        private void ApplyEpisodeTypeFilterForCloudService()
+        {
+            if (cbType == null || ConfigModel.EpisodeTypes == null || ConfigModel.EpisodeTypes.Count == 0)
+                return;
+
+            // UI selection là nguồn đúng (tránh SelectedCloudService lệch).
+            var cloud = cbCloudService?.SelectedItem as CloudService;
+            if (cloud != null)
+                ConfigModel.SelectedCloudService = cloud;
+
+            var cloudName = (cloud?.Name ?? ConfigModel.SelectedCloudService?.Name ?? string.Empty).Trim();
+            var forceMatchCloud = string.Equals(cloudName, "BBC", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase);
+
+            List<EpisodeTypeModel> filtered;
+            if (forceMatchCloud)
+            {
+                filtered = ConfigModel.EpisodeTypes
+                    .Where(t => string.Equals((t.Name ?? string.Empty).Trim(), cloudName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                filtered = ConfigModel.EpisodeTypes.ToList();
+            }
+
+            EpisodeTypeModel toSelect = null;
+            if (forceMatchCloud)
+            {
+                // Luôn chọn Type trùng cloud — không giữ BBC khi đổi sang VOA.
+                toSelect = filtered.FirstOrDefault();
+            }
+            else
+            {
+                var previousName = (cbType.SelectedItem as EpisodeTypeModel)?.Name
+                                   ?? ConfigModel.SelectedEpisodeType?.Name;
+                if (!string.IsNullOrEmpty(previousName))
+                {
+                    toSelect = filtered.FirstOrDefault(t =>
+                        string.Equals(t.Name, previousName, StringComparison.OrdinalIgnoreCase));
+                }
+                if (toSelect == null)
+                    toSelect = filtered.FirstOrDefault(t => t.IsSelected) ?? filtered.FirstOrDefault();
+            }
+
+            // Tránh NRE trong SelectedIndexChanged khi clear/rebind (làm ComboBox giữ list cũ).
+            cbType.SelectedIndexChanged -= cbType_SelectedIndexChanged;
+            cbType.BeginUpdate();
+            try
+            {
+                cbType.DataSource = null;
+                cbType.Items.Clear();
+                cbType.DisplayMember = "Name";
+                foreach (var t in filtered)
+                    cbType.Items.Add(t);
+
+                if (toSelect != null)
+                {
+                    cbType.SelectedItem = toSelect;
+                    ConfigModel.SelectedEpisodeType = toSelect;
+                    if (cbCategory != null)
+                    {
+                        cbCategory.DataSource = toSelect.EpisodeCategories;
+                        cbCategory.DisplayMember = "Category";
+                        cbCategory.ValueMember = "Category";
+                    }
+                }
+            }
+            finally
+            {
+                cbType.EndUpdate();
+                cbType.SelectedIndexChanged += cbType_SelectedIndexChanged;
+            }
+
+            // BBC/VOA chỉ còn 1 Type hợp lệ — khóa dropdown để khỏi chọn nhầm.
+            cbType.Enabled = !forceMatchCloud || filtered.Count != 1;
+        }
+
         private void UpdateCbLevelEnabled()
         {
             if (cbLevel == null) return;
             var enabled = IsVoaCloudService();
             cbLevel.Enabled = enabled;
+            if (lblLevel != null)
+                lblLevel.Enabled = enabled;
             if (!enabled)
             {
                 cbLevel.SelectedIndex = 0;
@@ -237,6 +274,9 @@ namespace playMP3
                 ["ThumbImage"] = episode.ThumbImage,
                 ["Year"] = episode.Year,
             };
+
+            if (!string.IsNullOrEmpty(episode.RtdbPath))
+                payload["RtdbPath"] = episode.RtdbPath;
 
             if (!string.IsNullOrEmpty(episode.Level))
                 payload["Level"] = episode.Level;
@@ -429,6 +469,119 @@ namespace playMP3
             }
         }
 
+        private void ApplyEnglishGrammarSelectColumn(DataGridView grid)
+        {
+            if (grid.Columns.Contains("GrammarSelected"))
+                return;
+
+            var colIndex = grid.Columns.Contains("RowNumber") ? 1 : 0;
+            _grammarSelectHeaderCell = new DataGridViewCheckBoxHeaderCell
+            {
+                CheckState = CheckState.Checked,
+            };
+            _grammarSelectHeaderCell.CheckBoxClicked += (_, __) => ToggleAllGrammarSelected();
+
+            var col = new DataGridViewCheckBoxColumn
+            {
+                Name = "GrammarSelected",
+                DataPropertyName = "GrammarSelected",
+                HeaderText = string.Empty,
+                Width = 36,
+                ThreeState = false,
+                HeaderCell = _grammarSelectHeaderCell,
+            };
+            grid.Columns.Insert(colIndex, col);
+        }
+
+        private void GrvRow_GrammarSelectedDirtyStateChanged(object sender, EventArgs e)
+        {
+            if (grvRow.IsCurrentCellDirty)
+                grvRow.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+
+        private void GrvRow_GrammarSelectedCellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+            if (!grvRow.Columns[e.ColumnIndex].Name.Equals("GrammarSelected", StringComparison.Ordinal))
+                return;
+
+            SyncGrammarSelectHeaderCheckbox();
+        }
+
+        private void ToggleAllGrammarSelected()
+        {
+            if (!(grvRow.DataSource is BindingList<EpisodeRowModel> rows) || rows.Count == 0)
+                return;
+
+            var selectAll = rows.Any(r => !r.GrammarSelected);
+            foreach (var row in rows)
+                row.GrammarSelected = selectAll;
+
+            SyncGrammarSelectHeaderCheckbox();
+            grvRow.Refresh();
+        }
+
+        private void SyncGrammarSelectHeaderCheckbox()
+        {
+            if (_grammarSelectHeaderCell == null)
+                return;
+
+            if (!(grvRow.DataSource is BindingList<EpisodeRowModel> rows) || rows.Count == 0)
+            {
+                _grammarSelectHeaderCell.CheckState = CheckState.Unchecked;
+                grvRow.InvalidateColumn(grvRow.Columns["GrammarSelected"].Index);
+                return;
+            }
+
+            var selectedCount = rows.Count(r => r.GrammarSelected);
+            if (selectedCount == 0)
+                _grammarSelectHeaderCell.CheckState = CheckState.Unchecked;
+            else if (selectedCount == rows.Count)
+                _grammarSelectHeaderCell.CheckState = CheckState.Checked;
+            else
+                _grammarSelectHeaderCell.CheckState = CheckState.Indeterminate;
+
+            grvRow.InvalidateColumn(grvRow.Columns["GrammarSelected"].Index);
+        }
+
+        private static List<int> GetGrammarSelectedRowIndices(BindingList<EpisodeRowModel> englishRows)
+        {
+            var indices = new List<int>();
+            if (englishRows == null)
+                return indices;
+
+            for (var i = 0; i < englishRows.Count; i++)
+            {
+                var row = englishRows[i];
+                if (!row.GrammarSelected)
+                    continue;
+                if (string.IsNullOrWhiteSpace(row.RowContent))
+                    continue;
+                indices.Add(i);
+            }
+
+            return indices;
+        }
+
+        private Tuple<DataGridView, string>[] GetGrammarLocaleGrids()
+        {
+            return new[]
+            {
+                Tuple.Create(grvRow, "en"),
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+            };
+        }
+
         private void EnsureTranscriptRowCountLabel(DataGridView grid)
         {
             if (_transcriptRowCountLabels.ContainsKey(grid))
@@ -480,7 +633,15 @@ namespace playMP3
             for (var i = 0; i < lstRows.Length; i++)
             {
                 var trimmed = lstRows[i].Trim();
-                var m = new EpisodeRowModel { RowNumber = i, FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
+                var m = new EpisodeRowModel
+                {
+                    RowNumber = i,
+                    FirstDuration = 0,
+                    RowContent = trimmed,
+                    LastDuration = 0,
+                    Group = 0,
+                    GrammarSelected = true,
+                };
 
                 if (previous != null && i < previous.Count)
                 {
@@ -493,6 +654,7 @@ namespace playMP3
                         m.Group = prev.Group;
                         m.GrammarExplanationSummary = prev.GrammarExplanationSummary;
                         m.GrammarExplanationJson = prev.GrammarExplanationJson;
+                        m.GrammarSelected = prev.GrammarSelected;
                     }
                 }
 
@@ -502,6 +664,8 @@ namespace playMP3
             grid.DataSource = lstRowModels;
             grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
             UpdateTranscriptGridRowCountLabel(grid);
+            if (ReferenceEquals(grid, grvRow))
+                SyncGrammarSelectHeaderCheckbox();
         }
 
         public void ConvertToGrid()
@@ -828,6 +992,7 @@ namespace playMP3
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
 
             if (exportEpisodeDetail)
             {
@@ -1034,9 +1199,482 @@ namespace playMP3
 
         }
 
+        private void btnExportJson_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(txtResult.Text))
+                {
+                    MessageBox.Show(
+                        this,
+                        "Result (Transcript HTML) is required before export.",
+                        "Export JSON",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    txtResult.Focus();
+                    return;
+                }
+
+                var root = BuildFullEpisodeExportJson();
+                var episodeId = root["episode"]?["Id"]?.ToString() ?? "episode";
+                var number = (txtNumber.Text ?? "").Trim();
+                var defaultName = string.IsNullOrEmpty(number)
+                    ? ("episode_" + episodeId + ".json")
+                    : ("episode_" + number + "_" + episodeId + ".json");
+
+                using (var dlg = new SaveFileDialog())
+                {
+                    dlg.Title = "Export episode JSON";
+                    dlg.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+                    dlg.FileName = defaultName;
+                    dlg.DefaultExt = "json";
+                    dlg.AddExtension = true;
+                    if (dlg.ShowDialog(this) != DialogResult.OK)
+                        return;
+
+                    File.WriteAllText(dlg.FileName, root.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
+                    MessageBox.Show(
+                        this,
+                        "Đã export JSON:\n" + dlg.FileName,
+                        "Export JSON",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Export JSON", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Build one JSON document mirroring what Submit would push (episode + list + optional home + ai_cache payloads).
+        /// Does not write to RTDB.
+        /// </summary>
+        private JObject BuildFullEpisodeExportJson()
+        {
+            var episode = BuildEpisodeFromForm();
+            txtId.Text = episode.Id.ToString();
+
+            ResolveCategoryForEpisodeAndFirebasePaths(out _, out var firebaseCategoryPathRoot);
+            bool isSupportYear = ConfigModel.SelectedEpisodeType.EpisodeCategories
+                .Where(x => x.IsSupportYear)
+                .Select(x => x.Category)
+                .Contains(cbCategory.Text);
+            string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
+            var canonicalEpisodeId = episode.Id.ToString();
+            episode.GrammarVocabularyCacheKeys = BuildGrammarVocabularyCacheKeysCsv(canonicalEpisodeId);
+
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+
+            var listEpisode = new JObject
+            {
+                ["Category"] = episode.Category,
+                ["EpisodeName"] = episode.EpisodeName,
+                ["FileUrl"] = episode.FileUrl,
+                ["Id"] = episode.Id,
+                ["IsNew"] = episode.IsNew,
+                ["PublishedDate"] = episode.PublishedDate,
+                ["GrammarVocabularyCacheKeys"] = episode.GrammarVocabularyCacheKeys,
+                ["Summary"] = episode.Summary,
+                ["ThumbImage"] = episode.ThumbImage,
+                ["Year"] = episode.Year,
+                ["RtdbPath"] = episode.RtdbPath,
+            };
+            if (!string.IsNullOrEmpty(episode.Level))
+                listEpisode["Level"] = episode.Level;
+
+            var root = new JObject
+            {
+                ["exportedAt"] = DateTime.UtcNow.ToString("o"),
+                ["schemaVersion"] = 1,
+                ["episodeNumber"] = txtNumber.Text,
+                ["homeNumber"] = txtHomeNumber.Text,
+                ["categoryPath"] = categoryPath,
+                ["rtdbPath"] = episode.RtdbPath,
+                ["listPath"] = "List/" + categoryPath + "/" + txtNumber.Text,
+                ["episode"] = JObject.FromObject(episode),
+                ["listEpisode"] = listEpisode,
+            };
+
+            if (!string.IsNullOrEmpty(txtHomeNumber.Text))
+            {
+                if (cbType.Text == "BBC")
+                {
+                    root["homePagePath"] = "HomePage/" + txtHomeNumber.Text;
+                    root["listHomePagePath"] = "List/HomePage/" + txtHomeNumber.Text;
+                }
+                else if (cbType.Text == "VOA")
+                {
+                    root["newHomePagePath"] = "NewHomePage/" + txtHomeNumber.Text;
+                }
+            }
+
+            root["ai_cache"] = BuildAiCacheExportPayload(canonicalEpisodeId);
+            return root;
+        }
+
+        private Episode BuildEpisodeFromForm()
+        {
+            var episode = new Episode();
+            if (!string.IsNullOrEmpty(txtId.Text))
+            {
+                Guid id = Guid.Empty;
+                Guid.TryParse(txtId.Text, out id);
+                episode.Id = id == Guid.Empty ? Guid.NewGuid() : id;
+            }
+            else
+            {
+                episode.Id = Guid.NewGuid();
+            }
+
+            ResolveCategoryForEpisodeAndFirebasePaths(out var episodeCategory, out _);
+            episode.Category = episodeCategory;
+            episode.Year = cbYear.Text;
+            episode.PublishedDate = dpPublishDate.Value;
+            episode.ThumbImage = txtThumb.Text;
+            episode.EpisodeName = txtEpisodeName.Text;
+            episode.FileUrl = txtFileUrl.Text;
+            episode.Transcript = txtTranscript.Text;
+            episode.TranscriptHtml = txtResult.Text;
+            episode.Vocabulary = txtVocab.Text;
+            if (int.TryParse(txtDuration.Text, out var duration))
+                episode.Duration = duration;
+
+            var vocabularies = txtVocab.Text.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+            var listVocabulary = new List<Vocabulary>();
+            foreach (var vocab in vocabularies)
+            {
+                var vocabTemp = vocab.Split(':');
+                if (vocabTemp.Length >= 2)
+                {
+                    var vocabulary = new Vocabulary();
+                    vocabulary.Id = Guid.NewGuid();
+                    vocabulary.BBCEpisodeId = episode.Id;
+                    vocabulary.Vocab = vocabTemp[0].Trim();
+                    vocabulary.Mean = vocabTemp[1].Trim();
+                    listVocabulary.Add(vocabulary);
+                }
+            }
+
+            episode.Vocabularies = listVocabulary;
+            episode.Summary = txtSummary.Text;
+            episode.Grammar = txtGrammar.Text;
+            ApplyVoaLevelToEpisode(episode);
+            return episode;
+        }
+
+        private JObject BuildAiCacheExportPayload(string episodeId)
+        {
+            var ai = new JObject();
+
+            var translations = CollectTranslationsExport(episodeId);
+            if (translations.Count > 0)
+                ai["translations"] = translations;
+
+            var grammar = CollectGrammarExport(episodeId);
+            if (grammar["grammar_by_episode"] is JArray gArr && gArr.Count > 0)
+                ai["grammar_by_episode"] = gArr;
+
+            var vocabulary = CollectVocabularyExport(episodeId);
+            if (vocabulary.Count > 0)
+                ai["vocabulary"] = vocabulary;
+
+            var questions = CollectQuestionsExport(episodeId);
+            if (questions != null)
+                ai["questions"] = questions;
+
+            return ai;
+        }
+
+        private JObject CollectTranslationsExport(string episodeId)
+        {
+            var byLang = new JObject();
+            if (!(grvRow.DataSource is BindingList<EpisodeRowModel> enRows) || enRows.Count == 0)
+                return byLang;
+
+            var localeSpecs = new[]
+            {
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+            };
+
+            foreach (var spec in localeSpecs)
+            {
+                var grid = spec.Item1;
+                var langCode = spec.Item2;
+                if (!(grid.DataSource is BindingList<EpisodeRowModel> locRows) || locRows.Count == 0)
+                    continue;
+
+                var n = Math.Min(enRows.Count, locRows.Count);
+                var arr = new JArray();
+                for (var i = 0; i < n; i++)
+                {
+                    var original = (enRows[i].RowContent ?? string.Empty).Trim();
+                    var translated = (locRows[i].RowContent ?? string.Empty).Trim();
+                    if (original.Length == 0 || translated.Length == 0)
+                        continue;
+
+                    arr.Add(new JObject
+                    {
+                        ["original"] = original,
+                        ["translated"] = translated,
+                        ["lineNumber"] = i,
+                    });
+                }
+
+                if (arr.Count == 0)
+                    continue;
+
+                byLang[langCode] = new JObject
+                {
+                    ["path"] = "ai_cache/translations/" + episodeId + "/" + langCode,
+                    ["data"] = new JObject { ["translations"] = arr },
+                };
+            }
+
+            return byLang;
+        }
+
+        private JObject CollectGrammarExport(string episodeId)
+        {
+            var result = new JObject
+            {
+                ["grammar_by_episode"] = new JArray(),
+            };
+            var englishRows = grvRow.DataSource as BindingList<EpisodeRowModel>;
+            if (englishRows == null || englishRows.Count == 0)
+                return result;
+
+            var locales = new[]
+            {
+                Tuple.Create(grvRow, "en"),
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+            };
+
+            var byEpisodeArr = (JArray)result["grammar_by_episode"];
+
+            foreach (var loc in locales)
+            {
+                var grid = loc.Item1;
+                var langCode = loc.Item2;
+                if (GetEpisodeRowCount(grid) == 0)
+                    continue;
+                if (!(grid.DataSource is BindingList<EpisodeRowModel> rows))
+                    continue;
+
+                int n = Math.Min(englishRows.Count, rows.Count);
+                for (int i = 0; i < n; i++)
+                {
+                    var json = rows[i].GrammarExplanationJson;
+                    if (string.IsNullOrWhiteSpace(json))
+                        continue;
+
+                    JObject data;
+                    try
+                    {
+                        data = JObject.Parse(json);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(sentence))
+                        continue;
+
+                    // Sentence-only or passage dual-map — same export path as RTDB upload.
+                    byEpisodeArr.Add(new JObject
+                    {
+                        ["lang"] = langCode,
+                        ["lineNumber"] = i,
+                        ["lineKey"] = "line_" + i,
+                        ["sentence"] = sentence,
+                        ["pathHint"] = "ai_cache/grammar_by_episode/" + episodeId + "/line_" + i + "/" + langCode,
+                        ["data"] = data,
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        private JArray CollectVocabularyExport(string episodeId)
+        {
+            var arr = new JArray();
+            if (!(grvVocabEn.DataSource is BindingList<VocabularyGridRowModel> enRows) || enRows.Count == 0)
+                return arr;
+
+            var localeSpecs = new[]
+            {
+                Tuple.Create(grvVocabEn, "en"),
+                Tuple.Create(grvVocabVi, "vi"),
+                Tuple.Create(grvVocabEs, "es"),
+                Tuple.Create(grvVocabAr, "ar"),
+                Tuple.Create(grvVocabJa, "ja"),
+                Tuple.Create(grvVocabKo, "ko"),
+                Tuple.Create(grvVocabPt, "pt"),
+                Tuple.Create(grvVocabRu, "ru"),
+                Tuple.Create(grvVocabZh, "zh"),
+                Tuple.Create(grvVocabFr, "fr"),
+                Tuple.Create(grvVocabDe, "de"),
+            };
+
+            foreach (var spec in localeSpecs)
+            {
+                var grid = spec.Item1;
+                var langCode = spec.Item2;
+                BindingList<VocabularyGridRowModel> locRows;
+                if (string.Equals(langCode, "en", StringComparison.OrdinalIgnoreCase))
+                    locRows = enRows;
+                else if (!(grid.DataSource is BindingList<VocabularyGridRowModel> lr) || lr.Count != enRows.Count)
+                    continue;
+                else
+                    locRows = lr;
+
+                for (var i = 0; i < enRows.Count; i++)
+                {
+                    var lemma = (enRows[i].EnglishLemma ?? string.Empty).Trim();
+                    if (lemma.Length == 0)
+                        continue;
+
+                    var enhancementJson = string.Equals(langCode, "en", StringComparison.OrdinalIgnoreCase)
+                        ? enRows[i].EnhancementJson
+                        : (i < locRows.Count ? locRows[i].EnhancementJson : null) ?? enRows[i].EnhancementJson;
+
+                    var meaning = string.Equals(langCode, "en", StringComparison.OrdinalIgnoreCase)
+                        ? enRows[i].Meaning ?? string.Empty
+                        : (i < locRows.Count ? locRows[i].Meaning : null) ?? string.Empty;
+
+                    JObject enhancementObj = null;
+                    if (!string.IsNullOrWhiteSpace(enhancementJson))
+                    {
+                        try
+                        {
+                            enhancementObj = JToken.Parse(enhancementJson) as JObject;
+                        }
+                        catch
+                        {
+                            enhancementObj = null;
+                        }
+                    }
+
+                    var payload = enhancementObj != null ? (JObject)enhancementObj.DeepClone() : new JObject();
+                    payload["meaning"] = meaning ?? string.Empty;
+
+                    if (payload.Properties().All(p => p.Name == "meaning" && string.IsNullOrWhiteSpace(meaning)))
+                        continue;
+
+                    var wordHash = GrammarCacheKeyHelper.HashString(lemma.ToLowerInvariant());
+                    arr.Add(new JObject
+                    {
+                        ["word"] = lemma,
+                        ["wordHash"] = wordHash,
+                        ["lang"] = langCode,
+                        ["episodeId"] = episodeId,
+                        ["pathHint"] = "ai_cache/vocabulary/" + wordHash + "/" + langCode,
+                        ["data"] = payload,
+                    });
+                }
+            }
+
+            return arr;
+        }
+
+        private JObject CollectQuestionsExport(string episodeId)
+        {
+            if (!(grvQuestions.DataSource is BindingList<QuestionGridRowModel> rows) || rows.Count == 0)
+                return null;
+
+            var count = rows.Count;
+            var arr = new JArray();
+            for (var i = 0; i < rows.Count; i++)
+                arr.Add(rows[i].ToFlutterQuestionObject(i));
+
+            return new JObject
+            {
+                ["path"] = "ai_cache/questions/" + episodeId + "/" + count,
+                ["count"] = count,
+                ["data"] = new JObject
+                {
+                    ["questions"] = arr,
+                    ["count"] = count,
+                },
+            };
+        }
+
         private void btnConfig_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnPurgeAiCache_Click(object sender, EventArgs e)
+        {
+            var secret = (txtSecret.Text ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(secret))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase secret vào txtSecret trước khi purge cache.",
+                    "Purge expired AI cache",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtSecret.Focus();
+                return;
+            }
+
+            using (var dlg = new FrmAiCacheCleanup(secret))
+            {
+                dlg.ShowDialog(this);
+            }
+        }
+
+        private void btnMigrateRtdbPath_Click(object sender, EventArgs e)
+        {
+            var secret = (txtSecret.Text ?? string.Empty).Trim();
+            var url = (txtUrl.Text ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(secret))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase secret vào txtSecret trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtSecret.Focus();
+                return;
+            }
+            if (string.IsNullOrEmpty(url))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase URL vào txtUrl trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtUrl.Focus();
+                return;
+            }
+
+            using (var dlg = new FrmRtdbPathMigrate(url, secret))
+            {
+                dlg.ShowDialog(this);
+            }
         }
 
         private static BindingList<EpisodeRowModel> GetEpisodeRowsOrThrow(DataGridView grid)
@@ -1132,6 +1770,9 @@ namespace playMP3
 
             UseWaitCursor = busy;
             Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+            btngetGrammarExplaimation.Enabled = !busy;
+            btnGetGrammarPassage.Enabled = !busy;
+            btnGrammarForceStop.Enabled = busy;
             if (busy)
             {
                 toolStripProgressGrammar.Visible = true;
@@ -1203,8 +1844,7 @@ namespace playMP3
             var prevEn = grvVocabEn.DataSource as BindingList<VocabularyGridRowModel>;
             var localeGrids = new[]
             {
-                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh,
-                grvVocabFr, grvVocabDe
+                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe
             };
             var prevLocales = new BindingList<VocabularyGridRowModel>[localeGrids.Length];
             for (var g = 0; g < localeGrids.Length; g++)
@@ -1252,6 +1892,90 @@ namespace playMP3
             grvVocabEn.Refresh();
             foreach (var grid in localeGrids)
                 grid.Refresh();
+        }
+
+        private async void btnGetVocabFromTranscript_Click(object sender, EventArgs e)
+        {
+            var transcript = (txtTranscript.Text ?? "").Trim();
+            if (transcript.Length == 0)
+            {
+                MessageBox.Show(this,
+                    "Chưa có transcript tiếng Anh (txtTranscript).",
+                    "Vocabulary",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            var apiKeys = TryResolveGeminiApiKeys();
+            if (apiKeys == null || apiKeys.Count == 0)
+            {
+                MessageBox.Show(this,
+                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc <GeminiApiKey> trong service.config.",
+                    "Vocabulary",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            var count = GrammarCacheConstants.DefaultVocabularySuggestionCount;
+            var btnText = btnGetVocabFromTranscript.Text;
+            var formTitleOriginal = Text;
+            btnGetVocabFromTranscript.Enabled = false;
+            var ok = false;
+            var filled = 0;
+            try
+            {
+                SetGrammarJobUiBusy(true, "Đang lấy vocabulary từ transcript (Gemini)…");
+                Text = formTitleOriginal + " — Vocab from transcript…";
+                SetGrammarJobUiDetail("Extract vocab × " + count);
+
+                var pairs = await VocabularyGeminiService.ExtractVocabularyFromTranscriptAsync(apiKeys, transcript, count)
+                    .ConfigureAwait(true);
+
+                var sb = new StringBuilder();
+                foreach (var p in pairs)
+                {
+                    var word = (p.Item1 ?? "").Trim();
+                    if (word.Length == 0)
+                        continue;
+                    var meaning = (p.Item2 ?? "").Trim();
+                    if (sb.Length > 0)
+                        sb.AppendLine();
+                    sb.Append(word);
+                    sb.Append(" : ");
+                    sb.Append(meaning);
+                    filled++;
+                }
+
+                if (filled == 0)
+                {
+                    MessageBox.Show(this, "Không parse được vocabulary từ Gemini.", "Vocabulary",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                txtVocab.Text = sb.ToString();
+                FillVocabGridsFromTxtVocab();
+                ok = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Vocabulary", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Text = formTitleOriginal;
+                SetGrammarJobUiBusy(false);
+                btnGetVocabFromTranscript.Text = btnText;
+                btnGetVocabFromTranscript.Enabled = true;
+            }
+
+            if (ok)
+            {
+                MessageBox.Show(this, "Đã điền " + filled + " từ/cụm vào txtVocab (word : meaning).", "Vocabulary",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private async void btnGetVocabTransLateAndObject_Click(object sender, EventArgs e)
@@ -1440,91 +2164,7 @@ namespace playMP3
 
             if (ok)
             {
-                MessageBox.Show(this, "Đã lấy vocab object (En) và dịch sang các tab Vi→De.", "Vocabulary",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
-        private async void btnGetVocabFromTranscript_Click(object sender, EventArgs e)
-        {
-            var transcript = (txtTranscript.Text ?? "").Trim();
-            if (transcript.Length == 0)
-            {
-                MessageBox.Show(this,
-                    "Chưa có transcript tiếng Anh (txtTranscript).",
-                    "Vocabulary",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            var apiKeys = TryResolveGeminiApiKeys();
-            if (apiKeys == null || apiKeys.Count == 0)
-            {
-                MessageBox.Show(this,
-                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc <GeminiApiKey> trong service.config.",
-                    "Vocabulary",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            var count = GrammarCacheConstants.DefaultVocabularySuggestionCount;
-            var btnText = btnGetVocabFromTranscript.Text;
-            var formTitleOriginal = Text;
-            btnGetVocabFromTranscript.Enabled = false;
-            var ok = false;
-            var filled = 0;
-            try
-            {
-                SetGrammarJobUiBusy(true, "Đang lấy vocabulary từ transcript (Gemini)…");
-                Text = formTitleOriginal + " — Vocab from transcript…";
-                SetGrammarJobUiDetail("Extract vocab × " + count);
-
-                var pairs = await VocabularyGeminiService.ExtractVocabularyFromTranscriptAsync(apiKeys, transcript, count)
-                    .ConfigureAwait(true);
-
-                var sb = new StringBuilder();
-                foreach (var p in pairs)
-                {
-                    var word = (p.Item1 ?? "").Trim();
-                    if (word.Length == 0)
-                        continue;
-                    var meaning = (p.Item2 ?? "").Trim();
-                    if (sb.Length > 0)
-                        sb.AppendLine();
-                    sb.Append(word);
-                    sb.Append(" : ");
-                    sb.Append(meaning);
-                    filled++;
-                }
-
-                if (filled == 0)
-                {
-                    MessageBox.Show(this, "Không parse được vocabulary từ Gemini.", "Vocabulary",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                txtVocab.Text = sb.ToString();
-                FillVocabGridsFromTxtVocab();
-                ok = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, "Vocabulary", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                Text = formTitleOriginal;
-                SetGrammarJobUiBusy(false);
-                btnGetVocabFromTranscript.Text = btnText;
-                btnGetVocabFromTranscript.Enabled = true;
-            }
-
-            if (ok)
-            {
-                MessageBox.Show(this, "Đã điền " + filled + " từ/cụm vào txtVocab (word : meaning).", "Vocabulary",
+                MessageBox.Show(this, "Đã lấy vocab object (En) và dịch sang các tab Vi→Zh.", "Vocabulary",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -1586,119 +2226,237 @@ namespace playMP3
             }
         }
 
-        private async void btngetGrammarExplaimation_Click(object sender, EventArgs e)
+        private sealed class GrammarFillJobResult
         {
-            if (!ValidateGrammarGridRowCounts())
-                return;
+            public bool CompletedFully { get; set; }
+            public bool Cancelled { get; set; }
+        }
 
-            var apiKeys = TryResolveGeminiApiKeys();
-            if (apiKeys == null || apiKeys.Count == 0)
+        private bool TryPrepareGrammarJob(
+            string dialogTitle,
+            out IReadOnlyList<string> apiKeys,
+            out IReadOnlyList<int> selectedIndices)
+        {
+            apiKeys = null;
+            selectedIndices = null;
+
+            if (!ValidateGrammarGridRowCounts())
+                return false;
+
+            var resolvedKeys = TryResolveGeminiApiKeys();
+            if (resolvedKeys == null || resolvedKeys.Count == 0)
             {
                 MessageBox.Show(this,
                     "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config (cùng thư mục với playMP3.exe). "
                     + "Có thể nhập nhiều key phân tách bằng dấu phẩy (,) — khi một key hết quota (429) sẽ thử key kế.",
-                    "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
 
-            var episodeId = txtId.Text.Trim();
-            if (string.IsNullOrEmpty(episodeId))
+            if (string.IsNullOrEmpty(txtId.Text.Trim()))
             {
-                MessageBox.Show(this, "txtId (episode Id) trống.", "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                MessageBox.Show(this, "txtId (episode Id) trống.", dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
 
             var englishRows = GetEpisodeRowsOrThrow(grvRow);
-            int count = englishRows.Count;
-            int delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
-
-            var locales = new[]
+            var indices = GetGrammarSelectedRowIndices(englishRows);
+            if (indices.Count == 0)
             {
-                Tuple.Create(grvRow, "en"),
-                Tuple.Create(grvViRow, "vi"),
-                Tuple.Create(grvEsRow, "es"),
-                Tuple.Create(grvArRow, "ar"),
-                Tuple.Create(grvJaRow, "ja"),
-                Tuple.Create(grvKoRow, "ko"),
-                Tuple.Create(grvPtRow, "pt"),
-                Tuple.Create(grvRuRow, "ru"),
-                Tuple.Create(grvZhRow, "zh"),
-                Tuple.Create(grvFrRow, "fr"),
-                Tuple.Create(grvDeRow, "de"),
-            };
+                MessageBox.Show(this,
+                    "Chọn ít nhất một dòng trên grid EN (cột Sel).",
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
 
-            var grammarBtnOriginalText = btngetGrammarExplaimation.Text;
-            var formTitleOriginal = Text;
-            btngetGrammarExplaimation.Enabled = false;
-            var grammarJobOk = false;
-            try
+            apiKeys = resolvedKeys;
+            selectedIndices = indices;
+            return true;
+        }
+
+        private void btnGrammarForceStop_Click(object sender, EventArgs e)
+        {
+            _grammarJobCts?.Cancel();
+        }
+
+        private async Task<GrammarFillJobResult> RunGrammarFillJobAsync(
+            bool passageMode,
+            IReadOnlyList<string> apiKeys,
+            IReadOnlyList<int> selectedIndices,
+            CancellationToken cancellationToken,
+            Action<string> updateProgress)
+        {
+            var englishRows = GetEpisodeRowsOrThrow(grvRow);
+            var delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
+            var locales = GetGrammarLocaleGrids();
+            var selectedCount = selectedIndices.Count;
+            var jobPrefix = passageMode ? "Passage" : "Grammar";
+
+            var activeLocales = 0;
+            foreach (var loc in locales)
             {
-                SetGrammarJobUiBusy(true);
-                Text = formTitleOriginal + " — Grammar đang chạy…";
+                if (GetEpisodeRowCount(loc.Item1) > 0)
+                    activeLocales++;
+            }
 
-                int activeLocales = 0;
-                foreach (var loc in locales)
-                {
-                    if (GetEpisodeRowCount(loc.Item1) > 0)
-                        activeLocales++;
-                }
+            var localeIndex = 0;
+            var rowOrdinal = 0;
+            foreach (var loc in locales)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-                int localeIndex = 0;
-                foreach (var loc in locales)
+                var grid = loc.Item1;
+                var langCode = loc.Item2;
+                if (GetEpisodeRowCount(grid) == 0)
+                    continue;
+
+                localeIndex++;
+                var targetLabel = GrammarTargetLanguageLabel(langCode);
+                var rows = GetEpisodeRowsOrThrow(grid);
+
+                foreach (var i in selectedIndices)
                 {
-                    var grid = loc.Item1;
-                    var langCode = loc.Item2;
-                    var localeRows = GetEpisodeRowCount(grid);
-                    if (localeRows == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    rowOrdinal++;
+                    var progressLine = jobPrefix + " " + langCode + " row " + (i + 1)
+                        + " (" + rowOrdinal + "/" + (selectedCount * Math.Max(1, activeLocales)) + ")"
+                        + " tab " + localeIndex + "/" + Math.Max(1, activeLocales);
+                    updateProgress(progressLine);
+
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(sentence))
                         continue;
 
-                    localeIndex++;
-                    var targetLabel = GrammarTargetLanguageLabel(langCode);
-                    var rows = GetEpisodeRowsOrThrow(grid);
-
-                    for (int i = 0; i < count; i++)
+                    try
                     {
-                        var progressLine = "Grammar " + langCode + " " + (i + 1) + "/" + count
-                            + " (tab " + localeIndex + "/" + Math.Max(1, activeLocales) + ")";
-                        btngetGrammarExplaimation.Text = progressLine;
-                        SetGrammarJobUiDetail(progressLine);
-                        var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
-                        if (string.IsNullOrEmpty(sentence))
-                            continue;
-
-                        try
+                        JObject merged;
+                        if (passageMode)
                         {
-                            var raw = await GrammarGeminiService.ExplainGrammarAsync(apiKeys, sentence, targetLabel).ConfigureAwait(true);
-                            var merged = GrammarGeminiService.ToFlutterGrammarData(raw, sentence);
-                            rows[i].GrammarExplanationJson = merged.ToString(Newtonsoft.Json.Formatting.None);
-                            rows[i].GrammarExplanationSummary = BuildGrammarSummary(merged);
+                            var raw = await GrammarGeminiService
+                                .ExplainGrammarPassageAsync(apiKeys, sentence, targetLabel)
+                                .ConfigureAwait(true);
+                            merged = GrammarGeminiService.ToFlutterGrammarPassageData(raw, sentence);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            rows[i].GrammarExplanationSummary = TruncateGrammarCellError(ex.Message, 380);
-                            rows[i].GrammarExplanationJson = "";
+                            var raw = await GrammarGeminiService
+                                .ExplainGrammarAsync(apiKeys, sentence, targetLabel)
+                                .ConfigureAwait(true);
+                            merged = GrammarGeminiService.ToFlutterGrammarData(raw, sentence);
                         }
 
-                        await Task.Delay(delayBetweenRequestsMs).ConfigureAwait(true);
+                        rows[i].GrammarExplanationJson = merged.ToString(Newtonsoft.Json.Formatting.None);
+                        rows[i].GrammarExplanationSummary = BuildGrammarSummary(merged);
+                    }
+                    catch (Exception ex)
+                    {
+                        rows[i].GrammarExplanationSummary = TruncateGrammarCellError(ex.Message, 380);
+                        rows[i].GrammarExplanationJson = "";
                     }
 
-                    grid.EndEdit();
-                    grid.Refresh();
+                    await Task.Delay(delayBetweenRequestsMs, cancellationToken).ConfigureAwait(true);
                 }
 
-                grammarJobOk = true;
+                grid.EndEdit();
+                grid.Refresh();
+            }
+
+            return new GrammarFillJobResult { CompletedFully = true };
+        }
+
+        private async Task<GrammarFillJobResult> RunGrammarJobWithUiAsync(
+            bool passageMode,
+            IReadOnlyList<string> apiKeys,
+            IReadOnlyList<int> selectedIndices,
+            string busyStatusLine,
+            string titleSuffix,
+            Button progressButton)
+        {
+            var formTitleOriginal = Text;
+            var progressButtonOriginalText = progressButton.Text;
+            _grammarJobCts = new CancellationTokenSource();
+            var result = new GrammarFillJobResult();
+
+            try
+            {
+                SetGrammarJobUiBusy(true, busyStatusLine);
+                Text = formTitleOriginal + titleSuffix;
+
+                result = await RunGrammarFillJobAsync(
+                    passageMode,
+                    apiKeys,
+                    selectedIndices,
+                    _grammarJobCts.Token,
+                    progressLine =>
+                    {
+                        progressButton.Text = progressLine;
+                        SetGrammarJobUiDetail(progressLine);
+                    }).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                result.Cancelled = true;
+                toolStripStatusLabelGrammar.Text = "Đã dừng — các dòng đã xử lý được giữ lại.";
             }
             finally
             {
                 Text = formTitleOriginal;
                 SetGrammarJobUiBusy(false);
-                btngetGrammarExplaimation.Text = grammarBtnOriginalText;
-                btngetGrammarExplaimation.Enabled = true;
+                progressButton.Text = progressButtonOriginalText;
+                if (_grammarJobCts != null)
+                {
+                    _grammarJobCts.Dispose();
+                    _grammarJobCts = null;
+                }
             }
 
-            if (grammarJobOk)
+            return result;
+        }
+
+        private async void btngetGrammarExplaimation_Click(object sender, EventArgs e)
+        {
+            if (!TryPrepareGrammarJob("Grammar", out var apiKeys, out var selectedIndices))
+                return;
+
+            var result = await RunGrammarJobWithUiAsync(
+                passageMode: false,
+                apiKeys,
+                selectedIndices,
+                busyStatusLine: null,
+                titleSuffix: " — Grammar đang chạy…",
+                progressButton: btngetGrammarExplaimation).ConfigureAwait(true);
+
+            if (result.CompletedFully)
             {
-                MessageBox.Show(this, "Đã điền grammar cho các tab đã có transcript (tab 0 dòng được bỏ qua).", "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this,
+                    "Đã điền grammar cho các dòng đã chọn trên grid EN (các tab locale có transcript; tab 0 dòng được bỏ qua).",
+                    "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        /// <summary>
+        /// Passage grammar fill: same sequential En-line × locale loop as sentence fill,
+        /// but one Gemini call per cell returns overall + sentenceAnalyses (no progressive split).
+        /// </summary>
+        private async void btnGetGrammarPassage_Click(object sender, EventArgs e)
+        {
+            if (!TryPrepareGrammarJob("Grammar Passage", out var apiKeys, out var selectedIndices))
+                return;
+
+            var result = await RunGrammarJobWithUiAsync(
+                passageMode: true,
+                apiKeys,
+                selectedIndices,
+                busyStatusLine: "Đang chạy grammar passage (Gemini, 1-shot)…",
+                titleSuffix: " — Grammar Passage đang chạy…",
+                progressButton: btnGetGrammarPassage).ConfigureAwait(true);
+
+            if (result.CompletedFully)
+            {
+                MessageBox.Show(this,
+                    "Đã điền grammar passage (1 request/dòng đã chọn) cho các tab có transcript. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
+                    "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -1806,7 +2564,10 @@ namespace playMP3
 
                     try
                     {
-                        await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(sentence, langCode, episodeId, data, i).ConfigureAwait(true);
+                        // Sentence schema or passage dual-map → same path (grammar + grammar_by_episode).
+                        // Dual payload keeps grammarPoint/explanation for old apps + overall/sentenceAnalyses for new apps.
+                        await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
+                            sentence, langCode, episodeId, data, i).ConfigureAwait(true);
                     }
                     catch
                     {

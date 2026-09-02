@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../config/ai_config.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/grammar_explanation.dart';
 import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
@@ -18,11 +19,10 @@ class AIGrammarService {
   final AICacheService _cache = AICacheService();
   final LanguageManager _languageManager = LanguageManager();
 
-  /// Get target language code from LanguageManager
-  String _getTargetLanguage() {
-    final locale = _languageManager.currentLocale;
-    // Map locale to language name for AI
-    switch (locale.languageCode) {
+  /// Map locale code to English language name for the AI prompt.
+  String _getTargetLanguage([String? languageCode]) {
+    final code = languageCode ?? _languageManager.currentLocale.languageCode;
+    switch (code) {
       case 'vi':
         return 'Vietnamese';
       case 'zh':
@@ -48,25 +48,30 @@ class AIGrammarService {
     }
   }
 
-  /// Explain grammar in a sentence
+  /// Explain grammar in a sentence.
+  ///
+  /// [languageCode] overrides the app locale (used when switching EN vs target
+  /// inside the grammar popup).
   Future<GrammarExplanation> explainSentence(
     String sentence,
     String episodeId, {
     int? lineNumber,
+    String? languageCode,
   }) async {
     if (!AIConfig.enableGrammar) {
       throw APIException('Grammar feature is temporarily disabled.');
     }
 
-    final targetLanguage = _getTargetLanguage();
-    final languageCode = _languageManager.currentLocale.languageCode;
+    final resolvedLanguageCode =
+        languageCode ?? _languageManager.currentLocale.languageCode;
+    final targetLanguage = _getTargetLanguage(resolvedLanguageCode);
     final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
     const promptVersion = AIConfig.grammarPromptVersion;
 
     // [lineNumber] = transcript line index (0-based); RTDB path is line_{index}.
     final cacheHit = await _cache.lookupGrammar(
       sentence,
-      languageCode,
+      resolvedLanguageCode,
       episodeId: episodeId,
       lineNumber: lineNumber,
       modelVersion: modelVersion,
@@ -76,7 +81,7 @@ class AIGrammarService {
     if (cacheHit != null) {
       await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
       debugPrint('Using cached grammar explanation for sentence');
-      return _mapResponseToModel(sentence, cacheHit.data);
+      return _mapCachedGrammarToModel(sentence, cacheHit.data);
     }
 
     await HeartService().consumeForAIFeature();
@@ -86,14 +91,19 @@ class AIGrammarService {
     final backupProvider = AIProviderFactory.getBackupProvider();
 
     try {
-      // Try primary provider first with retry
+      // Try primary provider first with retry — passage single-shot dual-map (playMP3-aligned).
       Map<String, dynamic>? response;
       try {
         response = await AIErrorHandler.withRetry(
-          () => primaryProvider.explainGrammar(sentence, targetLanguage),
+          () => primaryProvider.explainGrammarPassageSingle(
+            sentence,
+            targetLanguage,
+          ),
           maxRetries: 1, // Only 1 retry, then fallback
         );
-        debugPrint('✅ Primary provider (Gemini) grammar explanation successful');
+        debugPrint(
+          '✅ Primary provider grammar passage-single explanation successful',
+        );
       } catch (e) {
         debugPrint('⚠️ Primary provider failed: $e');
         
@@ -102,8 +112,13 @@ class AIGrammarService {
           debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
           try {
             if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammar(sentence, targetLanguage);
-              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+              response = await backupProvider.explainGrammarPassageSingle(
+                sentence,
+                targetLanguage,
+              );
+              debugPrint(
+                '✅ Backup provider grammar passage-single explanation successful',
+              );
             } else {
               rethrow;
             }
@@ -116,8 +131,13 @@ class AIGrammarService {
           debugPrint('⚠️ Trying backup provider due to API error...');
           try {
             if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammar(sentence, targetLanguage);
-              debugPrint('✅ Backup provider (OpenAI) grammar explanation successful');
+              response = await backupProvider.explainGrammarPassageSingle(
+                sentence,
+                targetLanguage,
+              );
+              debugPrint(
+                '✅ Backup provider grammar passage-single explanation successful',
+              );
             } else {
               rethrow;
             }
@@ -134,12 +154,12 @@ class AIGrammarService {
         throw Exception('Grammar explanation failed: no result');
       }
 
-      final explanationObj = _mapResponseToModel(sentence, response);
+      final explanationObj = _mapCachedGrammarToModel(sentence, response);
 
-      // Save to both local and Firebase cache
+      // Save dual-map (overall + sentenceAnalyses + legacy) to local + grammar_by_episode.
       await _cache.saveGrammarToCache(
         sentence,
-        languageCode,
+        resolvedLanguageCode,
         explanationObj.toJson(),
         episodeId: episodeId,
         lineNumber: lineNumber,
@@ -152,6 +172,95 @@ class AIGrammarService {
       debugPrint('Error explaining grammar: $e');
       rethrow;
     }
+  }
+
+  /// Open-path for a transcript line: peek EN + target cache, then pick or generate.
+  Future<GrammarSentenceResolveResult> resolveSentenceExplanation(
+    String sentence,
+    String episodeId, {
+    int? lineNumber,
+  }) async {
+    if (!AIConfig.enableGrammar) {
+      throw APIException('Grammar feature is temporarily disabled.');
+    }
+
+    final targetLang = _languageManager.currentLocale.languageCode;
+    final modelVersion =
+        '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
+    const promptVersion = AIConfig.grammarPromptVersion;
+
+    Future<({Map<String, dynamic> data, AICacheTier tier})?> peek(String lang) {
+      return _cache.lookupGrammar(
+        sentence,
+        lang,
+        episodeId: episodeId,
+        lineNumber: lineNumber,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+    }
+
+    if (targetLang == GrammarOpenPolicy.englishCode) {
+      final explanation = await explainSentence(
+        sentence,
+        episodeId,
+        lineNumber: lineNumber,
+        languageCode: GrammarOpenPolicy.englishCode,
+      );
+      return GrammarSentenceResolveResult(
+        explanation: explanation,
+        displayLanguageCode: GrammarOpenPolicy.englishCode,
+        englishAvailable: true,
+        targetAvailable: true,
+      );
+    }
+
+    final peeked = await Future.wait([
+      peek(GrammarOpenPolicy.englishCode),
+      peek(targetLang),
+    ]);
+    final enHit = peeked[0];
+    final targetHit = peeked[1];
+    final englishAvailable = enHit != null;
+    final targetAvailable = targetHit != null;
+    final displayLang = GrammarOpenPolicy.displayLanguageCode(
+      targetLanguageCode: targetLang,
+      englishAvailable: englishAvailable,
+      targetAvailable: targetAvailable,
+    );
+
+    if (displayLang == targetLang && targetHit != null) {
+      await AICacheService.consumeHeartIfFirebase(targetHit.tier);
+      return GrammarSentenceResolveResult(
+        explanation: _mapCachedGrammarToModel(sentence, targetHit.data),
+        displayLanguageCode: targetLang,
+        englishAvailable: englishAvailable,
+        targetAvailable: true,
+      );
+    }
+
+    if (displayLang == GrammarOpenPolicy.englishCode && enHit != null) {
+      await AICacheService.consumeHeartIfFirebase(enHit.tier);
+      return GrammarSentenceResolveResult(
+        explanation: _mapCachedGrammarToModel(sentence, enHit.data),
+        displayLanguageCode: GrammarOpenPolicy.englishCode,
+        englishAvailable: true,
+        targetAvailable: targetAvailable,
+      );
+    }
+
+    final explanation = await explainSentence(
+      sentence,
+      episodeId,
+      lineNumber: lineNumber,
+      languageCode: targetLang,
+    );
+    return GrammarSentenceResolveResult(
+      explanation: explanation,
+      displayLanguageCode: targetLang,
+      englishAvailable: false,
+      targetAvailable: true,
+    );
   }
 
   /// Explain grammar for a full passage with fallback to sentence-level flow
@@ -358,6 +467,24 @@ class AIGrammarService {
     );
   }
 
+  /// Cache from playMP3 may be sentence-only or passage dual-map in grammar_by_episode.
+  GrammarExplanation _mapCachedGrammarToModel(
+    String sentence,
+    Map<String, dynamic> response,
+  ) {
+    if (_hasPassageFields(response)) {
+      return _mapPassageResponseToModel(sentence, response);
+    }
+    return _mapResponseToModel(sentence, response);
+  }
+
+  bool _hasPassageFields(Map<String, dynamic> response) {
+    final overall = response['overall'];
+    if (overall is Map) return true;
+    final analyses = response['sentenceAnalyses'];
+    return analyses is List && analyses.isNotEmpty;
+  }
+
   GrammarExplanation _mapResponseToModel(
     String sentence,
     Map<String, dynamic> response,
@@ -396,7 +523,66 @@ class AIGrammarService {
     String passage,
     Map<String, dynamic> response,
   ) {
-    // Backward-compatible support: if old sentence schema is returned, adapt.
+    // Prefer real passage fields (playMP3 dual-map includes both sentence + passage keys).
+    if (_hasPassageFields(response)) {
+      final overallRaw = response['overall'];
+      final overallMap = overallRaw is Map
+          ? Map<String, dynamic>.from(overallRaw)
+          : <String, dynamic>{};
+      final theme = overallMap['grammarTheme']?.toString().trim().isNotEmpty == true
+          ? overallMap['grammarTheme'].toString().trim()
+          : (response['grammarPoint']?.toString().trim().isNotEmpty == true
+              ? response['grammarPoint'].toString().trim()
+              : 'Grammar Overview');
+      final usage = overallMap['usageSummary']?.toString().trim().isNotEmpty == true
+          ? overallMap['usageSummary'].toString().trim()
+          : (response['explanation']?.toString().trim() ?? '');
+      final overall = GrammarPassageOverall(
+        grammarTheme: theme,
+        usageSummary: usage,
+        keyStructures: (overallMap['keyStructures'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .where((e) => e.trim().isNotEmpty)
+                .toList() ??
+            [],
+      );
+      final analyses = (response['sentenceAnalyses'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((e) => GrammarSentenceAnalysis.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+
+      final firstAnalysis = analyses.isNotEmpty ? analyses.first : null;
+      final explanation = overall.usageSummary.trim().isNotEmpty
+          ? overall.usageSummary
+          : (response['explanation']?.toString().trim() ?? '');
+      if (explanation.isEmpty) {
+        throw InvalidResponseException('Missing grammar explanation content');
+      }
+
+      return GrammarExplanation(
+        sentence: passage,
+        passageText: response['passageText']?.toString() ?? passage,
+        grammarPoint: overall.grammarTheme,
+        explanation: explanation,
+        highlightedWords: firstAnalysis?.phraseBreakdown.map((e) => e.phrase).toList() ??
+            (response['highlightedWords'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        overall: overall,
+        sentenceAnalyses: analyses,
+        rulePattern: firstAnalysis?.mainStructure ?? response['rulePattern']?.toString(),
+        whyThisForm: firstAnalysis?.usageInContext ?? response['whyThisForm']?.toString(),
+        commonMistakes: firstAnalysis?.commonMistakes.isNotEmpty == true
+            ? firstAnalysis!.commonMistakes
+            : (response['commonMistakes'] as List<dynamic>?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                const [],
+      );
+    }
+
+    // Backward-compatible: sentence schema only → synthesize minimal passage shape.
     if (response.containsKey('grammarPoint') && response.containsKey('explanation')) {
       final single = _mapResponseToModel(passage, response);
       return GrammarExplanation(
@@ -432,33 +618,7 @@ class AIGrammarService {
       );
     }
 
-    final overallMap = response['overall'] as Map<String, dynamic>? ?? {};
-    final overall = GrammarPassageOverall(
-      grammarTheme: overallMap['grammarTheme']?.toString() ?? 'Grammar Overview',
-      usageSummary: overallMap['usageSummary']?.toString() ?? '',
-      keyStructures: (overallMap['keyStructures'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-    );
-    final analyses = (response['sentenceAnalyses'] as List<dynamic>? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map(GrammarSentenceAnalysis.fromJson)
-        .toList();
-
-    final firstAnalysis = analyses.isNotEmpty ? analyses.first : null;
-    return GrammarExplanation(
-      sentence: passage,
-      passageText: passage,
-      grammarPoint: overall.grammarTheme,
-      explanation: overall.usageSummary,
-      highlightedWords: firstAnalysis?.phraseBreakdown.map((e) => e.phrase).toList() ?? const [],
-      overall: overall,
-      sentenceAnalyses: analyses,
-      rulePattern: firstAnalysis?.mainStructure,
-      whyThisForm: firstAnalysis?.usageInContext,
-      commonMistakes: firstAnalysis?.commonMistakes ?? const [],
-    );
+    throw InvalidResponseException('Unrecognized grammar passage response schema');
   }
 
   bool _isValidPassageSentencesSchema(Map<String, dynamic> response) {

@@ -36,7 +36,6 @@ class EpisodeRow extends StatelessWidget {
         ? SeriesSubBadgeStyle.forCode(
             episode.category,
             colorScheme,
-            languageManager,
           )
         : null;
     return Card(

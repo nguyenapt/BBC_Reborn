@@ -23,6 +23,9 @@ namespace playMP3
         public const string ProfileBbc = "bbc";
         public const string ProfileVoa = "voa";
 
+        public const string ProfileBbc = "bbc";
+        public const string ProfileVoa = "voa";
+
         private static readonly object InitLock = new object();
         private static readonly HashSet<string> ConfiguredProfiles =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -161,6 +164,7 @@ namespace playMP3
                     ["year"] = year,
                     ["episodeKey"] = episodeKey,
                     ["episodeId"] = episode.Id.ToString(),
+                    ["rtdbPath"] = episode.RtdbPath ?? string.Empty,
                     ["click_action"] = "FLUTTER_NOTIFICATION_CLICK",
                 },
                 Android = new AndroidConfig

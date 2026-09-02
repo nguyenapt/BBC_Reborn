@@ -16,6 +16,7 @@ import '../services/language_manager.dart';
 import '../services/learning_progress_service.dart';
 import '../services/episode_detail_wake_lock.dart';
 import '../services/episode_detail_session.dart';
+import '../utils/debug_source_log.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
@@ -67,6 +68,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
     if (e.transcript.trim().isNotEmpty) return false;
+    final html = e.transcriptHtml?.trim();
+    if (html != null && html.isNotEmpty) return false;
     final id = e.id;
     if (id == null || id.isEmpty) return false;
     return true;
@@ -104,6 +107,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
     unawaited(_learningProgress.touchEpisode(_episode));
+    _scheduleDebugDetailFetchNotice();
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(widget.episode);
 
@@ -121,7 +125,15 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   void _onAudioServiceEpisodeChanged() {
     final current = _audioService.currentEpisode;
-    if (current == null || current.id == _episode.id) return;
+    if (current == null) return;
+    if (current.id == _episode.id) {
+      // Hydrate lần đầu có thể xong trước khi currentEpisode được gán.
+      if (_mustFetchFullEpisode(_episode) && !_hydratingFullEpisode && mounted) {
+        setState(() => _hydratingFullEpisode = true);
+        Future.microtask(_hydrateFullEpisodeIfNeeded);
+      }
+      return;
+    }
 
     final inCategory = widget.categoryEpisodes.any((e) => e.id == current.id);
     if (!inCategory) return;
@@ -142,19 +154,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(_episode);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        content: Text(
-          _languageManager.getTextWithParams(
-            'autoPlayNowPlaying',
-            {'title': _episode.episodeName},
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _onAutoPlayEnabledFirstTime() async {
@@ -269,6 +268,33 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     );
   }
 
+  /// Debug: báo đường dẫn sẽ dùng khi mở detail từ Home/List.
+  void _scheduleDebugDetailFetchNotice() {
+    if (!kDebugMode) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_mustFetchFullEpisode(_episode)) {
+        debugLogDataSource(
+          'EpisodeDetail',
+          FirebaseService.describeEpisodeDetailRequest(_episode),
+        );
+        return;
+      }
+      final rtdb = _episode.rtdbPath?.trim();
+      if (rtdb != null && rtdb.isNotEmpty) {
+        debugLogDataSource(
+          'EpisodeDetail',
+          'Không fetch RTDB — transcript có sẵn (RtdbPath=$rtdb)',
+        );
+      } else {
+        debugLogDataSource(
+          'EpisodeDetail',
+          'Không fetch RTDB — transcript có sẵn trên list/home',
+        );
+      }
+    });
+  }
+
   /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
   void _scheduleDebugSqliteSourceNotice(Episode episodeAtOpen) {
     if (!kDebugMode || kIsWeb) return;
@@ -302,14 +328,14 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     }
 
     try {
-      final full = await FirebaseService.fetchEpisodeFull(_episode);
+      final outcome = await FirebaseService.fetchEpisodeFullWithSource(_episode);
+      final full = outcome.episode;
       if (!mounted || full == null) {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
-      // Bỏ qua nếu user/auto-play đã chuyển sang episode khác trong lúc fetch.
-      if (_episode.id != targetId ||
-          _audioService.currentEpisode?.id != targetId) {
+      // Không đòi currentEpisode khớp: cold start nó còn null khi đang stop().
+      if (_episode.id != targetId) {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
@@ -456,7 +482,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               // Episode Name Header
               Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               border: Border(
@@ -466,60 +492,25 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                 ),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Category Badge and Episode Name - Cùng một dòng
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Category Badge
-                    Container(
-                      margin: const EdgeInsets.only(right: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: categoryColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        _episode.category,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (_episode.hasLevel) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: categoryColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: categoryColor.withOpacity(0.4)),
-                        ),
-                        child: Text(
-                          _episode.level!.trim(),
-                          style: TextStyle(
-                            color: categoryColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                    // Episode Name
-                    Expanded(
-                      child: SelectableText(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText(
                         _episode.episodeName,
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.left,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          height: 1.3,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 17.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                          letterSpacing: -0.2,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.95),
                         ),
                         contextMenuBuilder: (context, editableTextState) {
                           return AdaptiveTextSelectionToolbar.buttonItems(
@@ -528,16 +519,21 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                               ContextMenuButtonItem(
                                 label: 'Copy',
                                 onPressed: () {
-                                  final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                  final selectedText = editableTextState
+                                      .textEditingValue.selection
+                                      .textInside(
                                     editableTextState.textEditingValue.text,
                                   );
                                   if (selectedText.isNotEmpty) {
-                                    Clipboard.setData(ClipboardData(text: selectedText));
+                                    Clipboard.setData(
+                                      ClipboardData(text: selectedText),
+                                    );
                                     editableTextState.hideToolbar();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          _languageManager.getText('copiedToClipboard'),
+                                          _languageManager
+                                              .getText('copiedToClipboard'),
                                         ),
                                       ),
                                     );
@@ -547,7 +543,9 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                               ContextMenuButtonItem(
                                 label: 'Translate',
                                 onPressed: () {
-                                  final selectedText = editableTextState.textEditingValue.selection.textInside(
+                                  final selectedText = editableTextState
+                                      .textEditingValue.selection
+                                      .textInside(
                                     editableTextState.textEditingValue.text,
                                   );
                                   if (selectedText.isNotEmpty) {
@@ -560,50 +558,111 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                           );
                         },
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: categoryColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _episode.category,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (_episode.hasLevel)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: categoryColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: categoryColor.withOpacity(0.4),
+                                ),
+                              ),
+                              child: Text(
+                                _episode.level!.trim(),
+                                style: TextStyle(
+                                  color: categoryColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                // Duration and Date - Cùng một dòng
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Duration and Date (bỏ date nếu là Other Programs category)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _episode.duration,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                const SizedBox(width: 10),
+                // Right: fixed top — duration / published date (không theo chiều cao title)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time_filled_rounded,
+                            size: 15,
+                            color: Color(0xFFE65100), // cam đậm
                           ),
-                        ),
-                        // Chỉ hiển thị date nếu không phải Other Programs category
-                        if (!_isOtherProgramsCategory(_episode.category)) ...[
-                          const SizedBox(width: 16),
-                          Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 3),
                           Text(
-                            _formatDate(_episode.publishedDate),
+                            _episode.duration,
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.55),
                             ),
                           ),
                         ],
+                      ),
+                      if (!_isOtherProgramsCategory(_episode.category)) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 14,
+                              color: Color(0xFF1565C0), // xanh dương đậm
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              _formatDate(_episode.publishedDate),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.55),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -766,7 +825,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(4, 6, 10, 2),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
       child: Row(
         children: [
           ...List.generate(tabs.length, (i) {

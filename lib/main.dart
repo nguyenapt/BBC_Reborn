@@ -138,6 +138,14 @@ class _BBCLearningAppStatefulState extends State<BBCLearningAppStateful>
   Future<void> _tryShowAppOpenAd({required String trigger}) async {
     if (kIsWeb || !mounted) return;
     final adService = AdMobService();
+    final ready = await adService.waitUntilSdkReady(
+      timeout: const Duration(seconds: 8),
+    );
+    if (!mounted) return;
+    if (!ready) {
+      debugPrint('App open skipped ($trigger): MobileAds not ready');
+      return;
+    }
     await adService.preloadAppOpenAd();
     await Future.delayed(_appOpenShowAttemptDelay);
     if (!mounted) return;

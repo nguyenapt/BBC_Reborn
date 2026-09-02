@@ -7,7 +7,6 @@ import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
-import '../widgets/lle_level_episode_list.dart';
 import '../widgets/another_series_sub_section.dart';
 import '../utils/category_names.dart';
 import '../utils/lle_level_groups.dart';
@@ -61,7 +60,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     String initialCategory = categories.first;
 
     String? resolvedInitialTab = widget.initialTab;
-    if (resolvedInitialTab == 'NC' || resolvedInitialTab == 'SC') {
+    if (resolvedInitialTab != null &&
+        CategoryNames.anotherSeriesSubCodes.contains(resolvedInitialTab)) {
       resolvedInitialTab = 'AS';
     }
 
@@ -238,8 +238,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       final subEpisodes = _anotherSeriesData[episode.category] ?? [];
       categoryEpisodes =
           LleLevelGroups.episodesForPlaylist(episode, subEpisodes);
-    } else if (currentCategory == 'LLE') {
-      final allLle = _episodesData['LLE'] ?? [];
+    } else if (episode.category == 'LLE') {
+      final allLle = _anotherSeriesData['LLE'] ??
+          _episodesData['LLE'] ??
+          const <Episode>[];
       categoryEpisodes = LleLevelGroups.episodesForPlaylist(episode, allLle);
     } else {
       categoryEpisodes = _episodesData[currentCategory] ?? [];
@@ -319,9 +321,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                     for (final code in CategoryNames.primaryTabCodes)
                       code == 'AS'
                           ? _buildAnotherSeriesContent()
-                          : code == 'LLE'
-                              ? _buildLleContent()
-                              : _buildCategoryContent(code),
+                          : _buildCategoryContent(code),
                   ],
                 ),
               ),
@@ -429,12 +429,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   Widget _buildTabLabelForCode(int index, String code) {
-    final keys = CategoryNames.primaryTabLabelKeys[code]!;
-    return _buildTabLabel(
-      index,
-      _languageManager.getText(keys[0]),
-      _languageManager.getText(keys[1]),
-    );
+    final lines = CategoryNames.primaryTabDisplayLines(code);
+    return _buildTabLabel(index, lines[0], lines[1]);
   }
 
   Widget _buildTabLabel(int index, String firstLine, String secondLine) {
@@ -624,80 +620,6 @@ class _CategoriesScreenState extends State<CategoriesScreen>
           return const SizedBox.shrink();
         },
       ),
-    );
-  }
-
-  Widget _buildLleContent() {
-    const category = 'LLE';
-
-    if (_loadingStates[category] == true) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('loading'),
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_errorStates[category] != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('errorOccurred'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorStates[category]!,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _loadCategoryData(category),
-              child: Text(_languageManager.getText('tryAgain')),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final episodes = _episodesData[category] ?? [];
-
-    return LleLevelEpisodeList(
-      episodes: episodes,
-      languageManager: _languageManager,
-      onEpisodeTap: _navigateToEpisodeDetail,
-      onRefresh: () {
-        _loadedYears[category] = [];
-        _episodesData.remove(category);
-        return _loadCategoryData(category);
-      },
     );
   }
 

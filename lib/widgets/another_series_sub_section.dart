@@ -86,7 +86,6 @@ class _AnotherSeriesSubSectionState extends State<AnotherSeriesSubSection> {
     final style = SeriesSubBadgeStyle.forCode(
       widget.categoryCode,
       colorScheme,
-      widget.languageManager,
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),

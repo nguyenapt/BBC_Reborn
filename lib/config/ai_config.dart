@@ -31,18 +31,25 @@ class AIConfig {
   /// Do not use *.tts.speech.microsoft.com (that is Text-to-Speech, not STT).
   static const String azureSpeechEndpoint = '';
 
-  // Feature flags
-  static const bool enableTranslation = true;
-  static const bool enableGrammar = true;
-  static const bool enableQuestions = true;
-  static const bool enableVocabularyEnhancement = true;
-
   // Primary provider (local dev only when useCloudAI is false)
   static const AIProviderType primaryProvider = AIProviderType.gemini;
 
   // Grammar behavior/versioning (MUST_SYNC playMP3/GrammarCacheConstants.cs)
   static const String grammarPromptVersion = 'v2_detailed_learning_no_quiz';
   static const String grammarSchemaVersion = 'v2';
+
+  /// playMP3 single-shot prewarm for <c>ai_cache/grammar_passage</c>.
+  /// Distinct from progressive <c>${grammarPromptVersion}_passage_v2_slim_progressive</c>.
+  /// MUST_SYNC playMP3 GrammarCacheConstants.GrammarPassagePromptVersion / SchemaVersion.
+  static const String grammarPassageSinglePromptVersion =
+      '${grammarPromptVersion}_passage_v2_slim_single';
+  static const String grammarPassageSingleSchemaVersion = 'v2_passage_v2_slim_single';
+
+  // Feature flags
+  static const bool enableTranslation = true;
+  static const bool enableGrammar = true;
+  static const bool enableQuestions = true;
+  static const bool enableVocabularyEnhancement = true;
 
   // Firebase-only guardrails (operational reminders)
   static const int keyRotationDays = 14;

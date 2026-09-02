@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
 import '../config/firebase_rtdb_config.dart';
 import '../config/rtdb_list_config.dart';
@@ -9,6 +9,7 @@ import '../utils/category_names.dart';
 import '../utils/debug_source_log.dart';
 import 'api_daily_cache_keys.dart';
 import 'local_database_service.dart';
+import 'web_api_daily_cache.dart';
 
 class FirebaseService {
   static const String _baseUrl = kFirebaseRtdbBaseUrl;
@@ -25,18 +26,21 @@ class FirebaseService {
 
   /// Tối đa một lần tải [HomePage.json] mỗi ngày (SQLite); dùng chung cho Home, player, favourites.
   Future<List<Category>> getHomePageData() async {
-    // Web: SQLite (sqflite_common_ffi_web) cần sqlite3.wasm trong web/; nếu thiếu, open DB trả null
-    // → lỗi "unsupported result null (null)". Tránh SQLite cho luồng Home trên web.
+    final key = ApiDailyCacheKeys.homePage;
+
+    // Web: SharedPreferences daily cache (không dùng SQLite / wasm).
     if (kIsWeb) {
-      debugLogDataSource(
-        'HomePage',
-        'Web: skip SQLite cache — RTDB REST direct',
-      );
+      final webCached = await WebApiDailyCache.getPayload(key);
+      if (webCached != null && webCached.isNotEmpty) {
+        debugLogDataSource('HomePage', 'Web SharedPreferences daily cache HIT');
+        return parseHomePageFromJsonBody(webCached);
+      }
+      debugLogDataSource('HomePage', 'Web: RTDB REST (cold day)');
       final body = await fetchHomePageJsonBody();
+      await WebApiDailyCache.putPayload(key, body);
       return parseHomePageFromJsonBody(body);
     }
 
-    final key = ApiDailyCacheKeys.homePage;
     final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
     final cached = await _apiCacheDb.getApiDailyCachePayload(key);
 
@@ -223,7 +227,7 @@ class FirebaseService {
     return episodes;
   }
 
-  /// Tải episode từ RTDB theo payload FCM playMP3 (`category`, `year`, `episodeKey`, `episodeId`).
+  /// Tải episode từ RTDB theo payload FCM playMP3 (`category`, `year`, `episodeKey`, `rtdbPath`, `episodeId`).
   ///
   /// playMP3 ghi `/{category}/{year}/{episodeKey}` — key là số tập, GUID nằm trong field `Id`.
   static Future<Episode?> fetchEpisodeFromPushNotification({
@@ -231,9 +235,33 @@ class FirebaseService {
     String? category,
     String? year,
     String? episodeKey,
+    String? rtdbPath,
   }) async {
     if (episodeId.isEmpty) return null;
-    if (category == null || category.isEmpty) return null;
+
+    final sanitizedPath = _sanitizeRtdbPath(rtdbPath);
+    if (sanitizedPath != null) {
+      final fromPath = await _fetchEpisodeAtRtdbPath(sanitizedPath, episodeId);
+      if (fromPath != null) return fromPath;
+    }
+
+    if (category == null || category.isEmpty) {
+      if (sanitizedPath == null) return null;
+      return fetchEpisodeFull(
+        Episode(
+          actor: '',
+          category: '',
+          duration: '0',
+          publishedDate: DateTime.now(),
+          episodeName: '',
+          transcript: '',
+          thumbImage: '',
+          id: episodeId,
+          year: year,
+          rtdbPath: sanitizedPath,
+        ),
+      );
+    }
 
     final yearInt = int.tryParse(year ?? '');
     final pathsToTry = <String>[];
@@ -280,6 +308,7 @@ class FirebaseService {
       thumbImage: '',
       id: episodeId,
       year: year,
+      rtdbPath: sanitizedPath,
     );
     return fetchEpisodeFull(partial);
   }
@@ -289,13 +318,126 @@ class FirebaseService {
     return a.toLowerCase() == b.toLowerCase();
   }
 
-  /// Lấy episode đầy đủ (transcript/vocab) từ tree gốc — dùng sau khi list chỉ có bản mỏng.
-  ///
-  /// Thử `GET /{category}/{year}/{id}.json` hoặc `/{category}/{id}.json`; nếu không có (array layout),
-  /// fallback tải cả năm / cả category **không** qua `List/`.
-  static Future<Episode?> fetchEpisodeFull(Episode partial) async {
+  static bool _episodeHasTranscript(Episode e) {
+    if (e.transcript.trim().isNotEmpty) return true;
+    final html = e.transcriptHtml?.trim();
+    return html != null && html.isNotEmpty;
+  }
+
+  /// Chỉ cho phép path an toàn: `6M/2026/11`, `AS/OF/11`, …
+  static String? _sanitizeRtdbPath(String? raw) {
+    if (raw == null) return null;
+    var path = raw.trim().replaceAll('\\', '/');
+    while (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    if (path.toLowerCase().endsWith('.json')) {
+      path = path.substring(0, path.length - 5);
+    }
+    if (path.isEmpty || path.contains('..')) return null;
+    if (!RegExp(r'^[A-Za-z0-9_/\-]+$').hasMatch(path)) return null;
+    return path;
+  }
+
+  static Future<Episode?> _fetchEpisodeAtRtdbPath(
+    String rtdbPath,
+    String preferredId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/$rtdbPath.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode != 200 ||
+          response.body.isEmpty ||
+          response.body == 'null') {
+        return null;
+      }
+      final decoded = json.decode(response.body);
+      if (decoded is! Map<String, dynamic>) return null;
+      final resolvedId = decoded['Id']?.toString();
+      final id = (resolvedId != null && resolvedId.isNotEmpty)
+          ? resolvedId
+          : preferredId;
+      final episode = Episode.fromJson(decoded, id);
+      if (episode.rtdbPath == null || episode.rtdbPath!.isEmpty) {
+        return Episode(
+          id: episode.id,
+          actor: episode.actor,
+          category: episode.category,
+          duration: episode.duration,
+          publishedDate: episode.publishedDate,
+          episodeName: episode.episodeName,
+          transcript: episode.transcript,
+          thumbImage: episode.thumbImage,
+          fileUrl: episode.fileUrl,
+          secondFileUrl: episode.secondFileUrl,
+          summary: episode.summary,
+          year: episode.year,
+          transcriptHtml: episode.transcriptHtml,
+          vocabulary: episode.vocabulary,
+          vocabularies: episode.vocabularies,
+          rtdbPath: rtdbPath,
+        );
+      }
+      return episode;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Mô tả ngắn đường dẫn sẽ thử khi mở detail từ Home/List (debug).
+  static String describeEpisodeDetailRequest(Episode partial) {
+    final id = partial.id ?? '?';
+    final rtdb = _sanitizeRtdbPath(partial.rtdbPath);
+    if (rtdb != null && rtdb.isNotEmpty) {
+      return 'Request detail → GET /$rtdb.json (RtdbPath, id=$id)';
+    }
+
+    final category = partial.category;
+    var yearParsed = int.tryParse(partial.year ?? '');
+    if (yearParsed == null && partial.publishedDate.year > 1800) {
+      yearParsed = partial.publishedDate.year;
+    }
+    if (yearParsed != null && yearParsed > 1800) {
+      return 'Request detail → GET /$category/$yearParsed/$id.json (fallback, chưa có RtdbPath)';
+    }
+    return 'Request detail → GET /$category/$id.json (fallback, không year)';
+  }
+
+  /// Kết quả [fetchEpisodeFullWithSource] — dùng snackbar debug.
+  static Future<EpisodeFullFetchOutcome> fetchEpisodeFullWithSource(
+    Episode partial,
+  ) async {
     final id = partial.id;
-    if (id == null || id.isEmpty) return null;
+    if (id == null || id.isEmpty) {
+      return const EpisodeFullFetchOutcome(null, 'MISS — thiếu episode id');
+    }
+
+    // SQLite first — đã hydrate trước đó thì không gọi RTDB.
+    if (!kIsWeb) {
+      try {
+        final fromDb = await LocalDatabaseService().getEpisodeById(id);
+        if (fromDb != null && _episodeHasTranscript(fromDb)) {
+          final label = 'SQLite cache ($id)';
+          _debugEpisodeDetailFetch(label);
+          return EpisodeFullFetchOutcome(fromDb, label);
+        }
+      } catch (e) {
+        debugPrint('fetchEpisodeFull SQLite lookup failed: $e');
+      }
+    }
+
+    final path = _sanitizeRtdbPath(partial.rtdbPath);
+    if (path != null) {
+      final fromPath = await _fetchEpisodeAtRtdbPath(path, id);
+      if (fromPath != null) {
+        final label = 'GET /$path.json (RtdbPath)';
+        _debugEpisodeDetailFetch(label);
+        return EpisodeFullFetchOutcome(fromPath, label);
+      }
+      debugPrint('[EpisodeDetail] RtdbPath MISS /$path.json — fallback');
+    }
 
     var category = partial.category;
     if (category.isEmpty) {
@@ -307,9 +449,10 @@ class FirebaseService {
     }
 
     if (yearParsed != null && yearParsed > 1800) {
+      final yearPath = '$category/$yearParsed/$id';
       try {
         final direct = await http.get(
-          Uri.parse('$_baseUrl/$category/$yearParsed/$id.json'),
+          Uri.parse('$_baseUrl/$yearPath.json'),
           headers: {'Accept': 'application/json'},
         );
         if (direct.statusCode == 200 &&
@@ -317,15 +460,20 @@ class FirebaseService {
             direct.body != 'null') {
           final decoded = json.decode(direct.body);
           if (decoded is Map<String, dynamic>) {
-            return Episode.fromJson(decoded, id);
+            final label = 'GET /$yearPath.json';
+            _debugEpisodeDetailFetch(label);
+            return EpisodeFullFetchOutcome(
+              Episode.fromJson(decoded, id),
+              label,
+            );
           }
         }
       } catch (_) {}
 
-      // Another Series full tree: `/AS/{sub}/{year}/{id}.json`
+      final asYearPath = 'AS/$category/$yearParsed/$id';
       try {
         final asYear = await http.get(
-          Uri.parse('$_baseUrl/AS/$category/$yearParsed/$id.json'),
+          Uri.parse('$_baseUrl/$asYearPath.json'),
           headers: {'Accept': 'application/json'},
         );
         if (asYear.statusCode == 200 &&
@@ -333,7 +481,12 @@ class FirebaseService {
             asYear.body != 'null') {
           final decoded = json.decode(asYear.body);
           if (decoded is Map<String, dynamic>) {
-            return Episode.fromJson(decoded, id);
+            final label = 'GET /$asYearPath.json';
+            _debugEpisodeDetailFetch(label);
+            return EpisodeFullFetchOutcome(
+              Episode.fromJson(decoded, id),
+              label,
+            );
           }
         }
       } catch (_) {}
@@ -341,14 +494,40 @@ class FirebaseService {
       try {
         final bulk = await getCategoryDataLegacyFull(category, yearParsed);
         for (final e in bulk) {
-          if (e.id == id) return e;
+          if (_episodeIdsMatch(e.id ?? '', id)) {
+            final label = 'bulk GET /$category/$yearParsed.json (match id)';
+            _debugEpisodeDetailFetch(label);
+            return EpisodeFullFetchOutcome(e, label);
+          }
+        }
+      } catch (_) {}
+
+      final asBulkPath = 'AS/$category/$yearParsed';
+      try {
+        final asYearBulk = await http.get(
+          Uri.parse('$_baseUrl/$asBulkPath.json'),
+          headers: {'Accept': 'application/json'},
+        );
+        if (asYearBulk.statusCode == 200 &&
+            asYearBulk.body.isNotEmpty &&
+            asYearBulk.body != 'null') {
+          final decoded = json.decode(asYearBulk.body);
+          final episodes = _parseAnotherSeriesPayload(decoded);
+          for (final e in episodes) {
+            if (_episodeIdsMatch(e.id ?? '', id)) {
+              final label = 'bulk GET /$asBulkPath.json (match id)';
+              _debugEpisodeDetailFetch(label);
+              return EpisodeFullFetchOutcome(e, label);
+            }
+          }
         }
       } catch (_) {}
     }
 
+    final flatPath = '$category/$id';
     try {
       final direct = await http.get(
-        Uri.parse('$_baseUrl/$category/$id.json'),
+        Uri.parse('$_baseUrl/$flatPath.json'),
         headers: {'Accept': 'application/json'},
       );
       if (direct.statusCode == 200 &&
@@ -356,15 +535,20 @@ class FirebaseService {
           direct.body != 'null') {
         final decoded = json.decode(direct.body);
         if (decoded is Map<String, dynamic>) {
-          return Episode.fromJson(decoded, id);
+          final label = 'GET /$flatPath.json';
+          _debugEpisodeDetailFetch(label);
+          return EpisodeFullFetchOutcome(
+            Episode.fromJson(decoded, id),
+            label,
+          );
         }
       }
     } catch (_) {}
 
-    // Another Series full tree: `/AS/{sub}/{id}.json`
+    final asFlatPath = 'AS/$category/$id';
     try {
       final asDirect = await http.get(
-        Uri.parse('$_baseUrl/AS/$category/$id.json'),
+        Uri.parse('$_baseUrl/$asFlatPath.json'),
         headers: {'Accept': 'application/json'},
       );
       if (asDirect.statusCode == 200 &&
@@ -372,7 +556,12 @@ class FirebaseService {
           asDirect.body != 'null') {
         final decoded = json.decode(asDirect.body);
         if (decoded is Map<String, dynamic>) {
-          return Episode.fromJson(decoded, id);
+          final label = 'GET /$asFlatPath.json';
+          _debugEpisodeDetailFetch(label);
+          return EpisodeFullFetchOutcome(
+            Episode.fromJson(decoded, id),
+            label,
+          );
         }
       }
     } catch (_) {}
@@ -380,19 +569,40 @@ class FirebaseService {
     try {
       final bulk = await getCategoryDataWithoutYearLegacyFull(category);
       for (final e in bulk) {
-        if (e.id == id) return e;
+        if (_episodeIdsMatch(e.id ?? '', id)) {
+          final label = 'bulk GET /$category.json (match id)';
+          _debugEpisodeDetailFetch(label);
+          return EpisodeFullFetchOutcome(e, label);
+        }
       }
     } catch (_) {}
 
-    // Another Series: fallback bulk `/AS/{sub}.json` rồi match theo guid.
     try {
       final asBulk = await getAnotherSeriesFullBulk(category);
       for (final e in asBulk) {
-        if (e.id == id) return e;
+        if (_episodeIdsMatch(e.id ?? '', id)) {
+          final label = 'bulk GET /AS/$category.json (match id)';
+          _debugEpisodeDetailFetch(label);
+          return EpisodeFullFetchOutcome(e, label);
+        }
       }
     } catch (_) {}
 
-    return null;
+    const label = 'MISS — không tìm thấy full episode sau mọi fallback';
+    _debugEpisodeDetailFetch(label);
+    return const EpisodeFullFetchOutcome(null, label);
+  }
+
+  static void _debugEpisodeDetailFetch(String message) {
+    debugPrint('[EpisodeDetail] $message');
+    debugLogDataSource('EpisodeDetail', message);
+  }
+
+  /// Lấy episode đầy đủ (transcript/vocab) từ tree gốc — dùng sau khi list chỉ có bản mỏng.
+  ///
+  /// Thứ tự: SQLite → RtdbPath GET → direct GET theo path → bulk theo năm/category.
+  static Future<Episode?> fetchEpisodeFull(Episode partial) async {
+    return (await fetchEpisodeFullWithSource(partial)).episode;
   }
 
   /// Khi JSON episode thiếu `Category` (dữ liệu migrate), thử khớp id trong tree gốc.
@@ -564,8 +774,73 @@ class FirebaseService {
   }
 
   /// Lấy danh sách sub key của AS cho Home/Other.
-  /// Lưu ý: phiên bản "cũ" chỉ đọc đúng 1 nhánh theo [forHomePage].
+  /// Cache SQLite tối đa 1 lần/ngày (mobile); web luôn fetch (xem [web_api_daily_cache]).
   static Future<List<String>> fetchAnotherSeriesSubKeys({
+    required bool forHomePage,
+  }) async {
+    final cacheKey = forHomePage
+        ? ApiDailyCacheKeys.anotherSeriesSubKeysHome
+        : ApiDailyCacheKeys.anotherSeriesSubKeysList;
+
+    if (!kIsWeb) {
+      try {
+        final db = LocalDatabaseService();
+        final lastFetched = await db.getApiDailyLastFetched(cacheKey);
+        final cached = await db.getApiDailyCachePayload(cacheKey);
+        if (_isFetchedTodayStatic(lastFetched) &&
+            cached != null &&
+            cached.isNotEmpty) {
+          final decoded = json.decode(cached);
+          if (decoded is List) {
+            final keys = decoded.map((e) => e.toString()).toList();
+            if (keys.isNotEmpty) {
+              debugLogDataSource(
+                'AS',
+                'SQLite api_daily_cache ($cacheKey) — skip RTDB sub-keys',
+              );
+              return keys;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('AS sub-keys cache read failed: $e');
+      }
+    } else {
+      final webCached = await WebApiDailyCache.getStringList(cacheKey);
+      if (webCached != null && webCached.isNotEmpty) {
+        return webCached;
+      }
+    }
+
+    final keys = await _fetchAnotherSeriesSubKeysNetwork(forHomePage: forHomePage);
+    if (keys.isEmpty) return keys;
+
+    try {
+      final payload = json.encode(keys);
+      if (!kIsWeb) {
+        await LocalDatabaseService().upsertApiDailyCache(
+          cacheKey,
+          payload,
+          DateTime.now(),
+        );
+      } else {
+        await WebApiDailyCache.putStringList(cacheKey, keys);
+      }
+    } catch (e) {
+      debugPrint('AS sub-keys cache write failed: $e');
+    }
+    return keys;
+  }
+
+  static bool _isFetchedTodayStatic(DateTime? lastFetched) {
+    if (lastFetched == null) return false;
+    final now = DateTime.now();
+    return now.year == lastFetched.year &&
+        now.month == lastFetched.month &&
+        now.day == lastFetched.day;
+  }
+
+  static Future<List<String>> _fetchAnotherSeriesSubKeysNetwork({
     required bool forHomePage,
   }) async {
     // Luôn ưu tiên `List/...` vì payload mỏng, đúng chuẩn sub keys (OF/EIM/...)
@@ -605,9 +880,9 @@ class FirebaseService {
       }
 
       // Fallback: nếu node `List/AS` chưa có/đã đổi, thử đọc key trực tiếp từ tree đầy đủ `/AS.json`.
-      return _fetchAnotherSeriesSubKeysFromFullTree();
+      return await _fetchAnotherSeriesSubKeysFromFullTree();
     } catch (_) {
-      return _fetchAnotherSeriesSubKeysFromFullTree();
+      return await _fetchAnotherSeriesSubKeysFromFullTree();
     }
   }
 
@@ -662,6 +937,7 @@ class FirebaseService {
             vocabulary: e.vocabulary,
             vocabularies: e.vocabularies,
             level: e.level,
+            rtdbPath: e.rtdbPath,
           ),
         )
         .toList();
@@ -749,4 +1025,12 @@ class FirebaseService {
       return [];
     }
   }
+}
+
+/// Kết quả hydrate episode detail — dùng snackbar debug.
+class EpisodeFullFetchOutcome {
+  final Episode? episode;
+  final String sourceLabel;
+
+  const EpisodeFullFetchOutcome(this.episode, this.sourceLabel);
 }

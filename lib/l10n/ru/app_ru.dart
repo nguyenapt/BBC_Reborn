@@ -278,6 +278,28 @@ class AppRu {
     'clearImageCacheDialogBody':
         'Вы уверены, что хотите удалить все закэшированные изображения?',
     'clearImageCacheSuccess': 'Кэш изображений очищен',
+    'storageAndCache': 'Хранилище и кэш',
+    'manageAppCache': 'Управление кэшем на этом устройстве',
+    'manageAppCacheHint':
+        'Выберите, что очистить. Прогресс обучения и избранное сохраняются.',
+    'totalCacheSize': 'Общий размер',
+    'cacheCategoryImages': 'Изображения',
+    'cacheCategoryImagesDesc': 'Обложки и миниатюры эпизодов',
+    'cacheCategoryAudioStream': 'Кэш аудиопотока',
+    'cacheCategoryAudioStreamDesc': 'Временное аудио, сохранённое при стриминге',
+    'cacheCategoryDownloads': 'Скачанные эпизоды',
+    'cacheCategoryDownloadsDesc':
+        'Удаляет офлайн-загрузки. Позже их можно скачать снова.',
+    'cacheCategoryAiLocal': 'Локальный кэш ИИ',
+    'cacheCategoryAiLocalDesc': 'Переводы и ответы ИИ, сохранённые на устройстве',
+    'selectAll': 'Выбрать всё',
+    'deselectAll': 'Снять выбор',
+    'clearSelectedCache': 'Очистить выбранное',
+    'clearCacheConfirmTitle': 'Очистить выбранный кэш?',
+    'clearCacheConfirmBody':
+        'Будет очищено: {items}. Это действие нельзя отменить.',
+    'clearCacheSuccess': 'Выбранный кэш очищен',
+    'clearCacheFailed': 'Не удалось очистить кэш',
     'copiedToClipboard': 'Скопировано',
     'googleTranslateOpenFailed': 'Не удалось открыть Google Переводчик',
     'transcriptPlayFromSeconds': 'Воспроизведение с {seconds} с',
@@ -418,7 +440,6 @@ class AppRu {
     'sleepTimerEndOfEpisode': 'Конец эпизода',
     'sleepTimerOff': 'Выкл.',
     'sleepTimerMinutes': '{minutes} мин',
-    'autoPlayNowPlaying': 'Сейчас играет: {title}',
     'autoPlayEnabledHint':
         'Автовоспроизведение включено. Следующий эпизод в этой категории будет воспроизведён автоматически.',
   };

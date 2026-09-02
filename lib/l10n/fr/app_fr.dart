@@ -261,6 +261,28 @@ class AppFr {
     'clearImageCacheDialogBody':
         'Êtes-vous sûr de vouloir supprimer toutes les images en cache ?',
     'clearImageCacheSuccess': 'Cache d\'images vidé avec succès',
+    'storageAndCache': 'Stockage et cache',
+    'manageAppCache': 'Gérer les données en cache sur cet appareil',
+    'manageAppCacheHint':
+        'Choisissez ce qu\'il faut effacer. La progression et les favoris sont conservés.',
+    'totalCacheSize': 'Taille totale',
+    'cacheCategoryImages': 'Images',
+    'cacheCategoryImagesDesc': 'Couvertures et miniatures des épisodes',
+    'cacheCategoryAudioStream': 'Cache audio en streaming',
+    'cacheCategoryAudioStreamDesc': 'Audio temporaire enregistré pendant le streaming',
+    'cacheCategoryDownloads': 'Épisodes téléchargés',
+    'cacheCategoryDownloadsDesc':
+        'Supprime les téléchargements hors ligne. Vous pourrez les retélécharger.',
+    'cacheCategoryAiLocal': 'Cache IA local',
+    'cacheCategoryAiLocalDesc': 'Traductions et réponses IA mises en cache sur l\'appareil',
+    'selectAll': 'Tout sélectionner',
+    'deselectAll': 'Tout désélectionner',
+    'clearSelectedCache': 'Effacer la sélection',
+    'clearCacheConfirmTitle': 'Effacer le cache sélectionné ?',
+    'clearCacheConfirmBody':
+        'Les éléments suivants seront effacés : {items}. Cette action est irréversible.',
+    'clearCacheSuccess': 'Cache sélectionné effacé',
+    'clearCacheFailed': 'Impossible d\'effacer le cache',
     'copiedToClipboard': 'Copié',
     'googleTranslateOpenFailed': 'Impossible d\'ouvrir Google Traduction',
     'transcriptPlayFromSeconds': 'Lire à partir de {seconds} s',
@@ -399,7 +421,6 @@ class AppFr {
     'sleepTimerEndOfEpisode': 'Fin de l\'épisode',
     'sleepTimerOff': 'Désactivé',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'En cours : {title}',
     'autoPlayEnabledHint':
         'La lecture automatique est activée. Le prochain épisode de cette catégorie sera lu automatiquement.',
 
