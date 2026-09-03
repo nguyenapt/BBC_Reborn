@@ -66,6 +66,7 @@ namespace playMP3
         /// (grammar_by_episode) to avoid duplicate caches; this method kept for optional tools.
         /// </summary>
         public static async Task PutGrammarPassageCacheAsync(
+            string firebaseRtdbBaseUrl,
             string passage,
             string languageCode,
             string episodeId,
@@ -74,13 +75,14 @@ namespace playMP3
             if (string.IsNullOrWhiteSpace(episodeId))
                 throw new ArgumentException("episodeId required.", nameof(episodeId));
 
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var modelVersion = GrammarCacheConstants.GrammarModelVersion;
             var promptVersion = GrammarCacheConstants.GrammarPassagePromptVersion;
             var schemaVersion = GrammarCacheConstants.GrammarPassageSchemaVersion;
             var passageHash = GrammarCacheKeyHelper.GrammarPassageHashPathSegment(
                 passage, languageCode, episodeId, modelVersion, promptVersion, schemaVersion);
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/" + GrammarCacheConstants.GrammarPassagePath + "/" + passageHash + "/" + safeLang + ".json";
 
             var normalizedData = (grammarPassageDataMap ?? new JObject()).DeepClone() as JObject ?? new JObject();

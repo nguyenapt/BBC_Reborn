@@ -245,6 +245,15 @@ namespace playMP3
             }
         }
 
+        /// <summary>RTDB base URL from selected CloudService (same as <c>txtUrl</c> used on submit).</summary>
+        private string GetFirebaseRtdbBaseUrl()
+        {
+            var url = !string.IsNullOrWhiteSpace(txtUrl.Text)
+                ? txtUrl.Text
+                : ConfigModel.SelectedCloudService?.Url;
+            return GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(url);
+        }
+
         private void ApplyVoaLevelToEpisode(Episode episode)
         {
             if (!IsVoaCloudService() || cbLevel == null || !cbLevel.Enabled)
@@ -1058,14 +1067,16 @@ namespace playMP3
                 }
             }
 
+            var firebaseRtdbBaseUrl = GetFirebaseRtdbBaseUrl();
+
             if (exportTranslation)
-                await UploadTranslationsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadTranslationsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportGrammar)
-                await UploadGrammarAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadGrammarAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportVocabulary)
-                await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadVocabularyAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportQuestions)
-                await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadQuestionsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
 
             return true;
         }
@@ -1643,7 +1654,7 @@ namespace playMP3
                 return;
             }
 
-            using (var dlg = new FrmAiCacheCleanup(secret))
+            using (var dlg = new FrmAiCacheCleanup(GetFirebaseRtdbBaseUrl(), secret))
             {
                 dlg.ShowDialog(this);
             }
@@ -2511,7 +2522,7 @@ namespace playMP3
         /// Upload grammar_by_episode với <paramref name="lineNumber"/> 0-based (i trong vòng lặp = line_0 cho dòng đầu).
         /// RTDB cũ dùng line_1 cho dòng đầu cần re-upload hoặc chạy script migrate trước khi phát hành app mới.
         /// </summary>
-        private async Task UploadGrammarAiCachesAsync(string episodeId)
+        private async Task UploadGrammarAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2570,7 +2581,7 @@ namespace playMP3
                         // Sentence schema or passage dual-map → same path (grammar + grammar_by_episode).
                         // Dual payload keeps grammarPoint/explanation for old apps + overall/sentenceAnalyses for new apps.
                         await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
-                            sentence, langCode, episodeId, data, i).ConfigureAwait(true);
+                            firebaseRtdbBaseUrl, sentence, langCode, episodeId, data, i).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -2586,7 +2597,7 @@ namespace playMP3
         /// Đẩy lên Firebase RTDB giống Flutter <c>AIFirebaseCacheService</c>: mỗi từ × mỗi mã ngôn ngữ.
         /// <c>data</c> = object enhancement (synonyms, …) + <c>meaning</c> gloss theo tab (En hoặc đã dịch).
         /// </summary>
-        private async Task UploadVocabularyAiCachesAsync(string episodeId)
+        private async Task UploadVocabularyAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2657,7 +2668,7 @@ namespace playMP3
 
                     try
                     {
-                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(lemma, langCode, payload, episodeId).ConfigureAwait(true);
+                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(firebaseRtdbBaseUrl, lemma, langCode, payload, episodeId).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -2674,7 +2685,7 @@ namespace playMP3
         /// Dữ liệu lưu trong <c>data.translations</c> là mảng item có
         /// <c>original</c>, <c>translated</c>, <c>lineNumber</c> (0-based, khớp transcript row index).
         /// </summary>
-        private async Task UploadTranslationsAiCachesAsync(string episodeId)
+        private async Task UploadTranslationsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2725,7 +2736,7 @@ namespace playMP3
 
                 try
                 {
-                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(episodeId, langCode, arr).ConfigureAwait(true);
+                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(firebaseRtdbBaseUrl, episodeId, langCode, arr).ConfigureAwait(true);
                 }
                 catch
                 {
@@ -2739,7 +2750,7 @@ namespace playMP3
         /// <summary>
         /// Firebase RTDB <c>ai_cache/questions/{episodeId}/{count}.json</c> — khớp Flutter <c>AIFirebaseCacheService.saveQuestions</c>.
         /// </summary>
-        private async Task UploadQuestionsAiCachesAsync(string episodeId)
+        private async Task UploadQuestionsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2754,7 +2765,7 @@ namespace playMP3
 
             try
             {
-                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(episodeId, count, arr).ConfigureAwait(true);
+                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(firebaseRtdbBaseUrl, episodeId, count, arr).ConfigureAwait(true);
             }
             catch
             {

@@ -126,6 +126,7 @@ namespace playMP3
                 .Replace(".", "_dot_");
         }
 
+        /// <summary>Trim and strip trailing slash from RTDB base URL (e.g. txtUrl).</summary>
         public static string NormalizeRtdbBaseUrl(string url)
         {
             var normalized = (url ?? string.Empty).Trim().TrimEnd('/');
