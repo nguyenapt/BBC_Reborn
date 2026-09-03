@@ -22,14 +22,14 @@ class AdMobService {
   static const String _testRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
 
   // Production Ad Unit IDs (VOA Android + iOS)
-  static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/5455565346';
-  static const String _prodBannerAdUnitIdIOS = 'ca-app-pub-2189112136936277/2300897688';
-  static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/2362498141';
-  static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-2189112136936277/1568335713';
-  static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/8459002389';
-  static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-2189112136936277/2689845694';
-  static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9911945041';
-  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-2189112136936277/4735489335';
+  static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-3414812429495926/7319096087';
+  static const String _prodBannerAdUnitIdIOS = 'ca-app-pub-3414812429495926/6490219823';
+  static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-3414812429495926/8569588251';
+  static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-3414812429495926/4157851321';
+  static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-3414812429495926/2788929331';
+  static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3414812429495926/7195078203';
+  static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-3414812429495926/1667419353';
+  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3414812429495926/4756617127';
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
