@@ -859,7 +859,10 @@ namespace playMP3
             }
         }
 
-        /// <summary>GEMINI_API_KEY → GOOGLE_API_KEY → service.config; each value may be comma-separated keys.</summary>
+        /// <summary>
+        /// GEMINI_API_KEY → GOOGLE_API_KEY → service.config.
+        /// Multiple keys: prefer <c>key1;key2;key3</c> (also accepts comma). Round-robin + fallback on error.
+        /// </summary>
         private IReadOnlyList<string> TryResolveGeminiApiKeys()
         {
             var a = GeminiApiKeyList.Parse(Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
@@ -2248,7 +2251,7 @@ namespace playMP3
             {
                 MessageBox.Show(this,
                     "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config (cùng thư mục với playMP3.exe). "
-                    + "Có thể nhập nhiều key phân tách bằng dấu phẩy (,) — khi một key hết quota (429) sẽ thử key kế.",
+                    + "Nhiều key: key1;key2;key3 (cũng chấp nhận dấu phẩy). Mỗi request xoay vòng key; lỗi/quota thì fallback key kế.",
                     dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
