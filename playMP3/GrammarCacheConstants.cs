@@ -27,6 +27,10 @@ namespace playMP3
         /// <summary>MUST_SYNC Flutter passage schemaVersion for single-shot cache keys.</summary>
         public const string GrammarPassageSchemaVersion = "v2_passage_v2_slim_single";
 
+        /// <summary>
+        /// Legacy BBC default only. playMP3 must pass CloudService <c>txtUrl</c> into cache writers —
+        /// do not use this for VOA uploads.
+        /// </summary>
         public const string FirebaseRtdbBaseUrl = "https://bbc-listening-english.firebaseio.com";
 
         public const string AiCachePath = "ai_cache";

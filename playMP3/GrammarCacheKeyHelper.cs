@@ -125,5 +125,14 @@ namespace playMP3
                 .Replace("/", "_slash_")
                 .Replace(".", "_dot_");
         }
+
+        /// <summary>Trim and strip trailing slash from RTDB base URL (e.g. txtUrl).</summary>
+        public static string NormalizeRtdbBaseUrl(string url)
+        {
+            var normalized = (url ?? string.Empty).Trim().TrimEnd('/');
+            if (string.IsNullOrEmpty(normalized))
+                throw new ArgumentException("Firebase RTDB base URL is required.", nameof(url));
+            return normalized;
+        }
     }
 }
