@@ -242,6 +242,7 @@
     <Compile Include="GrammarCacheKeyHelper.cs" />
     <Compile Include="GrammarAiCacheEntryDto.cs" />
     <Compile Include="GeminiApiKeyList.cs" />
+    <Compile Include="GeminiApiKeyRotator.cs" />
     <Compile Include="GrammarGeminiService.cs" />
     <Compile Include="VocabularyGeminiService.cs" />
     <Compile Include="GrammarFirebaseCacheWriter.cs" />

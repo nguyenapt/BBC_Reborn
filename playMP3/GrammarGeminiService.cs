@@ -62,10 +62,10 @@ namespace playMP3
 
             var bodyObj = BuildRequestBody(prompt);
             string lastDetail = null;
+            var start = GeminiApiKeyRotator.TakeStartIndex(keys.Count);
 
-            for (var ki = 0; ki < keys.Count; ki++)
+            foreach (var key in GeminiApiKeyRotator.EnumerateFrom(keys, start))
             {
-                var key = keys[ki];
                 var url = BuildGeminiUrl(key);
 
                 for (var attempt = 0; attempt < MaxQuickRetriesPerKey; attempt++)
