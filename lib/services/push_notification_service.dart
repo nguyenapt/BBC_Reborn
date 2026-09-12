@@ -196,6 +196,7 @@ class PushNotificationService {
       category: category,
       year: data['year'] as String?,
       episodeKey: data['episodeKey'] as String?,
+      rtdbPath: data['rtdbPath'] as String?,
     );
   }
 
@@ -208,6 +209,7 @@ class PushNotificationService {
       'category': message.data['category'],
       'year': message.data['year'],
       'episodeKey': message.data['episodeKey'],
+      'rtdbPath': message.data['rtdbPath'],
     });
   }
 

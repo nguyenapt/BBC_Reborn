@@ -257,13 +257,15 @@ class LearningProgressService extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveProgressMap() async {
+  Future<void> _saveProgressMap({bool syncCloud = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final payload = <String, dynamic>{
       for (final e in _progressByEpisodeId.entries) e.key: e.value.toJson(),
     };
     await prefs.setString(_progressKey, json.encode(payload));
-    UserCloudSyncService().schedulePush();
+    if (syncCloud) {
+      UserCloudSyncService().schedulePush();
+    }
   }
 
   Future<void> _saveStreak() async {
@@ -276,7 +278,7 @@ class LearningProgressService extends ChangeNotifier {
         _lastActiveDate!.toIso8601String(),
       );
     }
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.normal);
   }
 
   EpisodeLearningProgress? getProgress(String episodeId) {
@@ -375,7 +377,9 @@ class LearningProgressService extends ChangeNotifier {
       }
 
       _progressByEpisodeId[id] = updated;
-      await _saveProgressMap();
+      await _saveProgressMap(syncCloud: false);
+      // Flush episode = thời điểm sync cloud (không spam khi nghe).
+      await UserCloudSyncService().flushPushNow();
 
       if (positionMs >= 15000) {
         await _recordActivityImpl(
@@ -407,7 +411,7 @@ class LearningProgressService extends ChangeNotifier {
         lastOpenedAt: DateTime.now(),
       );
       _progressByEpisodeId[id] = updated;
-      await _saveProgressMap();
+      await _saveProgressMap(syncCloud: false);
       notifyListeners();
     });
   }
@@ -444,7 +448,9 @@ class LearningProgressService extends ChangeNotifier {
         lastOpenedAt: DateTime.now(),
       );
       _progressByEpisodeId[id] = updated;
-      await _saveProgressMap();
+      // Chỉ ghi local — cloud sync debounce dài / flush khi pause.
+      await _saveProgressMap(syncCloud: false);
+      UserCloudSyncService().scheduleListeningPush();
 
       if (positionMs >= 15000) {
         await _recordActivityImpl(

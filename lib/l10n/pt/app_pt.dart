@@ -403,7 +403,6 @@ class AppPt {
     'sleepTimerEndOfEpisode': 'Fim do episódio',
     'sleepTimerOff': 'Desligar',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Reproduzindo: {title}',
     'autoPlayEnabledHint':
         'A reprodução automática está ativada. O próximo episódio desta categoria será reproduzido automaticamente.',
   };

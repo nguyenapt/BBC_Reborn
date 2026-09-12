@@ -12,6 +12,7 @@ import '../utils/debug_source_log.dart';
 import 'learning_progress_service.dart';
 import 'notification_service.dart';
 import 'media_notification_launch_handler.dart';
+import 'user_cloud_sync_service.dart';
 
 enum AudioPlayerState { stopped, playing, paused, loading }
 
@@ -375,6 +376,14 @@ class AudioPlayerService extends ChangeNotifier {
         _playerState = AudioPlayerState.stopped;
         _currentPosition = Duration.zero;
         _totalDuration = Duration.zero;
+        // Gán identity trước stop() để hydrate transcript không bị drop.
+        _currentEpisode = episode;
+        _currentCategoryEpisodes = categoryEpisodes;
+        _currentEpisodeIndex =
+            categoryEpisodes.indexWhere((e) => e.id == episode.id);
+        if (_currentEpisodeIndex == -1) {
+          _currentEpisodeIndex = 0;
+        }
         await _audioPlayer.stop();
       }
 
@@ -545,6 +554,7 @@ class AudioPlayerService extends ChangeNotifier {
           transcriptHtml: full.transcriptHtml ?? episode.transcriptHtml,
           vocabulary: full.vocabulary ?? episode.vocabulary,
           vocabularies: full.vocabularies ?? episode.vocabularies,
+          rtdbPath: full.rtdbPath ?? episode.rtdbPath,
         );
         await _localDatabaseService.upsertEpisode(fixed);
         if (_currentEpisode?.id == id) {
@@ -563,6 +573,8 @@ class AudioPlayerService extends ChangeNotifier {
     return s.length <= max ? s : '${s.substring(0, max)}…';
   }
 
+  static const Duration _streamCacheMinListen = Duration(seconds: 30);
+
   void _scheduleBackgroundStreamCacheIfNeeded() {
     if (kIsWeb) return;
     if (!_playedFromRemote) return;
@@ -570,6 +582,8 @@ class AudioPlayerService extends ChangeNotifier {
     final id = ep?.id;
     if (id == null || id.isEmpty) return;
     if (_streamCacheScheduledOrDone.contains(id)) return;
+    // Chỉ cache sau khi nghe đủ lâu — tránh tải lại full MP3 cho skip nhanh.
+    if (_currentPosition < _streamCacheMinListen) return;
     final remote = _getRemoteAudioUrl(ep!);
     if (remote == null) return;
     _streamCacheScheduledOrDone.add(id);
@@ -670,6 +684,10 @@ class AudioPlayerService extends ChangeNotifier {
       _syncNotificationProgressIfNeeded();
       _handleAbRepeatLoop(position);
       unawaited(_persistListeningProgress());
+      // Gate stream cache: chỉ sau ≥30s nghe remote.
+      if (_playedFromRemote && position >= _streamCacheMinListen) {
+        _scheduleBackgroundStreamCacheIfNeeded();
+      }
     });
 
     _onDurationChangedSub ??= _audioPlayer.onDurationChanged.listen((Duration duration) {
@@ -720,6 +738,8 @@ class AudioPlayerService extends ChangeNotifier {
       _playerState = AudioPlayerState.paused;
       notifyListeners();
       await _persistListeningProgress();
+      // Sync progress lên cloud khi pause (không spam mỗi 5s khi đang phát).
+      unawaited(UserCloudSyncService().flushPushNow());
       
       // Update notification
       if (_currentEpisode != null) {
@@ -1004,6 +1024,7 @@ class AudioPlayerService extends ChangeNotifier {
       transcriptHtml: episode.transcriptHtml,
       vocabulary: episode.vocabulary,
       vocabularies: episode.vocabularies,
+      rtdbPath: episode.rtdbPath,
     );
   }
 

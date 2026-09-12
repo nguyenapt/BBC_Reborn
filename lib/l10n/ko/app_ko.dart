@@ -397,7 +397,6 @@ class AppKo {
     'sleepTimerEndOfEpisode': '이 에피소드 끝',
     'sleepTimerOff': '끄기',
     'sleepTimerMinutes': '{minutes}분',
-    'autoPlayNowPlaying': '재생 중: {title}',
     'autoPlayEnabledHint': '자동 재생이 켜졌습니다. 이 카테고리의 다음 에피소드가 자동으로 재생됩니다.',
   };
 }

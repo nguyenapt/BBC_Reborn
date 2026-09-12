@@ -48,6 +48,8 @@ namespace playMP3
         Boolean isPlay = false;
         int intCursorPos;
         readonly Dictionary<DataGridView, Label> _transcriptRowCountLabels = new Dictionary<DataGridView, Label>();
+        CancellationTokenSource _grammarJobCts;
+        DataGridViewCheckBoxHeaderCell _grammarSelectHeaderCell;
 
         public frmMain()
         {
@@ -59,6 +61,9 @@ namespace playMP3
                 ApplyTranscriptRowGridStyle(g);
                 EnsureTranscriptRowCountLabel(g);
             }
+            ApplyEnglishGrammarSelectColumn(grvRow);
+            grvRow.CellValueChanged += GrvRow_GrammarSelectedCellValueChanged;
+            grvRow.CurrentCellDirtyStateChanged += GrvRow_GrammarSelectedDirtyStateChanged;
 
             foreach (var g in new DataGridView[] {
                 grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe })
@@ -240,6 +245,15 @@ namespace playMP3
             }
         }
 
+        /// <summary>RTDB base URL from selected CloudService (same as <c>txtUrl</c> used on submit).</summary>
+        private string GetFirebaseRtdbBaseUrl()
+        {
+            var url = !string.IsNullOrWhiteSpace(txtUrl.Text)
+                ? txtUrl.Text
+                : ConfigModel.SelectedCloudService?.Url;
+            return GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(url);
+        }
+
         private void ApplyVoaLevelToEpisode(Episode episode)
         {
             if (!IsVoaCloudService() || cbLevel == null || !cbLevel.Enabled)
@@ -269,6 +283,9 @@ namespace playMP3
                 ["ThumbImage"] = episode.ThumbImage,
                 ["Year"] = episode.Year,
             };
+
+            if (!string.IsNullOrEmpty(episode.RtdbPath))
+                payload["RtdbPath"] = episode.RtdbPath;
 
             if (!string.IsNullOrEmpty(episode.Level))
                 payload["Level"] = episode.Level;
@@ -461,6 +478,119 @@ namespace playMP3
             }
         }
 
+        private void ApplyEnglishGrammarSelectColumn(DataGridView grid)
+        {
+            if (grid.Columns.Contains("GrammarSelected"))
+                return;
+
+            var colIndex = grid.Columns.Contains("RowNumber") ? 1 : 0;
+            _grammarSelectHeaderCell = new DataGridViewCheckBoxHeaderCell
+            {
+                CheckState = CheckState.Checked,
+            };
+            _grammarSelectHeaderCell.CheckBoxClicked += (_, __) => ToggleAllGrammarSelected();
+
+            var col = new DataGridViewCheckBoxColumn
+            {
+                Name = "GrammarSelected",
+                DataPropertyName = "GrammarSelected",
+                HeaderText = string.Empty,
+                Width = 36,
+                ThreeState = false,
+                HeaderCell = _grammarSelectHeaderCell,
+            };
+            grid.Columns.Insert(colIndex, col);
+        }
+
+        private void GrvRow_GrammarSelectedDirtyStateChanged(object sender, EventArgs e)
+        {
+            if (grvRow.IsCurrentCellDirty)
+                grvRow.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+
+        private void GrvRow_GrammarSelectedCellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+            if (!grvRow.Columns[e.ColumnIndex].Name.Equals("GrammarSelected", StringComparison.Ordinal))
+                return;
+
+            SyncGrammarSelectHeaderCheckbox();
+        }
+
+        private void ToggleAllGrammarSelected()
+        {
+            if (!(grvRow.DataSource is BindingList<EpisodeRowModel> rows) || rows.Count == 0)
+                return;
+
+            var selectAll = rows.Any(r => !r.GrammarSelected);
+            foreach (var row in rows)
+                row.GrammarSelected = selectAll;
+
+            SyncGrammarSelectHeaderCheckbox();
+            grvRow.Refresh();
+        }
+
+        private void SyncGrammarSelectHeaderCheckbox()
+        {
+            if (_grammarSelectHeaderCell == null)
+                return;
+
+            if (!(grvRow.DataSource is BindingList<EpisodeRowModel> rows) || rows.Count == 0)
+            {
+                _grammarSelectHeaderCell.CheckState = CheckState.Unchecked;
+                grvRow.InvalidateColumn(grvRow.Columns["GrammarSelected"].Index);
+                return;
+            }
+
+            var selectedCount = rows.Count(r => r.GrammarSelected);
+            if (selectedCount == 0)
+                _grammarSelectHeaderCell.CheckState = CheckState.Unchecked;
+            else if (selectedCount == rows.Count)
+                _grammarSelectHeaderCell.CheckState = CheckState.Checked;
+            else
+                _grammarSelectHeaderCell.CheckState = CheckState.Indeterminate;
+
+            grvRow.InvalidateColumn(grvRow.Columns["GrammarSelected"].Index);
+        }
+
+        private static List<int> GetGrammarSelectedRowIndices(BindingList<EpisodeRowModel> englishRows)
+        {
+            var indices = new List<int>();
+            if (englishRows == null)
+                return indices;
+
+            for (var i = 0; i < englishRows.Count; i++)
+            {
+                var row = englishRows[i];
+                if (!row.GrammarSelected)
+                    continue;
+                if (string.IsNullOrWhiteSpace(row.RowContent))
+                    continue;
+                indices.Add(i);
+            }
+
+            return indices;
+        }
+
+        private Tuple<DataGridView, string>[] GetGrammarLocaleGrids()
+        {
+            return new[]
+            {
+                Tuple.Create(grvRow, "en"),
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+            };
+        }
+
         private void EnsureTranscriptRowCountLabel(DataGridView grid)
         {
             if (_transcriptRowCountLabels.ContainsKey(grid))
@@ -512,7 +642,15 @@ namespace playMP3
             for (var i = 0; i < lstRows.Length; i++)
             {
                 var trimmed = lstRows[i].Trim();
-                var m = new EpisodeRowModel { RowNumber = i, FirstDuration = 0, RowContent = trimmed, LastDuration = 0, Group = 0 };
+                var m = new EpisodeRowModel
+                {
+                    RowNumber = i,
+                    FirstDuration = 0,
+                    RowContent = trimmed,
+                    LastDuration = 0,
+                    Group = 0,
+                    GrammarSelected = true,
+                };
 
                 if (previous != null && i < previous.Count)
                 {
@@ -525,6 +663,7 @@ namespace playMP3
                         m.Group = prev.Group;
                         m.GrammarExplanationSummary = prev.GrammarExplanationSummary;
                         m.GrammarExplanationJson = prev.GrammarExplanationJson;
+                        m.GrammarSelected = prev.GrammarSelected;
                     }
                 }
 
@@ -534,6 +673,8 @@ namespace playMP3
             grid.DataSource = lstRowModels;
             grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
             UpdateTranscriptGridRowCountLabel(grid);
+            if (ReferenceEquals(grid, grvRow))
+                SyncGrammarSelectHeaderCheckbox();
         }
 
         public void ConvertToGrid()
@@ -727,7 +868,10 @@ namespace playMP3
             }
         }
 
-        /// <summary>GEMINI_API_KEY → GOOGLE_API_KEY → service.config; each value may be comma-separated keys.</summary>
+        /// <summary>
+        /// GEMINI_API_KEY → GOOGLE_API_KEY → service.config.
+        /// Multiple keys: prefer <c>key1;key2;key3</c> (also accepts comma). Round-robin + fallback on error.
+        /// </summary>
         private IReadOnlyList<string> TryResolveGeminiApiKeys()
         {
             var a = GeminiApiKeyList.Parse(Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
@@ -860,6 +1004,7 @@ namespace playMP3
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
 
             if (exportEpisodeDetail)
             {
@@ -922,14 +1067,16 @@ namespace playMP3
                 }
             }
 
+            var firebaseRtdbBaseUrl = GetFirebaseRtdbBaseUrl();
+
             if (exportTranslation)
-                await UploadTranslationsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadTranslationsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportGrammar)
-                await UploadGrammarAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadGrammarAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportVocabulary)
-                await UploadVocabularyAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadVocabularyAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportQuestions)
-                await UploadQuestionsAiCachesAsync(canonicalEpisodeId).ConfigureAwait(true);
+                await UploadQuestionsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
 
             return true;
         }
@@ -1132,6 +1279,8 @@ namespace playMP3
             var canonicalEpisodeId = episode.Id.ToString();
             episode.GrammarVocabularyCacheKeys = BuildGrammarVocabularyCacheKeysCsv(canonicalEpisodeId);
 
+            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+
             var listEpisode = new JObject
             {
                 ["Category"] = episode.Category,
@@ -1144,6 +1293,7 @@ namespace playMP3
                 ["Summary"] = episode.Summary,
                 ["ThumbImage"] = episode.ThumbImage,
                 ["Year"] = episode.Year,
+                ["RtdbPath"] = episode.RtdbPath,
             };
             if (!string.IsNullOrEmpty(episode.Level))
                 listEpisode["Level"] = episode.Level;
@@ -1155,6 +1305,7 @@ namespace playMP3
                 ["episodeNumber"] = txtNumber.Text,
                 ["homeNumber"] = txtHomeNumber.Text,
                 ["categoryPath"] = categoryPath,
+                ["rtdbPath"] = episode.RtdbPath,
                 ["listPath"] = "List/" + categoryPath + "/" + txtNumber.Text,
                 ["episode"] = JObject.FromObject(episode),
                 ["listEpisode"] = listEpisode,
@@ -1503,7 +1654,38 @@ namespace playMP3
                 return;
             }
 
-            using (var dlg = new FrmAiCacheCleanup(secret))
+            using (var dlg = new FrmAiCacheCleanup(GetFirebaseRtdbBaseUrl(), secret))
+            {
+                dlg.ShowDialog(this);
+            }
+        }
+
+        private void btnMigrateRtdbPath_Click(object sender, EventArgs e)
+        {
+            var secret = (txtSecret.Text ?? string.Empty).Trim();
+            var url = (txtUrl.Text ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(secret))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase secret vào txtSecret trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtSecret.Focus();
+                return;
+            }
+            if (string.IsNullOrEmpty(url))
+            {
+                MessageBox.Show(this,
+                    "Nhập Firebase URL vào txtUrl trước khi migrate.",
+                    "Migrate RtdbPath",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                txtUrl.Focus();
+                return;
+            }
+
+            using (var dlg = new FrmRtdbPathMigrate(url, secret))
             {
                 dlg.ShowDialog(this);
             }
@@ -1602,6 +1784,9 @@ namespace playMP3
 
             UseWaitCursor = busy;
             Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+            btngetGrammarExplaimation.Enabled = !busy;
+            btnGetGrammarPassage.Enabled = !busy;
+            btnGrammarForceStop.Enabled = busy;
             if (busy)
             {
                 toolStripProgressGrammar.Visible = true;
@@ -2055,36 +2240,72 @@ namespace playMP3
             }
         }
 
-        private Tuple<DataGridView, string>[] GrammarLocaleTabs()
+        private sealed class GrammarFillJobResult
         {
-            return new[]
+            public bool CompletedFully { get; set; }
+            public bool Cancelled { get; set; }
+        }
+
+        private bool TryPrepareGrammarJob(
+            string dialogTitle,
+            out IReadOnlyList<string> apiKeys,
+            out IReadOnlyList<int> selectedIndices)
+        {
+            apiKeys = null;
+            selectedIndices = null;
+
+            if (!ValidateGrammarGridRowCounts())
+                return false;
+
+            var resolvedKeys = TryResolveGeminiApiKeys();
+            if (resolvedKeys == null || resolvedKeys.Count == 0)
             {
-                Tuple.Create(grvRow, "en"),
-                Tuple.Create(grvViRow, "vi"),
-                Tuple.Create(grvEsRow, "es"),
-                Tuple.Create(grvArRow, "ar"),
-                Tuple.Create(grvJaRow, "ja"),
-                Tuple.Create(grvKoRow, "ko"),
-                Tuple.Create(grvPtRow, "pt"),
-                Tuple.Create(grvRuRow, "ru"),
-                Tuple.Create(grvZhRow, "zh"),
-                Tuple.Create(grvFrRow, "fr"),
-                Tuple.Create(grvDeRow, "de"),
-            };
+                MessageBox.Show(this,
+                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config (cùng thư mục với playMP3.exe). "
+                    + "Nhiều key: key1;key2;key3 (cũng chấp nhận dấu phẩy). Mỗi request xoay vòng key; lỗi/quota thì fallback key kế.",
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(txtId.Text.Trim()))
+            {
+                MessageBox.Show(this, "txtId (episode Id) trống.", dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            var englishRows = GetEpisodeRowsOrThrow(grvRow);
+            var indices = GetGrammarSelectedRowIndices(englishRows);
+            if (indices.Count == 0)
+            {
+                MessageBox.Show(this,
+                    "Chọn ít nhất một dòng trên grid EN (cột Sel).",
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            apiKeys = resolvedKeys;
+            selectedIndices = indices;
+            return true;
+        }
+
+        private void btnGrammarForceStop_Click(object sender, EventArgs e)
+        {
+            _grammarJobCts?.Cancel();
         }
 
         /// <summary>
-        /// Analyze English once per line, then translate learner fields into other locale tabs.
+        /// Analyze English once per selected line, then translate learner fields into other locale tabs.
         /// </summary>
         private async Task FillGrammarEnglishThenTranslateAsync(
             IReadOnlyList<string> apiKeys,
             BindingList<EpisodeRowModel> englishRows,
+            IReadOnlyList<int> selectedIndices,
             int delayBetweenRequestsMs,
             bool passageMode,
-            Action<string> setProgress)
+            Action<string> setProgress,
+            CancellationToken cancellationToken)
         {
-            int count = englishRows.Count;
-            var locales = GrammarLocaleTabs();
+            var locales = GetGrammarLocaleGrids();
             int activeLocales = 0;
             foreach (var loc in locales)
             {
@@ -2094,11 +2315,17 @@ namespace playMP3
 
             var jobLabel = passageMode ? "Passage" : "Grammar";
             var enRows = GetEpisodeRowsOrThrow(grvRow);
-            for (int i = 0; i < count; i++)
+            var selectedCount = selectedIndices.Count;
+            int rowOrdinal = 0;
+
+            foreach (var i in selectedIndices)
             {
-                var progressLine = jobLabel + " en " + (i + 1) + "/" + count + " (analyze)";
+                cancellationToken.ThrowIfCancellationRequested();
+                rowOrdinal++;
+                var progressLine = jobLabel + " en row " + (i + 1)
+                    + " (" + rowOrdinal + "/" + selectedCount + ") (analyze)";
                 setProgress(progressLine);
-                SetGrammarJobUiDetail(progressLine);
+
                 var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
                 if (string.IsNullOrEmpty(sentence))
                     continue;
@@ -2127,7 +2354,7 @@ namespace playMP3
                     enRows[i].GrammarExplanationJson = "";
                 }
 
-                await Task.Delay(delayBetweenRequestsMs).ConfigureAwait(true);
+                await Task.Delay(delayBetweenRequestsMs, cancellationToken).ConfigureAwait(true);
             }
 
             grvRow.EndEdit();
@@ -2136,6 +2363,8 @@ namespace playMP3
             int localeIndex = 1;
             foreach (var loc in locales)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var langCode = loc.Item2;
                 if (langCode == "en")
                     continue;
@@ -2146,13 +2375,17 @@ namespace playMP3
                 localeIndex++;
                 var targetLabel = GrammarTargetLanguageLabel(langCode);
                 var rows = GetEpisodeRowsOrThrow(grid);
+                rowOrdinal = 0;
 
-                for (int i = 0; i < count; i++)
+                foreach (var i in selectedIndices)
                 {
-                    var progressLine = jobLabel + " " + langCode + " " + (i + 1) + "/" + count
+                    cancellationToken.ThrowIfCancellationRequested();
+                    rowOrdinal++;
+
+                    var progressLine = jobLabel + " " + langCode + " row " + (i + 1)
+                        + " (" + rowOrdinal + "/" + selectedCount + ")"
                         + " (translate, tab " + localeIndex + "/" + Math.Max(1, activeLocales) + ")";
                     setProgress(progressLine);
-                    SetGrammarJobUiDetail(progressLine);
 
                     var enJson = enRows[i].GrammarExplanationJson;
                     if (string.IsNullOrWhiteSpace(enJson))
@@ -2176,7 +2409,7 @@ namespace playMP3
                         rows[i].GrammarExplanationJson = "";
                     }
 
-                    await Task.Delay(delayBetweenRequestsMs).ConfigureAwait(true);
+                    await Task.Delay(delayBetweenRequestsMs, cancellationToken).ConfigureAwait(true);
                 }
 
                 grid.EndEdit();
@@ -2184,59 +2417,92 @@ namespace playMP3
             }
         }
 
-        private async void btngetGrammarExplaimation_Click(object sender, EventArgs e)
+        private async Task<GrammarFillJobResult> RunGrammarFillJobAsync(
+            bool passageMode,
+            IReadOnlyList<string> apiKeys,
+            IReadOnlyList<int> selectedIndices,
+            CancellationToken cancellationToken,
+            Action<string> updateProgress)
         {
-            if (!ValidateGrammarGridRowCounts())
-                return;
-
-            var apiKeys = TryResolveGeminiApiKeys();
-            if (apiKeys == null || apiKeys.Count == 0)
-            {
-                MessageBox.Show(this,
-                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config (cùng thư mục với playMP3.exe). "
-                    + "Có thể nhập nhiều key phân tách bằng dấu phẩy (,) — khi một key hết quota (429) sẽ thử key kế.",
-                    "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var episodeId = txtId.Text.Trim();
-            if (string.IsNullOrEmpty(episodeId))
-            {
-                MessageBox.Show(this, "txtId (episode Id) trống.", "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             var englishRows = GetEpisodeRowsOrThrow(grvRow);
-            int delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
+            var delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
+            await FillGrammarEnglishThenTranslateAsync(
+                apiKeys,
+                englishRows,
+                selectedIndices,
+                delayBetweenRequestsMs,
+                passageMode,
+                updateProgress,
+                cancellationToken).ConfigureAwait(true);
+            return new GrammarFillJobResult { CompletedFully = true };
+        }
 
-            var grammarBtnOriginalText = btngetGrammarExplaimation.Text;
+        private async Task<GrammarFillJobResult> RunGrammarJobWithUiAsync(
+            bool passageMode,
+            IReadOnlyList<string> apiKeys,
+            IReadOnlyList<int> selectedIndices,
+            string busyStatusLine,
+            string titleSuffix,
+            Button progressButton)
+        {
             var formTitleOriginal = Text;
-            btngetGrammarExplaimation.Enabled = false;
-            var grammarJobOk = false;
+            var progressButtonOriginalText = progressButton.Text;
+            _grammarJobCts = new CancellationTokenSource();
+            var result = new GrammarFillJobResult();
+
             try
             {
-                SetGrammarJobUiBusy(true);
-                Text = formTitleOriginal + " — Grammar đang chạy…";
-                await FillGrammarEnglishThenTranslateAsync(
+                SetGrammarJobUiBusy(true, busyStatusLine);
+                Text = formTitleOriginal + titleSuffix;
+
+                result = await RunGrammarFillJobAsync(
+                    passageMode,
                     apiKeys,
-                    englishRows,
-                    delayBetweenRequestsMs,
-                    passageMode: false,
-                    setProgress: line => { btngetGrammarExplaimation.Text = line; }).ConfigureAwait(true);
-                grammarJobOk = true;
+                    selectedIndices,
+                    _grammarJobCts.Token,
+                    progressLine =>
+                    {
+                        progressButton.Text = progressLine;
+                        SetGrammarJobUiDetail(progressLine);
+                    }).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                result.Cancelled = true;
+                toolStripStatusLabelGrammar.Text = "Đã dừng — các dòng đã xử lý được giữ lại.";
             }
             finally
             {
                 Text = formTitleOriginal;
                 SetGrammarJobUiBusy(false);
-                btngetGrammarExplaimation.Text = grammarBtnOriginalText;
-                btngetGrammarExplaimation.Enabled = true;
+                progressButton.Text = progressButtonOriginalText;
+                if (_grammarJobCts != null)
+                {
+                    _grammarJobCts.Dispose();
+                    _grammarJobCts = null;
+                }
             }
 
-            if (grammarJobOk)
+            return result;
+        }
+
+        private async void btngetGrammarExplaimation_Click(object sender, EventArgs e)
+        {
+            if (!TryPrepareGrammarJob("Grammar", out var apiKeys, out var selectedIndices))
+                return;
+
+            var result = await RunGrammarJobWithUiAsync(
+                passageMode: false,
+                apiKeys,
+                selectedIndices,
+                busyStatusLine: null,
+                titleSuffix: " — Grammar đang chạy…",
+                progressButton: btngetGrammarExplaimation).ConfigureAwait(true);
+
+            if (result.CompletedFully)
             {
                 MessageBox.Show(this,
-                    "Đã phân tích grammar tiếng Anh rồi dịch sang các tab transcript. Export ghi từng locale vào ai_cache/grammar_by_episode.",
+                    "Đã phân tích grammar tiếng Anh cho các dòng đã chọn, rồi dịch sang các tab transcript. Export ghi từng locale vào ai_cache/grammar_by_episode.",
                     "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2246,60 +2512,21 @@ namespace playMP3
         /// </summary>
         private async void btnGetGrammarPassage_Click(object sender, EventArgs e)
         {
-            if (!ValidateGrammarGridRowCounts())
+            if (!TryPrepareGrammarJob("Grammar Passage", out var apiKeys, out var selectedIndices))
                 return;
 
-            var apiKeys = TryResolveGeminiApiKeys();
-            if (apiKeys == null || apiKeys.Count == 0)
+            var result = await RunGrammarJobWithUiAsync(
+                passageMode: true,
+                apiKeys,
+                selectedIndices,
+                busyStatusLine: "Đang chạy grammar passage (EN rồi dịch)…",
+                titleSuffix: " — Grammar Passage đang chạy…",
+                progressButton: btnGetGrammarPassage).ConfigureAwait(true);
+
+            if (result.CompletedFully)
             {
                 MessageBox.Show(this,
-                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config (cùng thư mục với playMP3.exe). "
-                    + "Có thể nhập nhiều key phân tách bằng dấu phẩy (,) — khi một key hết quota (429) sẽ thử key kế.",
-                    "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var episodeId = txtId.Text.Trim();
-            if (string.IsNullOrEmpty(episodeId))
-            {
-                MessageBox.Show(this, "txtId (episode Id) trống.", "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var englishRows = GetEpisodeRowsOrThrow(grvRow);
-            int delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
-
-            var grammarBtnOriginalText = btnGetGrammarPassage.Text;
-            var sentenceBtnWasEnabled = btngetGrammarExplaimation.Enabled;
-            var formTitleOriginal = Text;
-            btnGetGrammarPassage.Enabled = false;
-            btngetGrammarExplaimation.Enabled = false;
-            var grammarJobOk = false;
-            try
-            {
-                SetGrammarJobUiBusy(true, "Đang chạy grammar passage (EN rồi dịch)…");
-                Text = formTitleOriginal + " — Grammar Passage đang chạy…";
-                await FillGrammarEnglishThenTranslateAsync(
-                    apiKeys,
-                    englishRows,
-                    delayBetweenRequestsMs,
-                    passageMode: true,
-                    setProgress: line => { btnGetGrammarPassage.Text = line; }).ConfigureAwait(true);
-                grammarJobOk = true;
-            }
-            finally
-            {
-                Text = formTitleOriginal;
-                SetGrammarJobUiBusy(false);
-                btnGetGrammarPassage.Text = grammarBtnOriginalText;
-                btnGetGrammarPassage.Enabled = true;
-                btngetGrammarExplaimation.Enabled = sentenceBtnWasEnabled;
-            }
-
-            if (grammarJobOk)
-            {
-                MessageBox.Show(this,
-                    "Đã phân tích grammar passage tiếng Anh (1 request/dòng) rồi dịch sang các tab. Export ghi dual payload vào ai_cache/grammar_by_episode.",
+                    "Đã phân tích grammar passage tiếng Anh (1 request/dòng đã chọn) rồi dịch sang các tab. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
                     "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2352,7 +2579,7 @@ namespace playMP3
         /// Upload grammar_by_episode với <paramref name="lineNumber"/> 0-based (i trong vòng lặp = line_0 cho dòng đầu).
         /// RTDB cũ dùng line_1 cho dòng đầu cần re-upload hoặc chạy script migrate trước khi phát hành app mới.
         /// </summary>
-        private async Task UploadGrammarAiCachesAsync(string episodeId)
+        private async Task UploadGrammarAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2411,7 +2638,7 @@ namespace playMP3
                         // Sentence schema or passage dual-map → same path (grammar + grammar_by_episode).
                         // Dual payload keeps grammarPoint/explanation for old apps + overall/sentenceAnalyses for new apps.
                         await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
-                            sentence, langCode, episodeId, data, i).ConfigureAwait(true);
+                            firebaseRtdbBaseUrl, sentence, langCode, episodeId, data, i).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -2427,7 +2654,7 @@ namespace playMP3
         /// Đẩy lên Firebase RTDB giống Flutter <c>AIFirebaseCacheService</c>: mỗi từ × mỗi mã ngôn ngữ.
         /// <c>data</c> = object enhancement (synonyms, …) + <c>meaning</c> gloss theo tab (En hoặc đã dịch).
         /// </summary>
-        private async Task UploadVocabularyAiCachesAsync(string episodeId)
+        private async Task UploadVocabularyAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2498,7 +2725,7 @@ namespace playMP3
 
                     try
                     {
-                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(lemma, langCode, payload, episodeId).ConfigureAwait(true);
+                        await VocabularyFirebaseCacheWriter.PutVocabularyCacheAsync(firebaseRtdbBaseUrl, lemma, langCode, payload, episodeId).ConfigureAwait(true);
                     }
                     catch
                     {
@@ -2515,7 +2742,7 @@ namespace playMP3
         /// Dữ liệu lưu trong <c>data.translations</c> là mảng item có
         /// <c>original</c>, <c>translated</c>, <c>lineNumber</c> (0-based, khớp transcript row index).
         /// </summary>
-        private async Task UploadTranslationsAiCachesAsync(string episodeId)
+        private async Task UploadTranslationsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2566,7 +2793,7 @@ namespace playMP3
 
                 try
                 {
-                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(episodeId, langCode, arr).ConfigureAwait(true);
+                    await TranslationsFirebaseCacheWriter.PutTranslationsCacheAsync(firebaseRtdbBaseUrl, episodeId, langCode, arr).ConfigureAwait(true);
                 }
                 catch
                 {
@@ -2580,7 +2807,7 @@ namespace playMP3
         /// <summary>
         /// Firebase RTDB <c>ai_cache/questions/{episodeId}/{count}.json</c> — khớp Flutter <c>AIFirebaseCacheService.saveQuestions</c>.
         /// </summary>
-        private async Task UploadQuestionsAiCachesAsync(string episodeId)
+        private async Task UploadQuestionsAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 return;
@@ -2595,7 +2822,7 @@ namespace playMP3
 
             try
             {
-                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(episodeId, count, arr).ConfigureAwait(true);
+                await QuestionsFirebaseCacheWriter.PutQuestionsCacheAsync(firebaseRtdbBaseUrl, episodeId, count, arr).ConfigureAwait(true);
             }
             catch
             {

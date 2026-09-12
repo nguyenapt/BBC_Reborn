@@ -16,6 +16,7 @@ namespace playMP3.Base
         private int _group;
         private string _grammarExplanationSummary;
         private string _grammarExplanationJson;
+        private bool _grammarSelected = true;
 
         /// <summary>0-based transcript line index (matches Firebase lineNumber).</summary>
         public int RowNumber
@@ -60,6 +61,13 @@ namespace playMP3.Base
         {
             get => _grammarExplanationJson;
             set { if (value == _grammarExplanationJson) return; _grammarExplanationJson = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>When true, EN row is included in batch Get Grammar Explaination/Passage.</summary>
+        public bool GrammarSelected
+        {
+            get => _grammarSelected;
+            set { if (value.Equals(_grammarSelected)) return; _grammarSelected = value; OnPropertyChanged(); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

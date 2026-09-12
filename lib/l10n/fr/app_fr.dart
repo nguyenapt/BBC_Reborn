@@ -409,7 +409,6 @@ class AppFr {
     'sleepTimerEndOfEpisode': 'Fin de l\'épisode',
     'sleepTimerOff': 'Désactivé',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'En cours : {title}',
     'autoPlayEnabledHint':
         'La lecture automatique est activée. Le prochain épisode de cette catégorie sera lu automatiquement.',
 

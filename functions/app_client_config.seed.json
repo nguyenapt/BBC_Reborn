@@ -1,13 +1,16 @@
 {
   "heart_system": {
     "allow_credit": true,
+    "allow_credit_episode_pass": true,
+    "allow_credit_speaking": true,
     "heart_number": 5,
     "credit_number": 10,
-    "speaking_ticket_number": 10,
+    "speaking_ticket_number": 5,
     "rewarded_hearts": 1,
     "rewarded_credits": 5,
-    "daily_live_cap": 80,
+    "daily_live_cap": 40,
     "ad_topup_max_per_day": 5,
-    "heart_refill_max_per_episode": 1
+    "heart_refill_max_per_episode": 1,
+    "speaking_max_recording_seconds": 60
   }
 }

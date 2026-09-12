@@ -117,7 +117,7 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final episodesData = episodes.map((e) => e.toJson()).toList();
     await prefs.setString(_favouriteEpisodesDataKey, json.encode(episodesData));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
   /// Vocabulary Management
@@ -186,7 +186,7 @@ class StorageService {
       'mean': v.mean,
     }).toList();
     await prefs.setString(_vocabularyItemsKey, json.encode(vocabulariesData));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
   /// Saved Grammar Management
@@ -212,7 +212,7 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final payload = items.map((item) => item.toJson()).toList();
     await prefs.setString(_savedGrammarItemsKey, json.encode(payload));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
 

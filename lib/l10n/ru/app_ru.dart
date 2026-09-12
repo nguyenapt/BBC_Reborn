@@ -403,7 +403,6 @@ class AppRu {
     'sleepTimerEndOfEpisode': 'Конец эпизода',
     'sleepTimerOff': 'Выкл.',
     'sleepTimerMinutes': '{minutes} мин',
-    'autoPlayNowPlaying': 'Сейчас играет: {title}',
     'autoPlayEnabledHint':
         'Автовоспроизведение включено. Следующий эпизод в этой категории будет воспроизведён автоматически.',
   };

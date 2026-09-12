@@ -403,7 +403,6 @@ class AppEs {
     'sleepTimerEndOfEpisode': 'Fin del episodio',
     'sleepTimerOff': 'Apagar',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Reproduciendo: {title}',
     'autoPlayEnabledHint':
         'La reproducción automática está activada. El siguiente episodio de esta categoría se reproducirá solo.',
   };

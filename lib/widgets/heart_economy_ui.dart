@@ -68,7 +68,7 @@ class HeartEconomyUi {
     }
 
     // Low-credits nudge (optional) — not an exception path.
-    if (hearts.allowCredit &&
+    if (hearts.useEpisodeCredits &&
         episodeId != null &&
         hearts.episodeCreditsRemaining(episodeId) > 0 &&
         hearts.episodeCreditsRemaining(episodeId) <= 3 &&
@@ -84,7 +84,7 @@ class HeartEconomyUi {
     String episodeId,
   ) async {
     final hearts = HeartService();
-    if (!hearts.allowCredit || !context.mounted) return;
+    if (!hearts.useEpisodeCredits || !context.mounted) return;
     if (!hearts.shouldShowPassOpenedHint(episodeId)) return;
     final left = hearts.episodeCreditsRemaining(episodeId);
     if (left <= 0) return;

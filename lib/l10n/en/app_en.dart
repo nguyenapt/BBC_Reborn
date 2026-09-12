@@ -335,6 +335,9 @@ class AppEn {
     'speakingRecording': 'Recording',
     'speakingSendAnalysis': 'Send analysis',
     'speakingHintSendAnalysis': 'Tap to transcribe and open AI feedback.',
+    'speakingRecordingMaxLengthStopped':
+        'Max recording time ({limit}) reached — mic stopped automatically.',
+    'speakingRecordingLimitSeconds': '{seconds}s',
     'speakingRepeatAutoStopHint':
         'We stop the mic when you pause. Then send for analysis.',
     'speakingRepeatTapToStopHint':
@@ -408,7 +411,6 @@ class AppEn {
     'sleepTimerEndOfEpisode': 'End of episode',
     'sleepTimerOff': 'Off',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
 

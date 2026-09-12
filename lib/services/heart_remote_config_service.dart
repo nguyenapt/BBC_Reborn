@@ -59,6 +59,8 @@ class HeartRemoteConfigService {
       _cacheAt = DateTime.now();
       debugPrint(
         'HeartRemoteConfig: allow_credit=${_config.allowCredit} '
+        'ep_pass=${_config.allowCreditEpisodePass} '
+        'speaking=${_config.allowCreditSpeaking} '
         'hearts=${_config.heartNumber} credits=${_config.creditNumber}',
       );
       return _config;

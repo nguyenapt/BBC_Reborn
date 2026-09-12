@@ -48,6 +48,14 @@ class HeartService extends ChangeNotifier {
 
   HeartSystemConfig get config => _config;
   bool get allowCredit => _config.allowCredit;
+  bool get allowCreditEpisodePass => _config.allowCreditEpisodePass;
+  bool get allowCreditSpeaking => _config.allowCreditSpeaking;
+  /// Credit mode + episode pass module enabled.
+  bool get useEpisodeCredits => allowCredit && allowCreditEpisodePass;
+  /// Credit mode + speaking ticket module enabled.
+  bool get useSpeakingTicket => allowCredit && allowCreditSpeaking;
+  int get speakingMaxRecordingMs =>
+      _config.speakingMaxRecordingSeconds * 1000;
 
   int get hearts => _hearts;
   int get maxHearts => _config.heartNumber;
@@ -97,7 +105,7 @@ class HeartService extends ChangeNotifier {
       notifyListeners();
       debugPrint(
         '✅ HeartService initialized: $_hearts/$maxHearts '
-        'allowCredit=$allowCredit',
+        'allowCredit=$allowCredit epPass=$allowCreditEpisodePass speaking=$allowCreditSpeaking',
       );
     } catch (e) {
       debugPrint('❌ Error initializing HeartService: $e');
@@ -311,7 +319,7 @@ class HeartService extends ChangeNotifier {
 
   /// Show credit badge on episode AppBar when Pass is open for this episode today.
   bool shouldShowEpisodeCreditBadge(String episodeId) {
-    if (!allowCredit) return false;
+    if (!useEpisodeCredits) return false;
     return hasEpisodePassOpened(episodeId);
   }
 
@@ -320,7 +328,7 @@ class HeartService extends ChangeNotifier {
 
   /// After Pass opened: may spend another heart to refill (capped per episode/day).
   bool canHeartRefillEpisode(String episodeId) {
-    if (!allowCredit || !hasHearts) return false;
+    if (!useEpisodeCredits || !hasHearts) return false;
     final id = _normalizeScope(episodeId);
     if (!hasEpisodePassOpened(id)) return true; // opening Pass lần đầu
     if (!hasEpisodeCreditRoom(id)) return false;
@@ -364,7 +372,7 @@ class HeartService extends ChangeNotifier {
     required bool isLiveApi,
   }) async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) {
+    if (!useEpisodeCredits) {
       await consumeForAIFeature();
       return;
     }
@@ -412,7 +420,7 @@ class HeartService extends ChangeNotifier {
   /// Tổng credits sau grant luôn ≤ [maxEpisodeCredits].
   Future<bool> openOrRefillEpisodePassWithHeart(String episodeId) async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) return false;
+    if (!useEpisodeCredits) return false;
     if (!hasHearts) return false;
 
     final id = _normalizeScope(episodeId);
@@ -451,7 +459,7 @@ class HeartService extends ChangeNotifier {
   /// Rewarded ad: +[rewardedCredits] on episode, trần [maxEpisodeCredits].
   Future<bool> refillEpisodeCreditsWithAd(String episodeId) async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) return false;
+    if (!useEpisodeCredits) return false;
     if (!canAdTopup) return false;
 
     final id = _normalizeScope(episodeId);
@@ -482,7 +490,7 @@ class HeartService extends ChangeNotifier {
 
   Future<void> consumeSpeakingAttempt() async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) {
+    if (!useSpeakingTicket) {
       await consumeForAIFeature();
       return;
     }
@@ -507,7 +515,7 @@ class HeartService extends ChangeNotifier {
 
   Future<bool> openOrRefillSpeakingTicketWithHeart() async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) return false;
+    if (!useSpeakingTicket) return false;
     if (!hasHearts) return false;
     final used = await useHeart();
     if (!used) return false;
@@ -520,7 +528,7 @@ class HeartService extends ChangeNotifier {
 
   Future<bool> refillSpeakingTicketWithAd() async {
     _checkAndResetIfNeeded();
-    if (!allowCredit) return false;
+    if (!useSpeakingTicket) return false;
     if (!canAdTopup) return false;
     _speakingAttempts += _config.speakingTicketNumber;
     _speakingTicketOpened = true;

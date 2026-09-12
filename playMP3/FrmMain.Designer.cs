@@ -169,6 +169,7 @@ namespace playMP3
             this.label40 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
             this.btnPurgeAiCache = new System.Windows.Forms.Button();
+            this.btnMigrateRtdbPath = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -233,6 +234,7 @@ namespace playMP3
             this.GrammarExplainationDe = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btngetGrammarExplaimation = new System.Windows.Forms.Button();
             this.btnGetGrammarPassage = new System.Windows.Forms.Button();
+            this.btnGrammarForceStop = new System.Windows.Forms.Button();
             this.statusStripGrammar = new System.Windows.Forms.StatusStrip();
             this.toolStripProgressGrammar = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripStatusLabelGrammar = new System.Windows.Forms.ToolStripStatusLabel();
@@ -1636,13 +1638,23 @@ namespace playMP3
             // 
             // btnPurgeAiCache
             // 
-            this.btnPurgeAiCache.Location = new System.Drawing.Point(1070, 1028);
+            this.btnPurgeAiCache.Location = new System.Drawing.Point(758, 1028);
             this.btnPurgeAiCache.Name = "btnPurgeAiCache";
             this.btnPurgeAiCache.Size = new System.Drawing.Size(150, 59);
             this.btnPurgeAiCache.TabIndex = 47;
             this.btnPurgeAiCache.Text = "Purge expired AI cache";
             this.btnPurgeAiCache.UseVisualStyleBackColor = true;
             this.btnPurgeAiCache.Click += new System.EventHandler(this.btnPurgeAiCache_Click);
+            // 
+            // btnMigrateRtdbPath
+            // 
+            this.btnMigrateRtdbPath.Location = new System.Drawing.Point(602, 1028);
+            this.btnMigrateRtdbPath.Name = "btnMigrateRtdbPath";
+            this.btnMigrateRtdbPath.Size = new System.Drawing.Size(150, 59);
+            this.btnMigrateRtdbPath.TabIndex = 48;
+            this.btnMigrateRtdbPath.Text = "Migrate RtdbPath";
+            this.btnMigrateRtdbPath.UseVisualStyleBackColor = true;
+            this.btnMigrateRtdbPath.Click += new System.EventHandler(this.btnMigrateRtdbPath_Click);
             // 
             // tabControl1
             // 
@@ -2267,6 +2279,17 @@ namespace playMP3
             this.btnGetGrammarPassage.UseVisualStyleBackColor = true;
             this.btnGetGrammarPassage.Click += new System.EventHandler(this.btnGetGrammarPassage_Click);
             // 
+            // btnGrammarForceStop
+            // 
+            this.btnGrammarForceStop.Enabled = false;
+            this.btnGrammarForceStop.Location = new System.Drawing.Point(1056, 1028);
+            this.btnGrammarForceStop.Name = "btnGrammarForceStop";
+            this.btnGrammarForceStop.Size = new System.Drawing.Size(164, 59);
+            this.btnGrammarForceStop.TabIndex = 25;
+            this.btnGrammarForceStop.Text = "Force Stop";
+            this.btnGrammarForceStop.UseVisualStyleBackColor = true;
+            this.btnGrammarForceStop.Click += new System.EventHandler(this.btnGrammarForceStop_Click);
+            // 
             // statusStripGrammar
             // 
             this.statusStripGrammar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -2312,6 +2335,8 @@ namespace playMP3
             this.ClientSize = new System.Drawing.Size(2214, 1119);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.btnPurgeAiCache);
+            this.Controls.Add(this.btnMigrateRtdbPath);
+            this.Controls.Add(this.btnGrammarForceStop);
             this.Controls.Add(this.btnGetGrammarPassage);
             this.Controls.Add(this.btngetGrammarExplaimation);
             this.Controls.Add(this.tabControl1);
@@ -2515,6 +2540,7 @@ namespace playMP3
         private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationDe;
         private System.Windows.Forms.Button btngetGrammarExplaimation;
         private System.Windows.Forms.Button btnGetGrammarPassage;
+        private System.Windows.Forms.Button btnGrammarForceStop;
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;
@@ -2615,6 +2641,7 @@ namespace playMP3
         private System.Windows.Forms.CheckBox cbExportEpisodeDetail;
         private System.Windows.Forms.CheckBox cbSendEpisodePush;
         private System.Windows.Forms.Button btnPurgeAiCache;
+        private System.Windows.Forms.Button btnMigrateRtdbPath;
         private System.Windows.Forms.CheckBox cbExportTranslation;
     }
 }

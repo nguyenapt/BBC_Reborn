@@ -16,6 +16,7 @@ import '../services/language_manager.dart';
 import '../services/learning_progress_service.dart';
 import '../services/episode_detail_wake_lock.dart';
 import '../services/episode_detail_session.dart';
+import '../utils/debug_source_log.dart';
 import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
@@ -67,6 +68,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
     if (e.transcript.trim().isNotEmpty) return false;
+    final html = e.transcriptHtml?.trim();
+    if (html != null && html.isNotEmpty) return false;
     final id = e.id;
     if (id == null || id.isEmpty) return false;
     return true;
@@ -104,6 +107,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
     unawaited(_learningProgress.touchEpisode(_episode));
+    _scheduleDebugDetailFetchNotice();
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(widget.episode);
 
@@ -121,7 +125,15 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
 
   void _onAudioServiceEpisodeChanged() {
     final current = _audioService.currentEpisode;
-    if (current == null || current.id == _episode.id) return;
+    if (current == null) return;
+    if (current.id == _episode.id) {
+      // Hydrate lần đầu có thể xong trước khi currentEpisode được gán.
+      if (_mustFetchFullEpisode(_episode) && !_hydratingFullEpisode && mounted) {
+        setState(() => _hydratingFullEpisode = true);
+        Future.microtask(_hydrateFullEpisodeIfNeeded);
+      }
+      return;
+    }
 
     final inCategory = widget.categoryEpisodes.any((e) => e.id == current.id);
     if (!inCategory) return;
@@ -142,19 +154,6 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(_episode);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        content: Text(
-          _languageManager.getTextWithParams(
-            'autoPlayNowPlaying',
-            {'title': _episode.episodeName},
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _onAutoPlayEnabledFirstTime() async {
@@ -286,6 +285,33 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     );
   }
 
+  /// Debug: báo đường dẫn sẽ dùng khi mở detail từ Home/List.
+  void _scheduleDebugDetailFetchNotice() {
+    if (!kDebugMode) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_mustFetchFullEpisode(_episode)) {
+        debugLogDataSource(
+          'EpisodeDetail',
+          FirebaseService.describeEpisodeDetailRequest(_episode),
+        );
+        return;
+      }
+      final rtdb = _episode.rtdbPath?.trim();
+      if (rtdb != null && rtdb.isNotEmpty) {
+        debugLogDataSource(
+          'EpisodeDetail',
+          'Không fetch RTDB — transcript có sẵn (RtdbPath=$rtdb)',
+        );
+      } else {
+        debugLogDataSource(
+          'EpisodeDetail',
+          'Không fetch RTDB — transcript có sẵn trên list/home',
+        );
+      }
+    });
+  }
+
   /// Chỉ [kDebugMode], không web: báo khi detail hiển thị transcript có sẵn trùng với bản đầy đủ trong SQLite.
   void _scheduleDebugSqliteSourceNotice(Episode episodeAtOpen) {
     if (!kDebugMode || kIsWeb) return;
@@ -319,14 +345,14 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     }
 
     try {
-      final full = await FirebaseService.fetchEpisodeFull(_episode);
+      final outcome = await FirebaseService.fetchEpisodeFullWithSource(_episode);
+      final full = outcome.episode;
       if (!mounted || full == null) {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
-      // Bỏ qua nếu user/auto-play đã chuyển sang episode khác trong lúc fetch.
-      if (_episode.id != targetId ||
-          _audioService.currentEpisode?.id != targetId) {
+      // Không đòi currentEpisode khớp: cold start nó còn null khi đang stop().
+      if (_episode.id != targetId) {
         if (mounted) setState(() => _hydratingFullEpisode = false);
         return;
       }
