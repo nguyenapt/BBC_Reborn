@@ -53,6 +53,7 @@ namespace playMP3
         }
 
         public static async Task<ScanResult> ScanAsync(
+            string firebaseRtdbBaseUrl,
             IEnumerable<string> nodeNames,
             string authToken,
             IProgress<ScanProgress> progress = null,
@@ -61,6 +62,7 @@ namespace playMP3
             if (string.IsNullOrWhiteSpace(authToken))
                 throw new ArgumentException("Firebase auth secret is required.", nameof(authToken));
 
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var result = new ScanResult();
             var now = DateTime.UtcNow;
 
@@ -80,6 +82,7 @@ namespace playMP3
                 var rootRelative = GrammarCacheConstants.AiCachePath + "/" + node;
 
                 await WalkAsync(
+                    baseUrl,
                     rootRelative,
                     node,
                     defaultTtl,
@@ -94,6 +97,7 @@ namespace playMP3
         }
 
         public static async Task<DeleteResult> DeleteAsync(
+            string firebaseRtdbBaseUrl,
             IReadOnlyList<string> relativePaths,
             string authToken,
             IProgress<ScanProgress> progress = null,
@@ -102,6 +106,7 @@ namespace playMP3
             if (string.IsNullOrWhiteSpace(authToken))
                 throw new ArgumentException("Firebase auth secret is required.", nameof(authToken));
 
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var result = new DeleteResult();
             var auth = authToken.Trim();
             var parentsToPrune = new HashSet<string>(StringComparer.Ordinal);
@@ -125,7 +130,7 @@ namespace playMP3
 
                 try
                 {
-                    await DeletePathAsync(path, auth, cancellationToken).ConfigureAwait(false);
+                    await DeletePathAsync(baseUrl, path, auth, cancellationToken).ConfigureAwait(false);
                     result.Deleted++;
                     var parent = ParentPath(path);
                     if (!string.IsNullOrEmpty(parent))
@@ -146,7 +151,7 @@ namespace playMP3
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    await TryPruneEmptyAncestorsAsync(parent, auth, cancellationToken).ConfigureAwait(false);
+                    await TryPruneEmptyAncestorsAsync(baseUrl, parent, auth, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -158,6 +163,7 @@ namespace playMP3
         }
 
         private static async Task WalkAsync(
+            string baseUrl,
             string relativePath,
             string rootNode,
             int defaultTtl,
@@ -169,7 +175,7 @@ namespace playMP3
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var shallow = await GetJsonAsync(relativePath, authToken, shallow: true, cancellationToken).ConfigureAwait(false);
+            var shallow = await GetJsonAsync(baseUrl, relativePath, authToken, shallow: true, cancellationToken).ConfigureAwait(false);
             if (shallow == null || shallow.Type == JTokenType.Null)
                 return;
 
@@ -181,7 +187,7 @@ namespace playMP3
             // On a leaf, shallow=true yields { data:true, createdAt:true, ttlDays:true, version:true }.
             if (shallowObj["createdAt"] != null)
             {
-                var full = await GetJsonAsync(relativePath, authToken, shallow: false, cancellationToken).ConfigureAwait(false);
+                var full = await GetJsonAsync(baseUrl, relativePath, authToken, shallow: false, cancellationToken).ConfigureAwait(false);
                 if (full is JObject leaf && IsCacheLeaf(leaf))
                 {
                     await EvaluateLeafAsync(relativePath, rootNode, defaultTtl, nowUtc, leaf, result, progress)
@@ -194,7 +200,7 @@ namespace playMP3
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var childPath = relativePath + "/" + EncodePathSegment(prop.Name);
-                await WalkAsync(childPath, rootNode, defaultTtl, nowUtc, authToken, result, progress, cancellationToken)
+                await WalkAsync(baseUrl, childPath, rootNode, defaultTtl, nowUtc, authToken, result, progress, cancellationToken)
                     .ConfigureAwait(false);
             }
         }
@@ -283,12 +289,13 @@ namespace playMP3
         }
 
         private static async Task<JToken> GetJsonAsync(
+            string baseUrl,
             string relativePath,
             string authToken,
             bool shallow,
             CancellationToken cancellationToken)
         {
-            var url = BuildUrl(relativePath, authToken, shallow);
+            var url = BuildUrl(baseUrl, relativePath, authToken, shallow);
             using (var resp = await Http.GetAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -303,9 +310,9 @@ namespace playMP3
             }
         }
 
-        private static async Task DeletePathAsync(string relativePath, string authToken, CancellationToken cancellationToken)
+        private static async Task DeletePathAsync(string baseUrl, string relativePath, string authToken, CancellationToken cancellationToken)
         {
-            var url = BuildUrl(relativePath, authToken, shallow: false);
+            var url = BuildUrl(baseUrl, relativePath, authToken, shallow: false);
             using (var resp = await Http.DeleteAsync(url, cancellationToken).ConfigureAwait(false))
             {
                 var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -316,6 +323,7 @@ namespace playMP3
         }
 
         private static async Task TryPruneEmptyAncestorsAsync(
+            string baseUrl,
             string relativePath,
             string authToken,
             CancellationToken cancellationToken)
@@ -329,7 +337,7 @@ namespace playMP3
                    && path.StartsWith(stopAt + "/", StringComparison.Ordinal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var token = await GetJsonAsync(path, authToken, shallow: false, cancellationToken).ConfigureAwait(false);
+                var token = await GetJsonAsync(baseUrl, path, authToken, shallow: false, cancellationToken).ConfigureAwait(false);
                 if (token == null || token.Type == JTokenType.Null)
                 {
                     path = ParentPath(path);
@@ -338,7 +346,7 @@ namespace playMP3
 
                 if (token.Type == JTokenType.Object && !((JObject)token).HasValues)
                 {
-                    await DeletePathAsync(path, authToken, cancellationToken).ConfigureAwait(false);
+                    await DeletePathAsync(baseUrl, path, authToken, cancellationToken).ConfigureAwait(false);
                     path = ParentPath(path);
                     continue;
                 }
@@ -357,10 +365,11 @@ namespace playMP3
             return relativePath.Substring(0, i);
         }
 
-        private static string BuildUrl(string relativePath, string authToken, bool shallow)
+        private static string BuildUrl(string baseUrl, string relativePath, string authToken, bool shallow)
         {
             var path = (relativePath ?? string.Empty).Trim().Trim('/');
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + path + ".json?auth="
+            var root = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(baseUrl);
+            var url = root + "/" + path + ".json?auth="
                       + Uri.EscapeDataString(authToken ?? string.Empty);
             if (shallow)
                 url += "&shallow=true";

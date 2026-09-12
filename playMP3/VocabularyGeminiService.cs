@@ -237,10 +237,10 @@ Important: Return ONLY the JSON object, nothing else.";
             var bodyObj = BuildRequestBody(prompt);
             var body = bodyObj.ToString(Formatting.None);
             string lastDetail = null;
+            var start = GeminiApiKeyRotator.TakeStartIndex(keys.Count);
 
-            for (var ki = 0; ki < keys.Count; ki++)
+            foreach (var key in GeminiApiKeyRotator.EnumerateFrom(keys, start))
             {
-                var key = keys[ki];
                 var url = BuildGeminiUrl(key);
 
                 for (var attempt = 0; attempt < MaxQuickRetriesPerKey; attempt++)
