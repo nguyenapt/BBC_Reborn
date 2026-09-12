@@ -21,18 +21,33 @@ import 'user_service.dart';
 import 'vocabulary_practice_service.dart';
 import 'vocabulary_service.dart';
 
+/// Mức ưu tiên đẩy RTDB — listening dùng debounce dài để giảm write bandwidth.
+enum CloudPushPriority {
+  /// Favourites / vocab / settings — debounce ngắn.
+  urgent,
+
+  /// Thay đổi học tập thông thường.
+  normal,
+
+  /// Progress khi đang nghe — chỉ flush khi pause/exit hoặc sau debounce dài.
+  listening,
+}
+
 /// Đồng bộ dữ liệu học tập lên RTDB `users/{firebaseUid}`.
 /// Chỉ hoạt động khi đã đăng nhập Firebase — user chưa login giữ nguyên local-only.
 class UserCloudSyncService {
   static const int schemaVersion = 1;
   static const String _legacyBaseUrl = 'https://bbc-listening-english.firebaseio.com';
-  static const Duration _debounceDelay = Duration(seconds: 3);
+  static const Duration _urgentDebounce = Duration(seconds: 30);
+  static const Duration _normalDebounce = Duration(seconds: 60);
+  static const Duration _listeningDebounce = Duration(minutes: 3);
 
   static final UserCloudSyncService _instance = UserCloudSyncService._internal();
   factory UserCloudSyncService() => _instance;
   UserCloudSyncService._internal();
 
   Timer? _pushTimer;
+  CloudPushPriority? _pendingPriority;
   bool _syncing = false;
   String? _lastSyncedUid;
   bool _initialized = false;
@@ -61,15 +76,58 @@ class UserCloudSyncService {
 
   void onUserSignedOut() {
     _pushTimer?.cancel();
+    _pendingPriority = null;
     _lastSyncedUid = null;
   }
 
-  void schedulePush() {
+  /// Lên lịch đẩy full snapshot. [priority] quyết định debounce.
+  /// Listening mặc định không gọi trực tiếp — dùng [scheduleListeningPush] hoặc flush lúc pause.
+  void schedulePush({CloudPushPriority priority = CloudPushPriority.normal}) {
     if (!cloudAvailable || _uid == null || _syncing) return;
+
+    // Giữ ưu tiên cao hơn nếu đã có pending (urgent > normal > listening).
+    if (_pendingPriority != null &&
+        _priorityRank(_pendingPriority!) < _priorityRank(priority)) {
+      priority = _pendingPriority!;
+    }
+    _pendingPriority = priority;
+
+    final delay = switch (priority) {
+      CloudPushPriority.urgent => _urgentDebounce,
+      CloudPushPriority.normal => _normalDebounce,
+      CloudPushPriority.listening => _listeningDebounce,
+    };
+
     _pushTimer?.cancel();
-    _pushTimer = Timer(_debounceDelay, () {
+    _pushTimer = Timer(delay, () {
+      _pendingPriority = null;
       unawaited(_pushIfSignedIn());
     });
+  }
+
+  /// Progress khi nghe — debounce 3 phút (hoặc gọi [flushPushNow] khi pause/exit).
+  void scheduleListeningPush() {
+    schedulePush(priority: CloudPushPriority.listening);
+  }
+
+  /// Đẩy ngay (sau khi hủy timer) — dùng khi pause / thoát episode.
+  Future<void> flushPushNow() async {
+    if (!cloudAvailable || _uid == null) return;
+    _pushTimer?.cancel();
+    _pendingPriority = null;
+    if (_syncing) return;
+    await _pushIfSignedIn();
+  }
+
+  int _priorityRank(CloudPushPriority p) {
+    switch (p) {
+      case CloudPushPriority.urgent:
+        return 0;
+      case CloudPushPriority.normal:
+        return 1;
+      case CloudPushPriority.listening:
+        return 2;
+    }
   }
 
   Future<void> syncOnLogin([String? uid]) async {

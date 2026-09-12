@@ -12,14 +12,17 @@ namespace playMP3.Base
         public List<EpisodeTypeModel> EpisodeTypes { get; set; }
         public List<CloudService> CloudServices { get; set; }
 
-        /// <summary>Optional Gemini API key from service.config (Configurations/GeminiApiKey).</summary>
+        /// <summary>Optional Gemini API key(s) from service.config (Configurations/GeminiApiKey). Multiple: key1;key2 (also accepts comma).</summary>
         public string GeminiApiKey { get; set; }
 
         /// <summary>Delay (ms) between grammar API calls; optional GeminiRequestDelayMs in service.config.</summary>
         public int GeminiRequestDelayMs { get; set; } = 4500;
 
-        /// <summary>Path to Firebase service account JSON for FCM (Configurations/FcmServiceAccountPath).</summary>
+        /// <summary>Path to Firebase service account JSON for FCM (Configurations/FcmServiceAccountPath) — BBC.</summary>
         public string FcmServiceAccountPath { get; set; }
+
+        /// <summary>Path to Firebase service account JSON for FCM VOA project (Configurations/FcmServiceAccountPathVOA).</summary>
+        public string FcmServiceAccountPathVoa { get; set; }
 
         /// <summary>Default on/off for episode push; UI checkbox can override per submit.</summary>
         public bool SendEpisodePush { get; set; } = true;

@@ -9,12 +9,9 @@ import '../utils/category_colors.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../models/grammar_explanation.dart';
 import '../services/learning_progress_service.dart';
 import '../services/language_manager.dart';
-import '../services/admob_service.dart';
-import '../services/heart_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/learning_analytics_service.dart';
 import '../services/review_reminder_service.dart';
@@ -23,6 +20,7 @@ import 'grammar_explanation_widget.dart';
 import 'transcript_native_ad_widget.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
+import 'heart_economy_ui.dart';
 
 class TranscriptSlide extends StatefulWidget {
   final Episode episode;
@@ -81,6 +79,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
   final Map<String, GrammarExplanation> _grammarCache = {};
+  final Map<int, bool> _grammarEnglishAvailableByLine = {};
   late final AnimationController _breathController;
   
   // Line translation state (cache translations for each line)
@@ -447,7 +446,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
                       return Padding(
                         key: _lineKeys[transcriptIndex],
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
@@ -482,7 +481,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ]
                                 : null,
                           ),
-                          padding: EdgeInsets.all(isActive ? 12 : 8),
+                          padding: EdgeInsets.all(isActive ? 8 : 5),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -527,12 +526,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               SelectableText(
                                 quoted,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  height: 1.55,
+                                  height: 1.4,
                                   fontStyle: FontStyle.normal,
                                   fontWeight:
                                       isActive ? FontWeight.w600 : FontWeight.normal,
@@ -590,12 +589,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                               ),
                               if (_lineTranslations.containsKey(line.text))
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 6),
+                                  padding: const EdgeInsets.only(top: 4),
                                   child: SelectableText(
                                     _lineTranslations[line.text]!,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      height: 1.4,
+                                      height: 1.35,
                                       fontStyle: FontStyle.italic,
                                       color: Theme.of(context)
                                           .colorScheme
@@ -608,12 +607,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   _translations != null &&
                                   !_lineTranslations.containsKey(line.text))
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 6),
+                                  padding: const EdgeInsets.only(top: 4),
                                   child: SelectableText(
                                     _translations![line.text] ?? '',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      height: 1.4,
+                                      height: 1.35,
                                       fontStyle: FontStyle.italic,
                                       color: Theme.of(context)
                                           .colorScheme
@@ -622,10 +621,10 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     ),
                                   ),
                                 ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               Wrap(
                                 spacing: 12,
-                                runSpacing: 6,
+                                runSpacing: 4,
                                 children: [
                                   if (hasTimeInfo)
                                     InkWell(
@@ -793,6 +792,9 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
+  String _grammarMemoryKey(int lineNumber, String languageCode) =>
+      'line::$lineNumber::$languageCode';
+
   Future<void> _showGrammarExplanation(
     BuildContext context,
     String sentence,
@@ -809,20 +811,72 @@ class _TranscriptSlideState extends State<TranscriptSlide>
       return;
     }
 
-    // Sentence-level: grammar_by_episode → ai_cache/grammar → AI.
-    final cacheKey = 'line::$lineNumber';
-    if (_grammarCache.containsKey(cacheKey)) {
-      final cached = _grammarCache[cacheKey]!;
+    final targetLanguageCode = _languageManager.currentLocale.languageCode;
+    final enCached =
+        _grammarCache[_grammarMemoryKey(lineNumber, GrammarOpenPolicy.englishCode)];
+    final targetCached =
+        _grammarCache[_grammarMemoryKey(lineNumber, targetLanguageCode)];
+
+    if (targetLanguageCode == GrammarOpenPolicy.englishCode && enCached != null) {
       await _savedGrammarService.recordViewed(
-        explanation: cached,
+        explanation: enCached,
         episode: widget.episode,
       );
       await _analyticsService.trackEvent('grammar_opened');
-      _showGrammarDialog(context, cached);
+      if (!context.mounted) return;
+      _showGrammarDialog(
+        context,
+        enCached,
+        lineNumber: lineNumber,
+        sentence: normalizedSentence,
+        selectedLanguageCode: GrammarOpenPolicy.englishCode,
+        targetLanguageCode: targetLanguageCode,
+        englishAvailable: true,
+      );
       return;
     }
 
-    // Show loading dialog
+    if (targetCached != null) {
+      final englishAvailable =
+          _grammarEnglishAvailableByLine[lineNumber] == true || enCached != null;
+      await _savedGrammarService.recordViewed(
+        explanation: targetCached,
+        episode: widget.episode,
+      );
+      await _analyticsService.trackEvent('grammar_opened');
+      if (!context.mounted) return;
+      _showGrammarDialog(
+        context,
+        targetCached,
+        lineNumber: lineNumber,
+        sentence: normalizedSentence,
+        selectedLanguageCode: targetLanguageCode,
+        targetLanguageCode: targetLanguageCode,
+        englishAvailable: englishAvailable,
+      );
+      return;
+    }
+
+    if (enCached != null) {
+      _grammarEnglishAvailableByLine[lineNumber] = true;
+      await _savedGrammarService.recordViewed(
+        explanation: enCached,
+        episode: widget.episode,
+      );
+      await _analyticsService.trackEvent('grammar_opened');
+      if (!context.mounted) return;
+      _showGrammarDialog(
+        context,
+        enCached,
+        lineNumber: lineNumber,
+        sentence: normalizedSentence,
+        selectedLanguageCode: GrammarOpenPolicy.englishCode,
+        targetLanguageCode: targetLanguageCode,
+        englishAvailable: true,
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -839,7 +893,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Analyzing grammar...'),
+                Text(_languageManager.getText('analyzingGrammar')),
               ],
             ),
           ),
@@ -849,27 +903,40 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
     try {
       final episodeId = widget.episode.id ?? '';
-      final explanation = await _grammarService.explainSentence(
+      final result = await _grammarService.resolveSentenceExplanation(
         normalizedSentence,
         episodeId,
         lineNumber: lineNumber,
       );
 
-      _grammarCache[cacheKey] = explanation;
+      _grammarCache[_grammarMemoryKey(
+        lineNumber,
+        result.displayLanguageCode,
+      )] = result.explanation;
+      _grammarEnglishAvailableByLine[lineNumber] = result.englishAvailable;
+
       await _savedGrammarService.recordViewed(
-        explanation: explanation,
+        explanation: result.explanation,
         episode: widget.episode,
       );
       await _analyticsService.trackEvent('grammar_opened');
 
       if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        _showGrammarDialog(context, explanation);
+        Navigator.of(context).pop();
+        _showGrammarDialog(
+          context,
+          result.explanation,
+          lineNumber: lineNumber,
+          sentence: normalizedSentence,
+          selectedLanguageCode: result.displayLanguageCode,
+          targetLanguageCode: targetLanguageCode,
+          englishAvailable: result.englishAvailable,
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        
+        Navigator.of(context).pop();
+
         _showErrorSnackBar(
           context,
           e,
@@ -883,11 +950,58 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
+  Future<GrammarExplanation?> _loadGrammarForLanguage({
+    required BuildContext context,
+    required String sentence,
+    required int lineNumber,
+    required String languageCode,
+  }) async {
+    final cacheKey = _grammarMemoryKey(lineNumber, languageCode);
+    final cached = _grammarCache[cacheKey];
+    if (cached != null) return cached;
+
+    try {
+      final explanation = await _grammarService.explainSentence(
+        sentence,
+        widget.episode.id ?? '',
+        lineNumber: lineNumber,
+        languageCode: languageCode,
+      );
+      _grammarCache[cacheKey] = explanation;
+      if (languageCode == GrammarOpenPolicy.englishCode) {
+        _grammarEnglishAvailableByLine[lineNumber] = true;
+      }
+      return explanation;
+    } catch (e) {
+      if (context.mounted) {
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _loadGrammarForLanguage(
+            context: context,
+            sentence: sentence,
+            lineNumber: lineNumber,
+            languageCode: languageCode,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
   void _showGrammarDialog(
     BuildContext context,
     GrammarExplanation explanation, {
     Future<GrammarExplanation>? progressiveUpdate,
+    required int lineNumber,
+    required String sentence,
+    required String selectedLanguageCode,
+    required String targetLanguageCode,
+    required bool englishAvailable,
   }) {
+    var currentExplanation = explanation;
+    var currentLang = selectedLanguageCode;
+    var currentEnglishAvailable = englishAvailable;
     final savedItem =
         _savedGrammarService.getBySentence(explanation.sentence, widget.episode.id ?? '');
     final wasSaved = savedItem?.isPinned == true;
@@ -898,12 +1012,31 @@ class _TranscriptSlideState extends State<TranscriptSlide>
         progressiveUpdate: progressiveUpdate,
         category: widget.episode.category,
         isSaved: wasSaved,
+        selectedLanguageCode: selectedLanguageCode,
+        targetLanguageCode: targetLanguageCode,
+        englishAvailable: englishAvailable,
+        onLanguageChanged: (lang) async {
+          final next = await _loadGrammarForLanguage(
+            context: context,
+            sentence: sentence,
+            lineNumber: lineNumber,
+            languageCode: lang,
+          );
+          if (next != null) {
+            currentExplanation = next;
+            currentLang = lang;
+            if (lang == GrammarOpenPolicy.englishCode) {
+              currentEnglishAvailable = true;
+            }
+          }
+          return next;
+        },
         onToggleSaved: () async {
           if (!wasSaved) {
             await _maybeAskReviewReminderPermission(context);
           }
           final isSaved = await _savedGrammarService.togglePinnedForExplanation(
-            explanation: explanation,
+            explanation: currentExplanation,
             episode: widget.episode,
           );
           await _analyticsService.trackEvent('rule_saved');
@@ -919,7 +1052,15 @@ class _TranscriptSlideState extends State<TranscriptSlide>
               duration: const Duration(seconds: 2),
             ),
           );
-          _showGrammarDialog(context, explanation);
+          _showGrammarDialog(
+            context,
+            currentExplanation,
+            lineNumber: lineNumber,
+            sentence: sentence,
+            selectedLanguageCode: currentLang,
+            targetLanguageCode: targetLanguageCode,
+            englishAvailable: currentEnglishAvailable,
+          );
         },
       ),
     );
@@ -984,6 +1125,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
           _lineTranslations[lineText] = translated;
           _lineTranslating[lineText] = false;
         });
+        unawaited(HeartEconomyUi.maybeShowCreditsSnack(context, episodeId));
       }
     } catch (e) {
       debugPrint('Error translating line: $e');
@@ -1001,73 +1143,30 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     }
   }
 
-  /// Show error SnackBar with appropriate action button
-  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
-  void _showErrorSnackBar(
+  /// Show error with Episode Pass / credits / hearts sheets when needed.
+  Future<void> _showErrorSnackBar(
     BuildContext context,
     dynamic error, {
     required VoidCallback onRetry,
-  }) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
-    
-    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
-      // Show "Watch Ads" button for NoHeartsException
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Watch Ads',
-            textColor: Theme.of(context).colorScheme.onInverseSurface,
-            onPressed: () {
-              if (admobService.isRewardedAdReady()) {
-                admobService.showRewardedAd(
-                  onRewarded: () {
-                    heartService.earnHeart();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Color(0xFF7A5CFF),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    // Retry the action after earning heart
-                    Future.delayed(const Duration(milliseconds: 500), onRetry);
-                  },
-                  onAdFailedToShow: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to show ad: $error'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  },
-                );
-              } else {
-                admobService.createRewardedAd();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ad is loading, please try again in a moment'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
+  }) async {
+    final episodeId = widget.episode.id ?? '';
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry,
+      episodeId: episodeId,
+    );
+    if (handled || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AIErrorHandler.getErrorMessage(error)),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: onRetry,
         ),
-      );
-    } else {
-      // Show "Retry" button for other errors
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: onRetry,
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override

@@ -249,6 +249,28 @@ class AppDe {
     'clearImageCacheDialogBody':
         'Möchten Sie wirklich alle zwischengespeicherten Bilder löschen?',
     'clearImageCacheSuccess': 'Bild-Cache erfolgreich geleert',
+    'storageAndCache': 'Speicher & Cache',
+    'manageAppCache': 'Cache-Daten auf diesem Gerät verwalten',
+    'manageAppCacheHint':
+        'Wählen Sie, was gelöscht werden soll. Lernfortschritt und Favoriten bleiben erhalten.',
+    'totalCacheSize': 'Gesamtgröße',
+    'cacheCategoryImages': 'Bilder',
+    'cacheCategoryImagesDesc': 'Episoden-Cover und Miniaturansichten',
+    'cacheCategoryAudioStream': 'Audio-Stream-Cache',
+    'cacheCategoryAudioStreamDesc': 'Temporär gespeicherte Audiodateien beim Streaming',
+    'cacheCategoryDownloads': 'Heruntergeladene Episoden',
+    'cacheCategoryDownloadsDesc':
+        'Entfernt Offline-Downloads. Sie können später erneut herunterladen.',
+    'cacheCategoryAiLocal': 'Lokaler KI-Cache',
+    'cacheCategoryAiLocalDesc': 'Zwischengespeicherte Übersetzungen und KI-Antworten',
+    'selectAll': 'Alles auswählen',
+    'deselectAll': 'Auswahl aufheben',
+    'clearSelectedCache': 'Auswahl löschen',
+    'clearCacheConfirmTitle': 'Ausgewählten Cache löschen?',
+    'clearCacheConfirmBody':
+        'Folgendes wird gelöscht: {items}. Dies kann nicht rückgängig gemacht werden.',
+    'clearCacheSuccess': 'Ausgewählter Cache gelöscht',
+    'clearCacheFailed': 'Cache konnte nicht gelöscht werden',
     'copiedToClipboard': 'Kopiert',
     'googleTranslateOpenFailed': 'Google Übersetzer konnte nicht geöffnet werden',
     'transcriptPlayFromSeconds': 'Ab {seconds} s abspielen',
@@ -387,7 +409,6 @@ class AppDe {
     'sleepTimerEndOfEpisode': 'Ende der Folge',
     'sleepTimerOff': 'Aus',
     'sleepTimerMinutes': '{minutes} Min.',
-    'autoPlayNowPlaying': 'Wird abgespielt: {title}',
     'autoPlayEnabledHint':
         'Automatische Wiedergabe ist aktiv. Die nächste Folge in dieser Kategorie wird automatisch abgespielt.',
 

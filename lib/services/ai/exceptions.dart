@@ -43,6 +43,38 @@ class NoHeartsException extends AIException {
       : super('No hearts available. Please watch an ad to earn more hearts.', originalError);
 }
 
+/// Credit mode: need to open Episode Pass (spend 1 heart) before AI.
+class NeedsEpisodePassException extends AIException {
+  final String episodeId;
+  NeedsEpisodePassException(this.episodeId, [dynamic originalError])
+      : super('Open an episode AI pass to continue.', originalError);
+}
+
+/// Credit mode: pass open but credits exhausted.
+class NoEpisodeCreditsException extends AIException {
+  final String episodeId;
+  NoEpisodeCreditsException(this.episodeId, [dynamic originalError])
+      : super('No AI credits left for this episode.', originalError);
+}
+
+/// Credit mode: daily live API soft cap reached.
+class DailyLiveAiCapException extends AIException {
+  DailyLiveAiCapException([dynamic originalError])
+      : super('Daily AI support limit reached.', originalError);
+}
+
+/// Credit mode: need speaking ticket (1 heart → N attempts).
+class NeedsSpeakingTicketException extends AIException {
+  NeedsSpeakingTicketException([dynamic originalError])
+      : super('Open a speaking session to continue.', originalError);
+}
+
+/// Credit mode: speaking ticket attempts exhausted.
+class NoSpeakingAttemptsException extends AIException {
+  NoSpeakingAttemptsException([dynamic originalError])
+      : super('No speaking attempts left.', originalError);
+}
+
 /// STT not configured (local dev only — production uses Cloud STT).
 class SpeechNotConfiguredException extends AIException {
   SpeechNotConfiguredException([dynamic originalError])

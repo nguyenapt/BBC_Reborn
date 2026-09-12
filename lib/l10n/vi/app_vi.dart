@@ -161,6 +161,7 @@ class AppVi {
     'savedToMyLearning': 'Đã lưu vào My Hub',
     'removedFromSavedGrammar': 'Đã xóa khỏi ngữ pháp đã lưu',
     'grammarExplanationTitle': 'Giải thích ngữ pháp',
+    'analyzingGrammar': 'Đang phân tích ngữ pháp...',
     'sentenceLabel': 'Câu:',
     'explanationLabel': 'Giải thích:',
     'rulePatternLabel': 'Mẫu cấu trúc',
@@ -247,6 +248,28 @@ class AppVi {
     'clearImageCacheDialogBody':
         'Bạn có chắc chắn muốn xóa tất cả cache hình ảnh?',
     'clearImageCacheSuccess': 'Đã xóa cache thành công',
+    'storageAndCache': 'Bộ nhớ & Cache',
+    'manageAppCache': 'Quản lý dữ liệu cache trên thiết bị',
+    'manageAppCacheHint':
+        'Chọn loại cần xóa. Tiến độ học và favourites được giữ lại.',
+    'totalCacheSize': 'Tổng dung lượng',
+    'cacheCategoryImages': 'Ảnh',
+    'cacheCategoryImagesDesc': 'Ảnh bìa và thumbnail episode',
+    'cacheCategoryAudioStream': 'Cache audio stream',
+    'cacheCategoryAudioStreamDesc': 'Audio tạm lưu khi nghe streaming',
+    'cacheCategoryDownloads': 'Episode đã tải',
+    'cacheCategoryDownloadsDesc':
+        'Xóa bản nghe offline. Bạn có thể tải lại sau.',
+    'cacheCategoryAiLocal': 'Cache AI cục bộ',
+    'cacheCategoryAiLocalDesc': 'Bản dịch và phản hồi AI đã lưu trên máy',
+    'selectAll': 'Chọn tất cả',
+    'deselectAll': 'Bỏ chọn tất cả',
+    'clearSelectedCache': 'Xóa đã chọn',
+    'clearCacheConfirmTitle': 'Xóa cache đã chọn?',
+    'clearCacheConfirmBody':
+        'Sẽ xóa các mục sau: {items}. Thao tác không hoàn tác được.',
+    'clearCacheSuccess': 'Đã xóa cache đã chọn',
+    'clearCacheFailed': 'Không thể xóa cache',
     'copiedToClipboard': 'Đã sao chép',
     'googleTranslateOpenFailed': 'Không thể mở Google Translate',
     'transcriptPlayFromSeconds': 'Phát từ {seconds}s',
@@ -319,6 +342,9 @@ class AppVi {
     'speakingRecording': 'Đang ghi âm',
     'speakingSendAnalysis': 'Gửi phân tích',
     'speakingHintSendAnalysis': 'Chạm để chuyển lời nói và xem nhận xét AI.',
+    'speakingRecordingMaxLengthStopped':
+        'Đã đạt giới hạn {limit}, tự dừng ghi.',
+    'speakingRecordingLimitSeconds': '{seconds} giây',
     'speakingRepeatAutoStopHint':
         'Ứng dụng tự dừng khi bạn ngừng nói. Sau đó hãy gửi để phân tích.',
     'speakingRepeatTapToStopHint':
@@ -390,7 +416,6 @@ class AppVi {
     'sleepTimerEndOfEpisode': 'Hết episode này',
     'sleepTimerOff': 'Tắt',
     'sleepTimerMinutes': '{minutes} phút',
-    'autoPlayNowPlaying': 'Đang phát: {title}',
     'autoPlayEnabledHint':
         'Đã bật tự phát tiếp. Episode kế tiếp trong danh mục sẽ tự động phát.',
 
@@ -447,6 +472,38 @@ class AppVi {
     'notifDailyPractice': 'Nhắc luyện tập (9:00)',
     'notifWordOfDay': 'Từ trong ngày (8:00)',
     'notifSpeakingReview': 'Nhắc ôn speaking',
-    'heartEarnHint': 'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartEarnHintCredit':
+        '1 tim mở ~{credits} năng lượng học trên mỗi episode (dịch, ngữ pháp, từ vựng…) hoặc {speaking} lần speaking. Xem quảng cáo nhận +{rewardHearts} tim, hoặc hoàn thành mục tiêu ngày.',
+    'heartEarnHint':
+        'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartEarnHintLegacy':
+        'Hoàn thành mục tiêu hôm nay để nhận 1–5 tim (tùy mức), hoặc +1 tim khi đạt chuỗi 7 ngày.',
+    'heartOpenPassTitle': 'Mở năng lượng học cho episode này',
+    'heartOpenPassBody':
+        'Dùng 1 ❤️ để mở {credits} năng lượng học cho dịch, ngữ pháp, từ vựng trên episode này.',
+    'heartUseOneHeart': 'Dùng 1 ❤️ (+{credits} năng lượng)',
+    'heartRefillWithHeart': 'Dùng thêm 1 ❤️ (+{credits} năng lượng)',
+    'heartNoCreditsTitle': 'Hết năng lượng học trên episode',
+    'heartNoCreditsBody':
+        'Xem quảng cáo để +{adCredits} năng lượng và tiếp tục học. Bạn cũng có thể dùng thêm 1 tim (+{credits} năng lượng) nếu còn lượt nạp.',
+    'heartWatchAdCredits': 'Xem quảng cáo (+{credits} năng lượng)',
+    'heartWatchAdHearts': 'Xem quảng cáo (+{count} tim)',
+    'heartEarnedCount': '❤️ Bạn nhận {count} tim!',
+    'heartCreditsRemaining': 'Còn {count} năng lượng học trên episode này',
+    'heartCreditPanelHint':
+        'Năng lượng học dùng cho dịch, ngữ pháp, từ vựng trên episode. Cache đã tải sẵn không trừ. Xem quảng cáo hoặc dùng tim đều +{adCredits} năng lượng (tim tối đa 1 lần/episode).',
+    'heartCreditPanelHeartsLeft': 'Tim hôm nay: {hearts}/{max}',
+    'heartCreditsEarnedCount': '+{count} năng lượng trên episode này',
+    'heartDailyCapTitle': 'Đã đạt giới hạn năng lượng học hôm nay',
+    'heartDailyCapBody':
+        'Bạn đã dùng hết năng lượng học trong ngày. Thử lại ngày mai, hoặc xem quảng cáo để thêm năng lượng nếu còn.',
+    'heartSpeakingTicketTitle': 'Mở phiên speaking',
+    'heartSpeakingTicketBody': 'Dùng 1 ❤️ để có {count} lần đánh giá phát âm.',
+    'heartSpeakingUseHeart': 'Dùng 1 ❤️ (+{count} lần)',
+    'heartSpeakingNoAttemptsTitle': 'Hết lượt speaking',
+    'heartSpeakingWatchAd': 'Xem quảng cáo (+{count} lần)',
+    'heartSpeakingAttemptsLeft': 'Còn {count} lần speaking',
+    'heartWatchAdRecover': 'Xem quảng cáo để nhận tim',
+    'adLoadingTryAgain': 'Quảng cáo đang tải, thử lại sau giây lát',
   };
 }

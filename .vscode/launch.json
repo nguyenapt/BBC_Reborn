@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "bbc_reborn (Android Next-Gen Ads)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=USE_NEXT_GEN_SDK=true"
+      ]
+    },
+    {
+      "name": "bbc_reborn (Android Next-Gen Ads · profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "toolArgs": [
+        "--dart-define=USE_NEXT_GEN_SDK=true"
+      ]
+    },
+    {
+      "name": "bbc_reborn (Android Next-Gen Ads · release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "toolArgs": [
+        "--dart-define=USE_NEXT_GEN_SDK=true"
+      ]
+    },
+    {
+      "name": "bbc_reborn (iOS / legacy GMA)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'ai_provider.dart';
 import 'exceptions.dart';
 import 'json_parser_helper.dart';
+import 'grammar_passage_dual_map.dart';
 import '../../config/ai_config.dart';
 
 /// OpenAI Provider (Backup) - Using HTTP directly
@@ -293,6 +294,43 @@ JSON:''';
   }
 
   @override
+  Future<Map<String, dynamic>> explainGrammarPassageSingle(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final raw = await explainGrammarPassage(passage, targetLanguage);
+    return toFlutterGrammarPassageData(raw, passage);
+  }
+
+  @override
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final prompt = buildTranslateGrammarPassageJsonPrompt(
+      englishJson,
+      targetLanguage,
+    );
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You translate English grammar-teaching JSON into another language. Return strict JSON only. Never change transcript quotes.',
+    );
+    try {
+      final parsed = JsonParserHelper.parseJsonObject(response);
+      final merged = preserveGrammarQuotesFromEnglish(englishJson, parsed);
+      final passage = englishJson['sentence']?.toString() ??
+          englishJson['passageText']?.toString() ??
+          '';
+      return toFlutterGrammarPassageData(merged, passage);
+    } catch (e) {
+      throw InvalidResponseException(
+        'Failed to parse translated grammar JSON: $e',
+      );
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,
     String targetLanguage,
@@ -488,9 +526,16 @@ Return JSON format:
   "antonyms": ["word3"],
   "exampleSentences": ["sentence1", "sentence2"],
   "collocations": ["collocation1", "collocation2"],
+  "synonymDetails": [{"word": "word1", "meaning": "short gloss"}],
+  "antonymDetails": [{"word": "word3", "meaning": "short gloss"}],
+  "collocationDetails": [{"word": "collocation1", "meaning": "short gloss"}],
   "pronunciation": "/pronunciation/",
   "wordForm": "noun"
 }
+
+Rules:
+- Keep synonyms/antonyms/collocations as plain string arrays (legacy).
+- Always also fill *Details with the same terms plus a concise English meaning/gloss.
 
 JSON:''';
     

@@ -88,6 +88,21 @@ class AIErrorHandler {
     if (error is NoHeartsException) {
       return _languageManager.getText('noHeartsAvailable');
     }
+    if (error is NeedsEpisodePassException) {
+      return _languageManager.getText('heartOpenPassTitle');
+    }
+    if (error is NoEpisodeCreditsException) {
+      return _languageManager.getText('heartNoCreditsTitle');
+    }
+    if (error is DailyLiveAiCapException) {
+      return _languageManager.getText('heartDailyCapTitle');
+    }
+    if (error is NeedsSpeakingTicketException) {
+      return _languageManager.getText('heartSpeakingTicketTitle');
+    }
+    if (error is NoSpeakingAttemptsException) {
+      return _languageManager.getText('heartSpeakingNoAttemptsTitle');
+    }
     if (error is RateLimitException) {
       return _languageManager.getText('aiRateLimitError');
     }

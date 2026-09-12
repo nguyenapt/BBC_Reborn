@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -17,9 +18,38 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+fun decodeDartDefines(): Map<String, String> {
+    val raw = project.findProperty("dart-defines") as? String ?: return emptyMap()
+    return raw.split(",")
+        .mapNotNull { entry ->
+            try {
+                val decoded = String(Base64.getDecoder().decode(entry), Charsets.UTF_8)
+                val idx = decoded.indexOf('=')
+                if (idx <= 0) null
+                else decoded.substring(0, idx) to decoded.substring(idx + 1)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        .toMap()
+}
+
+val dartDefines = decodeDartDefines()
+val useNextGenSdk =
+    dartDefines["USE_NEXT_GEN_SDK"]?.equals("true", ignoreCase = true) == true
+
+// GMA Next-Gen: exclude legacy play-services-ads pulled in by mediation adapters.
+if (useNextGenSdk) {
+    configurations.configureEach {
+        exclude(group = "com.google.android.gms", module = "play-services-ads")
+        exclude(group = "com.google.android.gms", module = "play-services-ads-lite")
+    }
+}
+
 android {
     namespace = "com.leo.learningenglish"
-    compileSdk = flutter.compileSdkVersion
+    // Next-Gen quick-start: compileSdk >= 35; plugin example uses 36.
+    compileSdk = maxOf(flutter.compileSdkVersion, 35)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -34,7 +64,8 @@ android {
 
     defaultConfig {
         applicationId = "com.leo.learningenglish"
-        minSdk = flutter.minSdkVersion
+        // Next-Gen requires minSdk >= 24.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -67,14 +98,13 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
-    // Khớp google_mobile_ads plugin (play-services-ads 23.6.0)
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
-    // AdMob mediation — tương thích GMA 23.6.0 (googleads-mobile-android-mediation CHANGELOG)
-    implementation("com.google.ads.mediation:facebook:6.19.0.0")
-    implementation("com.unity3d.ads:unity-ads:4.13.1")
-    implementation("com.google.ads.mediation:unity:4.13.1.0")
-    // AppLovin (AdMob mediation) — 13.1.0.0 tested với GMA 23.6.0; hoạt động khi bạn bật nguồn trên Console
-    implementation("com.google.ads.mediation:applovin:13.1.0.0")
-    // ironSource (LevelPlay) AdMob mediation adapter
-    implementation("com.google.ads.mediation:ironsource:9.3.0.2")
+    // play-services-ads / ads-mobile-sdk: do NOT pin here — google_mobile_ads plugin
+    // selects legacy vs Next-Gen via --dart-define=USE_NEXT_GEN_SDK=true.
+
+    // AdMob mediation — versions tested with GMA 25.4.0 / Next-Gen ~1.2–1.3
+    implementation("com.google.ads.mediation:facebook:6.22.0.0")
+    implementation("com.unity3d.ads:unity-ads:4.19.0")
+    implementation("com.google.ads.mediation:unity:4.19.0.0")
+    implementation("com.google.ads.mediation:applovin:13.6.3.0")
+    implementation("com.google.ads.mediation:ironsource:9.5.0.0")
 }

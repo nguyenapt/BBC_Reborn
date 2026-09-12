@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/heart_service.dart';
 import '../services/admob_service.dart';
+import '../services/language_manager.dart';
 
 /// Dialog hiển thị thông tin hearts và nút xem quảng cáo
 class HeartDialog extends StatelessWidget {
@@ -18,7 +19,8 @@ class HeartDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final heartService = HeartService();
     final admobService = AdMobService();
-    
+    final lm = LanguageManager();
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -26,13 +28,21 @@ class HeartDialog extends StatelessWidget {
       child: ListenableBuilder(
         listenable: heartService,
         builder: (context, child) {
+          final cfg = heartService.config;
+          final desc = heartService.allowCredit
+              ? lm.getTextWithParams('heartEarnHintCredit', {
+                  'credits': cfg.creditNumber,
+                  'speaking': cfg.speakingTicketNumber,
+                  'rewardHearts': cfg.rewardedHearts,
+                })
+              : lm.getText('heartEarnHintLegacy');
+
           return Container(
             padding: const EdgeInsets.all(24),
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Title
                 Text(
                   'AI Hearts',
                   style: TextStyle(
@@ -42,8 +52,6 @@ class HeartDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
-                // Hearts display
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -61,8 +69,6 @@ class HeartDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
-                // Description
                 Text(
                   'You have ${heartService.hearts} out of ${heartService.maxHearts} hearts',
                   style: TextStyle(
@@ -73,7 +79,7 @@ class HeartDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Each AI feature (translate, vocabulary, grammar...) uses 1 heart',
+                  desc,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -91,23 +97,28 @@ class HeartDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                
-                // Watch ad button (only show if hearts < max)
                 if (heartService.canEarnMoreHearts && !kIsWeb)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: admobService.isRewardedAdReady()
                           ? () {
-                              Navigator.of(context).pop(); // Close dialog first
+                              Navigator.of(context).pop();
                               admobService.showRewardedAd(
-                                onRewarded: () {
-                                  heartService.earnHeart();
+                                onRewarded: () async {
+                                  final added =
+                                      await heartService.earnRewardedHearts();
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('❤️ You earned 1 heart!'),
+                                    SnackBar(
+                                      content: Text(
+                                        lm.getTextWithParams(
+                                          'heartEarnedCount',
+                                          {'count': added},
+                                        ),
+                                      ),
                                       backgroundColor: Colors.green,
-                                      duration: Duration(seconds: 2),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 },
@@ -122,17 +133,21 @@ class HeartDialog extends StatelessWidget {
                               );
                             }
                           : () {
-                              // Ad not ready, try to load
                               admobService.createRewardedAd();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Ad is loading, please try again in a moment'),
-                                  duration: Duration(seconds: 2),
+                                SnackBar(
+                                  content: Text(lm.getText('adLoadingTryAgain')),
+                                  duration: const Duration(seconds: 2),
                                 ),
                               );
                             },
                       icon: const Icon(Icons.play_circle_outline),
-                      label: const Text('Watch Ad to Earn Heart'),
+                      label: Text(
+                        lm.getTextWithParams(
+                          'heartWatchAdHearts',
+                          {'count': cfg.rewardedHearts},
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade400,
                         foregroundColor: Colors.white,
@@ -143,11 +158,8 @@ class HeartDialog extends StatelessWidget {
                       ),
                     ),
                   ),
-                
                 if (heartService.canEarnMoreHearts && !kIsWeb)
                   const SizedBox(height: 12),
-                
-                // Close button
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
@@ -163,5 +175,3 @@ class HeartDialog extends StatelessWidget {
     );
   }
 }
-
-

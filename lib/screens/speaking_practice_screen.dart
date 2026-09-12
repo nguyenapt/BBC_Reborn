@@ -10,14 +10,13 @@ import '../models/speaking_attempt.dart';
 import '../models/speaking_feedback.dart';
 import '../models/speaking_session.dart';
 import '../models/transcript_line.dart';
-import '../services/admob_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../services/audio_player_service.dart';
 import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import '../services/speaking_practice_service.dart';
+import '../widgets/heart_economy_ui.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
 import 'speaking_ai_analysis_screen.dart';
@@ -46,7 +45,8 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
   static const double _repeatSoundThresholdDb = -38;
   static const int _repeatMinRecordingMs = 700;
   static const int _repeatSilenceAfterSpeechMs = 1400;
-  static const int _repeatMaxRecordingMs = 60000;
+
+  int get _maxRecordingMs => HeartService().speakingMaxRecordingMs;
 
   late final TabController _tabController;
   late final AnimationController _repeatPulseController;
@@ -333,13 +333,13 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     final silenceEnded = _repeatHasDetectedSpeech &&
         recMs >= _repeatMinRecordingMs &&
         silentMs >= _repeatSilenceAfterSpeechMs;
-    final maxLenEnded = recMs >= _repeatMaxRecordingMs;
+    final maxLenEnded = recMs >= _maxRecordingMs;
 
     if ((silenceEnded || maxLenEnded) &&
         !_repeatAutoStopScheduled &&
         !_micStopInProgress) {
       _repeatAutoStopScheduled = true;
-      unawaited(_autoStopRepeatRecording());
+      unawaited(_autoStopRepeatRecording(dueToMaxLength: maxLenEnded));
     }
   }
 
@@ -358,17 +358,17 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     final silenceEnded = _roleplayHasDetectedSpeech &&
         recMs >= _repeatMinRecordingMs &&
         silentMs >= _repeatSilenceAfterSpeechMs;
-    final maxLenEnded = recMs >= _repeatMaxRecordingMs;
+    final maxLenEnded = recMs >= _maxRecordingMs;
 
     if ((silenceEnded || maxLenEnded) &&
         !_roleplayAutoStopScheduled &&
         !_micStopInProgress) {
       _roleplayAutoStopScheduled = true;
-      unawaited(_autoStopRoleplayRecording());
+      unawaited(_autoStopRoleplayRecording(dueToMaxLength: maxLenEnded));
     }
   }
 
-  Future<void> _autoStopRoleplayRecording() async {
+  Future<void> _autoStopRoleplayRecording({bool dueToMaxLength = false}) async {
     if (_micStopInProgress) return;
     _micStopInProgress = true;
     await _roleplayAmpSub?.cancel();
@@ -392,6 +392,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         _roleplayAutoStopScheduled = false;
         _roleplayRecordingStartedAt = null;
       });
+      if (dueToMaxLength) {
+        _showMaxRecordingLengthSnack();
+      }
     } catch (e) {
       _repeatPulseController.stop();
       _repeatPulseController.reset();
@@ -408,7 +411,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  Future<void> _autoStopRepeatRecording() async {
+  Future<void> _autoStopRepeatRecording({bool dueToMaxLength = false}) async {
     if (_micStopInProgress) return;
     _micStopInProgress = true;
     await _repeatAmpSub?.cancel();
@@ -432,6 +435,9 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
         _repeatAutoStopScheduled = false;
         _repeatRecordingStartedAt = null;
       });
+      if (dueToMaxLength) {
+        _showMaxRecordingLengthSnack();
+      }
     } catch (e) {
       _repeatPulseController.stop();
       _repeatPulseController.reset();
@@ -768,65 +774,48 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
     }
   }
 
-  void _showError(dynamic error, {VoidCallback? onRetry}) {
+  String _maxRecordingLimitLabel(LanguageManager lm) {
+    final sec = HeartService().config.speakingMaxRecordingSeconds;
+    if (sec >= 60 && sec % 60 == 0) {
+      return lm.getTextWithParams('sleepTimerMinutes', {'minutes': sec ~/ 60});
+    }
+    return lm.getTextWithParams(
+      'speakingRecordingLimitSeconds',
+      {'seconds': sec},
+    );
+  }
+
+  void _showMaxRecordingLengthSnack() {
     if (!mounted) return;
-    final message = AIErrorHandler.getErrorMessage(error);
+    final lm = LanguageManager();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          lm.getTextWithParams(
+            'speakingRecordingMaxLengthStopped',
+            {'limit': _maxRecordingLimitLabel(lm)},
+          ),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showError(dynamic error, {VoidCallback? onRetry}) async {
+    if (!mounted) return;
     final lm = LanguageManager();
 
-    if (error is NoHeartsException) {
-      final heartService = HeartService();
-      final admobService = AdMobService();
-      if (heartService.canEarnMoreHearts && !kIsWeb) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('No hearts available.'),
-            action: SnackBarAction(
-              label: 'Watch Ads',
-              textColor: Theme.of(context).colorScheme.onInverseSurface,
-              onPressed: () {
-                if (admobService.isRewardedAdReady()) {
-                  admobService.showRewardedAd(
-                    onRewarded: () {
-                      heartService.earnHeart();
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('❤️ You earned 1 heart!'),
-                          backgroundColor: Color(0xFF7A5CFF),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    onAdFailedToShow: (adError) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to show ad: $adError'),
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                        ),
-                      );
-                    },
-                  );
-                } else {
-                  admobService.createRewardedAd();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ad is loading, please try again in a moment'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-          ),
-        );
-        return;
-      }
-    }
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry ?? () {},
+      episodeId: widget.episode.id ?? '',
+    );
+    if (handled || !mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(AIErrorHandler.getErrorMessage(error)),
         action: onRetry != null
             ? SnackBarAction(
                 label: lm.getText('retry'),

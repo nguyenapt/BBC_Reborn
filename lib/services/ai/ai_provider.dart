@@ -20,6 +20,19 @@ abstract class AIProvider {
     String targetLanguage,
   );
 
+  /// Single-shot passage grammar (overall + sentenceAnalyses + legacy dual-map).
+  /// Used by transcript line tap; aligned with playMP3 Get Grammar Passage.
+  Future<Map<String, dynamic>> explainGrammarPassageSingle(
+    String passage,
+    String targetLanguage,
+  );
+
+  /// Translate learner-facing fields of canonical English grammar JSON.
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  );
+
   /// Explain grammar for a full passage (multi-sentence)
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,

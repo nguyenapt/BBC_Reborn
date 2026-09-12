@@ -5,6 +5,7 @@ import '../models/grammar.dart';
 import '../utils/debug_source_log.dart';
 import 'api_daily_cache_keys.dart';
 import 'local_database_service.dart';
+import 'web_api_daily_cache.dart';
 
 class GrammarService {
   static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
@@ -23,22 +24,26 @@ class GrammarService {
   /// Lấy danh sách tất cả grammars (tối đa một lần tải [HomePage/Grammar.json] mỗi ngày).
   Future<List<Grammar>> getAllGrammars() async {
     try {
+      final key = ApiDailyCacheKeys.grammarList;
+
       if (kIsWeb) {
-        debugLogDataSource(
-          'GrammarList',
-          'Web: skip SQLite cache — RTDB REST',
-        );
+        final webCached = await WebApiDailyCache.getPayload(key);
+        if (webCached != null && webCached.isNotEmpty) {
+          debugLogDataSource('GrammarList', 'Web SharedPreferences daily cache HIT');
+          return parseGrammarsFromJsonString(webCached);
+        }
+        debugLogDataSource('GrammarList', 'Web: RTDB REST (cold day)');
         final response = await http.get(
           Uri.parse('$_baseUrl/$_grammarPath.json'),
           headers: {'Accept': 'application/json'},
         );
         if (response.statusCode == 200) {
+          await WebApiDailyCache.putPayload(key, response.body);
           return parseGrammarsFromJsonString(response.body);
         }
         throw Exception('Failed to load grammars: ${response.statusCode}');
       }
 
-      final key = ApiDailyCacheKeys.grammarList;
       final lastFetched = await _apiCacheDb.getApiDailyLastFetched(key);
       final cached = await _apiCacheDb.getApiDailyCachePayload(key);
       if (_isFetchedToday(lastFetched) && cached != null && cached.isNotEmpty) {

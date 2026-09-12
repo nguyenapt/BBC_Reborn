@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'ai_provider.dart';
 import 'exceptions.dart';
+import 'grammar_passage_dual_map.dart';
 
 /// AI provider that proxies all LLM calls through Firebase Callable `aiRequest`.
 class CloudAIProvider implements AIProvider {
@@ -126,6 +127,44 @@ class CloudAIProvider implements AIProvider {
       'targetLanguage': targetLanguage,
     });
     return Map<String, dynamic>.from(data as Map);
+  }
+
+  @override
+  Future<Map<String, dynamic>> explainGrammarPassageSingle(
+    String passage,
+    String targetLanguage,
+  ) async {
+    final data = await _callAction('explainGrammarPassageSingle', {
+      'passage': passage,
+      'sentence': passage,
+      'targetLanguage': targetLanguage,
+    });
+    // CF already dual-maps; re-apply idempotently for safety.
+    return toFlutterGrammarPassageData(
+      Map<String, dynamic>.from(data as Map),
+      passage,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final data = await _callAction('translateGrammarPassageJson', {
+      'englishJson': englishJson,
+      'targetLanguage': targetLanguage,
+    });
+    final passage = englishJson['sentence']?.toString() ??
+        englishJson['passageText']?.toString() ??
+        '';
+    return toFlutterGrammarPassageData(
+      preserveGrammarQuotesFromEnglish(
+        englishJson,
+        Map<String, dynamic>.from(data as Map),
+      ),
+      passage,
+    );
   }
 
   @override

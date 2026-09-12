@@ -161,6 +161,7 @@ class AppEn {
     'savedToMyLearning': 'Saved to My Hub',
     'removedFromSavedGrammar': 'Removed from saved grammar',
     'grammarExplanationTitle': 'Grammar Explanation',
+    'analyzingGrammar': 'Analyzing grammar...',
     'sentenceLabel': 'Sentence:',
     'explanationLabel': 'Explanation:',
     'rulePatternLabel': 'Rule Pattern',
@@ -247,6 +248,28 @@ class AppEn {
     'clearImageCacheDialogBody':
         'Are you sure you want to clear all cached images?',
     'clearImageCacheSuccess': 'Image cache cleared successfully',
+    'storageAndCache': 'Storage & Cache',
+    'manageAppCache': 'Manage cached data on this device',
+    'manageAppCacheHint':
+        'Choose what to clear. Learning progress and favourites are kept.',
+    'totalCacheSize': 'Total size',
+    'cacheCategoryImages': 'Images',
+    'cacheCategoryImagesDesc': 'Episode cover images and thumbnails',
+    'cacheCategoryAudioStream': 'Audio stream cache',
+    'cacheCategoryAudioStreamDesc': 'Temporary audio saved while streaming',
+    'cacheCategoryDownloads': 'Downloaded episodes',
+    'cacheCategoryDownloadsDesc':
+        'Removes offline downloads. You can download again later.',
+    'cacheCategoryAiLocal': 'AI local cache',
+    'cacheCategoryAiLocalDesc': 'Cached translations and AI responses on device',
+    'selectAll': 'Select all',
+    'deselectAll': 'Deselect all',
+    'clearSelectedCache': 'Clear selected',
+    'clearCacheConfirmTitle': 'Clear selected cache?',
+    'clearCacheConfirmBody':
+        'The following will be cleared: {items}. This cannot be undone.',
+    'clearCacheSuccess': 'Selected cache cleared',
+    'clearCacheFailed': 'Could not clear cache',
     'copiedToClipboard': 'Copied',
     'googleTranslateOpenFailed': 'Could not open Google Translate',
     'transcriptPlayFromSeconds': 'Play from {seconds}s',
@@ -312,6 +335,9 @@ class AppEn {
     'speakingRecording': 'Recording',
     'speakingSendAnalysis': 'Send analysis',
     'speakingHintSendAnalysis': 'Tap to transcribe and open AI feedback.',
+    'speakingRecordingMaxLengthStopped':
+        'Max recording time ({limit}) reached — mic stopped automatically.',
+    'speakingRecordingLimitSeconds': '{seconds}s',
     'speakingRepeatAutoStopHint':
         'We stop the mic when you pause. Then send for analysis.',
     'speakingRepeatTapToStopHint':
@@ -385,7 +411,6 @@ class AppEn {
     'sleepTimerEndOfEpisode': 'End of episode',
     'sleepTimerOff': 'Off',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Now playing: {title}',
     'autoPlayEnabledHint':
         'Auto-play is on. The next episode in this category will play automatically.',
 
@@ -454,6 +479,38 @@ class AppEn {
     'notifDailyPractice': 'Daily practice reminder (9 AM)',
     'notifWordOfDay': 'Word of the day (8 AM)',
     'notifSpeakingReview': 'Speaking review reminders',
-    'heartEarnHint': 'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartEarnHintCredit':
+        '1 heart unlocks ~{credits} learning energy per episode (translate, grammar, vocabulary…) or {speaking} speaking tries. Watch an ad for +{rewardHearts} hearts, or complete your daily goal.',
+    'heartEarnHint':
+        'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartEarnHintLegacy':
+        'Complete your daily goal to earn 1–5 hearts (by level), or +1 for a 7-day streak.',
+    'heartOpenPassTitle': 'Unlock learning energy for this episode',
+    'heartOpenPassBody':
+        'Use 1 heart to unlock {credits} learning energy for translate, grammar, and vocabulary on this episode.',
+    'heartUseOneHeart': 'Use 1 heart (+{credits} energy)',
+    'heartRefillWithHeart': 'Use another heart (+{credits} energy)',
+    'heartNoCreditsTitle': 'No learning energy left on this episode',
+    'heartNoCreditsBody':
+        'Watch an ad for +{adCredits} energy to keep learning. You can also spend another heart (+{credits} energy) if a refill is still available.',
+    'heartWatchAdCredits': 'Watch ad (+{credits} energy)',
+    'heartWatchAdHearts': 'Watch ad (+{count} hearts)',
+    'heartEarnedCount': '❤️ You earned {count} heart(s)!',
+    'heartCreditsRemaining': '{count} learning energy left on this episode',
+    'heartCreditPanelHint':
+        'Learning energy covers translate, grammar, and vocabulary on this episode. Cached content is free. Ads or a heart refill both add +{adCredits} energy (1 heart refill max per episode).',
+    'heartCreditPanelHeartsLeft': 'Hearts today: {hearts}/{max}',
+    'heartCreditsEarnedCount': '+{count} energy on this episode',
+    'heartDailyCapTitle': 'Daily learning energy limit reached',
+    'heartDailyCapBody':
+        'You have used today’s learning energy. Try again tomorrow, or watch an ad for more energy if available.',
+    'heartSpeakingTicketTitle': 'Start speaking session',
+    'heartSpeakingTicketBody': 'Use 1 heart for {count} pronunciation checks.',
+    'heartSpeakingUseHeart': 'Use 1 heart (+{count} tries)',
+    'heartSpeakingNoAttemptsTitle': 'No speaking tries left',
+    'heartSpeakingWatchAd': 'Watch ad (+{count} tries)',
+    'heartSpeakingAttemptsLeft': '{count} speaking tries left',
+    'heartWatchAdRecover': 'Watch ad to recover hearts',
+    'adLoadingTryAgain': 'Ad is loading, please try again in a moment',
   };
 }

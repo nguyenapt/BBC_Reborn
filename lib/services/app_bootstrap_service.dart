@@ -109,6 +109,15 @@ class AppBootstrapService {
       UserCloudSyncService().initialize(),
     ]);
 
+    // Re-fetch heart_system after local init (non-blocking if already default).
+    unawaited((() async {
+      try {
+        await HeartService().refreshRemoteConfig();
+      } catch (e) {
+        debugPrint('Heart remote refresh skipped: $e');
+      }
+    })());
+
     await SavedGrammarService().initialize();
     await SpeakingReviewService().initialize();
 
@@ -170,6 +179,8 @@ class AppBootstrapService {
         debugPrint('📱 Initializing MobileAds...');
         await MobileAds.instance.initialize();
         debugPrint('✅ MobileAds initialized');
+        // RequestConfiguration (child/under-age) — set BEFORE initialize if ever needed.
+        AdMobService().markSdkInitialized();
         _scheduleAdPreload();
       } else {
         debugPrint('⚠️ MobileAds init skipped — consent not granted');

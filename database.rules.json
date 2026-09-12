@@ -1,5 +1,9 @@
 {
   "rules": {
+    "app_client_config": {
+      ".read": true,
+      ".write": false
+    },
     "ai_server_config": {
       ".read": false,
       ".write": false
@@ -21,6 +25,22 @@
           }
         }
       },
+      "grammar_by_episode": {
+        "$episodeId": {
+          "$lineKey": {
+            "$languageCode": {
+              ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+            }
+          }
+        }
+      },
+      "grammar_passage": {
+        "$passageHash": {
+          "$languageCode": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
       "questions": {
         "$episodeId": {
           "$count": {
@@ -31,6 +51,13 @@
       "vocabulary": {
         "$wordHash": {
           "$languageCode": {
+            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+          }
+        }
+      },
+      "vocabulary_by_episode": {
+        "$episodeId": {
+          "$itemKey": {
             ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
           }
         }
@@ -48,6 +75,6 @@
       }
     },
     ".read": true,
-    ".write": "auth !== null"
+    ".write": "auth != null"
   }
 }

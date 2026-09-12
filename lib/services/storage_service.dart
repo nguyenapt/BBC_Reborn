@@ -117,7 +117,7 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final episodesData = episodes.map((e) => e.toJson()).toList();
     await prefs.setString(_favouriteEpisodesDataKey, json.encode(episodesData));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
   /// Vocabulary Management
@@ -186,7 +186,7 @@ class StorageService {
       'mean': v.mean,
     }).toList();
     await prefs.setString(_vocabularyItemsKey, json.encode(vocabulariesData));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
   /// Saved Grammar Management
@@ -212,7 +212,7 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final payload = items.map((item) => item.toJson()).toList();
     await prefs.setString(_savedGrammarItemsKey, json.encode(payload));
-    UserCloudSyncService().schedulePush();
+    UserCloudSyncService().schedulePush(priority: CloudPushPriority.urgent);
   }
 
 
@@ -256,6 +256,28 @@ class StorageService {
       }
     } catch (e) {
       debugPrint('Error clearing AI cache: $e');
+    }
+  }
+
+  /// Ước lượng dung lượng AI cache local (UTF-16 code units ≈ 2 bytes/char).
+  Future<int> getAICacheSize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int total = 0;
+      for (final key in prefs.getKeys()) {
+        if (!key.startsWith(_aiCachePrefix)) continue;
+        total += key.length * 2;
+        final value = prefs.get(key);
+        if (value is String) {
+          total += value.length * 2;
+        } else if (value != null) {
+          total += value.toString().length * 2;
+        }
+      }
+      return total;
+    } catch (e) {
+      debugPrint('Error getting AI cache size: $e');
+      return 0;
     }
   }
 

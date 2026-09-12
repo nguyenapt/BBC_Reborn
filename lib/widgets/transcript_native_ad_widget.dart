@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/admob_service.dart';
 import '../services/language_manager.dart';
 import 'learning_checklist_bar.dart';
 import 'native_ad_theme.dart';
@@ -90,17 +93,24 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
     if (!mounted || kIsWeb) return;
     final scheme = Theme.of(context).colorScheme;
     final (templateType, radius, _) = _slotMetrics();
-    _loadNativeAd(
+    unawaited(_loadNativeAdWhenReady(
       nativeTemplateStyleForColorScheme(
         scheme,
         templateType: templateType,
         cornerRadius: radius,
       ),
-    );
+    ));
+  }
+
+  Future<void> _loadNativeAdWhenReady(NativeTemplateStyle templateStyle) async {
+    final ready = await AdMobService().waitUntilSdkReady();
+    if (!mounted || !ready) return;
+    _loadNativeAd(templateStyle);
   }
 
   void _loadNativeAd(NativeTemplateStyle templateStyle) {
     if (_isAdLoading) return;
+    if (!AdMobService().isSdkInitialized) return;
 
     setState(() {
       _isAdLoading = true;
