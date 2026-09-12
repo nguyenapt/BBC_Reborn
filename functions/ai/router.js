@@ -2,7 +2,7 @@ const {callGemini} = require("./providers/gemini");
 const {callOpenAI} = require("./providers/openai");
 const {callAzureStt} = require("./providers/azureStt");
 const {callWhisperStt} = require("./providers/whisperStt");
-const {buildPromptForAction, toFlutterGrammarPassageData} = require("./prompts");
+const {buildPromptForAction, toFlutterGrammarPassageData, preserveGrammarQuotesFromEnglish} = require("./prompts");
 const {parseJsonObject, parseJsonArray} = require("./jsonParser");
 
 const JSON_ARRAY_ACTIONS = new Set(["generateQuestions"]);
@@ -10,6 +10,7 @@ const JSON_OBJECT_ACTIONS = new Set([
   "translateVocabularyBatch",
   "explainGrammar",
   "explainGrammarPassageSingle",
+  "translateGrammarPassageJson",
   "explainGrammarPassageOverall",
   "explainGrammarPassageSentences",
   "enhanceVocabulary",
@@ -90,6 +91,21 @@ function parseActionResponse(action, rawResponse, payload) {
         /** @type {Record<string, unknown>} */ (json),
         passage,
     );
+  }
+
+  if (action === "translateGrammarPassageJson") {
+    const json = parseJsonObject(rawResponse);
+    const englishJson = payload.englishJson && typeof payload.englishJson === "object" ?
+      /** @type {Record<string, unknown>} */ (payload.englishJson) :
+      {};
+    const merged = preserveGrammarQuotesFromEnglish(
+        englishJson,
+        /** @type {Record<string, unknown>} */ (json),
+    );
+    const passage = String(
+        englishJson.sentence ?? englishJson.passageText ?? payload.passage ?? "",
+    );
+    return toFlutterGrammarPassageData(merged, passage);
   }
 
   if (JSON_OBJECT_ACTIONS.has(action)) {

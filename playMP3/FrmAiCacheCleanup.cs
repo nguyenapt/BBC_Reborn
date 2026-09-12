@@ -9,13 +9,15 @@ namespace playMP3
 {
     public partial class FrmAiCacheCleanup : Form
     {
+        private readonly string _rtdbBaseUrl;
         private readonly string _authToken;
         private List<string> _lastExpiredPaths = new List<string>();
         private CancellationTokenSource _cts;
         private bool _busy;
 
-        public FrmAiCacheCleanup(string firebaseAuthSecret)
+        public FrmAiCacheCleanup(string firebaseRtdbBaseUrl, string firebaseAuthSecret)
         {
+            _rtdbBaseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             _authToken = firebaseAuthSecret ?? string.Empty;
             InitializeComponent();
             LoadNodes();
@@ -91,7 +93,7 @@ namespace playMP3
                         p.InvalidLeaves);
                 });
 
-                var result = await AiCacheExpiryCleaner.ScanAsync(nodes, _authToken, progress, ct)
+                var result = await AiCacheExpiryCleaner.ScanAsync(_rtdbBaseUrl, nodes, _authToken, progress, ct)
                     .ConfigureAwait(true);
 
                 _lastExpiredPaths = new List<string>(result.ExpiredPaths);
@@ -139,7 +141,7 @@ namespace playMP3
                         p.CurrentPath ?? "");
                 });
 
-                var result = await AiCacheExpiryCleaner.DeleteAsync(paths, _authToken, progress, ct)
+                var result = await AiCacheExpiryCleaner.DeleteAsync(_rtdbBaseUrl, paths, _authToken, progress, ct)
                     .ConfigureAwait(true);
 
                 txtLog.AppendText(Environment.NewLine + "=== DELETE ===" + Environment.NewLine);

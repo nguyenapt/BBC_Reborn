@@ -4,13 +4,11 @@ import '../models/question.dart';
 import '../models/transcript_line.dart';
 import '../services/ai_question_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
-import '../services/admob_service.dart';
-import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../utils/category_colors.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
+import 'heart_economy_ui.dart';
 
 class QuestionSlide extends StatefulWidget {
   final Episode episode;
@@ -498,82 +496,27 @@ class _QuestionSlideState extends State<QuestionSlide> {
     );
   }
 
-  /// Build error action button - "Watch Ads Now" and "Retry" for NoHeartsException, "Retry" only for others
   Widget _buildErrorActionButton(BuildContext context, Color categoryColor) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
-    
-    if (_lastError is NoHeartsException && heartService.canEarnMoreHearts) {
-      // Show both "Watch Ads Now" and "Retry" buttons for NoHeartsException
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton.icon(
-            onPressed: () {
-              if (admobService.isRewardedAdReady()) {
-                admobService.showRewardedAd(
-                  onRewarded: () {
-                    heartService.earnHeart();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Color(0xFF7A5CFF),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    // Retry after earning heart
-                    Future.delayed(const Duration(milliseconds: 500), _loadQuestions);
-                  },
-                  onAdFailedToShow: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to show ad: $error'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  },
-                );
-              } else {
-                admobService.createRewardedAd();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ad is loading, please try again in a moment'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Watch Ads Now'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: _loadQuestions,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: categoryColor,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-          ),
-        ],
-      );
-    } else {
-      // Show "Retry" button only for other errors
-      return ElevatedButton.icon(
-        onPressed: _loadQuestions,
-        icon: const Icon(Icons.refresh),
-        label: const Text('Retry'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: categoryColor,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        ),
-      );
-    }
+    return ElevatedButton.icon(
+      onPressed: () async {
+        if (_lastError != null) {
+          final handled = await HeartEconomyUi.handleError(
+            context,
+            _lastError,
+            onRetry: _loadQuestions,
+            episodeId: widget.episode.id ?? '',
+          );
+          if (handled) return;
+        }
+        _loadQuestions();
+      },
+      icon: const Icon(Icons.refresh),
+      label: const Text('Retry'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: categoryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      ),
+    );
   }
 }
 

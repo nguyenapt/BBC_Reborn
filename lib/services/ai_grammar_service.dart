@@ -6,9 +6,9 @@ import '../models/grammar_progressive_result.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
+import 'ai/grammar_passage_dual_map.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
-import 'heart_service.dart';
 
 /// Service for AI-powered grammar explanation
 class AIGrammarService {
@@ -50,8 +50,7 @@ class AIGrammarService {
 
   /// Explain grammar in a sentence.
   ///
-  /// [languageCode] overrides the app locale (used when switching EN vs target
-  /// inside the grammar popup).
+  /// Non-English locales translate from a canonical English JSON when possible.
   Future<GrammarExplanation> explainSentence(
     String sentence,
     String episodeId, {
@@ -64,12 +63,21 @@ class AIGrammarService {
 
     final resolvedLanguageCode =
         languageCode ?? _languageManager.currentLocale.languageCode;
-    final targetLanguage = _getTargetLanguage(resolvedLanguageCode);
-    final modelVersion = '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
+    final modelVersion =
+        '${AIConfig.primaryProvider.name}:${AIConfig.geminiModel}:${AIConfig.openaiModel}';
     const promptVersion = AIConfig.grammarPromptVersion;
 
-    // [lineNumber] = transcript line index (0-based); RTDB path is line_{index}.
-    final cacheHit = await _cache.lookupGrammar(
+    if (resolvedLanguageCode == GrammarOpenPolicy.englishCode) {
+      return _explainOrGenerateEnglish(
+        sentence,
+        episodeId,
+        lineNumber: lineNumber,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+    }
+
+    final targetHit = await _cache.lookupGrammar(
       sentence,
       resolvedLanguageCode,
       episodeId: episodeId,
@@ -77,104 +85,37 @@ class AIGrammarService {
       modelVersion: modelVersion,
       promptVersion: promptVersion,
     );
-
-    if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+    if (targetHit != null) {
       debugPrint('Using cached grammar explanation for sentence');
-      return _mapCachedGrammarToModel(sentence, cacheHit.data);
-    }
-
-    await HeartService().consumeForAIFeature();
-
-    // Get providers (primary and backup)
-    final primaryProvider = AIProviderFactory.getPrimaryProvider();
-    final backupProvider = AIProviderFactory.getBackupProvider();
-
-    try {
-      // Try primary provider first with retry — passage single-shot dual-map (playMP3-aligned).
-      Map<String, dynamic>? response;
-      try {
-        response = await AIErrorHandler.withRetry(
-          () => primaryProvider.explainGrammarPassageSingle(
-            sentence,
-            targetLanguage,
-          ),
-          maxRetries: 1, // Only 1 retry, then fallback
-        );
-        debugPrint(
-          '✅ Primary provider grammar passage-single explanation successful',
-        );
-      } catch (e) {
-        debugPrint('⚠️ Primary provider failed: $e');
-        
-        // If rate limit with long retry time (>30s), try backup provider immediately
-        if (e is RateLimitException && e.retryAfter != null && e.retryAfter!.inSeconds > 30) {
-          debugPrint('⚠️ Rate limit retry time too long (${e.retryAfter!.inSeconds}s), falling back to OpenAI...');
-          try {
-            if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammarPassageSingle(
-                sentence,
-                targetLanguage,
-              );
-              debugPrint(
-                '✅ Backup provider grammar passage-single explanation successful',
-              );
-            } else {
-              rethrow;
-            }
-          } catch (backupError) {
-            debugPrint('❌ Backup provider also failed: $backupError');
-            rethrow;
-          }
-        } else if (e is APIException || e is RateLimitException) {
-          // For other API errors or short retry times, try backup
-          debugPrint('⚠️ Trying backup provider due to API error...');
-          try {
-            if (await backupProvider.isAvailable()) {
-              response = await backupProvider.explainGrammarPassageSingle(
-                sentence,
-                targetLanguage,
-              );
-              debugPrint(
-                '✅ Backup provider grammar passage-single explanation successful',
-              );
-            } else {
-              rethrow;
-            }
-          } catch (backupError) {
-            debugPrint('❌ Backup provider also failed: $backupError');
-            rethrow;
-          }
-        } else {
-          rethrow;
-        }
-      }
-
-      if (response == null) {
-        throw Exception('Grammar explanation failed: no result');
-      }
-
-      final explanationObj = _mapCachedGrammarToModel(sentence, response);
-
-      // Save dual-map (overall + sentenceAnalyses + legacy) to local + grammar_by_episode.
-      await _cache.saveGrammarToCache(
-        sentence,
-        resolvedLanguageCode,
-        explanationObj.toJson(),
+      return _finalizeGrammarCacheHit(
+        sentence: sentence,
+        languageCode: resolvedLanguageCode,
         episodeId: episodeId,
-        lineNumber: lineNumber,
+        cacheHit: targetHit,
         modelVersion: modelVersion,
         promptVersion: promptVersion,
       );
-
-      return explanationObj;
-    } catch (e) {
-      debugPrint('Error explaining grammar: $e');
-      rethrow;
     }
+
+    final english = await _loadEnglishCanonical(
+      sentence,
+      episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    return _translateEnglishAndSave(
+      sentence: sentence,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      english: english,
+      targetLanguageCode: resolvedLanguageCode,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
   }
 
-  /// Open-path for a transcript line: peek EN + target cache, then pick or generate.
+  /// Open-path: show target if cached, else EN if cached; do not translate until toggle.
   Future<GrammarSentenceResolveResult> resolveSentenceExplanation(
     String sentence,
     String episodeId, {
@@ -201,11 +142,12 @@ class AIGrammarService {
     }
 
     if (targetLang == GrammarOpenPolicy.englishCode) {
-      final explanation = await explainSentence(
+      final explanation = await _explainOrGenerateEnglish(
         sentence,
         episodeId,
         lineNumber: lineNumber,
-        languageCode: GrammarOpenPolicy.englishCode,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
       );
       return GrammarSentenceResolveResult(
         explanation: explanation,
@@ -221,46 +163,246 @@ class AIGrammarService {
     ]);
     final enHit = peeked[0];
     final targetHit = peeked[1];
-    final englishAvailable = enHit != null;
-    final targetAvailable = targetHit != null;
-    final displayLang = GrammarOpenPolicy.displayLanguageCode(
-      targetLanguageCode: targetLang,
-      englishAvailable: englishAvailable,
-      targetAvailable: targetAvailable,
-    );
 
-    if (displayLang == targetLang && targetHit != null) {
-      await AICacheService.consumeHeartIfFirebase(targetHit.tier);
+    if (targetHit != null) {
+      final explanation = await _finalizeGrammarCacheHit(
+        sentence: sentence,
+        languageCode: targetLang,
+        episodeId: episodeId,
+        cacheHit: targetHit,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
       return GrammarSentenceResolveResult(
-        explanation: _mapCachedGrammarToModel(sentence, targetHit.data),
+        explanation: explanation,
         displayLanguageCode: targetLang,
-        englishAvailable: englishAvailable,
+        englishAvailable: enHit != null,
         targetAvailable: true,
       );
     }
 
-    if (displayLang == GrammarOpenPolicy.englishCode && enHit != null) {
-      await AICacheService.consumeHeartIfFirebase(enHit.tier);
+    if (enHit != null) {
+      final explanation = await _finalizeGrammarCacheHit(
+        sentence: sentence,
+        languageCode: GrammarOpenPolicy.englishCode,
+        episodeId: episodeId,
+        cacheHit: enHit,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
       return GrammarSentenceResolveResult(
-        explanation: _mapCachedGrammarToModel(sentence, enHit.data),
+        explanation: explanation,
         displayLanguageCode: GrammarOpenPolicy.englishCode,
         englishAvailable: true,
-        targetAvailable: targetAvailable,
+        targetAvailable: false,
       );
     }
 
-    final explanation = await explainSentence(
+    final explanation = await _explainOrGenerateEnglish(
       sentence,
       episodeId,
       lineNumber: lineNumber,
-      languageCode: targetLang,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
     );
     return GrammarSentenceResolveResult(
       explanation: explanation,
-      displayLanguageCode: targetLang,
-      englishAvailable: false,
-      targetAvailable: true,
+      displayLanguageCode: GrammarOpenPolicy.englishCode,
+      englishAvailable: true,
+      targetAvailable: false,
     );
+  }
+
+  Future<GrammarExplanation> _explainOrGenerateEnglish(
+    String sentence,
+    String episodeId, {
+    int? lineNumber,
+    required String modelVersion,
+    required String promptVersion,
+  }) async {
+    final cacheHit = await _cache.lookupGrammar(
+      sentence,
+      GrammarOpenPolicy.englishCode,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (cacheHit != null) {
+      debugPrint('Using cached grammar explanation for sentence');
+      return _finalizeGrammarCacheHit(
+        sentence: sentence,
+        languageCode: GrammarOpenPolicy.englishCode,
+        episodeId: episodeId,
+        cacheHit: cacheHit,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+    }
+
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
+    final response = await _explainPassageSingleWithFallback(sentence, 'English');
+    final explanationObj = _mapCachedGrammarToModel(sentence, response);
+    await _cache.saveGrammarToCache(
+      sentence,
+      GrammarOpenPolicy.englishCode,
+      explanationObj.toJson(),
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    return explanationObj;
+  }
+
+  /// Load English JSON without billing when it is only used as a translate source.
+  Future<GrammarExplanation> _loadEnglishCanonical(
+    String sentence,
+    String episodeId, {
+    int? lineNumber,
+    required String modelVersion,
+    required String promptVersion,
+  }) async {
+    final enHit = await _cache.lookupGrammar(
+      sentence,
+      GrammarOpenPolicy.englishCode,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    if (enHit != null) {
+      return _mapCachedGrammarToModel(sentence, enHit.data);
+    }
+    return _explainOrGenerateEnglish(
+      sentence,
+      episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+  }
+
+  Future<GrammarExplanation> _translateEnglishAndSave({
+    required String sentence,
+    required String episodeId,
+    int? lineNumber,
+    required GrammarExplanation english,
+    required String targetLanguageCode,
+    required String modelVersion,
+    required String promptVersion,
+  }) async {
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
+    final targetLanguage = _getTargetLanguage(targetLanguageCode);
+    final englishJson = english.toJson();
+    final response = await _translateGrammarJsonWithFallback(
+      englishJson,
+      targetLanguage,
+    );
+    final merged = preserveGrammarQuotesFromEnglish(englishJson, response);
+    final explanationObj = _mapCachedGrammarToModel(sentence, merged);
+    await _cache.saveGrammarToCache(
+      sentence,
+      targetLanguageCode,
+      explanationObj.toJson(),
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      modelVersion: modelVersion,
+      promptVersion: promptVersion,
+    );
+    return explanationObj;
+  }
+
+  Future<Map<String, dynamic>> _explainPassageSingleWithFallback(
+    String sentence,
+    String targetLanguage,
+  ) async {
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
+    try {
+      return await AIErrorHandler.withRetry(
+        () => primaryProvider.explainGrammarPassageSingle(
+          sentence,
+          targetLanguage,
+        ),
+        maxRetries: 1,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Primary provider failed: $e');
+      if (e is RateLimitException &&
+          e.retryAfter != null &&
+          e.retryAfter!.inSeconds > 30) {
+        if (await backupProvider.isAvailable()) {
+          return backupProvider.explainGrammarPassageSingle(
+            sentence,
+            targetLanguage,
+          );
+        }
+        rethrow;
+      }
+      if (e is APIException || e is RateLimitException) {
+        if (await backupProvider.isAvailable()) {
+          return backupProvider.explainGrammarPassageSingle(
+            sentence,
+            targetLanguage,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> _translateGrammarJsonWithFallback(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final primaryProvider = AIProviderFactory.getPrimaryProvider();
+    final backupProvider = AIProviderFactory.getBackupProvider();
+    try {
+      return await AIErrorHandler.withRetry(
+        () => primaryProvider.translateGrammarPassageJson(
+          englishJson,
+          targetLanguage,
+        ),
+        maxRetries: 1,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Primary provider grammar translate failed: $e');
+      if (e is APIException || e is RateLimitException) {
+        if (await backupProvider.isAvailable()) {
+          return backupProvider.translateGrammarPassageJson(
+            englishJson,
+            targetLanguage,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<GrammarExplanation> _finalizeGrammarCacheHit({
+    required String sentence,
+    required String languageCode,
+    required String episodeId,
+    required ({Map<String, dynamic> data, AICacheTier tier}) cacheHit,
+    required String modelVersion,
+    required String promptVersion,
+  }) async {
+    await AICacheService.consumeHeartIfFirebase(
+      cacheHit.tier,
+      episodeId: episodeId,
+    );
+    if (cacheHit.tier == AICacheTier.firebase) {
+      await _cache.materializeGrammarLocal(
+        sentence,
+        languageCode,
+        cacheHit.data,
+        episodeId: episodeId,
+        modelVersion: modelVersion,
+        promptVersion: promptVersion,
+      );
+    }
+    return _mapCachedGrammarToModel(sentence, cacheHit.data);
   }
 
   /// Explain grammar for a full passage with fallback to sentence-level flow
@@ -309,7 +451,21 @@ class AIGrammarService {
       try {
         final cached =
             _mapPassageResponseToModel(normalizedPassage, cacheHit.data);
-        await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+        await AICacheService.consumeHeartIfFirebase(
+          cacheHit.tier,
+          episodeId: episodeId,
+        );
+        if (cacheHit.tier == AICacheTier.firebase) {
+          await _cache.materializeGrammarPassageLocal(
+            normalizedPassage,
+            languageCode,
+            cacheHit.data,
+            episodeId: episodeId,
+            modelVersion: modelVersion,
+            promptVersion: promptVersion,
+            schemaVersion: schemaVersion,
+          );
+        }
         return GrammarPassageProgressiveResult(
           initial: cached,
           full: Future.value(cached),
@@ -320,7 +476,7 @@ class AIGrammarService {
       }
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();

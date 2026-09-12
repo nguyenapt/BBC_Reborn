@@ -176,6 +176,114 @@ Important: Return ONLY the JSON object, nothing else.`,
 }
 
 /**
+ * Translate learner-facing grammar JSON fields from English canonical JSON.
+ * @param {Record<string, unknown>} englishJson
+ * @param {string} targetLanguage
+ * @returns {{prompt: string, systemPrompt: string}}
+ */
+function buildTranslateGrammarPassageJsonPrompt(englishJson, targetLanguage) {
+  const json = JSON.stringify(englishJson ?? {});
+  return {
+    prompt: `Translate the LEARNER-FACING fields of this English grammar JSON into ${targetLanguage}.
+You MUST return ONLY a valid JSON object with the SAME schema and the SAME array lengths.
+
+KEEP these fields EXACTLY as in the input (English quotes from the transcript):
+- sentence, passageText, sentenceText
+- highlightedWords (array of exact fragments)
+- phrase (inside each phraseBreakdown item)
+- examples (keep English example sentences)
+
+TRANSLATE into ${targetLanguage}:
+- grammarPoint, explanation, whyThisForm, rulePattern
+- overall.grammarTheme, overall.usageSummary, overall.keyStructures
+- mainStructure, usageInContext, structure, usage
+- commonMistakes, rewriteExercise
+
+Do not add or remove sentenceAnalyses or phraseBreakdown items.
+Do not invent new quotes from the transcript.
+
+English JSON:
+${json}
+
+JSON object only:`,
+    systemPrompt:
+      "You translate English grammar-teaching JSON into another language. Return strict JSON only. Never change transcript quotes or English examples.",
+  };
+}
+
+/**
+ * Copy transcript quotes from canonical English JSON onto a translation.
+ * @param {Record<string, unknown>} english
+ * @param {Record<string, unknown>} translated
+ * @returns {Record<string, unknown>}
+ */
+function preserveGrammarQuotesFromEnglish(english, translated) {
+  const src = english && typeof english === "object" ? english : {};
+  const result = {
+    ...(translated && typeof translated === "object" ? translated : {}),
+  };
+  for (const key of ["sentence", "passageText", "highlightedWords"]) {
+    if (src[key] !== undefined) result[key] = src[key];
+  }
+
+  const enAnalyses = Array.isArray(src.sentenceAnalyses) ? src.sentenceAnalyses : null;
+  if (!enAnalyses) return result;
+
+  const trAnalyses = Array.isArray(result.sentenceAnalyses) ?
+    [...result.sentenceAnalyses] :
+    [];
+  while (trAnalyses.length < enAnalyses.length) {
+    trAnalyses.push(enAnalyses[trAnalyses.length]);
+  }
+  if (trAnalyses.length > enAnalyses.length) {
+    trAnalyses.length = enAnalyses.length;
+  }
+
+  for (let i = 0; i < enAnalyses.length; i++) {
+    const enA = enAnalyses[i] && typeof enAnalyses[i] === "object" &&
+      !Array.isArray(enAnalyses[i]) ?
+      /** @type {Record<string, unknown>} */ (enAnalyses[i]) :
+      null;
+    if (!enA) continue;
+    const trItem = trAnalyses[i] && typeof trAnalyses[i] === "object" &&
+      !Array.isArray(trAnalyses[i]) ?
+      /** @type {Record<string, unknown>} */ (trAnalyses[i]) :
+      {};
+    const trA = {...trItem};
+    if (enA.sentenceText !== undefined) trA.sentenceText = enA.sentenceText;
+    if (enA.examples !== undefined) trA.examples = enA.examples;
+    const enPhrases = Array.isArray(enA.phraseBreakdown) ? enA.phraseBreakdown : null;
+    if (enPhrases) {
+      const trPhrases = Array.isArray(trA.phraseBreakdown) ?
+        [...trA.phraseBreakdown] :
+        [];
+      while (trPhrases.length < enPhrases.length) {
+        trPhrases.push(enPhrases[trPhrases.length]);
+      }
+      if (trPhrases.length > enPhrases.length) {
+        trPhrases.length = enPhrases.length;
+      }
+      for (let j = 0; j < enPhrases.length; j++) {
+        const enPh = enPhrases[j] && typeof enPhrases[j] === "object" &&
+          !Array.isArray(enPhrases[j]) ?
+          /** @type {Record<string, unknown>} */ (enPhrases[j]) :
+          null;
+        if (!enPh) continue;
+        const trPhItem = trPhrases[j] && typeof trPhrases[j] === "object" &&
+          !Array.isArray(trPhrases[j]) ?
+          /** @type {Record<string, unknown>} */ (trPhrases[j]) :
+          {};
+        trPhrases[j] = {...trPhItem, phrase: enPh.phrase};
+      }
+      trA.phraseBreakdown = trPhrases;
+    }
+    trAnalyses[i] = trA;
+  }
+  result.sentenceAnalyses = trAnalyses;
+  return result;
+}
+
+/**
  * Dual-map for Flutter / old apps — matches playMP3 ToFlutterGrammarPassageData.
  * Keeps overall + sentenceAnalyses and synthesizes grammarPoint/explanation (non-empty).
  * @param {Record<string, unknown>} apiResponse
@@ -460,6 +568,15 @@ function buildPromptForAction(action, payload) {
           String(payload.passage ?? ""),
           String(payload.targetLanguage ?? "English"),
       );
+    case "translateGrammarPassageJson": {
+      const englishJson = payload.englishJson && typeof payload.englishJson === "object" ?
+        /** @type {Record<string, unknown>} */ (payload.englishJson) :
+        {};
+      return buildTranslateGrammarPassageJsonPrompt(
+          englishJson,
+          String(payload.targetLanguage ?? "English"),
+      );
+    }
     case "generateQuestions":
       return buildGenerateQuestionsPrompt(
           String(payload.transcript ?? ""),
@@ -486,4 +603,5 @@ module.exports = {
   buildPromptForAction,
   buildTranslatePrompt,
   toFlutterGrammarPassageData,
+  preserveGrammarQuotesFromEnglish,
 };
