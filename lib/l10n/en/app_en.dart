@@ -104,6 +104,8 @@ class AppEn {
     'downloaded': 'Downloaded',
     'episodeInfo': 'Episode Info',
     'transcript': 'Transcript',
+    'transcriptLoop': 'Loop',
+    'transcriptLooping': 'Looping',
     'reference': 'Reference',
     'questionsTab': 'Questions',
     'vocabulary': 'Vocabulary',
