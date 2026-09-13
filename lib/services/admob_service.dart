@@ -20,26 +20,24 @@ class AdMobService {
   static const String _testAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
   static const String _testRewardedAdUnitIdAndroid = 'ca-app-pub-3940256099942544/5224354917';
   static const String _testRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
-  static const String _testRewardedInterstitialAdUnitIdAndroid =
-      'ca-app-pub-3940256099942544/5354046379';
-  static const String _testRewardedInterstitialAdUnitIdIOS =
-      'ca-app-pub-3940256099942544/6978759866';
+  static const String _testRewardedInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/5354046379';
+  static const String _testRewardedInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/6978759866';
 
   // Production Ad Unit IDs (thay thế bằng Ad Unit IDs thật khi publish)
   static const String _prodBannerAdUnitIdAndroid = 'ca-app-pub-2189112136936277/3489158520';
   static const String _prodBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716';
+  
   static const String _prodInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/9862995184';
   static const String _prodInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
+  
   static const String _prodAppOpenAdUnitIdAndroid = 'ca-app-pub-2189112136936277/8760106002';
   static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
-  static const String _prodRewardedAdUnitIdAndroid =
-      'ca-app-pub-2189112136936277/2424979553';
-  static const String _prodRewardedAdUnitIdIOS =
-      'ca-app-pub-3940256099942544/1712485313';
-  static const String _prodRewardedInterstitialAdUnitIdAndroid =
-      'ca-app-pub-2189112136936277/6701827023';
-  static const String _prodRewardedInterstitialAdUnitIdIOS =
-      'ca-app-pub-2189112136936277/7052378482';
+  
+  static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-2189112136936277/2424979553';
+  static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3940256099942544/1712485313';
+  
+  static const String _prodRewardedInterstitialAdUnitIdAndroid = 'ca-app-pub-2189112136936277/6701827023';
+  static const String _prodRewardedInterstitialAdUnitIdIOS = 'ca-app-pub-2189112136936277/7052378482';
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
