@@ -99,6 +99,8 @@ class AppKo {
     'downloaded': '다운로드됨',
     'episodeInfo': '에피소드 정보',
     'transcript': '대본',
+    'transcriptLoop': '반복',
+    'transcriptLooping': '반복 중',
     'reference': '참고',
     'questionsTab': '질문',
     'vocabulary': '어휘',

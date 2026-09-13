@@ -39,7 +39,7 @@ class AdMobService {
   static const String _prodRewardedInterstitialAdUnitIdAndroid =
       'ca-app-pub-2189112136936277/6701827023';
   static const String _prodRewardedInterstitialAdUnitIdIOS =
-      'ca-app-pub-3940256099942544/6978759866';
+      'ca-app-pub-2189112136936277/7052378482';
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;

@@ -99,6 +99,8 @@ class AppAr {
     'downloaded': 'تم التحميل',
     'episodeInfo': 'معلومات الحلقة',
     'transcript': 'النص',
+    'transcriptLoop': 'تكرار',
+    'transcriptLooping': 'يتكرر',
     'reference': 'مرجع',
     'questionsTab': 'أسئلة',
     'vocabulary': 'المفردات',

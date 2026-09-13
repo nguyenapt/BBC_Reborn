@@ -26,6 +26,10 @@ class TranscriptSlide extends StatefulWidget {
   final Episode episode;
   final int? currentPositionMs; // Vị trí audio hiện tại (milliseconds)
   final Function(int startTimeMs)? onPlayAtTime; // Callback để play tại thời điểm cụ thể
+  /// Bật/tắt lặp đoạn [startMs, endMs] của một dòng transcript.
+  final Future<void> Function(int startMs, int endMs)? onToggleLoopLine;
+  /// True nếu đang loop đúng đoạn này (để highlight nút Loop).
+  final bool Function(int startMs, int endMs)? isLineLooping;
   final int scrollToActiveRequestId;
   /// Đang tải transcript đầy đủ từ RTDB (list mỏng) — hiển thị skeleton thay vì "No transcript".
   final bool isAwaitingFullEpisode;
@@ -40,6 +44,8 @@ class TranscriptSlide extends StatefulWidget {
     required this.learningProgress,
     this.currentPositionMs,
     this.onPlayAtTime,
+    this.onToggleLoopLine,
+    this.isLineLooping,
     this.scrollToActiveRequestId = 0,
     this.isAwaitingFullEpisode = false,
     this.scrollBottomInset = 0,
@@ -196,6 +202,20 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     final t = speaker.trim();
     if (t.isEmpty) return '?';
     return t[0].toUpperCase();
+  }
+
+  /// End ms dùng cho loop: ưu tiên [TranscriptLine.endTime], rồi start của dòng sau, tối thiểu +2.5s.
+  int _effectiveLoopEndMs(
+    TranscriptLine line,
+    int index,
+    List<TranscriptLine> lines,
+  ) {
+    if (line.endTime > line.startTime) return line.endTime;
+    for (var i = index + 1; i < lines.length; i++) {
+      final next = lines[i];
+      if (next.startTime > line.startTime) return next.startTime;
+    }
+    return line.startTime + 2500;
   }
 
   void _calculateAdPositions() {
@@ -640,7 +660,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            'Listen',
+                                            _languageManager.getText('checklistListen'),
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -649,6 +669,60 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                           ),
                                         ],
                                       ),
+                                    ),
+                                  if (hasTimeInfo && widget.onToggleLoopLine != null)
+                                    Builder(
+                                      builder: (context) {
+                                        final loopEndMs = _effectiveLoopEndMs(
+                                          line,
+                                          transcriptIndex,
+                                          transcriptLines,
+                                        );
+                                        final canLoop = loopEndMs > line.startTime;
+                                        if (!canLoop) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        final isLooping = widget.isLineLooping?.call(
+                                              line.startTime,
+                                              loopEndMs,
+                                            ) ??
+                                            false;
+                                        final loopColor = isLooping
+                                            ? const Color(0xFF10B981) // emerald
+                                            : categoryColor;
+                                        return InkWell(
+                                          onTap: () {
+                                            widget.onToggleLoopLine!(
+                                              line.startTime,
+                                              loopEndMs,
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(999),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.repeat_rounded,
+                                                color: loopColor,
+                                                size: 14,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _languageManager.getText(
+                                                  isLooping
+                                                      ? 'transcriptLooping'
+                                                      : 'transcriptLoop',
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: loopColor,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     ),
                                   InkWell(
                                     onTap: () =>
