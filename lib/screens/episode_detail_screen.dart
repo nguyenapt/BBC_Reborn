@@ -687,10 +687,24 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                           scrollToActiveRequestId:
                               _scrollToActiveTranscriptRequestId,
                           onPlayAtTime: (startTimeMs) {
-                            _audioService.seekTo(
+                            _audioService.clearAbRepeat();
+                            // Pending seek: lần đầu play (chưa có source) vẫn nhảy đúng dòng.
+                            _audioService.setPendingSeekPosition(
                               Duration(milliseconds: startTimeMs),
                             );
                             _audioService.play();
+                          },
+                          onToggleLoopLine: (startMs, endMs) {
+                            return _audioService.toggleLineLoop(
+                              startMs: startMs,
+                              endMs: endMs,
+                            );
+                          },
+                          isLineLooping: (startMs, endMs) {
+                            return _audioService.isLineLoopActive(
+                              startMs: startMs,
+                              endMs: endMs,
+                            );
                           },
                         );
                       },

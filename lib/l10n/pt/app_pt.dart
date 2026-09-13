@@ -99,6 +99,8 @@ class AppPt {
     'downloaded': 'Baixado',
     'episodeInfo': 'Informações do Episódio',
     'transcript': 'Transcrição',
+    'transcriptLoop': 'Repetir',
+    'transcriptLooping': 'A repetir',
     'reference': 'Referência',
     'questionsTab': 'Perguntas',
     'vocabulary': 'Vocabulário',

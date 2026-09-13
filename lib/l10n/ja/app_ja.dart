@@ -99,6 +99,8 @@ class AppJa {
     'downloaded': 'ダウンロード済み',
     'episodeInfo': 'エピソード情報',
     'transcript': '台本',
+    'transcriptLoop': 'ループ',
+    'transcriptLooping': 'ループ中',
     'reference': '参考',
     'questionsTab': '質問',
     'vocabulary': '語彙',
