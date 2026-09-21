@@ -986,7 +986,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  'BBC Learning Team',
+                  'Oxford English Team',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],

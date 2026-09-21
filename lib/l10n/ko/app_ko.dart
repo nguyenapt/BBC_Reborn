@@ -1,11 +1,11 @@
 class AppKo {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': '6 Mins Learning English Online',
-    'welcomeMessage': '「6 Mins Learning English Online」에 오신 것을 환영합니다!',
-    'homeTitleMain': '6 Mins',
-    'homeTitleSub': 'Learning English',
-    'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
+    'appTitle': 'Oxford English Mastery',
+    'welcomeMessage': '「Oxford English Mastery」에 오신 것을 환영합니다!',
+    'homeTitleMain': 'Oxford',
+    'homeTitleSub': 'Listen. Engage. Own.',
+    'homeHeroTitle': 'Welcome to Oxford English Mastery',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',

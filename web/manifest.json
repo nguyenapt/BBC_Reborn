@@ -1,11 +1,11 @@
 {
-    "name": "Learning English with B.B.C",
-    "short_name": "BBC Learning",
+    "name": "Oxford English Mastery",
+    "short_name": "Oxford Mastery",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Learn English through listening with B.B.C Learning English",
+    "description": "Master English with listening, grammar, and vocabulary practice",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,11 +1,11 @@
 class AppVi {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': '6 Mins Learning English Online',
-    'welcomeMessage': 'Chào mừng đến với 6 Mins Learning English Online!',
-    'homeTitleMain': '6 Mins',
-    'homeTitleSub': 'Learning English',
-    'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
+    'appTitle': 'Oxford English Mastery',
+    'welcomeMessage': 'Chào mừng đến với Oxford English Mastery!',
+    'homeTitleMain': 'Oxford',
+    'homeTitleSub': 'Nghe. Học. Thành thạo.',
+    'homeHeroTitle': 'Chào mừng đến Oxford English Mastery',
     'continueLearning': 'Tiếp tục học',
     'reviewToday': 'Ôn hôm nay',
     'newEpisode': 'Episode mới',

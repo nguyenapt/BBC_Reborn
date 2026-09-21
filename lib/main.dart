@@ -57,7 +57,7 @@ class BBCLearningApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: NavigationService.navigatorKey,
-          title: '6 Mins Learning English Online',
+          title: 'Oxford English Mastery',
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

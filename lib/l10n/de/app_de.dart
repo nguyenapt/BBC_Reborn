@@ -1,10 +1,10 @@
 class AppDe {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Englisch lernen in 6 Minuten',
-    'welcomeMessage': 'Willkommen bei Englisch lernen in 6 Minuten!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'Oxford English Mastery',
+    'welcomeMessage': 'Willkommen bei Oxford English Mastery!',
+    'homeTitleMain': 'Oxford',
+    'homeTitleSub': 'Hören. Lernen. Meistern.',
     'continueLearning': 'Weiterlernen',
     'reviewToday': 'Heute wiederholen',
     'newEpisode': 'Neue Folge',
@@ -25,7 +25,7 @@ class AppDe {
     'checklistPractice': 'Übung',
     'dueVocabCount': '{count} Wörter zum Wiederholen',
     'dueGrammarCount': '{count} Grammatikpunkte zum Wiederholen',
-    'homeHeroTitle': 'Willkommen bei Learning English 6 minutes',
+    'homeHeroTitle': 'Willkommen bei Oxford English Mastery',
     'homeHeroSubtitle': 'Üben Sie täglich Hörverstehen mit kurzen, modernen Lektionen.',
     'startPracticingListening': 'Mit dem Hörtraining beginnen',
     'chooseListeningCategory': 'Hörkategorie wählen',

@@ -1,11 +1,11 @@
 class AppZh {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': '6 Mins Learning English Online',
-    'welcomeMessage': '欢迎来到 6 Mins Learning English Online！',
-    'homeTitleMain': '6 Mins',
-    'homeTitleSub': 'Learning English',
-    'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
+    'appTitle': 'Oxford English Mastery',
+    'welcomeMessage': '欢迎来到 Oxford English Mastery！',
+    'homeTitleMain': 'Oxford',
+    'homeTitleSub': 'Listen. Engage. Own.',
+    'homeHeroTitle': 'Welcome to Oxford English Mastery',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',

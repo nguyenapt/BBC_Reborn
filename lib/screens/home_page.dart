@@ -443,19 +443,24 @@ class _HomePageState extends State<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _languageManager.getText('homeTitleMain'),
-                      style: theme.textTheme.headlineSmall!.copyWith(
+                      _languageManager.getText('appTitle'),
+                      style: theme.textTheme.titleLarge!.copyWith(
                         color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _languageManager.getText('homeTitleSub'),
                       style: theme.textTheme.bodySmall!.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.8),
-                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface.withOpacity(0.7),
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

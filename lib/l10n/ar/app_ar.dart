@@ -1,11 +1,11 @@
 class AppAr {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': '6 Mins Learning English Online',
-    'welcomeMessage': 'مرحباً بكم في 6 Mins Learning English Online!',
-    'homeTitleMain': '6 Mins',
-    'homeTitleSub': 'Learning English',
-    'homeHeroTitle': 'Welcome to 6 Mins Learning English Online',
+    'appTitle': 'Oxford English Mastery',
+    'welcomeMessage': 'مرحباً بكم في Oxford English Mastery!',
+    'homeTitleMain': 'Oxford',
+    'homeTitleSub': 'Listen. Engage. Own.',
+    'homeHeroTitle': 'Welcome to Oxford English Mastery',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
