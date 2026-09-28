@@ -842,6 +842,17 @@ namespace playMP3
                 if (geminiNode != null)
                     ConfigModel.GeminiApiKey = (geminiNode.InnerText ?? string.Empty).Trim();
 
+                var geminiModelNode = m_xmld.SelectSingleNode("/Configurations/GeminiModelId");
+                if (geminiModelNode != null)
+                {
+                    var modelId = (geminiModelNode.InnerText ?? string.Empty).Trim();
+                    if (!string.IsNullOrEmpty(modelId))
+                    {
+                        ConfigModel.GeminiModelId = modelId;
+                        GrammarCacheConstants.GeminiModelId = modelId;
+                    }
+                }
+
                 var delayNode = m_xmld.SelectSingleNode("/Configurations/GeminiRequestDelayMs");
                 if (delayNode != null && int.TryParse((delayNode.InnerText ?? string.Empty).Trim(), out var delayMs) && delayMs >= 0 && delayMs <= 120_000)
                     ConfigModel.GeminiRequestDelayMs = delayMs;
