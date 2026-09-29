@@ -55,7 +55,7 @@ namespace playMP3
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow, grvTrRow, grvItRow, grvHiRow };
             foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
@@ -66,7 +66,7 @@ namespace playMP3
             grvRow.CurrentCellDirtyStateChanged += GrvRow_GrammarSelectedDirtyStateChanged;
 
             foreach (var g in new DataGridView[] {
-                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe })
+                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe, grvVocabTr, grvVocabIt, grvVocabHi })
             {
                 ApplyVocabGridStyle(g);
             }
@@ -456,6 +456,9 @@ namespace playMP3
             if (ReferenceEquals(tb, txtZhTranscript)) return grvZhRow;
             if (ReferenceEquals(tb, txtFrTranscript)) return grvFrRow;
             if (ReferenceEquals(tb, txtDeTranscript)) return grvDeRow;
+            if (ReferenceEquals(tb, txtTrTranscript)) return grvTrRow;
+            if (ReferenceEquals(tb, txtItTranscript)) return grvItRow;
+            if (ReferenceEquals(tb, txtHiTranscript)) return grvHiRow;
             return null;
         }
 
@@ -588,6 +591,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
         }
 
@@ -1211,6 +1217,9 @@ namespace playMP3
             grvVocabZh.DataSource = null;
             grvVocabFr.DataSource = null;
             grvVocabDe.DataSource = null;
+            grvVocabTr.DataSource = null;
+            grvVocabIt.DataSource = null;
+            grvVocabHi.DataSource = null;
 
             int nextNumber = int.Parse(txtNumber.Text) + 1;
 
@@ -1430,6 +1439,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1492,6 +1504,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             var byEpisodeArr = (JArray)result["grammar_by_episode"];
@@ -1561,6 +1576,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1726,7 +1744,7 @@ namespace playMP3
             }
 
             // Tab locale không có transcript (0 dòng) sẽ được bỏ qua khi fill grammar.
-            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
+            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow, grvTrRow, grvItRow, grvHiRow };
             foreach (var g in grids)
             {
                 int c = GetEpisodeRowCount(g);
@@ -1756,6 +1774,9 @@ namespace playMP3
                 case "ru": return "Russian";
                 case "fr": return "French";
                 case "de": return "German";
+                case "tr": return "Turkish";
+                case "it": return "Italian";
+                case "hi": return "Hindi";
                 case "en": return "English";
                 default: return "English";
             }
@@ -1870,7 +1891,7 @@ namespace playMP3
             var prevEn = grvVocabEn.DataSource as BindingList<VocabularyGridRowModel>;
             var localeGrids = new[]
             {
-                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe
+                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe, grvVocabTr, grvVocabIt, grvVocabHi
             };
             var prevLocales = new BindingList<VocabularyGridRowModel>[localeGrids.Length];
             for (var g = 0; g < localeGrids.Length; g++)
@@ -2034,6 +2055,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var loc in localeSpecs)
@@ -2655,6 +2679,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var loc in locales)
@@ -2729,6 +2756,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -2816,6 +2846,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var spec in localeSpecs)

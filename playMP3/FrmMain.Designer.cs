@@ -137,6 +137,21 @@ namespace playMP3
             this.colVocabDeText = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colVocabDeMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colVocabDeObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageVocabTr = new System.Windows.Forms.TabPage();
+            this.grvVocabTr = new System.Windows.Forms.DataGridView();
+            this.colVocabTrText = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabTrMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabTrObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageVocabIt = new System.Windows.Forms.TabPage();
+            this.grvVocabIt = new System.Windows.Forms.DataGridView();
+            this.colVocabItText = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabItMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabItObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageVocabHi = new System.Windows.Forms.TabPage();
+            this.grvVocabHi = new System.Windows.Forms.DataGridView();
+            this.colVocabHiText = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabHiMeaning = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colVocabHiObject = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btnSubmitAndAddNew = new System.Windows.Forms.Button();
             this.btnExportJson = new System.Windows.Forms.Button();
             this.txtDuration = new System.Windows.Forms.NumericUpDown();
@@ -232,6 +247,24 @@ namespace playMP3
             this.grvDeRow = new System.Windows.Forms.DataGridView();
             this.colDeRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.GrammarExplainationDe = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageTr = new System.Windows.Forms.TabPage();
+            this.txtTrTranscript = new System.Windows.Forms.TextBox();
+            this.labelTrTranscript = new System.Windows.Forms.Label();
+            this.grvTrRow = new System.Windows.Forms.DataGridView();
+            this.colTrRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.GrammarExplainationTr = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageIt = new System.Windows.Forms.TabPage();
+            this.txtItTranscript = new System.Windows.Forms.TextBox();
+            this.labelItTranscript = new System.Windows.Forms.Label();
+            this.grvItRow = new System.Windows.Forms.DataGridView();
+            this.colItRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.GrammarExplainationIt = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.tabPageHi = new System.Windows.Forms.TabPage();
+            this.txtHiTranscript = new System.Windows.Forms.TextBox();
+            this.labelHiTranscript = new System.Windows.Forms.Label();
+            this.grvHiRow = new System.Windows.Forms.DataGridView();
+            this.colHiRowContent = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.GrammarExplainationHi = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btngetGrammarExplaimation = new System.Windows.Forms.Button();
             this.btnGetGrammarPassage = new System.Windows.Forms.Button();
             this.btnGrammarForceStop = new System.Windows.Forms.Button();
@@ -268,6 +301,12 @@ namespace playMP3
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabFr)).BeginInit();
             this.tabPageVocabDe.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabDe)).BeginInit();
+            this.tabPageVocabTr.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabTr)).BeginInit();
+            this.tabPageVocabIt.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabIt)).BeginInit();
+            this.tabPageVocabHi.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabHi)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.txtDuration)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -291,6 +330,12 @@ namespace playMP3
             ((System.ComponentModel.ISupportInitialize)(this.grvFrRow)).BeginInit();
             this.tabPageDe.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvDeRow)).BeginInit();
+            this.tabPageTr.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvTrRow)).BeginInit();
+            this.tabPageIt.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvItRow)).BeginInit();
+            this.tabPageHi.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvHiRow)).BeginInit();
             this.statusStripGrammar.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.SuspendLayout();
@@ -854,6 +899,9 @@ namespace playMP3
             this.tabControl2.Controls.Add(this.tabPage18);
             this.tabControl2.Controls.Add(this.tabPageVocabFr);
             this.tabControl2.Controls.Add(this.tabPageVocabDe);
+            this.tabControl2.Controls.Add(this.tabPageVocabTr);
+            this.tabControl2.Controls.Add(this.tabPageVocabIt);
+            this.tabControl2.Controls.Add(this.tabPageVocabHi);
             this.tabControl2.Location = new System.Drawing.Point(6, 539);
             this.tabControl2.Name = "tabControl2";
             this.tabControl2.SelectedIndex = 0;
@@ -1366,6 +1414,144 @@ namespace playMP3
             this.colVocabDeObject.HeaderText = "Vocab Object";
             this.colVocabDeObject.Name = "colVocabDeObject";
             // 
+            // tabPageVocabTr
+            // 
+            this.tabPageVocabTr.Controls.Add(this.grvVocabTr);
+            this.tabPageVocabTr.Location = new System.Drawing.Point(4, 22);
+            this.tabPageVocabTr.Name = "tabPageVocabTr";
+            this.tabPageVocabTr.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageVocabTr.Size = new System.Drawing.Size(608, 217);
+            this.tabPageVocabTr.TabIndex = 11;
+            this.tabPageVocabTr.Text = "Tr";
+            this.tabPageVocabTr.UseVisualStyleBackColor = true;
+            // 
+            // grvVocabTr
+            // 
+            this.grvVocabTr.AllowUserToAddRows = false;
+            this.grvVocabTr.AllowUserToDeleteRows = false;
+            this.grvVocabTr.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvVocabTr.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colVocabTrText,
+            this.colVocabTrMeaning,
+            this.colVocabTrObject});
+            this.grvVocabTr.Location = new System.Drawing.Point(7, 6);
+            this.grvVocabTr.Name = "grvVocabTr";
+            this.grvVocabTr.Size = new System.Drawing.Size(595, 205);
+            this.grvVocabTr.TabIndex = 23;
+            // 
+            // colVocabTrText
+            // 
+            this.colVocabTrText.DataPropertyName = "DisplayText";
+            this.colVocabTrText.HeaderText = "Text";
+            this.colVocabTrText.MinimumWidth = 100;
+            this.colVocabTrText.Name = "colVocabTrText";
+            // 
+            // colVocabTrMeaning
+            // 
+            this.colVocabTrMeaning.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colVocabTrMeaning.DataPropertyName = "Meaning";
+            this.colVocabTrMeaning.HeaderText = "Meaning";
+            this.colVocabTrMeaning.MinimumWidth = 100;
+            this.colVocabTrMeaning.Name = "colVocabTrMeaning";
+            // 
+            // colVocabTrObject
+            // 
+            this.colVocabTrObject.DataPropertyName = "EnhancementJson";
+            this.colVocabTrObject.HeaderText = "Vocab Object";
+            this.colVocabTrObject.Name = "colVocabTrObject";
+            // 
+            // tabPageVocabIt
+            // 
+            this.tabPageVocabIt.Controls.Add(this.grvVocabIt);
+            this.tabPageVocabIt.Location = new System.Drawing.Point(4, 22);
+            this.tabPageVocabIt.Name = "tabPageVocabIt";
+            this.tabPageVocabIt.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageVocabIt.Size = new System.Drawing.Size(608, 217);
+            this.tabPageVocabIt.TabIndex = 12;
+            this.tabPageVocabIt.Text = "It";
+            this.tabPageVocabIt.UseVisualStyleBackColor = true;
+            // 
+            // grvVocabIt
+            // 
+            this.grvVocabIt.AllowUserToAddRows = false;
+            this.grvVocabIt.AllowUserToDeleteRows = false;
+            this.grvVocabIt.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvVocabIt.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colVocabItText,
+            this.colVocabItMeaning,
+            this.colVocabItObject});
+            this.grvVocabIt.Location = new System.Drawing.Point(7, 6);
+            this.grvVocabIt.Name = "grvVocabIt";
+            this.grvVocabIt.Size = new System.Drawing.Size(595, 205);
+            this.grvVocabIt.TabIndex = 24;
+            // 
+            // colVocabItText
+            // 
+            this.colVocabItText.DataPropertyName = "DisplayText";
+            this.colVocabItText.HeaderText = "Text";
+            this.colVocabItText.MinimumWidth = 100;
+            this.colVocabItText.Name = "colVocabItText";
+            // 
+            // colVocabItMeaning
+            // 
+            this.colVocabItMeaning.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colVocabItMeaning.DataPropertyName = "Meaning";
+            this.colVocabItMeaning.HeaderText = "Meaning";
+            this.colVocabItMeaning.MinimumWidth = 100;
+            this.colVocabItMeaning.Name = "colVocabItMeaning";
+            // 
+            // colVocabItObject
+            // 
+            this.colVocabItObject.DataPropertyName = "EnhancementJson";
+            this.colVocabItObject.HeaderText = "Vocab Object";
+            this.colVocabItObject.Name = "colVocabItObject";
+            // 
+            // tabPageVocabHi
+            // 
+            this.tabPageVocabHi.Controls.Add(this.grvVocabHi);
+            this.tabPageVocabHi.Location = new System.Drawing.Point(4, 22);
+            this.tabPageVocabHi.Name = "tabPageVocabHi";
+            this.tabPageVocabHi.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageVocabHi.Size = new System.Drawing.Size(608, 217);
+            this.tabPageVocabHi.TabIndex = 13;
+            this.tabPageVocabHi.Text = "Hi";
+            this.tabPageVocabHi.UseVisualStyleBackColor = true;
+            // 
+            // grvVocabHi
+            // 
+            this.grvVocabHi.AllowUserToAddRows = false;
+            this.grvVocabHi.AllowUserToDeleteRows = false;
+            this.grvVocabHi.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvVocabHi.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colVocabHiText,
+            this.colVocabHiMeaning,
+            this.colVocabHiObject});
+            this.grvVocabHi.Location = new System.Drawing.Point(7, 6);
+            this.grvVocabHi.Name = "grvVocabHi";
+            this.grvVocabHi.Size = new System.Drawing.Size(595, 205);
+            this.grvVocabHi.TabIndex = 25;
+            // 
+            // colVocabHiText
+            // 
+            this.colVocabHiText.DataPropertyName = "DisplayText";
+            this.colVocabHiText.HeaderText = "Text";
+            this.colVocabHiText.MinimumWidth = 100;
+            this.colVocabHiText.Name = "colVocabHiText";
+            // 
+            // colVocabHiMeaning
+            // 
+            this.colVocabHiMeaning.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colVocabHiMeaning.DataPropertyName = "Meaning";
+            this.colVocabHiMeaning.HeaderText = "Meaning";
+            this.colVocabHiMeaning.MinimumWidth = 100;
+            this.colVocabHiMeaning.Name = "colVocabHiMeaning";
+            // 
+            // colVocabHiObject
+            // 
+            this.colVocabHiObject.DataPropertyName = "EnhancementJson";
+            this.colVocabHiObject.HeaderText = "Vocab Object";
+            this.colVocabHiObject.Name = "colVocabHiObject";
+            // 
             // btnSubmitAndAddNew
             // 
             this.btnSubmitAndAddNew.Location = new System.Drawing.Point(270, 927);
@@ -1670,6 +1856,9 @@ namespace playMP3
             this.tabControl1.Controls.Add(this.tabPage9);
             this.tabControl1.Controls.Add(this.tabPageFr);
             this.tabControl1.Controls.Add(this.tabPageDe);
+            this.tabControl1.Controls.Add(this.tabPageTr);
+            this.tabControl1.Controls.Add(this.tabPageIt);
+            this.tabControl1.Controls.Add(this.tabPageHi);
             this.tabControl1.Location = new System.Drawing.Point(502, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -2260,6 +2449,177 @@ namespace playMP3
             this.GrammarExplainationDe.Name = "GrammarExplainationDe";
             this.GrammarExplainationDe.Width = 200;
             // 
+            // tabPageTr
+            // 
+            this.tabPageTr.Controls.Add(this.txtTrTranscript);
+            this.tabPageTr.Controls.Add(this.labelTrTranscript);
+            this.tabPageTr.Controls.Add(this.grvTrRow);
+            this.tabPageTr.Location = new System.Drawing.Point(4, 22);
+            this.tabPageTr.Name = "tabPageTr";
+            this.tabPageTr.Size = new System.Drawing.Size(1057, 889);
+            this.tabPageTr.TabIndex = 11;
+            this.tabPageTr.Text = "Tr";
+            this.tabPageTr.UseVisualStyleBackColor = true;
+            // 
+            // txtTrTranscript
+            // 
+            this.txtTrTranscript.Location = new System.Drawing.Point(9, 24);
+            this.txtTrTranscript.Multiline = true;
+            this.txtTrTranscript.Name = "txtTrTranscript";
+            this.txtTrTranscript.Size = new System.Drawing.Size(1045, 174);
+            this.txtTrTranscript.TabIndex = 17;
+            this.txtTrTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
+            // 
+            // labelTrTranscript
+            // 
+            this.labelTrTranscript.AutoSize = true;
+            this.labelTrTranscript.Location = new System.Drawing.Point(6, 7);
+            this.labelTrTranscript.Name = "labelTrTranscript";
+            this.labelTrTranscript.Size = new System.Drawing.Size(54, 13);
+            this.labelTrTranscript.TabIndex = 16;
+            this.labelTrTranscript.Text = "Transcript";
+            // 
+            // grvTrRow
+            // 
+            this.grvTrRow.AllowUserToAddRows = false;
+            this.grvTrRow.AllowUserToDeleteRows = false;
+            this.grvTrRow.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvTrRow.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colTrRowContent,
+            this.GrammarExplainationTr});
+            this.grvTrRow.Location = new System.Drawing.Point(6, 231);
+            this.grvTrRow.Name = "grvTrRow";
+            this.grvTrRow.Size = new System.Drawing.Size(1048, 655);
+            this.grvTrRow.TabIndex = 15;
+            // 
+            // colTrRowContent
+            // 
+            this.colTrRowContent.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colTrRowContent.DataPropertyName = "RowContent";
+            this.colTrRowContent.HeaderText = "Row Content";
+            this.colTrRowContent.Name = "colTrRowContent";
+            // 
+            // GrammarExplainationTr
+            // 
+            this.GrammarExplainationTr.DataPropertyName = "GrammarExplanationSummary";
+            this.GrammarExplainationTr.HeaderText = "Grammar Explaination";
+            this.GrammarExplainationTr.Name = "GrammarExplainationTr";
+            this.GrammarExplainationTr.Width = 200;
+            // 
+            // tabPageIt
+            // 
+            this.tabPageIt.Controls.Add(this.txtItTranscript);
+            this.tabPageIt.Controls.Add(this.labelItTranscript);
+            this.tabPageIt.Controls.Add(this.grvItRow);
+            this.tabPageIt.Location = new System.Drawing.Point(4, 22);
+            this.tabPageIt.Name = "tabPageIt";
+            this.tabPageIt.Size = new System.Drawing.Size(1057, 889);
+            this.tabPageIt.TabIndex = 12;
+            this.tabPageIt.Text = "It";
+            this.tabPageIt.UseVisualStyleBackColor = true;
+            // 
+            // txtItTranscript
+            // 
+            this.txtItTranscript.Location = new System.Drawing.Point(9, 24);
+            this.txtItTranscript.Multiline = true;
+            this.txtItTranscript.Name = "txtItTranscript";
+            this.txtItTranscript.Size = new System.Drawing.Size(1045, 174);
+            this.txtItTranscript.TabIndex = 17;
+            this.txtItTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
+            // 
+            // labelItTranscript
+            // 
+            this.labelItTranscript.AutoSize = true;
+            this.labelItTranscript.Location = new System.Drawing.Point(6, 7);
+            this.labelItTranscript.Name = "labelItTranscript";
+            this.labelItTranscript.Size = new System.Drawing.Size(54, 13);
+            this.labelItTranscript.TabIndex = 16;
+            this.labelItTranscript.Text = "Transcript";
+            // 
+            // grvItRow
+            // 
+            this.grvItRow.AllowUserToAddRows = false;
+            this.grvItRow.AllowUserToDeleteRows = false;
+            this.grvItRow.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvItRow.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colItRowContent,
+            this.GrammarExplainationIt});
+            this.grvItRow.Location = new System.Drawing.Point(6, 231);
+            this.grvItRow.Name = "grvItRow";
+            this.grvItRow.Size = new System.Drawing.Size(1048, 655);
+            this.grvItRow.TabIndex = 15;
+            // 
+            // colItRowContent
+            // 
+            this.colItRowContent.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colItRowContent.DataPropertyName = "RowContent";
+            this.colItRowContent.HeaderText = "Row Content";
+            this.colItRowContent.Name = "colItRowContent";
+            // 
+            // GrammarExplainationIt
+            // 
+            this.GrammarExplainationIt.DataPropertyName = "GrammarExplanationSummary";
+            this.GrammarExplainationIt.HeaderText = "Grammar Explaination";
+            this.GrammarExplainationIt.Name = "GrammarExplainationIt";
+            this.GrammarExplainationIt.Width = 200;
+            // 
+            // tabPageHi
+            // 
+            this.tabPageHi.Controls.Add(this.txtHiTranscript);
+            this.tabPageHi.Controls.Add(this.labelHiTranscript);
+            this.tabPageHi.Controls.Add(this.grvHiRow);
+            this.tabPageHi.Location = new System.Drawing.Point(4, 22);
+            this.tabPageHi.Name = "tabPageHi";
+            this.tabPageHi.Size = new System.Drawing.Size(1057, 889);
+            this.tabPageHi.TabIndex = 13;
+            this.tabPageHi.Text = "Hi";
+            this.tabPageHi.UseVisualStyleBackColor = true;
+            // 
+            // txtHiTranscript
+            // 
+            this.txtHiTranscript.Location = new System.Drawing.Point(9, 24);
+            this.txtHiTranscript.Multiline = true;
+            this.txtHiTranscript.Name = "txtHiTranscript";
+            this.txtHiTranscript.Size = new System.Drawing.Size(1045, 174);
+            this.txtHiTranscript.TabIndex = 17;
+            this.txtHiTranscript.Leave += new System.EventHandler(this.LocaleTranscript_Leave);
+            // 
+            // labelHiTranscript
+            // 
+            this.labelHiTranscript.AutoSize = true;
+            this.labelHiTranscript.Location = new System.Drawing.Point(6, 7);
+            this.labelHiTranscript.Name = "labelHiTranscript";
+            this.labelHiTranscript.Size = new System.Drawing.Size(54, 13);
+            this.labelHiTranscript.TabIndex = 16;
+            this.labelHiTranscript.Text = "Transcript";
+            // 
+            // grvHiRow
+            // 
+            this.grvHiRow.AllowUserToAddRows = false;
+            this.grvHiRow.AllowUserToDeleteRows = false;
+            this.grvHiRow.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.grvHiRow.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colHiRowContent,
+            this.GrammarExplainationHi});
+            this.grvHiRow.Location = new System.Drawing.Point(6, 231);
+            this.grvHiRow.Name = "grvHiRow";
+            this.grvHiRow.Size = new System.Drawing.Size(1048, 655);
+            this.grvHiRow.TabIndex = 15;
+            // 
+            // colHiRowContent
+            // 
+            this.colHiRowContent.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.colHiRowContent.DataPropertyName = "RowContent";
+            this.colHiRowContent.HeaderText = "Row Content";
+            this.colHiRowContent.Name = "colHiRowContent";
+            // 
+            // GrammarExplainationHi
+            // 
+            this.GrammarExplainationHi.DataPropertyName = "GrammarExplanationSummary";
+            this.GrammarExplainationHi.HeaderText = "Grammar Explaination";
+            this.GrammarExplainationHi.Name = "GrammarExplainationHi";
+            this.GrammarExplainationHi.Width = 200;
+            // 
             // btngetGrammarExplaimation
             // 
             this.btngetGrammarExplaimation.Location = new System.Drawing.Point(1396, 1028);
@@ -2398,6 +2758,12 @@ namespace playMP3
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabFr)).EndInit();
             this.tabPageVocabDe.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.grvVocabDe)).EndInit();
+            this.tabPageVocabTr.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabTr)).EndInit();
+            this.tabPageVocabIt.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabIt)).EndInit();
+            this.tabPageVocabHi.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.grvVocabHi)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.txtDuration)).EndInit();
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
@@ -2432,6 +2798,15 @@ namespace playMP3
             this.tabPageDe.ResumeLayout(false);
             this.tabPageDe.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.grvDeRow)).EndInit();
+            this.tabPageTr.ResumeLayout(false);
+            this.tabPageTr.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvTrRow)).EndInit();
+            this.tabPageIt.ResumeLayout(false);
+            this.tabPageIt.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvItRow)).EndInit();
+            this.tabPageHi.ResumeLayout(false);
+            this.tabPageHi.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.grvHiRow)).EndInit();
             this.statusStripGrammar.ResumeLayout(false);
             this.statusStripGrammar.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -2552,6 +2927,24 @@ namespace playMP3
         private System.Windows.Forms.DataGridView grvDeRow;
         private System.Windows.Forms.DataGridViewTextBoxColumn colDeRowContent;
         private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationDe;
+        private System.Windows.Forms.TabPage tabPageTr;
+        private System.Windows.Forms.TextBox txtTrTranscript;
+        private System.Windows.Forms.Label labelTrTranscript;
+        private System.Windows.Forms.DataGridView grvTrRow;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colTrRowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationTr;
+        private System.Windows.Forms.TabPage tabPageIt;
+        private System.Windows.Forms.TextBox txtItTranscript;
+        private System.Windows.Forms.Label labelItTranscript;
+        private System.Windows.Forms.DataGridView grvItRow;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colItRowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationIt;
+        private System.Windows.Forms.TabPage tabPageHi;
+        private System.Windows.Forms.TextBox txtHiTranscript;
+        private System.Windows.Forms.Label labelHiTranscript;
+        private System.Windows.Forms.DataGridView grvHiRow;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colHiRowContent;
+        private System.Windows.Forms.DataGridViewTextBoxColumn GrammarExplainationHi;
         private System.Windows.Forms.Button btngetGrammarExplaimation;
         private System.Windows.Forms.Button btnGetGrammarPassage;
         private System.Windows.Forms.Button btnGrammarForceStop;
@@ -2588,6 +2981,21 @@ namespace playMP3
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeText;
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeMeaning;
         private System.Windows.Forms.DataGridViewTextBoxColumn colVocabDeObject;
+        private System.Windows.Forms.TabPage tabPageVocabTr;
+        private System.Windows.Forms.DataGridView grvVocabTr;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabTrText;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabTrMeaning;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabTrObject;
+        private System.Windows.Forms.TabPage tabPageVocabIt;
+        private System.Windows.Forms.DataGridView grvVocabIt;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabItText;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabItMeaning;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabItObject;
+        private System.Windows.Forms.TabPage tabPageVocabHi;
+        private System.Windows.Forms.DataGridView grvVocabHi;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabHiText;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabHiMeaning;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colVocabHiObject;
         private System.Windows.Forms.Button btnGetVocabFromTranscript;
         private System.Windows.Forms.Button btnGetVocabTransLateAndObject;
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
