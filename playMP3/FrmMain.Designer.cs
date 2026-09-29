@@ -235,6 +235,7 @@ namespace playMP3
             this.btngetGrammarExplaimation = new System.Windows.Forms.Button();
             this.btnGetGrammarPassage = new System.Windows.Forms.Button();
             this.btnGrammarForceStop = new System.Windows.Forms.Button();
+            this.cboGrammarFillMode = new System.Windows.Forms.ComboBox();
             this.statusStripGrammar = new System.Windows.Forms.StatusStrip();
             this.toolStripProgressGrammar = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripStatusLabelGrammar = new System.Windows.Forms.ToolStripStatusLabel();
@@ -2290,6 +2291,18 @@ namespace playMP3
             this.btnGrammarForceStop.UseVisualStyleBackColor = true;
             this.btnGrammarForceStop.Click += new System.EventHandler(this.btnGrammarForceStop_Click);
             // 
+            // cboGrammarFillMode
+            // 
+            this.cboGrammarFillMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboGrammarFillMode.FormattingEnabled = true;
+            this.cboGrammarFillMode.Items.AddRange(new object[] {
+            "Get all",
+            "Get error rows"});
+            this.cboGrammarFillMode.Location = new System.Drawing.Point(1226, 1001);
+            this.cboGrammarFillMode.Name = "cboGrammarFillMode";
+            this.cboGrammarFillMode.Size = new System.Drawing.Size(164, 21);
+            this.cboGrammarFillMode.TabIndex = 49;
+            // 
             // statusStripGrammar
             // 
             this.statusStripGrammar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -2336,6 +2349,7 @@ namespace playMP3
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.btnPurgeAiCache);
             this.Controls.Add(this.btnMigrateRtdbPath);
+            this.Controls.Add(this.cboGrammarFillMode);
             this.Controls.Add(this.btnGrammarForceStop);
             this.Controls.Add(this.btnGetGrammarPassage);
             this.Controls.Add(this.btngetGrammarExplaimation);
@@ -2541,6 +2555,7 @@ namespace playMP3
         private System.Windows.Forms.Button btngetGrammarExplaimation;
         private System.Windows.Forms.Button btnGetGrammarPassage;
         private System.Windows.Forms.Button btnGrammarForceStop;
+        private System.Windows.Forms.ComboBox cboGrammarFillMode;
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;
