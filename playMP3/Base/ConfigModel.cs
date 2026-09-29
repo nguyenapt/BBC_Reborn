@@ -15,6 +15,9 @@ namespace playMP3.Base
         /// <summary>Optional Gemini API key(s) from service.config (Configurations/GeminiApiKey). Multiple: key1;key2 (also accepts comma).</summary>
         public string GeminiApiKey { get; set; }
 
+        /// <summary>Optional Gemini REST model id from service.config (Configurations/GeminiModelId).</summary>
+        public string GeminiModelId { get; set; }
+
         /// <summary>Delay (ms) between grammar API calls; optional GeminiRequestDelayMs in service.config.</summary>
         public int GeminiRequestDelayMs { get; set; } = 4500;
 
