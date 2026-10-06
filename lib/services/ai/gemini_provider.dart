@@ -5,6 +5,7 @@ import 'exceptions.dart';
 import 'rate_limiter.dart';
 import 'json_parser_helper.dart';
 import 'grammar_passage_dual_map.dart';
+import 'deepen_prompt_builder.dart';
 import '../../config/ai_config.dart';
 
 /// Google Gemini AI Provider (Free tier)
@@ -612,6 +613,27 @@ Return format:
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse speaking feedback JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> deepenLine(
+    String action,
+    String text,
+    String targetLanguage, {
+    String? context,
+  }) async {
+    final prompt = DeepenPromptBuilder.build(
+      action,
+      text,
+      targetLanguage,
+      context: context,
+    );
+    final response = await _callGemini(prompt);
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse deepen JSON: $e');
     }
   }
 }

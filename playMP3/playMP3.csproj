@@ -246,6 +246,8 @@
     <Compile Include="GrammarGeminiService.cs" />
     <Compile Include="VocabularyGeminiService.cs" />
     <Compile Include="GrammarFirebaseCacheWriter.cs" />
+    <Compile Include="DeepenFirebaseCacheWriter.cs" />
+    <Compile Include="DeepenGeminiService.cs" />
     <Compile Include="VocabularyFirebaseCacheWriter.cs" />
     <Compile Include="TranslationsFirebaseCacheWriter.cs" />
     <Compile Include="QuestionsGeminiService.cs" />

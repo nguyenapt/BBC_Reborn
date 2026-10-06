@@ -1035,5 +1035,117 @@ class AICacheService {
   Future<List<String>> getPopularEpisodes({int limit = 100}) async {
     return await _firebaseCache.getPopularEpisodes(limit: limit);
   }
+
+  Future<Map<String, dynamic>?> getDeepenFromLocalCache({
+    required String featureKey,
+    required String episodeId,
+    required int lineNumber,
+    required String languageCode,
+  }) async {
+    final localKey = CacheKeyHelper.deepenLocalKey(
+      featureKey,
+      episodeId,
+      lineNumber,
+      languageCode,
+    );
+    final localCache = await getCached<Map<String, dynamic>>(
+      localKey,
+      (json) => json,
+    );
+    if (localCache != null) {
+      debugPrint('Local cache HIT for deepen: $localKey');
+    }
+    return localCache;
+  }
+
+  Future<Map<String, dynamic>?> getDeepenFromFirebaseCache({
+    required String featureKey,
+    required String episodeId,
+    required int lineNumber,
+    required String languageCode,
+  }) async {
+    final firebase = await _firebaseCache.getDeepenByEpisode(
+      episodeId: episodeId,
+      transcriptLineIndex: lineNumber,
+      featureKey: featureKey,
+      languageCode: languageCode,
+    );
+    if (firebase == null) return null;
+
+    final localKey = CacheKeyHelper.deepenLocalKey(
+      featureKey,
+      episodeId,
+      lineNumber,
+      languageCode,
+    );
+    await cacheData<Map<String, dynamic>>(
+      localKey,
+      firebase,
+      (data) => data,
+    );
+    return firebase;
+  }
+
+  /// Local → Firebase `deepen_by_episode`.
+  Future<({Map<String, dynamic> data, AICacheTier tier})?> lookupDeepen({
+    required String featureKey,
+    required String episodeId,
+    required int lineNumber,
+    required String languageCode,
+  }) async {
+    final local = await getDeepenFromLocalCache(
+      featureKey: featureKey,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      languageCode: languageCode,
+    );
+    if (local != null) {
+      return (data: local, tier: AICacheTier.local);
+    }
+    final firebase = await getDeepenFromFirebaseCache(
+      featureKey: featureKey,
+      episodeId: episodeId,
+      lineNumber: lineNumber,
+      languageCode: languageCode,
+    );
+    if (firebase != null) {
+      return (data: firebase, tier: AICacheTier.firebase);
+    }
+    return null;
+  }
+
+  Future<void> saveDeepenToCache({
+    required String featureKey,
+    required String episodeId,
+    required int lineNumber,
+    required String languageCode,
+    required Map<String, dynamic> deepenData,
+  }) async {
+    final localKey = CacheKeyHelper.deepenLocalKey(
+      featureKey,
+      episodeId,
+      lineNumber,
+      languageCode,
+    );
+    await cacheData<Map<String, dynamic>>(
+      localKey,
+      deepenData,
+      (data) => data,
+    );
+
+    if (episodeId.isEmpty || lineNumber < 0) return;
+
+    _firebaseCache
+        .saveDeepenByEpisode(
+          episodeId: episodeId,
+          transcriptLineIndex: lineNumber,
+          featureKey: featureKey,
+          languageCode: languageCode,
+          deepenData: deepenData,
+        )
+        .catchError(
+          (e) => debugPrint('Error saving deepen_by_episode: $e'),
+        );
+  }
 }
 

@@ -58,6 +58,15 @@ abstract class AIProvider {
     String? context,
   });
 
+  /// Deepen a transcript line (paraphrase / chunks / simplify / nuance).
+  /// [action] is Cloud Functions action: paraphraseLine, extractLineChunks, …
+  Future<Map<String, dynamic>> deepenLine(
+    String action,
+    String text,
+    String targetLanguage, {
+    String? context,
+  });
+
   /// Evaluate speaking performance based on reference and spoken transcript
   Future<Map<String, dynamic>> evaluateSpeech({
     required String referenceText,

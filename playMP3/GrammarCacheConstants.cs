@@ -38,6 +38,21 @@ namespace playMP3
         public const string GrammarPassagePath = "grammar_passage";
         public const string VocabularyByEpisodePath = "vocabulary_by_episode";
 
+        /// <summary>MUST_SYNC Flutter AIFirebaseCacheService._deepenByEpisodePath</summary>
+        public const string DeepenByEpisodePath = "deepen_by_episode";
+
+        /// <summary>MUST_SYNC Flutter deepenSchemaVersion</summary>
+        public const string DeepenSchemaVersion = "deepen_v1";
+
+        /// <summary>RTDB featureKey segments under deepen_by_episode.</summary>
+        public static readonly string[] DeepenFeatureKeys =
+        {
+            "paraphrase",
+            "chunks",
+            "simplify",
+            "nuance",
+        };
+
         /// <summary>transcriptLineIndex / lineNumber / lineKey are 0-based (line_0 = first line). Re-upload RTDB after changing from old 1-based keys.</summary>
         public const string LineIndexConvention = "0-based";
 
@@ -65,6 +80,7 @@ namespace playMP3
             "translations",
             "vocabulary",
             "vocabulary_by_episode",
+            "deepen_by_episode",
         };
 
         /// <summary>Default Gemini REST model id (playMP3 tool); flash-lite for speed/cost vs Flutter app.</summary>

@@ -5,6 +5,7 @@ import 'ai_provider.dart';
 import 'exceptions.dart';
 import 'json_parser_helper.dart';
 import 'grammar_passage_dual_map.dart';
+import 'deepen_prompt_builder.dart';
 import '../../config/ai_config.dart';
 
 /// OpenAI Provider (Backup) - Using HTTP directly
@@ -564,6 +565,31 @@ Return format:
       return JsonParserHelper.parseJsonObject(response);
     } catch (e) {
       throw InvalidResponseException('Failed to parse speaking feedback JSON: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> deepenLine(
+    String action,
+    String text,
+    String targetLanguage, {
+    String? context,
+  }) async {
+    final prompt = DeepenPromptBuilder.build(
+      action,
+      text,
+      targetLanguage,
+      context: context,
+    );
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You are a helpful English teacher. Always return valid JSON only.',
+    );
+    try {
+      return JsonParserHelper.parseJsonObject(response);
+    } catch (e) {
+      throw InvalidResponseException('Failed to parse deepen JSON: $e');
     }
   }
 }

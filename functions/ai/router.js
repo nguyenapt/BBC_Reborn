@@ -13,6 +13,10 @@ const JSON_OBJECT_ACTIONS = new Set([
   "explainGrammarPassageOverall",
   "explainGrammarPassageSentences",
   "enhanceVocabulary",
+  "paraphraseLine",
+  "extractLineChunks",
+  "simplifyLine",
+  "explainLineNuance",
   "evaluateSpeech",
 ]);
 

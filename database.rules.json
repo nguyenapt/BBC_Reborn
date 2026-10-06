@@ -62,6 +62,17 @@
           }
         }
       },
+      "deepen_by_episode": {
+        "$episodeId": {
+          "$lineKey": {
+            "$featureKey": {
+              "$languageCode": {
+                ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
+              }
+            }
+          }
+        }
+      },
       "access_stats": {
         "$episodeId": {
           ".validate": "newData.hasChildren(['episodeId', 'count', 'lastAccessed'])"

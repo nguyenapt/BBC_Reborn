@@ -50,6 +50,8 @@ namespace playMP3
         readonly Dictionary<DataGridView, Label> _transcriptRowCountLabels = new Dictionary<DataGridView, Label>();
         CancellationTokenSource _grammarJobCts;
         DataGridViewCheckBoxHeaderCell _grammarSelectHeaderCell;
+        ComboBox _cboDeepenFeature;
+        Button _btnGetDeepen;
 
         public frmMain()
         {
@@ -62,6 +64,9 @@ namespace playMP3
                 EnsureTranscriptRowCountLabel(g);
             }
             ApplyEnglishGrammarSelectColumn(grvRow);
+            foreach (var g in transcriptGrids)
+                ApplyDeepenSummaryColumn(g);
+            EnsureDeepenControls();
             grvRow.CellValueChanged += GrvRow_GrammarSelectedCellValueChanged;
             grvRow.CurrentCellDirtyStateChanged += GrvRow_GrammarSelectedDirtyStateChanged;
 
@@ -505,6 +510,58 @@ namespace playMP3
             grid.Columns.Insert(colIndex, col);
         }
 
+        private static void ApplyDeepenSummaryColumn(DataGridView grid)
+        {
+            if (grid.Columns.Contains("DeepenSummary"))
+                return;
+
+            grid.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "DeepenSummary",
+                DataPropertyName = "DeepenSummary",
+                HeaderText = "Deepen",
+                Width = 72,
+                ReadOnly = true,
+            });
+        }
+
+        private void EnsureDeepenControls()
+        {
+            if (_cboDeepenFeature != null)
+                return;
+
+            _cboDeepenFeature = new ComboBox
+            {
+                Name = "cboDeepenFeature",
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 120,
+                Location = new Point(1400, 1038),
+            };
+            _cboDeepenFeature.Items.AddRange(new object[]
+            {
+                "paraphrase",
+                "chunks",
+                "simplify",
+                "nuance",
+            });
+            _cboDeepenFeature.SelectedIndex = 0;
+
+            _btnGetDeepen = new Button
+            {
+                Name = "btnGetDeepen",
+                Text = "Get Deepen",
+                Size = new Size(110, 40),
+                Location = new Point(1530, 1028),
+                UseVisualStyleBackColor = true,
+            };
+            _btnGetDeepen.Click += btnGetDeepen_Click;
+
+            Controls.Add(_cboDeepenFeature);
+            Controls.Add(_btnGetDeepen);
+            _cboDeepenFeature.BringToFront();
+            _btnGetDeepen.BringToFront();
+        }
+
         private void GrvRow_GrammarSelectedDirtyStateChanged(object sender, EventArgs e)
         {
             if (grvRow.IsCurrentCellDirty)
@@ -670,6 +727,11 @@ namespace playMP3
                         m.GrammarExplanationSummary = prev.GrammarExplanationSummary;
                         m.GrammarExplanationJson = prev.GrammarExplanationJson;
                         m.GrammarSelected = prev.GrammarSelected;
+                        m.ParaphraseJson = prev.ParaphraseJson;
+                        m.ChunksJson = prev.ChunksJson;
+                        m.SimplifyJson = prev.SimplifyJson;
+                        m.NuanceJson = prev.NuanceJson;
+                        m.RefreshDeepenSummary();
                     }
                 }
 
@@ -1090,6 +1152,9 @@ namespace playMP3
                 await UploadTranslationsAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportGrammar)
                 await UploadGrammarAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
+            // Deepen shares the grammar export toggle (same Sel rows / locale tabs workflow).
+            if (exportGrammar)
+                await UploadDeepenAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportVocabulary)
                 await UploadVocabularyAiCachesAsync(canonicalEpisodeId, firebaseRtdbBaseUrl).ConfigureAwait(true);
             if (exportQuestions)
@@ -1410,6 +1475,10 @@ namespace playMP3
             if (grammar["grammar_by_episode"] is JArray gArr && gArr.Count > 0)
                 ai["grammar_by_episode"] = gArr;
 
+            var deepen = CollectDeepenExport(episodeId);
+            if (deepen.Count > 0)
+                ai["deepen_by_episode"] = deepen;
+
             var vocabulary = CollectVocabularyExport(episodeId);
             if (vocabulary.Count > 0)
                 ai["vocabulary"] = vocabulary;
@@ -1555,6 +1624,79 @@ namespace playMP3
             }
 
             return result;
+        }
+
+        private JArray CollectDeepenExport(string episodeId)
+        {
+            var arr = new JArray();
+            var englishRows = grvRow.DataSource as BindingList<EpisodeRowModel>;
+            if (englishRows == null || englishRows.Count == 0)
+                return arr;
+
+            var locales = new[]
+            {
+                Tuple.Create(grvRow, "en"),
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
+            };
+
+            foreach (var loc in locales)
+            {
+                var grid = loc.Item1;
+                var langCode = loc.Item2;
+                if (!(grid.DataSource is BindingList<EpisodeRowModel> rows))
+                    continue;
+
+                var n = Math.Min(englishRows.Count, rows.Count);
+                for (var i = 0; i < n; i++)
+                {
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (sentence.Length == 0)
+                        continue;
+
+                    foreach (var featureKey in GrammarCacheConstants.DeepenFeatureKeys)
+                    {
+                        var json = rows[i].GetDeepenJson(featureKey);
+                        if (string.IsNullOrWhiteSpace(json) || json.StartsWith("Lỗi:", StringComparison.Ordinal))
+                            continue;
+
+                        JObject data;
+                        try
+                        {
+                            data = JObject.Parse(json);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        arr.Add(new JObject
+                        {
+                            ["lang"] = langCode,
+                            ["featureKey"] = featureKey,
+                            ["lineNumber"] = i,
+                            ["lineKey"] = "line_" + i,
+                            ["sentence"] = sentence,
+                            ["pathHint"] = "ai_cache/deepen_by_episode/" + episodeId + "/line_" + i + "/"
+                                           + featureKey + "/" + langCode,
+                            ["data"] = data,
+                        });
+                    }
+                }
+            }
+
+            return arr;
         }
 
         private JArray CollectVocabularyExport(string episodeId)
@@ -1818,6 +1960,10 @@ namespace playMP3
             Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
             btngetGrammarExplaimation.Enabled = !busy;
             btnGetGrammarPassage.Enabled = !busy;
+            if (_btnGetDeepen != null)
+                _btnGetDeepen.Enabled = !busy;
+            if (_cboDeepenFeature != null)
+                _cboDeepenFeature.Enabled = !busy;
             btnGrammarForceStop.Enabled = busy;
             cboGrammarFillMode.Enabled = !busy;
             if (busy)
@@ -2609,6 +2755,193 @@ namespace playMP3
             }
         }
 
+        private async void btnGetDeepen_Click(object sender, EventArgs e)
+        {
+            if (!ValidateGrammarGridRowCounts())
+                return;
+
+            var resolvedKeys = TryResolveGeminiApiKeys();
+            if (resolvedKeys == null || resolvedKeys.Count == 0)
+            {
+                MessageBox.Show(this,
+                    "Thiếu Gemini API key: đặt GEMINI_API_KEY / GOOGLE_API_KEY hoặc thẻ <GeminiApiKey> trong service.config.",
+                    "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(txtId.Text.Trim()))
+            {
+                MessageBox.Show(this, "txtId (episode Id) trống.", "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var featureKey = _cboDeepenFeature != null && _cboDeepenFeature.SelectedItem != null
+                ? _cboDeepenFeature.SelectedItem.ToString()
+                : "paraphrase";
+
+            var errorRowsMode = IsGrammarErrorRowsMode();
+            IReadOnlyList<GrammarFillTarget> targets;
+            if (errorRowsMode)
+            {
+                targets = CollectDeepenErrorCells(featureKey);
+                if (targets.Count == 0)
+                {
+                    MessageBox.Show(this,
+                        "Không có ô deepen lỗi cho feature \"" + featureKey + "\".",
+                        "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+            }
+            else
+            {
+                var englishRowsPrep = GetEpisodeRowsOrThrow(grvRow);
+                var indices = GetGrammarSelectedRowIndices(englishRowsPrep);
+                if (indices.Count == 0)
+                {
+                    MessageBox.Show(this,
+                        "Chọn ít nhất một dòng trên grid EN (cột Sel).",
+                        "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                targets = BuildSelectedGrammarTargets(indices);
+            }
+
+            var apiKeys = resolvedKeys;
+
+            _grammarJobCts?.Cancel();
+            _grammarJobCts = new CancellationTokenSource();
+            var token = _grammarJobCts.Token;
+            SetGrammarJobUiBusy(true, errorRowsMode
+                ? "Đang gọi lại deepen lỗi (" + featureKey + ")…"
+                : "Đang chạy deepen (" + featureKey + ")…");
+            if (Text != null && !Text.EndsWith(" — Deepen đang chạy…", StringComparison.Ordinal))
+                Text = Text + " — Deepen đang chạy…";
+
+            var completed = false;
+            try
+            {
+                var englishRows = GetEpisodeRowsOrThrow(grvRow);
+                var delayMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
+                var total = targets.Count;
+                DataGridView lastGrid = null;
+
+                for (var ordinal = 0; ordinal < targets.Count; ordinal++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var target = targets[ordinal];
+                    if (lastGrid != null && !ReferenceEquals(lastGrid, target.Grid))
+                    {
+                        lastGrid.EndEdit();
+                        lastGrid.Refresh();
+                    }
+                    lastGrid = target.Grid;
+
+                    var i = target.RowIndex;
+                    if (i < 0 || i >= englishRows.Count)
+                        continue;
+
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (sentence.Length == 0)
+                        continue;
+
+                    if (!(target.Grid.DataSource is BindingList<EpisodeRowModel> rows) || i >= rows.Count)
+                        continue;
+
+                    SetGrammarJobUiDetail(featureKey + " " + (ordinal + 1) + "/" + total
+                                          + " · " + target.LangCode + " · line_" + i);
+
+                    var contextParts = new List<string>();
+                    if (i > 0)
+                        contextParts.Add((englishRows[i - 1].RowContent ?? "").Trim());
+                    contextParts.Add(sentence);
+                    if (i + 1 < englishRows.Count)
+                        contextParts.Add((englishRows[i + 1].RowContent ?? "").Trim());
+                    var context = string.Join("\n", contextParts.FindAll(s => s.Length > 0));
+
+                    try
+                    {
+                        var data = await DeepenGeminiService.DeepenAsync(
+                            apiKeys,
+                            featureKey,
+                            sentence,
+                            GrammarTargetLanguageLabel(target.LangCode),
+                            context).ConfigureAwait(true);
+
+                        data["schemaVersion"] = GrammarCacheConstants.DeepenSchemaVersion;
+                        data["featureKey"] = featureKey;
+                        rows[i].SetDeepenJson(featureKey, data.ToString(Newtonsoft.Json.Formatting.None));
+                    }
+                    catch (Exception ex)
+                    {
+                        rows[i].SetDeepenJson(featureKey, TruncateGrammarCellError(ex.Message, 180));
+                    }
+
+                    await Task.Delay(delayMs, token).ConfigureAwait(true);
+                }
+
+                if (lastGrid != null)
+                {
+                    lastGrid.EndEdit();
+                    lastGrid.Refresh();
+                }
+
+                completed = true;
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show(this, "Đã dừng deepen.", "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                SetGrammarJobUiBusy(false);
+                if (Text != null && Text.EndsWith(" — Deepen đang chạy…", StringComparison.Ordinal))
+                    Text = Text.Substring(0, Text.Length - " — Deepen đang chạy…".Length);
+            }
+
+            if (completed)
+            {
+                MessageBox.Show(this,
+                    errorRowsMode
+                        ? "Đã gọi lại " + targets.Count + " ô deepen lỗi (" + featureKey + ")."
+                        : "Đã điền deepen \"" + featureKey + "\" cho các dòng đã chọn. Export Grammar sẽ PUT ai_cache/deepen_by_episode.",
+                    "Deepen", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private List<GrammarFillTarget> CollectDeepenErrorCells(string featureKey)
+        {
+            var englishRows = GetEpisodeRowsOrThrow(grvRow);
+            var cells = new List<GrammarFillTarget>();
+            foreach (var loc in GetGrammarLocaleGrids())
+            {
+                var grid = loc.Item1;
+                if (GetEpisodeRowCount(grid) == 0)
+                    continue;
+                var rows = GetEpisodeRowsOrThrow(grid);
+                var n = Math.Min(englishRows.Count, rows.Count);
+                for (var i = 0; i < n; i++)
+                {
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(sentence))
+                        continue;
+                    var json = rows[i].GetDeepenJson(featureKey);
+                    if (string.IsNullOrWhiteSpace(json) || !json.StartsWith("Lỗi:", StringComparison.Ordinal))
+                        continue;
+                    cells.Add(new GrammarFillTarget
+                    {
+                        Grid = grid,
+                        LangCode = loc.Item2,
+                        RowIndex = i,
+                    });
+                }
+            }
+            return cells;
+        }
+
         /// <summary>
         /// CSV trên episode: <c>g:{grammarPathSegmentEn},v:{vocabularyWordHash}</c> — khớp RTDB
         /// <c>ai_cache/grammar/{g}/en.json</c> và <c>ai_cache/vocabulary/{v}/en.json</c>.
@@ -2727,6 +3060,85 @@ namespace playMP3
                     }
 
                     await Task.Delay(50).ConfigureAwait(true);
+                }
+            }
+        }
+
+        private async Task UploadDeepenAiCachesAsync(string episodeId, string firebaseRtdbBaseUrl)
+        {
+            if (string.IsNullOrWhiteSpace(episodeId))
+                return;
+
+            var englishRows = grvRow.DataSource as BindingList<EpisodeRowModel>;
+            if (englishRows == null || englishRows.Count == 0)
+                return;
+
+            var locales = new[]
+            {
+                Tuple.Create(grvRow, "en"),
+                Tuple.Create(grvViRow, "vi"),
+                Tuple.Create(grvEsRow, "es"),
+                Tuple.Create(grvArRow, "ar"),
+                Tuple.Create(grvJaRow, "ja"),
+                Tuple.Create(grvKoRow, "ko"),
+                Tuple.Create(grvPtRow, "pt"),
+                Tuple.Create(grvRuRow, "ru"),
+                Tuple.Create(grvZhRow, "zh"),
+                Tuple.Create(grvFrRow, "fr"),
+                Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
+            };
+
+            foreach (var loc in locales)
+            {
+                var grid = loc.Item1;
+                var langCode = loc.Item2;
+                if (!(grid.DataSource is BindingList<EpisodeRowModel> rows))
+                    continue;
+
+                var n = Math.Min(englishRows.Count, rows.Count);
+                for (var i = 0; i < n; i++)
+                {
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (sentence.Length == 0)
+                        continue;
+
+                    foreach (var featureKey in GrammarCacheConstants.DeepenFeatureKeys)
+                    {
+                        var json = rows[i].GetDeepenJson(featureKey);
+                        if (string.IsNullOrWhiteSpace(json) || json.StartsWith("Lỗi:", StringComparison.Ordinal))
+                            continue;
+
+                        JObject data;
+                        try
+                        {
+                            data = JObject.Parse(json);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            await DeepenFirebaseCacheWriter.PutDeepenCacheAsync(
+                                firebaseRtdbBaseUrl,
+                                episodeId,
+                                i,
+                                featureKey,
+                                langCode,
+                                data,
+                                sentence).ConfigureAwait(true);
+                        }
+                        catch
+                        {
+                            // best-effort
+                        }
+
+                        await Task.Delay(40).ConfigureAwait(true);
+                    }
                 }
             }
         }

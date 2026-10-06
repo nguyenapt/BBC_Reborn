@@ -8,9 +8,11 @@ import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
+import '../services/ai_deepen_service.dart';
 import '../services/ai/ai_error_handler.dart';
 import '../services/ai/exceptions.dart';
 import '../models/grammar_explanation.dart';
+import '../models/deepen_feature.dart';
 import '../services/learning_progress_service.dart';
 import '../services/language_manager.dart';
 import '../services/admob_service.dart';
@@ -20,6 +22,7 @@ import '../services/learning_analytics_service.dart';
 import '../services/review_reminder_service.dart';
 import '../config/ai_config.dart';
 import 'grammar_explanation_widget.dart';
+import 'transcript_line_deepen_sheet.dart';
 import 'transcript_native_ad_widget.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
@@ -83,6 +86,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   
   // Grammar state
   final AIGrammarService _grammarService = AIGrammarService();
+  final AIDeepenService _deepenService = AIDeepenService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
   final ReviewReminderService _reviewReminderService = ReviewReminderService();
   final LearningAnalyticsService _analyticsService = LearningAnalyticsService();
@@ -791,6 +795,37 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                       ],
                                     ),
                                   ),
+                                  InkWell(
+                                    onTap: () => _showDeepenMenu(
+                                          context,
+                                          line.text,
+                                          transcriptIndex,
+                                        ),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.explore_outlined,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondary,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _languageManager.getText('deepen'),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .secondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -870,6 +905,112 @@ class _TranscriptSlideState extends State<TranscriptSlide>
 
   String _grammarMemoryKey(int lineNumber, String languageCode) =>
       'line::$lineNumber::$languageCode';
+
+  Future<void> _showDeepenMenu(
+    BuildContext context,
+    String sentence,
+    int lineNumber,
+  ) async {
+    final normalizedSentence = sentence.trim();
+    if (normalizedSentence.isEmpty) return;
+    if (!AIConfig.enableDeepen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('deepenFeatureDisabled')),
+        ),
+      );
+      return;
+    }
+
+    final feature = await showTranscriptLineDeepenSheet(context);
+    if (feature == null || !context.mounted) return;
+
+    await _runDeepenFeature(
+      context,
+      feature: feature,
+      sentence: normalizedSentence,
+      lineNumber: lineNumber,
+    );
+  }
+
+  Future<void> _runDeepenFeature(
+    BuildContext context, {
+    required DeepenFeature feature,
+    required String sentence,
+    required int lineNumber,
+  }) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(_languageManager.getText('deepenLoading')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final episodeId = widget.episode.id ?? '';
+      String? contextLines;
+      if (lineNumber > 0 || lineNumber + 1 < transcriptLines.length) {
+        final parts = <String>[];
+        if (lineNumber > 0) {
+          parts.add(transcriptLines[lineNumber - 1].text.trim());
+        }
+        parts.add(sentence);
+        if (lineNumber + 1 < transcriptLines.length) {
+          parts.add(transcriptLines[lineNumber + 1].text.trim());
+        }
+        contextLines = parts.where((e) => e.isNotEmpty).join('\n');
+      }
+
+      final data = await _deepenService.deepenLine(
+        feature: feature,
+        text: sentence,
+        episodeId: episodeId,
+        lineNumber: lineNumber,
+        context: contextLines,
+      );
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        showDeepenResultDialog(
+          context: context,
+          feature: feature,
+          data: data,
+          sourceSentence: sentence,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _runDeepenFeature(
+            context,
+            feature: feature,
+            sentence: sentence,
+            lineNumber: lineNumber,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _showGrammarExplanation(
     BuildContext context,

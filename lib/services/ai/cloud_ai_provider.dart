@@ -215,6 +215,21 @@ class CloudAIProvider implements AIProvider {
     return Map<String, dynamic>.from(data as Map);
   }
 
+  @override
+  Future<Map<String, dynamic>> deepenLine(
+    String action,
+    String text,
+    String targetLanguage, {
+    String? context,
+  }) async {
+    final data = await _callAction(action, {
+      'text': text,
+      'targetLanguage': targetLanguage,
+      if (context != null) 'context': context,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
   /// Speech-to-text via Cloud Function `transcribeSpeech` (Azure / Whisper on server).
   Future<String> transcribeSpeech(
     Uint8List audioBytes, {

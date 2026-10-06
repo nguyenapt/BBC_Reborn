@@ -40,6 +40,7 @@ class AIConfig {
   static const bool enableGrammar = true;
   static const bool enableQuestions = true;
   static const bool enableVocabularyEnhancement = true;
+  static const bool enableDeepen = true;
 
   /// Production default: route AI/STT through Firebase Callable `aiRequest`.
   /// Override local dev: `--dart-define=USE_CLOUD_AI=false`

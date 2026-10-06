@@ -13,6 +13,20 @@ class CacheKeyHelper {
   static String grammarByEpisodeLineKey(int transcriptLineIndex) =>
       'line_$transcriptLineIndex';
 
+  /// Same 0-based `line_n` segment for `deepen_by_episode`.
+  /// MUST_SYNC playMP3 [DeepenCacheConstants] / GrammarCacheKeyHelper.
+  static String deepenByEpisodeLineKey(int transcriptLineIndex) =>
+      grammarByEpisodeLineKey(transcriptLineIndex);
+
+  /// Local SharedPreferences key (prefix `ai_cache_` applied by StorageService).
+  static String deepenLocalKey(
+    String featureKey,
+    String episodeId,
+    int lineNumber,
+    String languageCode,
+  ) =>
+      'deepen_${featureKey}_${episodeId}_line_${lineNumber}_$languageCode';
+
   /// Local / auxiliary key: prefer [lineNumber] when set, else sentence hash.
   static String grammarEpisodeLineKey(String sentence, {int? lineNumber}) {
     if (lineNumber != null && lineNumber >= 0) {

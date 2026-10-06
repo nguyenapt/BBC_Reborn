@@ -15,6 +15,8 @@ class AIFirebaseCacheService {
   static const String _cachePath = 'ai_cache';
   static const String _grammarByEpisodePath = 'grammar_by_episode';
   static const String _vocabularyByEpisodePath = 'vocabulary_by_episode';
+  /// MUST_SYNC playMP3 GrammarCacheConstants.DeepenByEpisodePath
+  static const String _deepenByEpisodePath = 'deepen_by_episode';
   static const int _cacheVersion = 1;
   static const int _defaultTtlDays = 90;
 
@@ -34,6 +36,16 @@ class AIFirebaseCacheService {
   ) =>
       [
         '$_baseUrl/$_cachePath/$_vocabularyByEpisodePath/$safeEpisodeId/$safeItemKey.json',
+      ];
+
+  List<String> _deepenByEpisodeUrls(
+    String safeEpisodeId,
+    String lineKey,
+    String featureKey,
+    String safeLanguageCode,
+  ) =>
+      [
+        '$_baseUrl/$_cachePath/$_deepenByEpisodePath/$safeEpisodeId/$lineKey/$featureKey/$safeLanguageCode.json',
       ];
 
   Future<Map<String, dynamic>?> _fetchCacheEntryData(
@@ -878,6 +890,91 @@ class AIFirebaseCacheService {
     } catch (e) {
       debugPrint('Error getting popular episodes: $e');
       return [];
+    }
+  }
+
+  /// `deepen_by_episode/{episodeId}/line_{n}/{featureKey}/{lang}`.
+  Future<Map<String, dynamic>?> getDeepenByEpisode({
+    required String episodeId,
+    required int transcriptLineIndex,
+    required String featureKey,
+    required String languageCode,
+  }) async {
+    if (episodeId.isEmpty || transcriptLineIndex < 0 || featureKey.isEmpty) {
+      return null;
+    }
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final safeFeature = CacheKeyHelper.sanitizeFirebaseKey(featureKey);
+      final lineKey =
+          CacheKeyHelper.deepenByEpisodeLineKey(transcriptLineIndex);
+      for (final url in _deepenByEpisodeUrls(
+        safeEpisodeId,
+        lineKey,
+        safeFeature,
+        safeLanguageCode,
+      )) {
+        final data = await _fetchCacheEntryData(
+          url,
+          _defaultTtlDays,
+          hitLogLabel: 'deepen_by_episode',
+        );
+        if (data != null) return data;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting deepen_by_episode: $e');
+      return null;
+    }
+  }
+
+  /// Save deepen payload for shared multi-user reuse.
+  Future<void> saveDeepenByEpisode({
+    required String episodeId,
+    required int transcriptLineIndex,
+    required String featureKey,
+    required String languageCode,
+    required Map<String, dynamic> deepenData,
+  }) async {
+    if (episodeId.isEmpty || transcriptLineIndex < 0 || featureKey.isEmpty) {
+      return;
+    }
+    try {
+      final safeEpisodeId = CacheKeyHelper.sanitizeFirebaseKey(episodeId);
+      final safeLanguageCode = CacheKeyHelper.sanitizeFirebaseKey(languageCode);
+      final safeFeature = CacheKeyHelper.sanitizeFirebaseKey(featureKey);
+      final lineKey =
+          CacheKeyHelper.deepenByEpisodeLineKey(transcriptLineIndex);
+
+      final enriched = Map<String, dynamic>.from(deepenData);
+      enriched['episodeId'] = episodeId;
+      enriched['lineNumber'] = transcriptLineIndex;
+      enriched['lineKey'] = lineKey;
+      enriched['featureKey'] = featureKey;
+      enriched['languageCode'] = languageCode;
+      enriched.putIfAbsent('schemaVersion', () => 'deepen_v1');
+
+      final cacheEntry = AICacheEntry(
+        data: enriched,
+        createdAt: DateTime.now(),
+        version: _cacheVersion,
+        ttlDays: _defaultTtlDays,
+      );
+
+      await _putCacheEntryToUrls(
+        _deepenByEpisodeUrls(
+          safeEpisodeId,
+          lineKey,
+          safeFeature,
+          safeLanguageCode,
+        ),
+        cacheEntry,
+        logLabel:
+            'deepen_by_episode $episodeId/$lineKey/$featureKey/$languageCode',
+      );
+    } catch (e) {
+      debugPrint('Error saving deepen_by_episode: $e');
     }
   }
 }
