@@ -6,6 +6,7 @@ import '../services/ai/ai_error_handler.dart';
 import '../services/ai/exceptions.dart';
 import '../services/heart_service.dart';
 import '../services/language_manager.dart';
+import '../utils/user_facing_error.dart';
 
 /// Bottom sheets / snackbars for Episode Pass, credits, speaking ticket, soft cap.
 class HeartEconomyUi {
@@ -513,7 +514,7 @@ class HeartEconomyUi {
         onAdFailedToShow: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to show ad: $error'),
+              content: Text(UserFacingError.message(error)),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );

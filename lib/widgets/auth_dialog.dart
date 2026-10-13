@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/language_manager.dart';
+import '../utils/user_facing_error.dart';
 
 class AuthDialog extends StatefulWidget {
   final bool isLogin;
@@ -238,7 +239,7 @@ class _AuthDialogState extends State<AuthDialog> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          content: Text(UserFacingError.message(e)),
           backgroundColor: Colors.red,
         ),
       );
@@ -276,7 +277,7 @@ class _AuthDialogState extends State<AuthDialog> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          content: Text(UserFacingError.message(e)),
           backgroundColor: Colors.red,
         ),
       );

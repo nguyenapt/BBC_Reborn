@@ -291,7 +291,7 @@ class AppHi {
     'privacyOptionsStatusUpdating': 'अपडेट हो रहा है',
     'managePrivacyChoices': 'गोपनीयता विकल्प प्रबंधित करें',
     'privacyOptionsUpdateSuccess': 'विज्ञापन गोपनीयता विकल्प अपडेट हो गए।',
-    'privacyOptionsOpenError': 'गोपनीयता विकल्प नहीं खुल सके: {error}',
+    'privacyOptionsOpenError': 'गोपनीयता विकल्प नहीं खुल सके। कृपया फिर कोशिश करें।',
     'privacyOptionsNotRequiredInfo':
         'आपके क्षेत्र में अभी गोपनीयता विकल्प आवश्यक नहीं हैं।',
 
@@ -313,8 +313,8 @@ class AppHi {
     'removedFromVocabularies': 'शब्दावली से हटाएँ',
     'loadingFavouritesError': 'पसंदीदा लोड हो रहे हैं...',
     'loadingVocabulariesError': 'शब्दावलियाँ लोड हो रही हैं...',
-    'loadingFavouritesErrorDesc': 'एक त्रुटि हुई: {error}',
-    'loadingVocabulariesErrorDesc': 'एक त्रुटि हुई: {error}',
+    'loadingFavouritesErrorDesc': 'पसंदीदा लोड नहीं हो सके। कृपया फिर कोशिश करें।',
+    'loadingVocabulariesErrorDesc': 'शब्दावली लोड नहीं हो सकी। कृपया फिर कोशिश करें।',
     'doubleBackExit': 'बाहर निकलने के लिए वापस बटन फिर से दबाएँ',
 
     // Speaking practice
