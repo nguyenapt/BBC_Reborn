@@ -9,6 +9,7 @@ import '../services/admob_service.dart';
 import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../utils/category_colors.dart';
+import '../utils/user_facing_error.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
 
@@ -527,7 +528,7 @@ class _QuestionSlideState extends State<QuestionSlide> {
                   onAdFailedToShow: (error) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Failed to show ad: $error'),
+                        content: Text(UserFacingError.message(error)),
                         backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );

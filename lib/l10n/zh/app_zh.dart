@@ -271,8 +271,8 @@ class AppZh {
     'removedFromVocabularies': '从词汇中移除',
     'loadingFavouritesError': '加载收藏...',
     'loadingVocabulariesError': '加载词汇...',
-    'loadingFavouritesErrorDesc': '发生错误: {error}',
-    'loadingVocabulariesErrorDesc': '发生错误: {error}',
+    'loadingFavouritesErrorDesc': '无法加载收藏。请重试。',
+    'loadingVocabulariesErrorDesc': '无法加载词汇。请重试。',
     'doubleBackExit': '点击返回按钮再次退出',
     'adPrivacyOptionsTitle': '广告隐私选项',
     'privacyOptionsStatusLabel': '隐私选项状态：{status}',
@@ -281,7 +281,7 @@ class AppZh {
     'privacyOptionsStatusUpdating': '正在更新',
     'managePrivacyChoices': '管理隐私选项',
     'privacyOptionsUpdateSuccess': '广告隐私选项已更新。',
-    'privacyOptionsOpenError': '无法打开隐私选项：{error}',
+    'privacyOptionsOpenError': '无法打开隐私选项。请重试。',
     'privacyOptionsNotRequiredInfo': '你所在地区当前不要求显示隐私选项。',
 
     // Speaking practice

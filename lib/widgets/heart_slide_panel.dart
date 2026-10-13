@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../services/heart_service.dart';
 import '../services/admob_service.dart';
 import '../services/language_manager.dart';
+import '../utils/user_facing_error.dart';
 
 /// Widget hiển thị heart panel dạng slide từ trên xuống
 class HeartSlidePanel extends StatelessWidget {
@@ -96,7 +97,7 @@ class HeartSlidePanel extends StatelessWidget {
                   onAdFailedToShow: (error) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Failed to show ad: $error'),
+                        content: Text(UserFacingError.message(error)),
                         backgroundColor: Colors.red,
                       ),
                     );

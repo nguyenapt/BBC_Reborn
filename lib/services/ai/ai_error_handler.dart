@@ -68,6 +68,13 @@ class AIErrorHandler {
       'https://',
       'statuscode',
       'status code',
+      'uri=',
+      'errno',
+      'socketexception',
+      'clientexception',
+      'failed host lookup',
+      'firebaseio.com',
+      'googleapis.com',
     ];
     for (final marker in markers) {
       if (lower.contains(marker)) return true;

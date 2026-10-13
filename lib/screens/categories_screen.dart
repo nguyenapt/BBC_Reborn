@@ -10,6 +10,7 @@ import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
 import '../widgets/other_programs_category_widget.dart';
 import '../utils/category_names.dart';
+import '../utils/user_facing_error.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialTab;
@@ -133,7 +134,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       });
     } catch (e) {
       setState(() {
-        _errorStates[category] = e.toString();
+        _errorStates[category] = UserFacingError.message(e);
         _loadingStates[category] = false;
       });
     }
@@ -318,7 +319,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     } catch (e) {
       print('Error loading Another Series tab data: $e');
       setState(() {
-        _errorStates['AS'] = e.toString();
+        _errorStates['AS'] = UserFacingError.message(e);
         _loadingStates['AS'] = false;
       });
     }

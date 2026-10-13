@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/user_facing_error.dart';
 import 'user_cloud_sync_service.dart';
 
 class AuthService extends ChangeNotifier {
@@ -79,7 +80,7 @@ class AuthService extends ChangeNotifier {
     } on fb.FirebaseAuthException catch (e) {
       return AuthResult.error(_mapFirebaseAuthError(e));
     } catch (e) {
-      return AuthResult.error('Lỗi đăng nhập: $e');
+      return AuthResult.error(UserFacingError.message(e));
     }
   }
 
@@ -125,7 +126,7 @@ class AuthService extends ChangeNotifier {
     } on fb.FirebaseAuthException catch (e) {
       return AuthResult.error(_mapFirebaseAuthError(e));
     } catch (e) {
-      return AuthResult.error('Lỗi đăng ký: $e');
+      return AuthResult.error(UserFacingError.message(e));
     }
   }
 
@@ -162,7 +163,7 @@ class AuthService extends ChangeNotifier {
       return AuthResult.error(_mapFirebaseAuthError(e));
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
-      return AuthResult.error('Lỗi đăng nhập Google: $e');
+      return AuthResult.error(UserFacingError.message(e));
     }
   }
 

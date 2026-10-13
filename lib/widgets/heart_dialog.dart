@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/heart_service.dart';
 import '../services/admob_service.dart';
+import '../utils/user_facing_error.dart';
 
 /// Dialog hiển thị thông tin hearts và nút xem quảng cáo
 class HeartDialog extends StatelessWidget {
@@ -114,7 +115,7 @@ class HeartDialog extends StatelessWidget {
                                 onAdFailedToShow: (error) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Failed to show ad: $error'),
+                                      content: Text(UserFacingError.message(error)),
                                       backgroundColor: Colors.red,
                                     ),
                                   );

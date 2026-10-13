@@ -291,7 +291,7 @@ class AppIt {
     'privacyOptionsStatusUpdating': 'In aggiornamento',
     'managePrivacyChoices': 'Gestisci le scelte sulla privacy',
     'privacyOptionsUpdateSuccess': 'Scelte sulla privacy degli annunci aggiornate.',
-    'privacyOptionsOpenError': 'Impossibile aprire le opzioni privacy: {error}',
+    'privacyOptionsOpenError': 'Impossibile aprire le opzioni privacy. Riprova.',
     'privacyOptionsNotRequiredInfo':
         'Le opzioni privacy non sono attualmente obbligatorie nella tua area geografica.',
 
@@ -313,8 +313,8 @@ class AppIt {
     'removedFromVocabularies': 'Rimuovi dal vocabolario',
     'loadingFavouritesError': 'Caricamento dei preferiti...',
     'loadingVocabulariesError': 'Caricamento del vocabolario...',
-    'loadingFavouritesErrorDesc': 'Si è verificato un errore: {error}',
-    'loadingVocabulariesErrorDesc': 'Si è verificato un errore: {error}',
+    'loadingFavouritesErrorDesc': 'Impossibile caricare i preferiti. Riprova.',
+    'loadingVocabulariesErrorDesc': 'Impossibile caricare il vocabolario. Riprova.',
     'doubleBackExit': 'Premi di nuovo il pulsante Indietro per uscire',
 
     // Speaking practice

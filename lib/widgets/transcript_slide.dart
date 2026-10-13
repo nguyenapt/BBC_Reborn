@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
+import '../utils/user_facing_error.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai/ai_error_handler.dart';
@@ -1254,7 +1255,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                   onAdFailedToShow: (error) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Failed to show ad: $error'),
+                        content: Text(UserFacingError.message(error)),
                         backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
