@@ -291,7 +291,7 @@ class AppTr {
     'privacyOptionsStatusUpdating': 'Güncelleniyor',
     'managePrivacyChoices': 'Gizlilik tercihlerini yönet',
     'privacyOptionsUpdateSuccess': 'Reklam gizlilik tercihleri güncellendi.',
-    'privacyOptionsOpenError': 'Gizlilik seçenekleri açılamadı: {error}',
+    'privacyOptionsOpenError': 'Gizlilik seçenekleri açılamadı. Lütfen tekrar deneyin.',
     'privacyOptionsNotRequiredInfo':
         'Bulunduğunuz bölgede gizlilik seçenekleri şu anda gerekli değil.',
     
@@ -313,8 +313,8 @@ class AppTr {
     'removedFromVocabularies': 'Kelimelerden kaldır',
     'loadingFavouritesError': 'Favoriler yükleniyor...',
     'loadingVocabulariesError': 'Kelimeler yükleniyor...',
-    'loadingFavouritesErrorDesc': 'Bir hata oluştu: {error}',
-    'loadingVocabulariesErrorDesc': 'Bir hata oluştu: {error}',
+    'loadingFavouritesErrorDesc': 'Favoriler yüklenemedi. Lütfen tekrar deneyin.',
+    'loadingVocabulariesErrorDesc': 'Kelimeler yüklenemedi. Lütfen tekrar deneyin.',
     'doubleBackExit': 'Çıkmak için geri düğmesine tekrar basın',
 
     // Speaking practice

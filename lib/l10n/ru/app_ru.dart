@@ -275,8 +275,8 @@ class AppRu {
     'removedFromVocabularies': 'Удалить из словаря',
     'loadingFavouritesError': 'Загрузка избранного...',
     'loadingVocabulariesError': 'Загрузка словаря...',
-    'loadingFavouritesErrorDesc': 'Произошла ошибка: {error}',
-    'loadingVocabulariesErrorDesc': 'Произошла ошибка: {error}',
+    'loadingFavouritesErrorDesc': 'Не удалось загрузить избранное. Попробуйте снова.',
+    'loadingVocabulariesErrorDesc': 'Не удалось загрузить словарь. Попробуйте снова.',
     'doubleBackExit': 'Нажмите на кнопку назад еще раз, чтобы выйти',
     'adPrivacyOptionsTitle': 'Параметры конфиденциальности рекламы',
     'privacyOptionsStatusLabel': 'Статус privacy options: {status}',
@@ -286,8 +286,7 @@ class AppRu {
     'managePrivacyChoices': 'Управлять параметрами конфиденциальности',
     'privacyOptionsUpdateSuccess':
         'Параметры конфиденциальности рекламы обновлены.',
-    'privacyOptionsOpenError':
-        'Не удалось открыть privacy options: {error}',
+    'privacyOptionsOpenError': 'Не удалось открыть параметры конфиденциальности. Попробуйте снова.',
     'privacyOptionsNotRequiredInfo':
         'В вашем регионе privacy options сейчас не требуются.',
 

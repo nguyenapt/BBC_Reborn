@@ -275,8 +275,8 @@ class AppPt {
     'removedFromVocabularies': 'Remover do vocabulário',
     'loadingFavouritesError': 'Carregando favoritos...',
     'loadingVocabulariesError': 'Carregando vocabulário...',
-    'loadingFavouritesErrorDesc': 'Ocorreu um erro: {error}',
-    'loadingVocabulariesErrorDesc': 'Ocorreu um erro: {error}',
+    'loadingFavouritesErrorDesc': 'Nao foi possivel carregar os favoritos. Tente novamente.',
+    'loadingVocabulariesErrorDesc': 'Nao foi possivel carregar o vocabulario. Tente novamente.',
     'doubleBackExit': 'Pressione o botão de volta novamente para sair',
     'adPrivacyOptionsTitle': 'Opções de privacidade de anúncios',
     'privacyOptionsStatusLabel': 'Status das opções de privacidade: {status}',
@@ -286,8 +286,7 @@ class AppPt {
     'managePrivacyChoices': 'Gerenciar opções de privacidade',
     'privacyOptionsUpdateSuccess':
         'As opções de privacidade de anúncios foram atualizadas.',
-    'privacyOptionsOpenError':
-        'Não foi possível abrir as opções de privacidade: {error}',
+    'privacyOptionsOpenError': 'Nao foi possivel abrir as opcoes de privacidade. Tente novamente.',
     'privacyOptionsNotRequiredInfo':
         'As opções de privacidade não são obrigatórias na sua região no momento.',
 

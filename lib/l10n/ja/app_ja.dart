@@ -271,8 +271,8 @@ class AppJa {
     'removedFromVocabularies': '語彙から削除',
     'loadingFavouritesError': 'お気に入りを読み込み中...',
     'loadingVocabulariesError': '語彙を読み込み中...',
-    'loadingFavouritesErrorDesc': 'エラーが発生しました: {error}',
-    'loadingVocabulariesErrorDesc': 'エラーが発生しました: {error}',
+    'loadingFavouritesErrorDesc': 'お気に入りを読み込めませんでした。もう一度お試しください。',
+    'loadingVocabulariesErrorDesc': '単語を読み込めませんでした。もう一度お試しください。',
     'doubleBackExit': '戻るボタンを再度押して退出',
     'loadMore': 'もっと読み込む',
     'adPrivacyOptionsTitle': '広告プライバシー設定',
@@ -282,7 +282,7 @@ class AppJa {
     'privacyOptionsStatusUpdating': '更新中',
     'managePrivacyChoices': 'プライバシー設定を管理',
     'privacyOptionsUpdateSuccess': '広告プライバシー設定を更新しました。',
-    'privacyOptionsOpenError': 'プライバシー設定を開けませんでした: {error}',
+    'privacyOptionsOpenError': 'プライバシー設定を開けませんでした。もう一度お試しください。',
     'privacyOptionsNotRequiredInfo':
         '現在の地域ではプライバシー設定の表示は不要です。',
     // Speaking practice
