@@ -8,6 +8,7 @@ import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
+import '../utils/user_facing_error.dart';
 import 'grammar_detail_screen.dart';
 
 class GrammarScreen extends StatefulWidget {
@@ -103,7 +104,7 @@ class _GrammarScreenState extends State<GrammarScreen>
       });
     } catch (e) {
       setState(() {
-        _errorGrammar = e.toString();
+        _errorGrammar = UserFacingError.message(e);
         _isLoadingGrammar = false;
       });
     }
@@ -138,7 +139,7 @@ class _GrammarScreenState extends State<GrammarScreen>
       });
     } catch (e) {
       setState(() {
-        _errorEG = e.toString();
+        _errorEG = UserFacingError.message(e);
         _isLoadingEG = false;
       });
     }

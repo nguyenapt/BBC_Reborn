@@ -17,6 +17,8 @@ import '../services/audio_player_service.dart';
 import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
+import '../utils/user_facing_error.dart';
+
 import '../services/speaking_practice_service.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/transcript_native_ad_widget.dart';
@@ -729,7 +731,7 @@ class _SpeakingPracticeScreenState extends State<SpeakingPracticeScreen>
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Failed to show ad: $adError'),
+                          content: Text(UserFacingError.message(adError)),
                           backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );

@@ -495,6 +495,38 @@ class AudioPlayerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// True nếu A–B đang khớp đúng đoạn [startMs, endMs].
+  bool isLineLoopActive({required int startMs, required int endMs}) {
+    if (!hasAbRepeat) return false;
+    return _abRepeatStart!.inMilliseconds == startMs &&
+        _abRepeatEnd!.inMilliseconds == endMs;
+  }
+
+  /// Bật/tắt lặp đoạn transcript. Khi bật: seek về đầu đoạn và play
+  /// (cùng pattern Listen: pending seek + play để lần đầu vào episode vẫn chạy).
+  Future<void> toggleLineLoop({
+    required int startMs,
+    required int endMs,
+  }) async {
+    if (endMs <= startMs) return;
+
+    if (isLineLoopActive(startMs: startMs, endMs: endMs)) {
+      clearAbRepeat();
+      return;
+    }
+
+    final start = Duration(milliseconds: startMs);
+    final end = Duration(milliseconds: endMs);
+    setAbRepeat(start: start, end: end);
+
+    // Chưa load source thì seek trực tiếp thường thất bại — dùng pending seek
+    // để [play] nhảy đúng đầu dòng sau khi set source (giống Listen).
+    setPendingSeekPosition(start);
+    _currentPosition = start;
+    notifyListeners();
+    await play();
+  }
+
   void markAbPointA() {
     _abRepeatStart = _currentPosition;
     if (_abRepeatEnd != null && _abRepeatEnd! <= _abRepeatStart!) {
@@ -583,6 +615,7 @@ class AudioPlayerService extends ChangeNotifier {
         _clearIosPlaybackHeuristic();
         _currentPosition = Duration.zero;
         _totalDuration = Duration.zero;
+        clearAbRepeat();
         // Gán identity trước stop() để hydrate transcript không bị drop.
         _currentEpisode = episode;
         _currentCategoryEpisodes = categoryEpisodes;

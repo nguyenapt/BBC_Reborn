@@ -55,7 +55,7 @@ namespace playMP3
         {
             InitializeComponent();
             player = new System.Windows.Media.MediaPlayer();
-            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
+            var transcriptGrids = new DataGridView[] { grvRow, grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow, grvTrRow, grvItRow, grvHiRow };
             foreach (var g in transcriptGrids)
             {
                 ApplyTranscriptRowGridStyle(g);
@@ -66,7 +66,7 @@ namespace playMP3
             grvRow.CurrentCellDirtyStateChanged += GrvRow_GrammarSelectedDirtyStateChanged;
 
             foreach (var g in new DataGridView[] {
-                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe })
+                grvVocabEn, grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe, grvVocabTr, grvVocabIt, grvVocabHi })
             {
                 ApplyVocabGridStyle(g);
             }
@@ -456,6 +456,9 @@ namespace playMP3
             if (ReferenceEquals(tb, txtZhTranscript)) return grvZhRow;
             if (ReferenceEquals(tb, txtFrTranscript)) return grvFrRow;
             if (ReferenceEquals(tb, txtDeTranscript)) return grvDeRow;
+            if (ReferenceEquals(tb, txtTrTranscript)) return grvTrRow;
+            if (ReferenceEquals(tb, txtItTranscript)) return grvItRow;
+            if (ReferenceEquals(tb, txtHiTranscript)) return grvHiRow;
             return null;
         }
 
@@ -588,6 +591,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
         }
 
@@ -841,6 +847,17 @@ namespace playMP3
                 var geminiNode = m_xmld.SelectSingleNode("/Configurations/GeminiApiKey");
                 if (geminiNode != null)
                     ConfigModel.GeminiApiKey = (geminiNode.InnerText ?? string.Empty).Trim();
+
+                var geminiModelNode = m_xmld.SelectSingleNode("/Configurations/GeminiModelId");
+                if (geminiModelNode != null)
+                {
+                    var modelId = (geminiModelNode.InnerText ?? string.Empty).Trim();
+                    if (!string.IsNullOrEmpty(modelId))
+                    {
+                        ConfigModel.GeminiModelId = modelId;
+                        GrammarCacheConstants.GeminiModelId = modelId;
+                    }
+                }
 
                 var delayNode = m_xmld.SelectSingleNode("/Configurations/GeminiRequestDelayMs");
                 if (delayNode != null && int.TryParse((delayNode.InnerText ?? string.Empty).Trim(), out var delayMs) && delayMs >= 0 && delayMs <= 120_000)
@@ -1200,6 +1217,9 @@ namespace playMP3
             grvVocabZh.DataSource = null;
             grvVocabFr.DataSource = null;
             grvVocabDe.DataSource = null;
+            grvVocabTr.DataSource = null;
+            grvVocabIt.DataSource = null;
+            grvVocabHi.DataSource = null;
 
             int nextNumber = int.Parse(txtNumber.Text) + 1;
 
@@ -1419,6 +1439,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1481,6 +1504,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             var byEpisodeArr = (JArray)result["grammar_by_episode"];
@@ -1550,6 +1576,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -1715,7 +1744,7 @@ namespace playMP3
             }
 
             // Tab locale không có transcript (0 dòng) sẽ được bỏ qua khi fill grammar.
-            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow };
+            var grids = new[] { grvViRow, grvEsRow, grvArRow, grvJaRow, grvKoRow, grvPtRow, grvRuRow, grvZhRow, grvFrRow, grvDeRow, grvTrRow, grvItRow, grvHiRow };
             foreach (var g in grids)
             {
                 int c = GetEpisodeRowCount(g);
@@ -1745,6 +1774,9 @@ namespace playMP3
                 case "ru": return "Russian";
                 case "fr": return "French";
                 case "de": return "German";
+                case "tr": return "Turkish";
+                case "it": return "Italian";
+                case "hi": return "Hindi";
                 case "en": return "English";
                 default: return "English";
             }
@@ -1787,6 +1819,7 @@ namespace playMP3
             btngetGrammarExplaimation.Enabled = !busy;
             btnGetGrammarPassage.Enabled = !busy;
             btnGrammarForceStop.Enabled = busy;
+            cboGrammarFillMode.Enabled = !busy;
             if (busy)
             {
                 toolStripProgressGrammar.Visible = true;
@@ -1858,7 +1891,7 @@ namespace playMP3
             var prevEn = grvVocabEn.DataSource as BindingList<VocabularyGridRowModel>;
             var localeGrids = new[]
             {
-                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe
+                grvVocabVi, grvVocabEs, grvVocabAr, grvVocabJa, grvVocabKo, grvVocabPt, grvVocabRu, grvVocabZh, grvVocabFr, grvVocabDe, grvVocabTr, grvVocabIt, grvVocabHi
             };
             var prevLocales = new BindingList<VocabularyGridRowModel>[localeGrids.Length];
             for (var g = 0; g < localeGrids.Length; g++)
@@ -2022,6 +2055,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var loc in localeSpecs)
@@ -2246,13 +2282,93 @@ namespace playMP3
             public bool Cancelled { get; set; }
         }
 
+        private sealed class GrammarFillTarget
+        {
+            public DataGridView Grid { get; set; }
+            public string LangCode { get; set; }
+            public int RowIndex { get; set; }
+        }
+
+        private const string GrammarErrorPrefix = "Lỗi:";
+
+        private static bool IsGrammarCellError(string summary)
+        {
+            return (summary ?? string.Empty).TrimStart()
+                .StartsWith(GrammarErrorPrefix, StringComparison.Ordinal);
+        }
+
+        private bool IsGrammarErrorRowsMode()
+        {
+            return cboGrammarFillMode.SelectedIndex == 1;
+        }
+
+        /// <summary>
+        /// Cells whose grammar summary starts with "Lỗi:" on EN or any translation grid.
+        /// English sentence always comes from grvRow at the same index.
+        /// </summary>
+        private List<GrammarFillTarget> CollectGrammarErrorCells()
+        {
+            var englishRows = GetEpisodeRowsOrThrow(grvRow);
+            var cells = new List<GrammarFillTarget>();
+            foreach (var loc in GetGrammarLocaleGrids())
+            {
+                var grid = loc.Item1;
+                if (GetEpisodeRowCount(grid) == 0)
+                    continue;
+
+                var rows = GetEpisodeRowsOrThrow(grid);
+                var n = Math.Min(englishRows.Count, rows.Count);
+                for (var i = 0; i < n; i++)
+                {
+                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(sentence))
+                        continue;
+                    if (!IsGrammarCellError(rows[i].GrammarExplanationSummary))
+                        continue;
+
+                    cells.Add(new GrammarFillTarget
+                    {
+                        Grid = grid,
+                        LangCode = loc.Item2,
+                        RowIndex = i,
+                    });
+                }
+            }
+
+            return cells;
+        }
+
+        private List<GrammarFillTarget> BuildSelectedGrammarTargets(IReadOnlyList<int> selectedIndices)
+        {
+            var targets = new List<GrammarFillTarget>();
+            foreach (var loc in GetGrammarLocaleGrids())
+            {
+                if (GetEpisodeRowCount(loc.Item1) == 0)
+                    continue;
+
+                foreach (var i in selectedIndices)
+                {
+                    targets.Add(new GrammarFillTarget
+                    {
+                        Grid = loc.Item1,
+                        LangCode = loc.Item2,
+                        RowIndex = i,
+                    });
+                }
+            }
+
+            return targets;
+        }
+
         private bool TryPrepareGrammarJob(
             string dialogTitle,
             out IReadOnlyList<string> apiKeys,
-            out IReadOnlyList<int> selectedIndices)
+            out IReadOnlyList<GrammarFillTarget> targets,
+            out bool errorRowsMode)
         {
             apiKeys = null;
-            selectedIndices = null;
+            targets = null;
+            errorRowsMode = IsGrammarErrorRowsMode();
 
             if (!ValidateGrammarGridRowCounts())
                 return false;
@@ -2273,6 +2389,22 @@ namespace playMP3
                 return false;
             }
 
+            if (errorRowsMode)
+            {
+                var errorCells = CollectGrammarErrorCells();
+                if (errorCells.Count == 0)
+                {
+                    MessageBox.Show(this,
+                        "Không có ô grammar lỗi (cột Grammar bắt đầu bằng \"Lỗi:\") trên grid EN hoặc các tab dịch.",
+                        dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return false;
+                }
+
+                apiKeys = resolvedKeys;
+                targets = errorCells;
+                return true;
+            }
+
             var englishRows = GetEpisodeRowsOrThrow(grvRow);
             var indices = GetGrammarSelectedRowIndices(englishRows);
             if (indices.Count == 0)
@@ -2284,7 +2416,7 @@ namespace playMP3
             }
 
             apiKeys = resolvedKeys;
-            selectedIndices = indices;
+            targets = BuildSelectedGrammarTargets(indices);
             return true;
         }
 
@@ -2296,84 +2428,77 @@ namespace playMP3
         private async Task<GrammarFillJobResult> RunGrammarFillJobAsync(
             bool passageMode,
             IReadOnlyList<string> apiKeys,
-            IReadOnlyList<int> selectedIndices,
+            IReadOnlyList<GrammarFillTarget> targets,
+            bool errorRowsMode,
             CancellationToken cancellationToken,
             Action<string> updateProgress)
         {
             var englishRows = GetEpisodeRowsOrThrow(grvRow);
             var delayBetweenRequestsMs = Math.Max(250, ConfigModel.GeminiRequestDelayMs);
-            var locales = GetGrammarLocaleGrids();
-            var selectedCount = selectedIndices.Count;
             var jobPrefix = passageMode ? "Passage" : "Grammar";
+            var total = targets.Count;
+            DataGridView lastGrid = null;
 
-            var activeLocales = 0;
-            foreach (var loc in locales)
-            {
-                if (GetEpisodeRowCount(loc.Item1) > 0)
-                    activeLocales++;
-            }
-
-            var localeIndex = 0;
-            var rowOrdinal = 0;
-            foreach (var loc in locales)
+            for (var ordinal = 0; ordinal < targets.Count; ordinal++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var grid = loc.Item1;
-                var langCode = loc.Item2;
-                if (GetEpisodeRowCount(grid) == 0)
-                    continue;
-
-                localeIndex++;
-                var targetLabel = GrammarTargetLanguageLabel(langCode);
-                var rows = GetEpisodeRowsOrThrow(grid);
-
-                foreach (var i in selectedIndices)
+                var target = targets[ordinal];
+                if (lastGrid != null && !ReferenceEquals(lastGrid, target.Grid))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    rowOrdinal++;
-                    var progressLine = jobPrefix + " " + langCode + " row " + (i + 1)
-                        + " (" + rowOrdinal + "/" + (selectedCount * Math.Max(1, activeLocales)) + ")"
-                        + " tab " + localeIndex + "/" + Math.Max(1, activeLocales);
-                    updateProgress(progressLine);
-
-                    var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
-                    if (string.IsNullOrEmpty(sentence))
-                        continue;
-
-                    try
-                    {
-                        JObject merged;
-                        if (passageMode)
-                        {
-                            var raw = await GrammarGeminiService
-                                .ExplainGrammarPassageAsync(apiKeys, sentence, targetLabel)
-                                .ConfigureAwait(true);
-                            merged = GrammarGeminiService.ToFlutterGrammarPassageData(raw, sentence);
-                        }
-                        else
-                        {
-                            var raw = await GrammarGeminiService
-                                .ExplainGrammarAsync(apiKeys, sentence, targetLabel)
-                                .ConfigureAwait(true);
-                            merged = GrammarGeminiService.ToFlutterGrammarData(raw, sentence);
-                        }
-
-                        rows[i].GrammarExplanationJson = merged.ToString(Newtonsoft.Json.Formatting.None);
-                        rows[i].GrammarExplanationSummary = BuildGrammarSummary(merged);
-                    }
-                    catch (Exception ex)
-                    {
-                        rows[i].GrammarExplanationSummary = TruncateGrammarCellError(ex.Message, 380);
-                        rows[i].GrammarExplanationJson = "";
-                    }
-
-                    await Task.Delay(delayBetweenRequestsMs, cancellationToken).ConfigureAwait(true);
+                    lastGrid.EndEdit();
+                    lastGrid.Refresh();
                 }
 
-                grid.EndEdit();
-                grid.Refresh();
+                lastGrid = target.Grid;
+                var rows = GetEpisodeRowsOrThrow(target.Grid);
+                var i = target.RowIndex;
+                var progressLine = jobPrefix + " " + target.LangCode + " row " + (i + 1)
+                    + " (" + (ordinal + 1) + "/" + total + (errorRowsMode ? " lỗi" : "") + ")";
+                updateProgress(progressLine);
+
+                if (i < 0 || i >= englishRows.Count || i >= rows.Count)
+                    continue;
+
+                var sentence = (englishRows[i].RowContent ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(sentence))
+                    continue;
+
+                var targetLabel = GrammarTargetLanguageLabel(target.LangCode);
+                try
+                {
+                    JObject merged;
+                    if (passageMode)
+                    {
+                        var raw = await GrammarGeminiService
+                            .ExplainGrammarPassageAsync(apiKeys, sentence, targetLabel)
+                            .ConfigureAwait(true);
+                        merged = GrammarGeminiService.ToFlutterGrammarPassageData(raw, sentence);
+                    }
+                    else
+                    {
+                        var raw = await GrammarGeminiService
+                            .ExplainGrammarAsync(apiKeys, sentence, targetLabel)
+                            .ConfigureAwait(true);
+                        merged = GrammarGeminiService.ToFlutterGrammarData(raw, sentence);
+                    }
+
+                    rows[i].GrammarExplanationJson = merged.ToString(Newtonsoft.Json.Formatting.None);
+                    rows[i].GrammarExplanationSummary = BuildGrammarSummary(merged);
+                }
+                catch (Exception ex)
+                {
+                    rows[i].GrammarExplanationSummary = TruncateGrammarCellError(ex.Message, 380);
+                    rows[i].GrammarExplanationJson = "";
+                }
+
+                await Task.Delay(delayBetweenRequestsMs, cancellationToken).ConfigureAwait(true);
+            }
+
+            if (lastGrid != null)
+            {
+                lastGrid.EndEdit();
+                lastGrid.Refresh();
             }
 
             return new GrammarFillJobResult { CompletedFully = true };
@@ -2382,7 +2507,8 @@ namespace playMP3
         private async Task<GrammarFillJobResult> RunGrammarJobWithUiAsync(
             bool passageMode,
             IReadOnlyList<string> apiKeys,
-            IReadOnlyList<int> selectedIndices,
+            IReadOnlyList<GrammarFillTarget> targets,
+            bool errorRowsMode,
             string busyStatusLine,
             string titleSuffix,
             Button progressButton)
@@ -2400,7 +2526,8 @@ namespace playMP3
                 result = await RunGrammarFillJobAsync(
                     passageMode,
                     apiKeys,
-                    selectedIndices,
+                    targets,
+                    errorRowsMode,
                     _grammarJobCts.Token,
                     progressLine =>
                     {
@@ -2430,21 +2557,24 @@ namespace playMP3
 
         private async void btngetGrammarExplaimation_Click(object sender, EventArgs e)
         {
-            if (!TryPrepareGrammarJob("Grammar", out var apiKeys, out var selectedIndices))
+            if (!TryPrepareGrammarJob("Grammar", out var apiKeys, out var targets, out var errorRowsMode))
                 return;
 
             var result = await RunGrammarJobWithUiAsync(
                 passageMode: false,
                 apiKeys,
-                selectedIndices,
-                busyStatusLine: null,
+                targets,
+                errorRowsMode,
+                busyStatusLine: errorRowsMode ? "Đang gọi lại các ô grammar lỗi…" : null,
                 titleSuffix: " — Grammar đang chạy…",
                 progressButton: btngetGrammarExplaimation).ConfigureAwait(true);
 
             if (result.CompletedFully)
             {
                 MessageBox.Show(this,
-                    "Đã điền grammar cho các dòng đã chọn trên grid EN (các tab locale có transcript; tab 0 dòng được bỏ qua).",
+                    errorRowsMode
+                        ? "Đã gọi lại " + targets.Count + " ô lỗi."
+                        : "Đã điền grammar cho các dòng đã chọn trên grid EN (các tab locale có transcript; tab 0 dòng được bỏ qua).",
                     "Grammar", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2455,21 +2585,26 @@ namespace playMP3
         /// </summary>
         private async void btnGetGrammarPassage_Click(object sender, EventArgs e)
         {
-            if (!TryPrepareGrammarJob("Grammar Passage", out var apiKeys, out var selectedIndices))
+            if (!TryPrepareGrammarJob("Grammar Passage", out var apiKeys, out var targets, out var errorRowsMode))
                 return;
 
             var result = await RunGrammarJobWithUiAsync(
                 passageMode: true,
                 apiKeys,
-                selectedIndices,
-                busyStatusLine: "Đang chạy grammar passage (Gemini, 1-shot)…",
+                targets,
+                errorRowsMode,
+                busyStatusLine: errorRowsMode
+                    ? "Đang gọi lại các ô grammar passage lỗi…"
+                    : "Đang chạy grammar passage (Gemini, 1-shot)…",
                 titleSuffix: " — Grammar Passage đang chạy…",
                 progressButton: btnGetGrammarPassage).ConfigureAwait(true);
 
             if (result.CompletedFully)
             {
                 MessageBox.Show(this,
-                    "Đã điền grammar passage (1 request/dòng đã chọn) cho các tab có transcript. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
+                    errorRowsMode
+                        ? "Đã gọi lại " + targets.Count + " ô lỗi."
+                        : "Đã điền grammar passage (1 request/dòng đã chọn) cho các tab có transcript. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
                     "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -2544,6 +2679,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var loc in locales)
@@ -2618,6 +2756,9 @@ namespace playMP3
                 Tuple.Create(grvVocabZh, "zh"),
                 Tuple.Create(grvVocabFr, "fr"),
                 Tuple.Create(grvVocabDe, "de"),
+                Tuple.Create(grvVocabTr, "tr"),
+                Tuple.Create(grvVocabIt, "it"),
+                Tuple.Create(grvVocabHi, "hi"),
             };
 
             foreach (var spec in localeSpecs)
@@ -2705,6 +2846,9 @@ namespace playMP3
                 Tuple.Create(grvZhRow, "zh"),
                 Tuple.Create(grvFrRow, "fr"),
                 Tuple.Create(grvDeRow, "de"),
+                Tuple.Create(grvTrRow, "tr"),
+                Tuple.Create(grvItRow, "it"),
+                Tuple.Create(grvHiRow, "hi"),
             };
 
             foreach (var spec in localeSpecs)

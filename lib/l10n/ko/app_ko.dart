@@ -124,6 +124,8 @@ class AppKo {
     'downloaded': '다운로드됨',
     'episodeInfo': '에피소드 정보',
     'transcript': '대본',
+    'transcriptLoop': '반복',
+    'transcriptLooping': '반복 중',
     'reference': '참고',
     'questionsTab': '질문',
     'vocabulary': '어휘',
@@ -305,8 +307,8 @@ class AppKo {
     'removedFromVocabularies': '어휘에서 제거',
     'loadingFavouritesError': '즐겨찾기 로딩 중...',
     'loadingVocabulariesError': '어휘 로딩 중...',
-    'loadingFavouritesErrorDesc': '오류가 발생했습니다: {error}',
-    'loadingVocabulariesErrorDesc': '오류가 발생했습니다: {error}',
+    'loadingFavouritesErrorDesc': '즐겨찾기를 불러올 수 없습니다. 다시 시도해 주세요.',
+    'loadingVocabulariesErrorDesc': '어휘를 불러올 수 없습니다. 다시 시도해 주세요.',
     'doubleBackExit': '뒤로 버튼을 다시 눌러 종료',
     'adPrivacyOptionsTitle': '광고 개인정보 옵션',
     'privacyOptionsStatusLabel': '개인정보 옵션 상태: {status}',
@@ -315,7 +317,7 @@ class AppKo {
     'privacyOptionsStatusUpdating': '업데이트 중',
     'managePrivacyChoices': '개인정보 선택 관리',
     'privacyOptionsUpdateSuccess': '광고 개인정보 선택이 업데이트되었습니다.',
-    'privacyOptionsOpenError': '개인정보 옵션을 열 수 없습니다: {error}',
+    'privacyOptionsOpenError': '개인정보 옵션을 열 수 없습니다. 다시 시도해 주세요.',
     'privacyOptionsNotRequiredInfo':
         '현재 지역에서는 개인정보 옵션 표시가 필요하지 않습니다.',
 

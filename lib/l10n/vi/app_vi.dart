@@ -128,6 +128,8 @@ class AppVi {
     'downloaded': 'Đã tải',
     'episodeInfo': 'Thông tin Episode',
     'transcript': 'Bản ghi',
+    'transcriptLoop': 'Lặp',
+    'transcriptLooping': 'Đang lặp',
     'reference': 'Tham khảo',
     'questionsTab': 'Câu hỏi',
     'vocabulary': 'Từ vựng',
@@ -325,7 +327,7 @@ class AppVi {
     'privacyOptionsStatusUpdating': 'Dang cap nhat',
     'managePrivacyChoices': 'Quan ly lua chon quyen rieng tu',
     'privacyOptionsUpdateSuccess': 'Da cap nhat lua chon quyen rieng tu quang cao.',
-    'privacyOptionsOpenError': 'Khong mo duoc privacy options: {error}',
+    'privacyOptionsOpenError': 'Không mở được tùy chọn quyền riêng tư. Vui lòng thử lại.',
     'privacyOptionsNotRequiredInfo':
         'Privacy options hien khong bat buoc o khu vuc cua ban.',
     
@@ -354,8 +356,8 @@ class AppVi {
     'removedFromVocabularies': 'Đã xóa "{vocab}" khỏi vocabulary cá nhân',
     'loadingFavouritesError': 'Đang tải danh sách yêu thích...',
     'loadingVocabulariesError': 'Đang tải vocabulary...',
-    'loadingFavouritesErrorDesc': 'Có lỗi xảy ra: {error}',
-    'loadingVocabulariesErrorDesc': 'Có lỗi xảy ra: {error}',
+    'loadingFavouritesErrorDesc': 'Không tải được danh sách yêu thích. Vui lòng thử lại.',
+    'loadingVocabulariesErrorDesc': 'Không tải được từ vựng. Vui lòng thử lại.',
     'doubleBackExit': 'Nhấn Back lần nữa để thoát',
 
     // Speaking practice

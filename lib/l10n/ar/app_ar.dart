@@ -124,6 +124,8 @@ class AppAr {
     'downloaded': 'تم التحميل',
     'episodeInfo': 'معلومات الحلقة',
     'transcript': 'النص',
+    'transcriptLoop': 'تكرار',
+    'transcriptLooping': 'يتكرر',
     'reference': 'مرجع',
     'questionsTab': 'أسئلة',
     'vocabulary': 'المفردات',
@@ -309,8 +311,8 @@ class AppAr {
     'removedFromVocabularies': 'إزالة من المفردات',
     'loadingFavouritesError': 'جاري تحميل المفضلة...',
     'loadingVocabulariesError': 'جاري تحميل المفردات...',
-    'loadingFavouritesErrorDesc': 'حدث خطأ: {error}',
-    'loadingVocabulariesErrorDesc': 'حدث خطأ: {error}',
+    'loadingFavouritesErrorDesc': 'تعذر تحميل المفضلة. يرجى المحاولة مرة أخرى.',
+    'loadingVocabulariesErrorDesc': 'تعذر تحميل المفردات. يرجى المحاولة مرة أخرى.',
     'doubleBackExit': 'اضغط على زر الخلف مرة أخرى للخروج',
     'adPrivacyOptionsTitle': 'خيارات خصوصية الإعلانات',
     'privacyOptionsStatusLabel': 'حالة خيارات الخصوصية: {status}',
@@ -319,7 +321,7 @@ class AppAr {
     'privacyOptionsStatusUpdating': 'جارٍ التحديث',
     'managePrivacyChoices': 'إدارة خيارات الخصوصية',
     'privacyOptionsUpdateSuccess': 'تم تحديث خيارات خصوصية الإعلانات.',
-    'privacyOptionsOpenError': 'تعذر فتح خيارات الخصوصية: {error}',
+    'privacyOptionsOpenError': 'تعذر فتح خيارات الخصوصية. يرجى المحاولة مرة أخرى.',
     'privacyOptionsNotRequiredInfo':
         'خيارات الخصوصية غير مطلوبة حالياً في منطقتك.',
 

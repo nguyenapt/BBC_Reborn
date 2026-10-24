@@ -12,6 +12,7 @@ import '../widgets/floating_bottom_nav_bar.dart';
 import '../services/push_notification_service.dart';
 import '../services/consent_service.dart';
 import '../services/review_reminder_service.dart';
+import '../utils/user_facing_error.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -500,7 +501,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${_languageManager.getText('unknownError')}: $e'),
+          content: Text(UserFacingError.message(e)),
           backgroundColor: Colors.red,
         ),
       );
@@ -981,12 +982,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   } else {
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text(
-                          _languageManager.getTextWithParams(
-                            'privacyOptionsOpenError',
-                            {'error': errorMessage},
-                          ),
-                        ),
+                        content: Text(UserFacingError.message(errorMessage)),
                         backgroundColor: Colors.red,
                       ),
                     );
