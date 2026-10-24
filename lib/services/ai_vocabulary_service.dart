@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/vocabulary_item.dart';
 import '../models/enhanced_vocabulary.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
-import 'heart_service.dart';
 import 'language_manager.dart';
 
 /// Service for AI-powered vocabulary enhancement
@@ -49,12 +49,22 @@ class AIVocabularyService {
     );
 
     if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      await AICacheService.consumeHeartIfFirebase(
+        cacheHit.tier,
+        episodeId: resolvedEpisodeId,
+      );
+      if (cacheHit.tier == AICacheTier.firebase) {
+        await _cache.materializeVocabularyLocal(
+          item.vocab,
+          languageCode,
+          cacheHit.data,
+        );
+      }
       debugPrint('Using cached enhanced vocabulary for ${item.vocab}');
       return EnhancedVocabulary.fromAIResponse(item, cacheHit.data);
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: resolvedEpisodeId);
 
     final trimmedContext = _relevantContext(context, item.vocab);
 

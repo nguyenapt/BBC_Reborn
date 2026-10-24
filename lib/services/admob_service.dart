@@ -79,11 +79,14 @@ class AdMobService {
   DateTime? _lastInterstitialShownAt;
   int _interstitialShownCount = 0;
   AppOpenAd? _appOpenAd;
-  /// Primary: Rewarded Interstitial. Fallback: classic Rewarded.
-  RewardedInterstitialAd? _rewardedInterstitialAd;
   RewardedAd? _rewardedAd;
-  bool _isLoadingRewardedInterstitial = false;
+  RewardedInterstitialAd? _rewardedInterstitialAd;
   bool _isLoadingRewarded = false;
+  bool _isLoadingRewardedInterstitial = false;
+
+  /// `true` = ưu tiên Rewarded Interstitial, classic Rewarded là fallback.
+  /// Đặt `false` để quay lại ưu tiên Rewarded cổ điển.
+  static bool preferRewardedInterstitial = true;
   
   // Thời gian lần cuối hiển thị App Open Ad (để tránh spam)
   DateTime? _lastAppOpenAdTime;
@@ -134,10 +137,14 @@ class AdMobService {
   String _getRewardedAdUnitId() {
     if (kDebugMode) {
       print('🔧 DEBUG MODE: Using TEST Rewarded Ad Unit ID');
-      return Platform.isAndroid ? _testRewardedAdUnitIdAndroid : _testRewardedAdUnitIdIOS;
+      return Platform.isAndroid
+          ? _testRewardedAdUnitIdAndroid
+          : _testRewardedAdUnitIdIOS;
     } else {
       print('🚀 PRODUCTION MODE: Using PRODUCTION Rewarded Ad Unit ID');
-      return Platform.isAndroid ? _prodRewardedAdUnitIdAndroid : _prodRewardedAdUnitIdIOS;
+      return Platform.isAndroid
+          ? _prodRewardedAdUnitIdAndroid
+          : _prodRewardedAdUnitIdIOS;
     }
   }
 
@@ -483,15 +490,22 @@ class AdMobService {
     _isShowingAppOpenAd = false;
   }
 
-  /// Preload rewarded inventory: Rewarded Interstitial (primary) + Rewarded (fallback).
+  /// Prefetch reward ads. Ưu tiên RI khi [preferRewardedInterstitial]; luôn giữ classic Rewarded làm fallback.
   void createRewardedAd() {
     if (!_guardSdkReady('createRewardedAd')) return;
-    _createRewardedInterstitialAd();
-    _createRewardedFallbackAd();
+    if (preferRewardedInterstitial) {
+      _loadRewardedInterstitialAd();
+      _loadClassicRewardedAd();
+    } else {
+      _loadClassicRewardedAd();
+      _loadRewardedInterstitialAd();
+    }
   }
 
-  void _createRewardedInterstitialAd() {
-    if (_rewardedInterstitialAd != null || _isLoadingRewardedInterstitial) return;
+  void _loadRewardedInterstitialAd() {
+    if (_rewardedInterstitialAd != null || _isLoadingRewardedInterstitial) {
+      return;
+    }
     _isLoadingRewardedInterstitial = true;
     final adUnitId = _getRewardedInterstitialAdUnitId();
 
@@ -502,18 +516,20 @@ class AdMobService {
         onAdLoaded: (ad) {
           _rewardedInterstitialAd = ad;
           _isLoadingRewardedInterstitial = false;
-          print('Rewarded Interstitial ad loaded');
+          print('Rewarded interstitial ad loaded');
         },
         onAdFailedToLoad: (error) {
-          print('Rewarded Interstitial ad failed to load: $error');
+          print('Rewarded interstitial ad failed to load: $error');
           _rewardedInterstitialAd = null;
           _isLoadingRewardedInterstitial = false;
+          // Fallback: đảm bảo classic rewarded đang được load.
+          _loadClassicRewardedAd();
         },
       ),
     );
   }
 
-  void _createRewardedFallbackAd() {
+  void _loadClassicRewardedAd() {
     if (_rewardedAd != null || _isLoadingRewarded) return;
     _isLoadingRewarded = true;
     final adUnitId = _getRewardedAdUnitId();
@@ -525,10 +541,10 @@ class AdMobService {
         onAdLoaded: (ad) {
           _rewardedAd = ad;
           _isLoadingRewarded = false;
-          print('Rewarded ad loaded (fallback)');
+          print('Classic rewarded ad loaded');
         },
         onAdFailedToLoad: (error) {
-          print('Rewarded ad failed to load: $error');
+          print('Classic rewarded ad failed to load: $error');
           _rewardedAd = null;
           _isLoadingRewarded = false;
         },
@@ -536,29 +552,46 @@ class AdMobService {
     );
   }
 
-  /// Show Rewarded Interstitial first; fall back to classic Rewarded if needed.
+  /// Hiện ad thưởng: ưu tiên theo [preferRewardedInterstitial], fallback format còn lại.
   void showRewardedAd({
     required Function() onRewarded,
     Function(String)? onAdFailedToShow,
   }) {
-    if (_rewardedInterstitialAd != null) {
-      _showRewardedInterstitialAd(
-        onRewarded: onRewarded,
-        onAdFailedToShow: onAdFailedToShow,
-      );
-      return;
+    if (preferRewardedInterstitial) {
+      if (_rewardedInterstitialAd != null) {
+        _showRewardedInterstitialAd(
+          onRewarded: onRewarded,
+          onAdFailedToShow: onAdFailedToShow,
+        );
+        return;
+      }
+      if (_rewardedAd != null) {
+        print('Rewarded interstitial not ready — fallback to classic rewarded');
+        _showClassicRewardedAd(
+          onRewarded: onRewarded,
+          onAdFailedToShow: onAdFailedToShow,
+        );
+        return;
+      }
+    } else {
+      if (_rewardedAd != null) {
+        _showClassicRewardedAd(
+          onRewarded: onRewarded,
+          onAdFailedToShow: onAdFailedToShow,
+        );
+        return;
+      }
+      if (_rewardedInterstitialAd != null) {
+        print('Classic rewarded not ready — fallback to rewarded interstitial');
+        _showRewardedInterstitialAd(
+          onRewarded: onRewarded,
+          onAdFailedToShow: onAdFailedToShow,
+        );
+        return;
+      }
     }
 
-    if (_rewardedAd != null) {
-      print('Rewarded Interstitial not ready — using Rewarded fallback');
-      _showRewardedFallbackAd(
-        onRewarded: onRewarded,
-        onAdFailedToShow: onAdFailedToShow,
-      );
-      return;
-    }
-
-    print('No rewarded inventory ready (RI + Rewarded)');
+    print('No rewarded / rewarded-interstitial ad ready');
     onAdFailedToShow?.call('Rewarded ad not ready');
     createRewardedAd();
   }
@@ -572,21 +605,21 @@ class AdMobService {
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (shown) {
-        print('Rewarded Interstitial ad showed full screen content');
+        print('Rewarded interstitial showed full screen content');
       },
       onAdDismissedFullScreenContent: (shown) {
-        print('Rewarded Interstitial ad dismissed');
+        print('Rewarded interstitial dismissed');
         shown.dispose();
         _rewardedInterstitialAd = null;
         createRewardedAd();
       },
       onAdFailedToShowFullScreenContent: (shown, error) {
-        print('Rewarded Interstitial ad failed to show: $error');
+        print('Rewarded interstitial failed to show: $error');
         shown.dispose();
         _rewardedInterstitialAd = null;
         if (_rewardedAd != null) {
-          print('Falling back to Rewarded after RI show failure');
-          _showRewardedFallbackAd(
+          print('Show failed — trying classic rewarded fallback');
+          _showClassicRewardedAd(
             onRewarded: onRewarded,
             onAdFailedToShow: onAdFailedToShow,
           );
@@ -600,54 +633,59 @@ class AdMobService {
     ad.show(
       onUserEarnedReward: (shown, reward) {
         print(
-          'User earned reward (RI): ${reward.amount} ${reward.type}',
+          'User earned reward (rewarded interstitial): '
+          '${reward.amount} ${reward.type}',
         );
         onRewarded();
       },
     );
   }
 
-  void _showRewardedFallbackAd({
+  void _showClassicRewardedAd({
     required Function() onRewarded,
     Function(String)? onAdFailedToShow,
   }) {
     final ad = _rewardedAd;
-    if (ad == null) {
-      onAdFailedToShow?.call('Rewarded ad not ready');
-      createRewardedAd();
-      return;
-    }
+    if (ad == null) return;
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (shown) {
-        print('Rewarded ad showed full screen content (fallback)');
+        print('Classic rewarded showed full screen content');
       },
       onAdDismissedFullScreenContent: (shown) {
-        print('Rewarded ad dismissed (fallback)');
+        print('Classic rewarded dismissed');
         shown.dispose();
         _rewardedAd = null;
         createRewardedAd();
       },
       onAdFailedToShowFullScreenContent: (shown, error) {
-        print('Rewarded ad failed to show: $error');
+        print('Classic rewarded failed to show: $error');
         shown.dispose();
         _rewardedAd = null;
-        onAdFailedToShow?.call(error.message);
-        createRewardedAd();
+        if (_rewardedInterstitialAd != null) {
+          print('Show failed — trying rewarded interstitial fallback');
+          _showRewardedInterstitialAd(
+            onRewarded: onRewarded,
+            onAdFailedToShow: onAdFailedToShow,
+          );
+        } else {
+          onAdFailedToShow?.call(error.message);
+          createRewardedAd();
+        }
       },
     );
 
     ad.show(
       onUserEarnedReward: (shown, reward) {
         print(
-          'User earned reward (fallback): ${reward.amount} ${reward.type}',
+          'User earned reward (classic rewarded): '
+          '${reward.amount} ${reward.type}',
         );
         onRewarded();
       },
     );
   }
 
-  /// True if primary RI or fallback Rewarded is loaded.
   bool isRewardedAdReady() {
     return _rewardedInterstitialAd != null || _rewardedAd != null;
   }

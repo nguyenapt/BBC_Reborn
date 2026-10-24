@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/transcript_line.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
 import 'language_manager.dart';
-import 'heart_service.dart';
-import '../utils/cache_key_helper.dart';
 
 /// Service for AI-powered translation
 class AITranslationService {
@@ -69,12 +68,22 @@ class AITranslationService {
     final cacheHit =
         await _cache.lookupTranslation(episodeId, languageCode);
     if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      await AICacheService.consumeHeartIfFirebase(
+        cacheHit.tier,
+        episodeId: episodeId,
+      );
+      if (cacheHit.tier == AICacheTier.firebase) {
+        await _cache.materializeTranslationLocal(
+          episodeId,
+          languageCode,
+          cacheHit.data,
+        );
+      }
       debugPrint('Using cached translations for episode $episodeId');
       return cacheHit.data;
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -185,7 +194,7 @@ class AITranslationService {
       return cachedTranslations;
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi();
 
     // Get both providers for fallback
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
@@ -361,7 +370,7 @@ class AITranslationService {
       return cached;
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -424,7 +433,7 @@ class AITranslationService {
       return cached;
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi();
 
     // Get provider with fallback
     final provider = await AIProviderFactory.createProviderWithFallback();
@@ -479,14 +488,26 @@ class AITranslationService {
       lineNumber,
     );
     if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      await AICacheService.consumeHeartIfFirebase(
+        cacheHit.tier,
+        episodeId: episodeId,
+      );
+      if (cacheHit.tier == AICacheTier.firebase) {
+        await _cache.materializeLineTranslationLocal(
+          episodeId,
+          languageCode,
+          lineText,
+          cacheHit.data,
+          lineNumber,
+        );
+      }
       debugPrint(
         '✅ Using cached translation for line: $lineText (lineNumber: $lineNumber)',
       );
       return cacheHit.data;
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();

@@ -303,6 +303,34 @@ JSON:''';
   }
 
   @override
+  Future<Map<String, dynamic>> translateGrammarPassageJson(
+    Map<String, dynamic> englishJson,
+    String targetLanguage,
+  ) async {
+    final prompt = buildTranslateGrammarPassageJsonPrompt(
+      englishJson,
+      targetLanguage,
+    );
+    final response = await _callOpenAI(
+      prompt,
+      systemPrompt:
+          'You translate English grammar-teaching JSON into another language. Return strict JSON only. Never change transcript quotes.',
+    );
+    try {
+      final parsed = JsonParserHelper.parseJsonObject(response);
+      final merged = preserveGrammarQuotesFromEnglish(englishJson, parsed);
+      final passage = englishJson['sentence']?.toString() ??
+          englishJson['passageText']?.toString() ??
+          '';
+      return toFlutterGrammarPassageData(merged, passage);
+    } catch (e) {
+      throw InvalidResponseException(
+        'Failed to parse translated grammar JSON: $e',
+      );
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> explainGrammarPassage(
     String passage,
     String targetLanguage,
