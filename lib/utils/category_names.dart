@@ -1,16 +1,31 @@
 class CategoryNames {
   /// Tab Categories + thứ tự Home category cards.
-  static const List<String> primaryTabCodes = ['CD', 'EK', 'ON', 'AS'];
+  static const List<String> primaryTabCodes = ['AC', 'HL', 'WS', 'ON', 'AS'];
 
   /// Section episode ưu tiên trên Home (không gồm AS — AS là multi-category).
-  static const List<String> homePrioritySectionCodes = ['CD', 'EK', 'ON'];
+  static const List<String> homePrioritySectionCodes = ['AC', 'HL', 'WS', 'ON'];
 
   /// Nội dung tab Another Series (AMS, LLE, NC, SC).
   static const List<String> anotherSeriesSubCodes = ['AMS', 'LLE', 'NC', 'SC'];
 
+  /// RTDB theo năm giống 6M/TEWS: ưu tiên `List/{CAT}/{year}` rồi `/{CAT}/{year}`.
+  /// Vẫn có thể có flat `List/{CAT}` — dùng làm fallback khi year-path trống.
+  static const Set<String> yearBasedCategoryCodes = {
+    'AC',
+    'HL',
+    'WS',
+    'EG',
+  };
+
+  /// Năm cũ nhất khi load/load-more các category [yearBasedCategoryCodes].
+  static const int yearBasedMinYear = 2015;
+
   static const bool showAnotherSeries = true;
 
   static const Map<String, String> _categoryMapping = {
+    'AC': 'Art & Culture',
+    'HL': 'Health & Lifestyle',
+    'WS': 'Word and their story',
     'CD': 'Civil Discourse',
     'EK': 'Endless Knot',
     'AMS': 'American Story',
@@ -40,8 +55,15 @@ class CategoryNames {
 
   /// Split English programme name for two-line UI (tabs, home cards). Never localized.
   static List<String> displayNameLines(String categoryCode) {
-    if (categoryCode == 'AS') {
-      return ['Another', 'Series'];
+    switch (categoryCode) {
+      case 'AS':
+        return ['Another', 'Series'];
+      case 'AC':
+        return ['Art &', 'Culture'];
+      case 'HL':
+        return ['Health &', 'Lifestyle'];
+      case 'WS':
+        return ['Word and', 'their story'];
     }
     final name = getDisplayName(categoryCode);
     final lastSpace = name.lastIndexOf(' ');
@@ -81,10 +103,16 @@ class CategoryNames {
     return homePrioritySectionCodes.contains(categoryCode);
   }
 
-  /// Categories loaded from flat `List/{CAT}.json` (no year sub-path).
+  /// Flat-only (không year): ON + Another Series subs.
+  /// AC/HL/WS/EG: [usesYearEpisodeList] trước, flat chỉ là fallback.
   static bool usesFlatEpisodeList(String categoryCode) {
+    if (yearBasedCategoryCodes.contains(categoryCode)) return false;
     return homePrioritySectionCodes.contains(categoryCode) ||
         anotherSeriesSubCodes.contains(categoryCode);
+  }
+
+  static bool usesYearEpisodeList(String categoryCode) {
+    return yearBasedCategoryCodes.contains(categoryCode);
   }
 
   /// Lấy tên hiển thị đầy đủ của category từ mã category

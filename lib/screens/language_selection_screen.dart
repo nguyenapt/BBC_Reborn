@@ -80,19 +80,16 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       locale: Locale('tr'),
       name: 'Turkish',
       nativeName: 'Türkçe',
-      flag: '🇹🇷',
     ),
     LanguageOption(
       locale: Locale('it'),
       name: 'Italian',
       nativeName: 'Italiano',
-      flag: '🇮🇹',
     ),
     LanguageOption(
       locale: Locale('hi'),
       name: 'Hindi',
       nativeName: 'हिन्दी',
-      flag: '🇮🇳',
     ),
   ];
 

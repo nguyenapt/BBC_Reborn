@@ -432,6 +432,12 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   IconData _getCategoryIcon(String code) {
     switch (code) {
+      case 'AC':
+        return Icons.palette_outlined;
+      case 'HL':
+        return Icons.spa_outlined;
+      case 'WS':
+        return Icons.menu_book_outlined;
       case 'CD':
         return Icons.groups_outlined;
       case 'EK':

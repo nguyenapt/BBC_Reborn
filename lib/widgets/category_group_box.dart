@@ -187,12 +187,20 @@ class CategoryGroupBox extends StatelessWidget {
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName) {
+      case 'AC':
+        return Icons.palette_outlined;
+      case 'HL':
+        return Icons.spa_outlined;
+      case 'WS':
+        return Icons.menu_book_outlined;
       case 'CD':
         return Icons.groups_outlined;
       case 'EK':
         return Icons.all_inclusive_outlined;
       case 'AMS':
         return Icons.auto_stories_outlined;
+      case 'EG':
+        return Icons.menu_book;
       case 'LLE':
         return Icons.school_outlined;
       case 'ON':
@@ -224,10 +232,17 @@ class CategoryGroupBox extends StatelessWidget {
     }
   }
 
+  /// 1 episode lớn + 2 thumbnail nhỏ + View all (giống 6M/TEWS/AS trên Home).
   bool _shouldUseHorizontalLayout(String categoryName) {
+    if (CategoryNames.homePrioritySectionCodes.contains(categoryName)) {
+      return true; // AC, HL, WS, ON
+    }
     return CategoryNames.usesFlatEpisodeList(categoryName) ||
         categoryName == 'BSA' ||
-        categoryName == 'EG';
+        categoryName == 'EG' ||
+        categoryName == '6M' ||
+        categoryName == 'TEWS' ||
+        categoryName == 'REE';
   }
 
   List<Episode> _getLatestEpisodes(List<Episode> episodes, int count) {

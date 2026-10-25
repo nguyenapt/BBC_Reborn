@@ -98,10 +98,12 @@ class EpisodeCacheService {
     return refreshed.isNotEmpty ? refreshed : cached;
   }
 
-  /// Gộp `/{category}/{year}.json` cho năm hiện tại và [yearsBack] năm trước (trùng id gộp một).
+  /// Gộp `List/{category}/{year}` / `/{category}/{year}` cho năm hiện tại và [yearsBack] năm trước.
+  /// Nếu vẫn trống và [fallbackToFlat] = true → thử flat `List/{category}` (một số CAT VOA vẫn có).
   Future<List<Episode>> getCategoryEpisodesYearMerged(
     String category, {
     int yearsBack = 1,
+    bool fallbackToFlat = true,
   }) async {
     final currentYear = DateTime.now().year;
     final unique = <String, Episode>{};
@@ -116,6 +118,18 @@ class EpisodeCacheService {
         }
       } catch (e) {
         debugPrint('getCategoryEpisodesYearMerged $category/$year: $e');
+      }
+    }
+    if (unique.isEmpty && fallbackToFlat) {
+      try {
+        final flat = await getCategoryEpisodesWithoutYear(category);
+        for (final e in flat) {
+          final key =
+              e.id ?? '${e.episodeName}-${e.publishedDate.toIso8601String()}';
+          unique[key] = e;
+        }
+      } catch (e) {
+        debugPrint('getCategoryEpisodesYearMerged flat fallback $category: $e');
       }
     }
     final merged = unique.values.toList()

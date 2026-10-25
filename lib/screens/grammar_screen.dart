@@ -1,38 +1,27 @@
 import 'package:flutter/material.dart';
-import '../models/grammar.dart';
 import '../models/episode.dart';
-import '../services/grammar_service.dart';
 import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
+import '../utils/category_names.dart';
 import '../utils/user_facing_error.dart';
-import 'grammar_detail_screen.dart';
 
 class GrammarScreen extends StatefulWidget {
   final String? initialTab;
-  
+
   const GrammarScreen({super.key, this.initialTab});
 
   @override
   State<GrammarScreen> createState() => _GrammarScreenState();
 }
 
-class _GrammarScreenState extends State<GrammarScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final GrammarService _grammarService = GrammarService();
+class _GrammarScreenState extends State<GrammarScreen> {
   final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LanguageManager _languageManager = LanguageManager();
-  
-  // Basic Grammar state
-  List<Grammar> _grammars = [];
-  bool _isLoadingGrammar = true;
-  String? _errorGrammar;
-  
-  // English Grammar state
+
   List<Episode> _egEpisodes = [];
   bool _isLoadingEG = false;
   String? _errorEG;
@@ -42,77 +31,12 @@ class _GrammarScreenState extends State<GrammarScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    
-    // Xác định tab ban đầu
-    String initialTabName = 'English Grammar'; // Default
-    if (widget.initialTab != null && widget.initialTab == 'Basic Grammar') {
-      _tabController.index = 1; // Basic Grammar là tab thứ hai
-      initialTabName = 'Basic Grammar';
-    } else {
-      _tabController.index = 0; // English Grammar là tab đầu tiên
-    }
-    
-    // Load data cho tab được chọn
-    if (initialTabName == 'English Grammar') {
-      _loadEGData();
-    } else {
-      _loadGrammars();
-    }
-    
-    // Listen to tab changes
-    _tabController.addListener(_onTabChanged);
-  }
-
-  @override
-  void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _onTabChanged() {
-    if (!_tabController.indexIsChanging) {
-      final currentIndex = _tabController.index;
-      
-      if (currentIndex == 0) {
-        // English Grammar tab
-        if (_egEpisodes.isEmpty && !_isLoadingEG) {
-          _loadEGData();
-        }
-      } else {
-        // Basic Grammar tab
-        if (_grammars.isEmpty && !_isLoadingGrammar) {
-          _loadGrammars();
-        }
-      }
-    }
-  }
-
-  Future<void> _loadGrammars() async {
-    try {
-      setState(() {
-        _isLoadingGrammar = true;
-        _errorGrammar = null;
-      });
-
-      final grammars = await _grammarService.getAllGrammars();
-      
-      setState(() {
-        _grammars = grammars;
-        _isLoadingGrammar = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorGrammar = UserFacingError.message(e);
-        _isLoadingGrammar = false;
-      });
-    }
+    _loadEGData();
   }
 
   Future<void> _loadEGData() async {
     if (_egEpisodes.isNotEmpty && _loadedYears.isNotEmpty) {
-      return; // Đã load rồi
+      return;
     }
 
     setState(() {
@@ -122,19 +46,18 @@ class _GrammarScreenState extends State<GrammarScreen>
 
     try {
       final currentYear = DateTime.now().year;
-      final previousYear = currentYear - 1;
-      
-      // Lấy dữ liệu từ 2 năm gần nhất
-      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', currentYear);
-      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', previousYear);
-      
-      // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
-      final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
-      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
+      final yearsBack =
+          (currentYear - CategoryNames.yearBasedMinYear).clamp(1, 20);
+      final allEpisodes = await _episodeCacheService.getCategoryEpisodesYearMerged(
+        'EG',
+        yearsBack: yearsBack,
+      );
+
       setState(() {
         _egEpisodes = allEpisodes;
-        _loadedYears = [currentYear, previousYear];
+        _loadedYears = [
+          for (var i = 0; i <= yearsBack; i++) currentYear - i,
+        ];
         _isLoadingEG = false;
       });
     } catch (e) {
@@ -147,7 +70,7 @@ class _GrammarScreenState extends State<GrammarScreen>
 
   Future<void> _loadMoreEGYears() async {
     if (_loadingMoreEG) {
-      return; // Đang load rồi
+      return;
     }
 
     setState(() {
@@ -162,25 +85,22 @@ class _GrammarScreenState extends State<GrammarScreen>
         return;
       }
 
-      // Tìm năm nhỏ nhất đã load
       final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
       final nextYear = minLoadedYear - 1;
 
-      // Giới hạn load đến năm 2020
-      if (nextYear < 2020) {
+      if (nextYear < CategoryNames.yearBasedMinYear) {
         setState(() {
           _loadingMoreEG = false;
         });
         return;
       }
 
-      // Lấy dữ liệu năm tiếp theo
-      final nextYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', nextYear);
-      
-      // Gộp với episodes hiện có và sắp xếp lại
+      final nextYearEpisodes =
+          await _episodeCacheService.getCategoryEpisodes('EG', nextYear);
+
       final allEpisodes = [..._egEpisodes, ...nextYearEpisodes];
       allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
+
       setState(() {
         _egEpisodes = allEpisodes;
         _loadedYears = [..._loadedYears, nextYear];
@@ -190,25 +110,15 @@ class _GrammarScreenState extends State<GrammarScreen>
       setState(() {
         _loadingMoreEG = false;
       });
-      // Không hiển thị error khi load more, chỉ im lặng fail
       print('Error loading more years for EG: $e');
     }
   }
 
   bool _canLoadMoreEG() {
     if (_loadedYears.isEmpty) return false;
-    
-    final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
-    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
-  }
 
-  void _navigateToGrammarDetail(Grammar grammar) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GrammarDetailScreen(grammar: grammar),
-      ),
-    );
+    final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
+    return minLoadedYear > CategoryNames.yearBasedMinYear;
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
@@ -228,23 +138,9 @@ class _GrammarScreenState extends State<GrammarScreen>
           backgroundColor: Theme.of(context).colorScheme.surface,
           body: Column(
             children: [
-              // Custom Header
               _buildHeader(),
-
               const SizedBox(height: 16),
-              
-              // TabBar với shadow
-              _buildTabBar(),
-              // TabBarView content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildEnglishGrammarContent(),
-                    _buildBasicGrammarContent(),
-                  ],
-                ),
-              ),
+              Expanded(child: _buildEnglishGrammarContent()),
             ],
           ),
         );
@@ -275,8 +171,6 @@ class _GrammarScreenState extends State<GrammarScreen>
       ),
       child: Row(
         children: [
-          
-          // Title và subtitle
           Expanded(
             child: Text(
               _languageManager.getText('grammar'),
@@ -286,7 +180,6 @@ class _GrammarScreenState extends State<GrammarScreen>
               ),
             ),
           ),
-          // App icon đơn giản
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -300,92 +193,6 @@ class _GrammarScreenState extends State<GrammarScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 3,
-          ),
-          insets: const EdgeInsets.symmetric(horizontal: 4),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Theme.of(context).colorScheme.primary,
-        unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        labelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        dividerColor: Colors.transparent,
-        labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
-        tabs: [
-          _buildTabLabel(0, 'English', 'Grammar'),
-          _buildTabLabel(1, 'Basic', 'Grammar'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabLabel(int index, String firstLine, String secondLine) {
-    return Tab(
-      child: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, child) {
-          final isSelected = _tabController.index == index;
-          final color = isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
-          
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  firstLine,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  secondLine,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w400,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
@@ -424,7 +231,7 @@ class _GrammarScreenState extends State<GrammarScreen>
             Text(
               _languageManager.getText('errorOccurred'),
               style: TextStyle(
-                fontSize: 18, 
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -433,7 +240,7 @@ class _GrammarScreenState extends State<GrammarScreen>
             Text(
               _errorEG!,
               style: TextStyle(
-                fontSize: 14, 
+                fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
               textAlign: TextAlign.center,
@@ -462,7 +269,7 @@ class _GrammarScreenState extends State<GrammarScreen>
             Text(
               _languageManager.getText('noData'),
               style: TextStyle(
-                fontSize: 18, 
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -471,7 +278,7 @@ class _GrammarScreenState extends State<GrammarScreen>
             Text(
               'No episodes available for English Grammar',
               style: TextStyle(
-                fontSize: 14, 
+                fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
@@ -482,43 +289,41 @@ class _GrammarScreenState extends State<GrammarScreen>
 
     return RefreshIndicator(
       onRefresh: () {
-        // Reset loaded years khi refresh
         _loadedYears = [];
         _egEpisodes = [];
         return _loadEGData();
       },
       child: ListView.builder(
         padding: FloatingBottomNavBar.scrollPadding(context),
-        itemCount: _egEpisodes.length + 1 + (_canLoadMoreEG() ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
+        itemCount: _egEpisodes.length + 1 + (_canLoadMoreEG() ? 1 : 0) + 1,
         itemBuilder: (context, index) {
-          // Load More button (trước banner ad)
           if (_canLoadMoreEG() && index == _egEpisodes.length) {
             return Container(
               margin: const EdgeInsets.symmetric(vertical: 8),
               child: _loadingMoreEG
-                  ? Center(
+                  ? const Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: CircularProgressIndicator(),
                       ),
                     )
                   : ElevatedButton(
                       onPressed: _loadMoreEGYears,
-                      child: Text(_languageManager.getText('loadMore') ?? 'Load More'),
+                      child: Text(
+                          _languageManager.getText('loadMore') ?? 'Load More'),
                     ),
             );
           }
 
-          // Banner Ad (sau load more button hoặc sau episodes)
-          final bannerAdIndex = _canLoadMoreEG() ? _egEpisodes.length + 1 : _egEpisodes.length;
+          final bannerAdIndex =
+              _canLoadMoreEG() ? _egEpisodes.length + 1 : _egEpisodes.length;
           if (index == bannerAdIndex) {
             return const BannerAdWidget();
           }
 
-          // Episode row - chỉ xử lý nếu index trong phạm vi episodes
           if (index >= 0 && index < _egEpisodes.length) {
             final episode = _egEpisodes[index];
-            final isLatest = index == 0; // Episode đầu tiên là mới nhất
+            final isLatest = index == 0;
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               child: EpisodeRow(
@@ -530,145 +335,7 @@ class _GrammarScreenState extends State<GrammarScreen>
             );
           }
 
-          // Fallback - không nên xảy ra
           return const SizedBox.shrink();
-        },
-      ),
-    );
-  }
-
-  Widget _buildBasicGrammarContent() {
-    if (_isLoadingGrammar) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(_languageManager.getText('loading')),
-          ],
-        ),
-      );
-    }
-
-    if (_errorGrammar != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('errorOccurred'),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorGrammar!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadGrammars,
-              child: Text(_languageManager.getText('tryAgain')),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_grammars.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.menu_book_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('noData'),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadGrammars,
-      child: ListView.builder(
-        padding: FloatingBottomNavBar.scrollPadding(context),
-        itemCount: _grammars.length,
-        itemBuilder: (context, index) {
-          final grammar = _grammars[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              elevation: 2,
-              child: ListTile(
-                leading: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.menu_book_rounded,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    size: 24,
-                  ),
-                ),
-                title: Text(
-                  grammar.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Row(
-                  children: [
-                    Icon(
-                      Icons.library_books_outlined,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${grammar.parts.length} ${_languageManager.getText('parts')}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-                ),
-                onTap: () => _navigateToGrammarDetail(grammar),
-              ),
-            ),
-          );
         },
       ),
     );

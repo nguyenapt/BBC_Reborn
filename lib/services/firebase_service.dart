@@ -613,10 +613,27 @@ class FirebaseService {
     for (final code in [
       ...CategoryNames.homePrioritySectionCodes,
       ...CategoryNames.anotherSeriesSubCodes,
+      ...CategoryNames.yearBasedCategoryCodes,
     ]) {
       try {
-        final bulk = await getCategoryDataWithoutYearLegacyFull(code);
-        if (bulk.any((e) => e.id == id)) return code;
+        if (CategoryNames.usesYearEpisodeList(code)) {
+          var year = int.tryParse(partial.year ?? '');
+          if (year == null || year <= 1800) {
+            year = partial.publishedDate.year;
+          }
+          final yearsToTry = <int>{
+            if (year > 1800) year,
+            DateTime.now().year,
+            DateTime.now().year - 1,
+          };
+          for (final y in yearsToTry) {
+            final bulk = await getCategoryDataLegacyFull(code, y);
+            if (bulk.any((e) => e.id == id)) return code;
+          }
+        } else {
+          final bulk = await getCategoryDataWithoutYearLegacyFull(code);
+          if (bulk.any((e) => e.id == id)) return code;
+        }
       } catch (_) {}
     }
     return '';
@@ -653,20 +670,22 @@ class FirebaseService {
     return _parseCategoryYearPayload(data, listCategory: category);
   }
 
-  // Lấy dữ liệu category theo năm (cho CategoriesScreen)
+  // Lấy dữ liệu category theo năm (cho CategoriesScreen).
+  // Luôn thử slim flat list `List/{cat}/{year}` trước (giống 6M/TEWS), rồi tree đầy đủ.
   static Future<List<Episode>> getCategoryData(String category, int year) async {
     try {
-      if (RtdbListConfig.useSlimListPaths) {
-        final slim = await http.get(
-          Uri.parse('$_baseUrl/List/$category/$year.json'),
-          headers: {'Accept': 'application/json'},
-        );
-        if (slim.statusCode == 200 &&
-            slim.body.isNotEmpty &&
-            slim.body != 'null') {
-          final dynamic data = json.decode(slim.body);
-          return _parseCategoryYearPayload(data, listCategory: category);
-        }
+      // Prefer List/* kể cả khi RTDB_SLIM_LIST=false — AC/HL/WS/EG vẫn có flat list theo năm.
+      final slim = await http.get(
+        Uri.parse('$_baseUrl/List/$category/$year.json'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (slim.statusCode == 200 &&
+          slim.body.isNotEmpty &&
+          slim.body != 'null') {
+        final dynamic data = json.decode(slim.body);
+        final parsed =
+            _parseCategoryYearPayload(data, listCategory: category);
+        if (parsed.isNotEmpty) return parsed;
       }
 
       final response = await http.get(

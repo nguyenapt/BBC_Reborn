@@ -119,6 +119,7 @@ class _HomePageState extends State<HomePage> {
       });
 
       print('Loading home page data...');
+      // Giống BBC (6M/REE/TEWS): chỉ slim List/HomePage — không year-merge trên Home.
       final categories = await _firebaseService.getHomePageData();
       List<Category> anotherSeries = [];
       if (CategoryNames.showAnotherSeries) {
@@ -932,7 +933,7 @@ class _HomePageState extends State<HomePage> {
             child: _buildCategorySection(),
           ),
 
-          // Priority sections: CD -> EK -> ON
+          // Priority sections: AC -> HL -> WS -> ON
           SliverList(
             delegate: SliverChildListDelegate(
               [

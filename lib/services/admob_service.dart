@@ -34,11 +34,10 @@ class AdMobService {
   static const String _prodAppOpenAdUnitIdIOS = 'ca-app-pub-3414812429495926/7195078203';
   static const String _prodRewardedAdUnitIdAndroid = 'ca-app-pub-3414812429495926/1667419353';
   static const String _prodRewardedAdUnitIdIOS = 'ca-app-pub-3414812429495926/4756617127';
-  // TODO: thay bằng Rewarded Interstitial unit thật của VOA khi tạo trên AdMob
   static const String _prodRewardedInterstitialAdUnitIdAndroid =
-      'ca-app-pub-3940256099942544/5354046379';
+      'ca-app-pub-3414812429495926/5582613630';
   static const String _prodRewardedInterstitialAdUnitIdIOS =
-      'ca-app-pub-3940256099942544/6978759866';
+      'ca-app-pub-3414812429495926/7280557312';
 
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;

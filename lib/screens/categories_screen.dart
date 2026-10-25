@@ -120,23 +120,18 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
         loadedYears = [DateTime.now().year];
       } else {
+        // Year-based (AC/HL/WS/EG giống 6M/TEWS): `/{CAT}/{year}.json`
         final currentYear = DateTime.now().year;
-        final previousYear = currentYear - 1;
-
-        final currentYearEpisodes =
-            await _episodeCacheService.getCategoryEpisodes(category, currentYear);
-        final previousYearEpisodes =
-            await _episodeCacheService.getCategoryEpisodes(category, previousYear);
-
-        final Map<String, Episode> uniqueEpisodes = {};
-        for (final episode in [...currentYearEpisodes, ...previousYearEpisodes]) {
-          final key = episode.id ??
-              '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
-          uniqueEpisodes[key] = episode;
-        }
-        allEpisodes = uniqueEpisodes.values.toList()
-          ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-        loadedYears = [currentYear, previousYear];
+        final yearsBack = CategoryNames.usesYearEpisodeList(category)
+            ? (currentYear - CategoryNames.yearBasedMinYear).clamp(1, 20)
+            : 1;
+        allEpisodes = await _episodeCacheService.getCategoryEpisodesYearMerged(
+          category,
+          yearsBack: yearsBack,
+        );
+        loadedYears = [
+          for (var i = 0; i <= yearsBack; i++) currentYear - i,
+        ];
       }
 
       setState(() {
@@ -174,8 +169,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
       final nextYear = minLoadedYear - 1;
 
-      // Giới hạn load đến năm 2020
-      if (nextYear < 2020) {
+      final floor = CategoryNames.usesYearEpisodeList(category)
+          ? CategoryNames.yearBasedMinYear
+          : 2020;
+      if (nextYear < floor) {
         setState(() {
           _loadingMoreStates[category] = false;
         });
@@ -216,7 +213,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     if (loadedYears.isEmpty) return false;
 
     final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
-    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
+    final floor = CategoryNames.usesYearEpisodeList(category)
+        ? CategoryNames.yearBasedMinYear
+        : 2020;
+    return minLoadedYear > floor;
   }
 
   void _onTabChanged() {

@@ -1033,15 +1033,10 @@ namespace playMP3
 
                 if (!string.IsNullOrEmpty(txtHomeNumber.Text))
                 {
-                    if (cbType.Text == "BBC")
-                    {
+                    
                         await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
                         await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-                    }
-                    if (cbType.Text == "VOA")
-                    {
-                        await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                    }
+                    
                 }
             }
 
