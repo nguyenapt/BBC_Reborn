@@ -120,18 +120,14 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
         loadedYears = [DateTime.now().year];
       } else {
-        // Year-based (AC/HL/WS/EG giống 6M/TEWS): `/{CAT}/{year}.json`
+        // Year-based (AC/HL/WS giống 6M/TEWS): chỉ 2 năm gần nhất, Load more lấy thêm.
         final currentYear = DateTime.now().year;
-        final yearsBack = CategoryNames.usesYearEpisodeList(category)
-            ? (currentYear - CategoryNames.yearBasedMinYear).clamp(1, 20)
-            : 1;
+        const yearsBack = 1; // current + previous
         allEpisodes = await _episodeCacheService.getCategoryEpisodesYearMerged(
           category,
           yearsBack: yearsBack,
         );
-        loadedYears = [
-          for (var i = 0; i <= yearsBack; i++) currentYear - i,
-        ];
+        loadedYears = [currentYear, currentYear - 1];
       }
 
       setState(() {

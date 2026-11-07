@@ -45,9 +45,9 @@ class _GrammarScreenState extends State<GrammarScreen> {
     });
 
     try {
+      // Giống 6M/TEWS: chỉ 2 năm gần nhất; Load more lấy năm cũ hơn.
       final currentYear = DateTime.now().year;
-      final yearsBack =
-          (currentYear - CategoryNames.yearBasedMinYear).clamp(1, 20);
+      const yearsBack = 1;
       final allEpisodes = await _episodeCacheService.getCategoryEpisodesYearMerged(
         'EG',
         yearsBack: yearsBack,
@@ -55,9 +55,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
 
       setState(() {
         _egEpisodes = allEpisodes;
-        _loadedYears = [
-          for (var i = 0; i <= yearsBack; i++) currentYear - i,
-        ];
+        _loadedYears = [currentYear, currentYear - 1];
         _isLoadingEG = false;
       });
     } catch (e) {
