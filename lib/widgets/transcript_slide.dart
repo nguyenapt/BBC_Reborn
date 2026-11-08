@@ -646,31 +646,40 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                 ),
                               const SizedBox(height: 4),
                               Wrap(
-                                spacing: 12,
-                                runSpacing: 4,
+                                spacing: 2,
+                                runSpacing: 0,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   if (hasTimeInfo)
                                     InkWell(
                                       onTap: () => widget.onPlayAtTime?.call(line.startTime),
                                       borderRadius: BorderRadius.circular(999),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.volume_up_rounded,
-                                            color: categoryColor,
-                                            size: 14,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            _languageManager.getText('checklistListen'),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.volume_up_rounded,
                                               color: categoryColor,
+                                              size: 16,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _languageManager.getText('checklistListen'),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: categoryColor,
+                                                height: 1.0,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   if (hasTimeInfo && widget.onToggleLoopLine != null)
@@ -701,28 +710,17 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                             );
                                           },
                                           borderRadius: BorderRadius.circular(999),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.repeat_rounded,
-                                                color: loopColor,
-                                                size: 14,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                _languageManager.getText(
-                                                  isLooping
-                                                      ? 'transcriptLooping'
-                                                      : 'transcriptLoop',
-                                                ),
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: loopColor,
-                                                ),
-                                              ),
-                                            ],
+                                          child: Padding(
+                                            // Hit area lớn hơn; icon giữ size 16.
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
+                                            child: Icon(
+                                              Icons.repeat_rounded,
+                                              color: loopColor,
+                                              size: 16,
+                                            ),
                                           ),
                                         );
                                       },
@@ -731,38 +729,30 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     onTap: () =>
                                         _translateLine(context, line.text, transcriptIndex),
                                     borderRadius: BorderRadius.circular(999),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _lineTranslating[line.text] == true
-                                            ? SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<Color>(
-                                                    primaryColor,
-                                                  ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      child: _lineTranslating[line.text] == true
+                                          ? SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<Color>(
+                                                  primaryColor,
                                                 ),
-                                              )
-                                            : Icon(
-                                                _lineTranslations.containsKey(line.text)
-                                                    ? Icons.translate
-                                                    : Icons.translate_outlined,
-                                                color: primaryColor,
-                                                size: 14,
                                               ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Translate',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: primaryColor,
-                                          ),
-                                        ),
-                                      ],
+                                            )
+                                          : Icon(
+                                              _lineTranslations.containsKey(line.text)
+                                                  ? Icons.translate
+                                                  : Icons.translate_outlined,
+                                              color: primaryColor,
+                                              size: 16,
+                                            ),
                                     ),
                                   ),
                                   InkWell(
@@ -772,24 +762,16 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                           transcriptIndex,
                                         ),
                                     borderRadius: BorderRadius.circular(999),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.lightbulb_outline,
-                                          color: tertiaryColor,
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Grammar',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: tertiaryColor,
-                                          ),
-                                        ),
-                                      ],
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      child: Icon(
+                                        Icons.lightbulb_outline,
+                                        color: tertiaryColor,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
                                 ],
