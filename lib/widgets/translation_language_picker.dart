@@ -23,6 +23,9 @@ class TranslationLanguagePicker extends StatelessWidget {
     {'code': 'ru', 'name': 'Русский', 'nativeName': 'Русский'},
     {'code': 'fr', 'name': 'Français', 'nativeName': 'Français'},
     {'code': 'de', 'name': 'Deutsch', 'nativeName': 'Deutsch'},
+    {'code': 'tr', 'name': 'Türkçe', 'nativeName': 'Türkçe'},
+    {'code': 'it', 'name': 'Italiano', 'nativeName': 'Italiano'},
+    {'code': 'hi', 'name': 'हिन्दी', 'nativeName': 'हिन्दी'},
   ];
 
   static void show(

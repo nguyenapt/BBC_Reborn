@@ -20,6 +20,7 @@ class MediaNotificationLaunchHandler {
     String? category,
     String? year,
     String? episodeKey,
+    String? rtdbPath,
   }) async {
     if (_isNavigating) return;
     _isNavigating = true;
@@ -44,12 +45,13 @@ class MediaNotificationLaunchHandler {
         category: category,
         year: year,
         episodeKey: episodeKey,
+        rtdbPath: rtdbPath,
       );
 
       if (episode == null) {
         debugPrint(
           'MediaNotificationLaunchHandler: episode not found ($episodeId, '
-          'category=$category, year=$year, key=$episodeKey)',
+          'category=$category, year=$year, key=$episodeKey, rtdbPath=$rtdbPath)',
         );
         return;
       }

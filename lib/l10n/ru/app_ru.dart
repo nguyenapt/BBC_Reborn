@@ -107,6 +107,8 @@ class AppRu {
     'downloaded': 'Скачано',
     'episodeInfo': 'Информация об эпизоде',
     'transcript': 'Транскрипт',
+    'transcriptLoop': 'Повтор',
+    'transcriptLooping': 'Повтор…',
     'reference': 'Справка',
     'questionsTab': 'Вопросы',
     'vocabulary': 'Словарь',
@@ -260,6 +262,28 @@ class AppRu {
     'clearImageCacheDialogBody':
         'Вы уверены, что хотите удалить все закэшированные изображения?',
     'clearImageCacheSuccess': 'Кэш изображений очищен',
+    'storageAndCache': 'Хранилище и кэш',
+    'manageAppCache': 'Управление кэшем на этом устройстве',
+    'manageAppCacheHint':
+        'Выберите, что очистить. Прогресс обучения и избранное сохраняются.',
+    'totalCacheSize': 'Общий размер',
+    'cacheCategoryImages': 'Изображения',
+    'cacheCategoryImagesDesc': 'Обложки и миниатюры эпизодов',
+    'cacheCategoryAudioStream': 'Кэш аудиопотока',
+    'cacheCategoryAudioStreamDesc': 'Временное аудио, сохранённое при стриминге',
+    'cacheCategoryDownloads': 'Скачанные эпизоды',
+    'cacheCategoryDownloadsDesc':
+        'Удаляет офлайн-загрузки. Позже их можно скачать снова.',
+    'cacheCategoryAiLocal': 'Локальный кэш ИИ',
+    'cacheCategoryAiLocalDesc': 'Переводы и ответы ИИ, сохранённые на устройстве',
+    'selectAll': 'Выбрать всё',
+    'deselectAll': 'Снять выбор',
+    'clearSelectedCache': 'Очистить выбранное',
+    'clearCacheConfirmTitle': 'Очистить выбранный кэш?',
+    'clearCacheConfirmBody':
+        'Будет очищено: {items}. Это действие нельзя отменить.',
+    'clearCacheSuccess': 'Выбранный кэш очищен',
+    'clearCacheFailed': 'Не удалось очистить кэш',
     'copiedToClipboard': 'Скопировано',
     'googleTranslateOpenFailed': 'Не удалось открыть Google Переводчик',
     'transcriptPlayFromSeconds': 'Воспроизведение с {seconds} с',
@@ -270,8 +294,8 @@ class AppRu {
     'removedFromVocabularies': 'Удалить из словаря',
     'loadingFavouritesError': 'Загрузка избранного...',
     'loadingVocabulariesError': 'Загрузка словаря...',
-    'loadingFavouritesErrorDesc': 'Произошла ошибка: {error}',
-    'loadingVocabulariesErrorDesc': 'Произошла ошибка: {error}',
+    'loadingFavouritesErrorDesc': 'Не удалось загрузить избранное. Попробуйте снова.',
+    'loadingVocabulariesErrorDesc': 'Не удалось загрузить словарь. Попробуйте снова.',
     'doubleBackExit': 'Нажмите на кнопку назад еще раз, чтобы выйти',
     'adPrivacyOptionsTitle': 'Параметры конфиденциальности рекламы',
     'privacyOptionsStatusLabel': 'Статус privacy options: {status}',
@@ -281,8 +305,7 @@ class AppRu {
     'managePrivacyChoices': 'Управлять параметрами конфиденциальности',
     'privacyOptionsUpdateSuccess':
         'Параметры конфиденциальности рекламы обновлены.',
-    'privacyOptionsOpenError':
-        'Не удалось открыть privacy options: {error}',
+    'privacyOptionsOpenError': 'Не удалось открыть параметры конфиденциальности. Попробуйте снова.',
     'privacyOptionsNotRequiredInfo':
         'В вашем регионе privacy options сейчас не требуются.',
 
@@ -400,7 +423,6 @@ class AppRu {
     'sleepTimerEndOfEpisode': 'Конец эпизода',
     'sleepTimerOff': 'Выкл.',
     'sleepTimerMinutes': '{minutes} мин',
-    'autoPlayNowPlaying': 'Сейчас играет: {title}',
     'autoPlayEnabledHint':
         'Автовоспроизведение включено. Следующий эпизод в этой категории будет воспроизведён автоматически.',
   };

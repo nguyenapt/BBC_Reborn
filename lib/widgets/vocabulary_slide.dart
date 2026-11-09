@@ -6,16 +6,14 @@ import '../services/vocabulary_service.dart';
 import '../services/ai_translation_service.dart';
 import '../services/ai_vocabulary_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../models/enhanced_vocabulary.dart';
 import '../services/language_manager.dart';
-import '../services/admob_service.dart';
-import '../services/heart_service.dart';
 import 'native_ad_widget.dart';
 import 'learning_checklist_bar.dart';
 import 'translation_language_picker.dart';
 import 'episode_tab_skeleton.dart';
 import 'episode_detail_tab_panel.dart';
+import 'heart_economy_ui.dart';
 
 class VocabularySlide extends StatefulWidget {
   final Episode episode;
@@ -508,151 +506,328 @@ class _VocabularySlideState extends State<VocabularySlide> {
 
   void _showEnhancedDialog(BuildContext context, EnhancedVocabulary enhanced) {
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
+    final maxW = MediaQuery.of(context).size.width * 0.92;
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
+        child: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxWidth: maxW < 720 ? maxW : 720,
+                maxHeight: 640,
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    color: categoryColor,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      enhanced.original.vocab,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
                         color: categoryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          enhanced.original.vocab,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: categoryColor,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (enhanced.wordForm != null ||
+                              enhanced.pronunciation != null)
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                if (enhanced.wordForm != null)
+                                  Chip(
+                                    label: Text(enhanced.wordForm!),
+                                    backgroundColor:
+                                        categoryColor.withOpacity(0.1),
+                                  ),
+                                if (enhanced.pronunciation != null)
+                                  Text(
+                                    enhanced.pronunciation!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontStyle: FontStyle.italic,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.6),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          if (enhanced.wordForm != null ||
+                              enhanced.pronunciation != null)
+                            const SizedBox(height: 16),
+                          if (enhanced.displaySynonyms.isNotEmpty) ...[
+                            _buildTermSection(
+                              context,
+                              'Synonyms',
+                              enhanced.displaySynonyms,
+                              categoryColor,
+                              Icons.sync_alt,
+                              onChanged: () => setDialogState(() {}),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (enhanced.displayAntonyms.isNotEmpty) ...[
+                            _buildTermSection(
+                              context,
+                              'Antonyms',
+                              enhanced.displayAntonyms,
+                              categoryColor,
+                              Icons.swap_horiz,
+                              onChanged: () => setDialogState(() {}),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (enhanced.exampleSentences.isNotEmpty) ...[
+                            _buildSection(
+                              context,
+                              'Examples',
+                              enhanced.exampleSentences,
+                              categoryColor,
+                              Icons.format_quote,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (enhanced.displayCollocations.isNotEmpty) ...[
+                            _buildTermSection(
+                              context,
+                              'Collocations',
+                              enhanced.displayCollocations,
+                              categoryColor,
+                              Icons.link,
+                              onChanged: () => setDialogState(() {}),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: categoryColor,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
                   ),
                 ],
               ),
-              const Divider(),
-              const SizedBox(height: 16),
-              
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Word form and pronunciation
-                      if (enhanced.wordForm != null || enhanced.pronunciation != null)
-                        Row(
-                          children: [
-                            if (enhanced.wordForm != null) ...[
-                              Chip(
-                                label: Text(enhanced.wordForm!),
-                                backgroundColor: categoryColor.withOpacity(0.1),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            if (enhanced.pronunciation != null)
-                              Text(
-                                enhanced.pronunciation!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                          ],
-                        ),
-                      if (enhanced.wordForm != null || enhanced.pronunciation != null)
-                        const SizedBox(height: 16),
-                      
-                      // Synonyms
-                      if (enhanced.synonyms.isNotEmpty) ...[
-                        _buildSection(
-                          context,
-                          'Synonyms',
-                          enhanced.synonyms,
-                          categoryColor,
-                          Icons.sync_alt,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Antonyms
-                      if (enhanced.antonyms.isNotEmpty) ...[
-                        _buildSection(
-                          context,
-                          'Antonyms',
-                          enhanced.antonyms,
-                          categoryColor,
-                          Icons.swap_horiz,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Example sentences
-                      if (enhanced.exampleSentences.isNotEmpty) ...[
-                        _buildSection(
-                          context,
-                          'Examples',
-                          enhanced.exampleSentences,
-                          categoryColor,
-                          Icons.format_quote,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Collocations
-                      if (enhanced.collocations.isNotEmpty) ...[
-                        _buildSection(
-                          context,
-                          'Collocations',
-                          enhanced.collocations,
-                          categoryColor,
-                          Icons.link,
-                        ),
-                      ],
-                    ],
-                  ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTermSection(
+    BuildContext context,
+    String title,
+    List<VocabTermDetail> items,
+    Color categoryColor,
+    IconData icon, {
+    required VoidCallback onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: categoryColor, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: categoryColor,
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              
-              // Close button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: categoryColor,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                await _saveAllTerms(context, items);
+                onChanged();
+              },
+              icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+              label: const Text('Save all'),
+              style: TextButton.styleFrom(
+                foregroundColor: categoryColor,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...items.map((item) {
+          final isSaved = _vocabularyService.isVocabularySaved(item.word);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: categoryColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.word,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        if (item.meaning.trim().isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            item.meaning,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.75),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  child: const Text('Close'),
-                ),
+                  IconButton(
+                    tooltip: isSaved ? 'Saved' : 'Save',
+                    onPressed: () async {
+                      await _saveTerm(context, item);
+                      onChanged();
+                    },
+                    icon: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      size: 20,
+                      color: isSaved
+                          ? categoryColor
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.55),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Future<void> _saveTerm(BuildContext context, VocabTermDetail term) async {
+    final word = term.word.trim();
+    if (word.isEmpty) return;
+
+    if (_vocabularyService.isVocabularySaved(word)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"$word" already saved'),
+          duration: const Duration(seconds: 2),
         ),
+      );
+      return;
+    }
+
+    final item = term.toVocabularyItem(
+      bbcEpisodeId: widget.episode.id ?? '',
+    );
+    final success = await _vocabularyService.saveVocabulary(item);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Saved "$word" to vocabulary' : '"$word" already saved',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _saveAllTerms(
+    BuildContext context,
+    List<VocabTermDetail> terms,
+  ) async {
+    var saved = 0;
+    var skipped = 0;
+    for (final term in terms) {
+      final word = term.word.trim();
+      if (word.isEmpty) continue;
+      if (_vocabularyService.isVocabularySaved(word)) {
+        skipped++;
+        continue;
+      }
+      final ok = await _vocabularyService.saveVocabulary(
+        term.toVocabularyItem(bbcEpisodeId: widget.episode.id ?? ''),
+      );
+      if (ok) {
+        saved++;
+      } else {
+        skipped++;
+      }
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved == 0
+              ? 'No new words saved ($skipped already saved)'
+              : 'Saved $saved word(s)'
+                  '${skipped > 0 ? ', skipped $skipped' : ''}',
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -703,72 +878,28 @@ class _VocabularySlideState extends State<VocabularySlide> {
     );
   }
 
-  /// Show error SnackBar with appropriate action button
-  /// Shows "Watch Ads" button if NoHeartsException, otherwise "Retry"
-  void _showErrorSnackBar(
+  Future<void> _showErrorSnackBar(
     BuildContext context,
     dynamic error, {
     required VoidCallback onRetry,
-  }) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
-    
-    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
-      // Show "Watch Ads" button for NoHeartsException
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Watch Ads',
-            textColor: Theme.of(context).colorScheme.onInverseSurface,
-            onPressed: () {
-              if (admobService.isRewardedAdReady()) {
-                admobService.showRewardedAd(
-                  onRewarded: () {
-                    heartService.earnHeart();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Color(0xFF7A5CFF),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    // Retry the action after earning heart
-                    Future.delayed(const Duration(milliseconds: 500), onRetry);
-                  },
-                  onAdFailedToShow: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Failed to show ad: $error'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  },
-                );
-              } else {
-                admobService.createRewardedAd();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ad is loading, please try again in a moment'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
+  }) async {
+    final episodeId = widget.episode.id ?? '';
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry,
+      episodeId: episodeId,
+    );
+    if (handled || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AIErrorHandler.getErrorMessage(error)),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: onRetry,
         ),
-      );
-    } else {
-      // Show "Retry" button for other errors
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: onRetry,
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 }

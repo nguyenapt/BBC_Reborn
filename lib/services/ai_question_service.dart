@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
+import '../models/ai_cache_tier.dart';
 import '../models/question.dart';
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'ai/exceptions.dart';
 import 'ai_cache_service.dart';
-import 'heart_service.dart';
 
 /// Service for AI-powered question generation
 class AIQuestionService {
@@ -23,7 +23,17 @@ class AIQuestionService {
     final cacheHit = await _cache.lookupQuestions(episodeId, count);
 
     if (cacheHit != null) {
-      await AICacheService.consumeHeartIfFirebase(cacheHit.tier);
+      await AICacheService.consumeHeartIfFirebase(
+        cacheHit.tier,
+        episodeId: episodeId,
+      );
+      if (cacheHit.tier == AICacheTier.firebase) {
+        await _cache.materializeQuestionsLocal(
+          episodeId,
+          count,
+          cacheHit.data,
+        );
+      }
       debugPrint('Using cached questions for episode $episodeId');
       final questions = <Question>[];
       for (int i = 0; i < cacheHit.data.length; i++) {
@@ -39,7 +49,7 @@ class AIQuestionService {
       }
     }
 
-    await HeartService().consumeForAIFeature();
+    await AICacheService.consumeForLiveAi(episodeId: episodeId);
 
     // Get providers (primary and backup)
     final primaryProvider = AIProviderFactory.getPrimaryProvider();

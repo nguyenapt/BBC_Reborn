@@ -82,6 +82,47 @@ class GrammarExplanation {
   bool get isPassageMode => overall != null || sentenceAnalyses.isNotEmpty;
 }
 
+/// Result of opening a transcript-line grammar explanation.
+class GrammarSentenceResolveResult {
+  final GrammarExplanation explanation;
+  final String displayLanguageCode;
+  final bool englishAvailable;
+  final bool targetAvailable;
+
+  const GrammarSentenceResolveResult({
+    required this.explanation,
+    required this.displayLanguageCode,
+    required this.englishAvailable,
+    required this.targetAvailable,
+  });
+}
+
+/// Chooses which grammar locale to show when opening the popup.
+class GrammarOpenPolicy {
+  static const englishCode = 'en';
+
+  static String displayLanguageCode({
+    required String targetLanguageCode,
+    required bool englishAvailable,
+    required bool targetAvailable,
+  }) {
+    if (targetLanguageCode == englishCode) {
+      return englishCode;
+    }
+    if (targetAvailable) return targetLanguageCode;
+    if (englishAvailable) return englishCode;
+    return targetLanguageCode;
+  }
+
+  /// Segmented switcher: English (if cached) + target. Hidden when only one option.
+  static bool showLanguageSwitcher({
+    required String targetLanguageCode,
+    required bool englishAvailable,
+  }) {
+    return targetLanguageCode != englishCode && englishAvailable;
+  }
+}
+
 class GrammarPassageOverall {
   final String grammarTheme;
   final String usageSummary;

@@ -107,6 +107,8 @@ class AppPt {
     'downloaded': 'Baixado',
     'episodeInfo': 'Informações do Episódio',
     'transcript': 'Transcrição',
+    'transcriptLoop': 'Repetir',
+    'transcriptLooping': 'A repetir',
     'reference': 'Referência',
     'questionsTab': 'Perguntas',
     'vocabulary': 'Vocabulário',
@@ -260,6 +262,28 @@ class AppPt {
     'clearImageCacheDialogBody':
         'Tem certeza de que deseja limpar todas as imagens em cache?',
     'clearImageCacheSuccess': 'Cache de imagens limpo com sucesso',
+    'storageAndCache': 'Armazenamento e cache',
+    'manageAppCache': 'Gerenciar dados em cache neste dispositivo',
+    'manageAppCacheHint':
+        'Escolha o que limpar. O progresso e os favoritos são mantidos.',
+    'totalCacheSize': 'Tamanho total',
+    'cacheCategoryImages': 'Imagens',
+    'cacheCategoryImagesDesc': 'Capas e miniaturas dos episódios',
+    'cacheCategoryAudioStream': 'Cache de áudio em streaming',
+    'cacheCategoryAudioStreamDesc': 'Áudio temporário salvo durante o streaming',
+    'cacheCategoryDownloads': 'Episódios baixados',
+    'cacheCategoryDownloadsDesc':
+        'Remove downloads offline. Você pode baixar novamente depois.',
+    'cacheCategoryAiLocal': 'Cache local de IA',
+    'cacheCategoryAiLocalDesc': 'Traduções e respostas de IA salvas no dispositivo',
+    'selectAll': 'Selecionar tudo',
+    'deselectAll': 'Desmarcar tudo',
+    'clearSelectedCache': 'Limpar seleção',
+    'clearCacheConfirmTitle': 'Limpar o cache selecionado?',
+    'clearCacheConfirmBody':
+        'O seguinte será limpo: {items}. Esta ação não pode ser desfeita.',
+    'clearCacheSuccess': 'Cache selecionado limpo',
+    'clearCacheFailed': 'Não foi possível limpar o cache',
     'copiedToClipboard': 'Copiado',
     'googleTranslateOpenFailed': 'Não foi possível abrir o Google Tradutor',
     'transcriptPlayFromSeconds': 'Reproduzir a partir de {seconds}s',
@@ -270,8 +294,8 @@ class AppPt {
     'removedFromVocabularies': 'Remover do vocabulário',
     'loadingFavouritesError': 'Carregando favoritos...',
     'loadingVocabulariesError': 'Carregando vocabulário...',
-    'loadingFavouritesErrorDesc': 'Ocorreu um erro: {error}',
-    'loadingVocabulariesErrorDesc': 'Ocorreu um erro: {error}',
+    'loadingFavouritesErrorDesc': 'Nao foi possivel carregar os favoritos. Tente novamente.',
+    'loadingVocabulariesErrorDesc': 'Nao foi possivel carregar o vocabulario. Tente novamente.',
     'doubleBackExit': 'Pressione o botão de volta novamente para sair',
     'adPrivacyOptionsTitle': 'Opções de privacidade de anúncios',
     'privacyOptionsStatusLabel': 'Status das opções de privacidade: {status}',
@@ -281,8 +305,7 @@ class AppPt {
     'managePrivacyChoices': 'Gerenciar opções de privacidade',
     'privacyOptionsUpdateSuccess':
         'As opções de privacidade de anúncios foram atualizadas.',
-    'privacyOptionsOpenError':
-        'Não foi possível abrir as opções de privacidade: {error}',
+    'privacyOptionsOpenError': 'Nao foi possivel abrir as opcoes de privacidade. Tente novamente.',
     'privacyOptionsNotRequiredInfo':
         'As opções de privacidade não são obrigatórias na sua região no momento.',
 
@@ -400,7 +423,6 @@ class AppPt {
     'sleepTimerEndOfEpisode': 'Fim do episódio',
     'sleepTimerOff': 'Desligar',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'Reproduzindo: {title}',
     'autoPlayEnabledHint':
         'A reprodução automática está ativada. O próximo episódio desta categoria será reproduzido automaticamente.',
   };

@@ -16,11 +16,12 @@ namespace playMP3
     {
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        public static async Task PutTranslationsCacheAsync(string episodeId, string languageCode, JArray translationsArray)
+        public static async Task PutTranslationsCacheAsync(string firebaseRtdbBaseUrl, string episodeId, string languageCode, JArray translationsArray)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 throw new ArgumentException("episodeId required.", nameof(episodeId));
 
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode ?? string.Empty);
 
@@ -31,7 +32,7 @@ namespace playMP3
                 ["originalLanguageCode"] = languageCode ?? string.Empty,
             };
 
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/translations/" + safeEpisodeId + "/" + safeLang + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(

@@ -212,10 +212,16 @@ Return format (JSON object only):
   ""antonyms"": [""word3""],
   ""exampleSentences"": [""sentence1"", ""sentence2""],
   ""collocations"": [""collocation1"", ""collocation2""],
+  ""synonymDetails"": [{""word"": ""word1"", ""meaning"": ""short gloss""}],
+  ""antonymDetails"": [{""word"": ""word3"", ""meaning"": ""short gloss""}],
+  ""collocationDetails"": [{""word"": ""collocation1"", ""meaning"": ""short gloss""}],
   ""pronunciation"": ""/pronunciation/"",
   ""wordForm"": ""noun""
 }
 
+Rules:
+- Keep synonyms/antonyms/collocations as plain string arrays (legacy).
+- Always also fill *Details with the same terms plus a concise English meaning/gloss.
 Important: Return ONLY the JSON object, nothing else.";
         }
 
@@ -231,10 +237,10 @@ Important: Return ONLY the JSON object, nothing else.";
             var bodyObj = BuildRequestBody(prompt);
             var body = bodyObj.ToString(Formatting.None);
             string lastDetail = null;
+            var start = GeminiApiKeyRotator.TakeStartIndex(keys.Count);
 
-            for (var ki = 0; ki < keys.Count; ki++)
+            foreach (var key in GeminiApiKeyRotator.EnumerateFrom(keys, start))
             {
-                var key = keys[ki];
                 var url = BuildGeminiUrl(key);
 
                 for (var attempt = 0; attempt < MaxQuickRetriesPerKey; attempt++)
@@ -243,6 +249,8 @@ Important: Return ONLY the JSON object, nothing else.";
                     var resp = await Http.PostAsync(url, content).ConfigureAwait(false);
                     var respText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var code = (int)resp.StatusCode;
+
+                    GrammarGeminiService.ThrowIfModelNotFound(code, respText);
 
                     if (code == 429)
                     {
@@ -307,6 +315,8 @@ Important: Return ONLY the JSON object, nothing else.";
                     await Task.Delay(waitMs).ConfigureAwait(false);
                     continue;
                 }
+
+                GrammarGeminiService.ThrowIfModelNotFound(code, respText);
 
                 if (!resp.IsSuccessStatusCode)
                 {

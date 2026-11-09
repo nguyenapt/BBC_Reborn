@@ -12,6 +12,11 @@ class GrammarExplanationDialog extends StatefulWidget {
   final bool isSaved;
   final VoidCallback? onToggleSaved;
   final VoidCallback? onOpenEpisode;
+  final String? selectedLanguageCode;
+  final String? targetLanguageCode;
+  final bool englishAvailable;
+  final Future<GrammarExplanation?> Function(String languageCode)?
+      onLanguageChanged;
 
   const GrammarExplanationDialog({
     super.key,
@@ -21,6 +26,10 @@ class GrammarExplanationDialog extends StatefulWidget {
     this.isSaved = false,
     this.onToggleSaved,
     this.onOpenEpisode,
+    this.selectedLanguageCode,
+    this.targetLanguageCode,
+    this.englishAvailable = false,
+    this.onLanguageChanged,
   });
 
   @override
@@ -30,7 +39,15 @@ class GrammarExplanationDialog extends StatefulWidget {
 class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
   final LanguageManager _languageManager = LanguageManager();
   late GrammarExplanation _explanation;
+  late String _selectedLanguageCode;
   bool _isUpdating = false;
+  bool _isLanguageLoading = false;
+
+  bool get _showLanguageSwitcher => GrammarOpenPolicy.showLanguageSwitcher(
+        targetLanguageCode: widget.targetLanguageCode ?? GrammarOpenPolicy.englishCode,
+        englishAvailable: widget.englishAvailable,
+      ) &&
+      widget.onLanguageChanged != null;
 
   @override
   Widget build(BuildContext context) {
@@ -39,11 +56,13 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
 
     return Dialog.fullscreen(
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             Row(
               children: [
                 Icon(Icons.lightbulb, color: categoryColor, size: 24),
@@ -65,6 +84,13 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
               ],
             ),
             const Divider(),
+            if (_showLanguageSwitcher) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: _buildLanguageSwitcher(compact: true),
+              ),
+              const SizedBox(height: 4),
+            ],
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -97,32 +123,6 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (widget.onToggleSaved != null)
-                          OutlinedButton.icon(
-                            onPressed: widget.onToggleSaved,
-                            icon: Icon(
-                              widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                              size: 18,
-                            ),
-                            label: Text(
-                              widget.isSaved
-                                  ? _languageManager.getText('saved')
-                                  : _languageManager.getText('save'),
-                            ),
-                          ),
-                        if (widget.onOpenEpisode != null)
-                          OutlinedButton.icon(
-                            onPressed: widget.onOpenEpisode,
-                            icon: const Icon(Icons.open_in_new, size: 18),
-                            label: Text(_languageManager.getText('openEpisode')),
-                          ),
-                      ],
                     ),
                     const SizedBox(height: 14),
                     if (explanation.isPassageMode) ...[
@@ -248,6 +248,47 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
               ),
             ),
             const SizedBox(height: 12),
+            if (widget.onToggleSaved != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isLanguageLoading ? null : widget.onToggleSaved,
+                  icon: Icon(
+                    widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    size: 18,
+                  ),
+                  label: Text(
+                    widget.isSaved
+                        ? _languageManager.getText('saved')
+                        : _languageManager.getText('save'),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (widget.onOpenEpisode != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: widget.onOpenEpisode,
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(_languageManager.getText('openEpisode')),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -263,11 +304,117 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
                 child: Text(_languageManager.getText('close')),
               ),
             ),
+                ],
+              ),
+            ),
+            if (_isLanguageLoading)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withOpacity(0.25),
+                  child: Center(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                categoryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(_languageManager.getText('analyzingGrammar')),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
-          ),
         ),
       ),
     );
+  }
+
+  String _languageCodeLabel(String code) => code.toUpperCase();
+
+  static const Color _langSwitcherColor = Color(0xFF22C55E);
+
+  Widget _buildLanguageSwitcher({bool compact = false}) {
+    final target = widget.targetLanguageCode;
+    if (!_showLanguageSwitcher || target == null) {
+      return const SizedBox.shrink();
+    }
+
+    final style = ButtonStyle(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      ),
+      textStyle: WidgetStateProperty.all(
+        const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return _langSwitcherColor;
+        }
+        return Colors.grey;
+      }),
+      backgroundColor: WidgetStateProperty.all(Colors.transparent),
+      side: WidgetStateProperty.all(
+        BorderSide(color: Colors.grey.shade400),
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: compact ? 0 : 10,
+        right: compact ? 4 : 0,
+      ),
+      child: SegmentedButton<String>(
+        style: style,
+        segments: [
+          ButtonSegment<String>(
+            value: GrammarOpenPolicy.englishCode,
+            label: Text(_languageCodeLabel(GrammarOpenPolicy.englishCode)),
+          ),
+          ButtonSegment<String>(
+            value: target,
+            label: Text(_languageCodeLabel(target)),
+          ),
+        ],
+        selected: {_selectedLanguageCode},
+        showSelectedIcon: false,
+        onSelectionChanged: _isLanguageLoading
+            ? null
+            : (selection) {
+                if (selection.isEmpty) return;
+                _onSelectLanguage(selection.first);
+              },
+      ),
+    );
+  }
+
+  Future<void> _onSelectLanguage(String languageCode) async {
+    if (languageCode == _selectedLanguageCode) return;
+    final callback = widget.onLanguageChanged;
+    if (callback == null) return;
+
+    setState(() => _isLanguageLoading = true);
+    final next = await callback(languageCode);
+    if (!mounted) return;
+    if (next != null) {
+      setState(() {
+        _explanation = next;
+        _selectedLanguageCode = languageCode;
+        _isLanguageLoading = false;
+      });
+    } else {
+      setState(() => _isLanguageLoading = false);
+    }
   }
 
   Widget _buildPassageOverview(BuildContext context, GrammarExplanation explanation) {
@@ -327,6 +474,9 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
   void initState() {
     super.initState();
     _explanation = widget.explanation;
+    _selectedLanguageCode = widget.selectedLanguageCode ??
+        widget.targetLanguageCode ??
+        GrammarOpenPolicy.englishCode;
 
     final future = widget.progressiveUpdate;
     if (future != null) {
@@ -343,6 +493,18 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
           _isUpdating = false;
         });
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(GrammarExplanationDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.explanation != widget.explanation) {
+      _explanation = widget.explanation;
+    }
+    if (oldWidget.selectedLanguageCode != widget.selectedLanguageCode &&
+        widget.selectedLanguageCode != null) {
+      _selectedLanguageCode = widget.selectedLanguageCode!;
     }
   }
 
@@ -381,7 +543,7 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
   }
 
   Widget _buildHighlightedSentence(BuildContext context, Color highlightColor) {
-    final explanation = widget.explanation;
+    final explanation = _explanation;
     if (explanation.highlightedWords.isEmpty) {
       return Text(
         explanation.sentence,
@@ -444,4 +606,3 @@ class _GrammarExplanationDialogState extends State<GrammarExplanationDialog> {
     return RichText(text: TextSpan(children: spans));
   }
 }
-

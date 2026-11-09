@@ -200,22 +200,24 @@ class ImageCacheService {
     await Future.wait(futures);
   }
 
-  /// Xóa cache
+  /// Xóa cache disk (DefaultCacheManager) + memory image cache.
   Future<void> clearCache() async {
     try {
-      await CachedNetworkImage.evictFromCache('');
+      await DefaultCacheManager().emptyCache();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
       debugPrint('Image cache cleared');
     } catch (e) {
       debugPrint('Error clearing cache: $e');
     }
   }
 
-  /// Lấy kích thước cache
+  /// Lấy kích thước cache disk của DefaultCacheManager (`libCachedImageData`).
   Future<int> getCacheSize() async {
     try {
       final directory = await getTemporaryDirectory();
-      final cacheDir = Directory('${directory.path}/imageCache');
-      
+      final cacheDir = Directory('${directory.path}/${DefaultCacheManager.key}');
+
       if (!await cacheDir.exists()) {
         return 0;
       }
@@ -226,7 +228,7 @@ class ImageCacheService {
           totalSize += await entity.length();
         }
       }
-      
+
       return totalSize;
     } catch (e) {
       debugPrint('Error getting cache size: $e');
@@ -238,7 +240,9 @@ class ImageCacheService {
   String formatCacheSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
@@ -246,8 +250,8 @@ class ImageCacheService {
   Future<void> clearOldCache() async {
     try {
       final directory = await getTemporaryDirectory();
-      final cacheDir = Directory('${directory.path}/imageCache');
-      
+      final cacheDir = Directory('${directory.path}/${DefaultCacheManager.key}');
+
       if (!await cacheDir.exists()) return;
 
       final now = DateTime.now();

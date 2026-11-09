@@ -105,6 +105,8 @@ class AppFr {
     'downloaded': 'Téléchargé',
     'episodeInfo': 'Infos de l\'épisode',
     'transcript': 'Transcription',
+    'transcriptLoop': 'Boucle',
+    'transcriptLooping': 'En boucle',
     'reference': 'Référence',
     'questionsTab': 'Questions',
     'vocabulary': 'Vocabulaire',
@@ -261,6 +263,28 @@ class AppFr {
     'clearImageCacheDialogBody':
         'Êtes-vous sûr de vouloir supprimer toutes les images en cache ?',
     'clearImageCacheSuccess': 'Cache d\'images vidé avec succès',
+    'storageAndCache': 'Stockage et cache',
+    'manageAppCache': 'Gérer les données en cache sur cet appareil',
+    'manageAppCacheHint':
+        'Choisissez ce qu\'il faut effacer. La progression et les favoris sont conservés.',
+    'totalCacheSize': 'Taille totale',
+    'cacheCategoryImages': 'Images',
+    'cacheCategoryImagesDesc': 'Couvertures et miniatures des épisodes',
+    'cacheCategoryAudioStream': 'Cache audio en streaming',
+    'cacheCategoryAudioStreamDesc': 'Audio temporaire enregistré pendant le streaming',
+    'cacheCategoryDownloads': 'Épisodes téléchargés',
+    'cacheCategoryDownloadsDesc':
+        'Supprime les téléchargements hors ligne. Vous pourrez les retélécharger.',
+    'cacheCategoryAiLocal': 'Cache IA local',
+    'cacheCategoryAiLocalDesc': 'Traductions et réponses IA mises en cache sur l\'appareil',
+    'selectAll': 'Tout sélectionner',
+    'deselectAll': 'Tout désélectionner',
+    'clearSelectedCache': 'Effacer la sélection',
+    'clearCacheConfirmTitle': 'Effacer le cache sélectionné ?',
+    'clearCacheConfirmBody':
+        'Les éléments suivants seront effacés : {items}. Cette action est irréversible.',
+    'clearCacheSuccess': 'Cache sélectionné effacé',
+    'clearCacheFailed': 'Impossible d\'effacer le cache',
     'copiedToClipboard': 'Copié',
     'googleTranslateOpenFailed': 'Impossible d\'ouvrir Google Traduction',
     'transcriptPlayFromSeconds': 'Lire à partir de {seconds} s',
@@ -280,7 +304,7 @@ class AppFr {
     'privacyOptionsStatusUpdating': 'Mise à jour',
     'managePrivacyChoices': 'Gérer les choix de confidentialité',
     'privacyOptionsUpdateSuccess': 'Choix de confidentialité des publicités mis à jour.',
-    'privacyOptionsOpenError': 'Impossible d\'ouvrir les options de confidentialité : {error}',
+    'privacyOptionsOpenError': 'Impossible d\'ouvrir les options de confidentialité. Veuillez réessayer.',
     'privacyOptionsNotRequiredInfo':
         'Les options de confidentialité ne sont pas obligatoires dans votre région pour le moment.',
 
@@ -302,8 +326,8 @@ class AppFr {
     'removedFromVocabularies': 'Retirer du vocabulaire',
     'loadingFavouritesError': 'Chargement des favoris...',
     'loadingVocabulariesError': 'Chargement du vocabulaire...',
-    'loadingFavouritesErrorDesc': 'Une erreur s\'est produite : {error}',
-    'loadingVocabulariesErrorDesc': 'Une erreur s\'est produite : {error}',
+    'loadingFavouritesErrorDesc': 'Impossible de charger les favoris. Veuillez réessayer.',
+    'loadingVocabulariesErrorDesc': 'Impossible de charger le vocabulaire. Veuillez réessayer.',
     'doubleBackExit': 'Appuyez à nouveau sur retour pour quitter',
 
     // Speaking practice
@@ -399,7 +423,6 @@ class AppFr {
     'sleepTimerEndOfEpisode': 'Fin de l\'épisode',
     'sleepTimerOff': 'Désactivé',
     'sleepTimerMinutes': '{minutes} min',
-    'autoPlayNowPlaying': 'En cours : {title}',
     'autoPlayEnabledHint':
         'La lecture automatique est activée. Le prochain épisode de cette catégorie sera lu automatiquement.',
 

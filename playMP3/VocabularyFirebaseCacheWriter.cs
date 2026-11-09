@@ -15,11 +15,12 @@ namespace playMP3
     {
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        public static async Task PutVocabularyCacheAsync(string word, string languageCode, JObject vocabularyDataMap, string episodeId = null)
+        public static async Task PutVocabularyCacheAsync(string firebaseRtdbBaseUrl, string word, string languageCode, JObject vocabularyDataMap, string episodeId = null)
         {
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var wordHash = GrammarCacheKeyHelper.HashString((word ?? string.Empty).Trim().ToLowerInvariant());
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var vocabularyUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var vocabularyUrl = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                                 + "/vocabulary/" + wordHash + "/" + safeLang + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(
@@ -35,7 +36,7 @@ namespace playMP3
             if (!string.IsNullOrWhiteSpace(episodeId))
             {
                 var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
-                var byEpisodeUrl = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+                var byEpisodeUrl = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                                    + "/" + GrammarCacheConstants.VocabularyByEpisodePath + "/" + safeEpisodeId + "/" + wordHash + ".json";
 
                 var existingTranslationMap = new JObject();

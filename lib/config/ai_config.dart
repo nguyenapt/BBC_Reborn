@@ -27,6 +27,13 @@ class AIConfig {
   // Grammar cache versioning — keep in sync with functions/ai/config.js
   static const String grammarPromptVersion = 'v2_detailed_learning_no_quiz';
   static const String grammarSchemaVersion = 'v2';
+
+  /// playMP3 single-shot prewarm for <c>ai_cache/grammar_passage</c>.
+  /// Distinct from progressive <c>${grammarPromptVersion}_passage_v2_slim_progressive</c>.
+  /// MUST_SYNC playMP3 GrammarCacheConstants.GrammarPassagePromptVersion / SchemaVersion.
+  static const String grammarPassageSinglePromptVersion =
+      '${grammarPromptVersion}_passage_v2_slim_single';
+  static const String grammarPassageSingleSchemaVersion = 'v2_passage_v2_slim_single';
   
   // Feature flags
   static const bool enableTranslation = true;

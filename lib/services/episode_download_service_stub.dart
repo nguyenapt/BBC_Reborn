@@ -21,4 +21,12 @@ class EpisodeDownloadService {
   Future<bool> fileExists(String path) async {
     return false;
   }
+
+  Future<int> getStreamCacheSize() async => 0;
+
+  Future<int> getDownloadsSize() async => 0;
+
+  Future<void> clearStreamCache() async {}
+
+  Future<void> clearAllDownloads() async {}
 }

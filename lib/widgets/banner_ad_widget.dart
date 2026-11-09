@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final double? height;
   final EdgeInsetsGeometry? margin;
-  
+
   const BannerAdWidget({
-    Key? key,
+    super.key,
     this.height,
     this.margin,
-  }) : super(key: key);
+  });
 
   @override
   State<BannerAdWidget> createState() => _BannerAdWidgetState();
@@ -27,19 +27,20 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _loadBannerAd();
   }
 
-  void _loadBannerAd() {
+  Future<void> _loadBannerAd() async {
+    if (kIsWeb) return;
+    final ready = await AdMobService().waitUntilSdkReady();
+    if (!mounted || !ready) return;
     try {
       _bannerAd = AdMobService().createBannerAd();
-      _bannerAd?.load().then((_) {
-        if (mounted) {
-          setState(() {
-            _isAdLoaded = true;
-          });
-        }
-      });
+      await _bannerAd?.load();
+      if (mounted) {
+        setState(() {
+          _isAdLoaded = true;
+        });
+      }
     } catch (e) {
-      print('Banner ad not supported on this platform: $e');
-      // Không cần set _isAdLoaded = true vì widget sẽ return SizedBox.shrink()
+      debugPrint('Banner ad load skipped: $e');
     }
   }
 
@@ -51,11 +52,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Không hiển thị ads trên web
     if (kIsWeb) {
       return const SizedBox.shrink();
     }
-    
+
     if (!_isAdLoaded || _bannerAd == null) {
       return const SizedBox.shrink();
     }

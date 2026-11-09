@@ -83,10 +83,10 @@ Important: Return ONLY the JSON array, nothing else.";
             var bodyObj = BuildRequestBody(prompt);
             var body = bodyObj.ToString(Formatting.None);
             string lastDetail = null;
+            var start = GeminiApiKeyRotator.TakeStartIndex(keys.Count);
 
-            for (var ki = 0; ki < keys.Count; ki++)
+            foreach (var key in GeminiApiKeyRotator.EnumerateFrom(keys, start))
             {
-                var key = keys[ki];
                 var url = BuildGeminiUrl(key);
 
                 for (var attempt = 0; attempt < MaxQuickRetriesPerKey; attempt++)
@@ -95,6 +95,8 @@ Important: Return ONLY the JSON array, nothing else.";
                     var resp = await Http.PostAsync(url, content).ConfigureAwait(false);
                     var respText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var code = (int)resp.StatusCode;
+
+                    GrammarGeminiService.ThrowIfModelNotFound(code, respText);
 
                     if (code == 429)
                     {
@@ -159,6 +161,8 @@ Important: Return ONLY the JSON array, nothing else.";
                     await Task.Delay(waitMs).ConfigureAwait(false);
                     continue;
                 }
+
+                GrammarGeminiService.ThrowIfModelNotFound(code, respText);
 
                 if (!resp.IsSuccessStatusCode)
                 {

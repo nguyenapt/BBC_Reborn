@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-import '../models/speaking_feedback.dart';
+
 import 'ai/ai_provider_factory.dart';
 import 'ai/ai_error_handler.dart';
 import 'heart_service.dart';
+import '../models/speaking_feedback.dart';
 
 class SpeakingFeedbackService {
   static final SpeakingFeedbackService _instance =
@@ -16,6 +17,9 @@ class SpeakingFeedbackService {
     String? language,
   }) async {
     debugPrint('Speaking[evaluate] start referenceLen=${referenceText.length}');
+
+    // Reserve attempt / heart before live API (same as other AI features).
+    await HeartService().consumeSpeakingAttempt();
 
     final primaryProvider = AIProviderFactory.getPrimaryProvider();
     final backupProvider = AIProviderFactory.getBackupProvider();
@@ -32,8 +36,6 @@ class SpeakingFeedbackService {
           backupProvider,
         );
       });
-
-      await HeartService().consumeForAIFeature();
 
       debugPrint('Speaking[evaluate] ok score=${resultMap['overallScore']}');
       return SpeakingFeedback.fromMap(resultMap);

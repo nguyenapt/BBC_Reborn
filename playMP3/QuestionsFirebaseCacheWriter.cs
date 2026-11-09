@@ -12,11 +12,12 @@ namespace playMP3
     {
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        public static async Task PutQuestionsCacheAsync(string episodeId, int count, JArray questions)
+        public static async Task PutQuestionsCacheAsync(string firebaseRtdbBaseUrl, string episodeId, int count, JArray questions)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
                 throw new ArgumentException("episodeId required.", nameof(episodeId));
 
+            var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var data = new JObject
             {
                 ["questions"] = questions ?? new JArray(),
@@ -24,7 +25,7 @@ namespace playMP3
             };
 
             var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
-            var url = GrammarCacheConstants.FirebaseRtdbBaseUrl + "/" + GrammarCacheConstants.AiCachePath
+            var url = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                       + "/questions/" + safeEpisodeId + "/" + count + ".json";
 
             var dto = GrammarAiCacheEntryDto.FromGrammarMap(
