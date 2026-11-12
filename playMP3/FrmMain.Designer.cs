@@ -183,6 +183,7 @@ namespace playMP3
             this.label9 = new System.Windows.Forms.Label();
             this.label40 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
+            this.cbAutoSubmitGrammarPassage = new System.Windows.Forms.CheckBox();
             this.btnPurgeAiCache = new System.Windows.Forms.Button();
             this.btnMigrateRtdbPath = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
@@ -1823,6 +1824,16 @@ namespace playMP3
             this.label11.TabIndex = 11;
             this.label11.Text = "Id";
             // 
+            // cbAutoSubmitGrammarPassage
+            // 
+            this.cbAutoSubmitGrammarPassage.AutoSize = true;
+            this.cbAutoSubmitGrammarPassage.Location = new System.Drawing.Point(1396, 1003);
+            this.cbAutoSubmitGrammarPassage.Name = "cbAutoSubmitGrammarPassage";
+            this.cbAutoSubmitGrammarPassage.Size = new System.Drawing.Size(250, 17);
+            this.cbAutoSubmitGrammarPassage.TabIndex = 50;
+            this.cbAutoSubmitGrammarPassage.Text = "Auto Submit (theo checkbox Export/FCM)";
+            this.cbAutoSubmitGrammarPassage.UseVisualStyleBackColor = true;
+            // 
             // btnPurgeAiCache
             // 
             this.btnPurgeAiCache.Location = new System.Drawing.Point(758, 1028);
@@ -2709,6 +2720,7 @@ namespace playMP3
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.btnPurgeAiCache);
             this.Controls.Add(this.btnMigrateRtdbPath);
+            this.Controls.Add(this.cbAutoSubmitGrammarPassage);
             this.Controls.Add(this.cboGrammarFillMode);
             this.Controls.Add(this.btnGrammarForceStop);
             this.Controls.Add(this.btnGetGrammarPassage);
@@ -2949,6 +2961,7 @@ namespace playMP3
         private System.Windows.Forms.Button btnGetGrammarPassage;
         private System.Windows.Forms.Button btnGrammarForceStop;
         private System.Windows.Forms.ComboBox cboGrammarFillMode;
+        private System.Windows.Forms.CheckBox cbAutoSubmitGrammarPassage;
         private System.Windows.Forms.StatusStrip statusStripGrammar;
         private System.Windows.Forms.ToolStripProgressBar toolStripProgressGrammar;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelGrammar;

@@ -1033,15 +1033,15 @@ namespace playMP3
 
                 if (!string.IsNullOrEmpty(txtHomeNumber.Text))
                 {
-                    if (cbType.Text == "BBC")
-                    {
+                    //if (cbType.Text == "BBC")
+                    //{
                         await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
                         await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-                    }
-                    if (cbType.Text == "VOA")
-                    {
-                        await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                    }
+                    //}
+                    //if (cbType.Text == "VOA")
+                    //{
+                    //    await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                    //}
                 }
             }
 
@@ -1820,6 +1820,8 @@ namespace playMP3
             btnGetGrammarPassage.Enabled = !busy;
             btnGrammarForceStop.Enabled = busy;
             cboGrammarFillMode.Enabled = !busy;
+            if (cbAutoSubmitGrammarPassage != null)
+                cbAutoSubmitGrammarPassage.Enabled = !busy;
             if (busy)
             {
                 toolStripProgressGrammar.Visible = true;
@@ -2807,13 +2809,94 @@ namespace playMP3
                 titleSuffix: " — Grammar Passage đang chạy…",
                 progressButton: btnGetGrammarPassage).ConfigureAwait(true);
 
-            if (result.CompletedFully)
+            if (!result.CompletedFully)
+                return;
+
+            var fillMessage = errorRowsMode
+                ? "Đã gọi lại " + targets.Count + " ô lỗi."
+                : "Đã phân tích grammar passage tiếng Anh (1 request/dòng đã chọn) rồi dịch sang các tab.";
+
+            if (cbAutoSubmitGrammarPassage != null && cbAutoSubmitGrammarPassage.Checked)
+            {
+                var submitOk = await TryAutoSubmitToFirebaseAsync("Grammar Passage").ConfigureAwait(true);
+                MessageBox.Show(this,
+                    fillMessage + (submitOk
+                        ? "\n\nĐã tự động Submit to Firebase theo các checkbox đang tick (Export Detail/Translation/Grammar/Questions/Vocabulary + push FCM nếu bật)."
+                        : "\n\nTự động Submit to Firebase thất bại hoặc bị bỏ qua."),
+                    "Grammar Passage",
+                    MessageBoxButtons.OK,
+                    submitOk ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show(this,
+                fillMessage
+                    + " Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
+                "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        /// <summary>
+        /// Chạy đúng luồng Submit to Firebase — tôn trọng các checkbox Export* và Gửi push FCM đang checked.
+        /// </summary>
+        private async Task<bool> TryAutoSubmitToFirebaseAsync(string dialogTitle)
+        {
+            var checkedParts = new List<string>();
+            if (cbExportEpisodeDetail != null && cbExportEpisodeDetail.Checked)
+                checkedParts.Add("Export Detail");
+            if (cbExportTranslation != null && cbExportTranslation.Checked)
+                checkedParts.Add("Export Translation");
+            if (cbExportGrammar != null && cbExportGrammar.Checked)
+                checkedParts.Add("Export Grammar");
+            if (cbExportQuestions != null && cbExportQuestions.Checked)
+                checkedParts.Add("Export Questions");
+            if (cbExportVocabulary != null && cbExportVocabulary.Checked)
+                checkedParts.Add("Export Vocabulary");
+            if (cbSendEpisodePush != null && cbSendEpisodePush.Checked)
+                checkedParts.Add("Push FCM");
+
+            if (checkedParts.Count == 0)
             {
                 MessageBox.Show(this,
-                    errorRowsMode
-                        ? "Đã gọi lại " + targets.Count + " ô lỗi."
-                        : "Đã phân tích grammar passage tiếng Anh (1 request/dòng đã chọn) rồi dịch sang các tab. Export Grammar sẽ ghi dual payload vào ai_cache/grammar_by_episode (app cũ đọc sentence fields; app mới đọc overall/sentenceAnalyses).",
-                    "Grammar Passage", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    "Auto submit: chưa tick checkbox Export/Push nào — bỏ qua Submit.",
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (cbSendEpisodePush != null && cbSendEpisodePush.Checked
+                && (cbExportEpisodeDetail == null || !cbExportEpisodeDetail.Checked))
+            {
+                MessageBox.Show(this,
+                    "Push FCM chỉ chạy khi Export Detail cũng được tick (giống nút Submit).",
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            try
+            {
+                if (toolStripStatusLabelGrammar != null)
+                    toolStripStatusLabelGrammar.Text = "Đang auto Submit to Firebase (" + string.Join(", ", checkedParts) + ")…";
+                UseWaitCursor = true;
+                var ok = await OnSubmitAsync().ConfigureAwait(true);
+                if (toolStripStatusLabelGrammar != null)
+                {
+                    toolStripStatusLabelGrammar.Text = ok
+                        ? "Đã auto Submit to Firebase (" + string.Join(", ", checkedParts) + ")."
+                        : "Auto Submit to Firebase bị bỏ qua.";
+                }
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                if (toolStripStatusLabelGrammar != null)
+                    toolStripStatusLabelGrammar.Text = "Auto Submit to Firebase lỗi.";
+                MessageBox.Show(this,
+                    "Auto Submit to Firebase lỗi: " + ex.Message,
+                    dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            finally
+            {
+                UseWaitCursor = false;
+                Cursor = Cursors.Default;
             }
         }
 
