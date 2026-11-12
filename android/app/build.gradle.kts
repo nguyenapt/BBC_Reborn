@@ -39,7 +39,7 @@ if (useNextGenSdk) {
 }
 
 android {
-    namespace = "com.learningenglish.studyingbbc.bbc_reborn"
+    namespace = "com.learningenglish.americaenglish"
     // Next-Gen quick-start: compileSdk >= 35; plugin example uses 36.
     compileSdk = maxOf(flutter.compileSdkVersion, 35)
     ndkVersion = flutter.ndkVersion
@@ -56,7 +56,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.learningenglish.studyingbbc.bbc_reborn"
+        applicationId = "com.learningenglish.americaenglish"
         // Next-Gen requires minSdk >= 24.
         minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
@@ -66,10 +66,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "bbc-release"
-            keyPassword = "Nguyen142093211"
-            storeFile = file("keystore/bbc-release-key.keystore")
-            storePassword = "Nguyen142093211"
+            keyAlias = "linguaus"
+            keyPassword = "142093211"
+            storeFile = file("keystore/LinguaUS.jks")
+            storePassword = "142093211"
         }
     }
 

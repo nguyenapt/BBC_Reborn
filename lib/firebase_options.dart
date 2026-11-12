@@ -49,24 +49,26 @@ class DefaultFirebaseOptions {
     }
   }
 
+  /// From [android/app/google-services.json] (project `lingua-us`).
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD7EqjWjJJ41zmkLX98SdMZJ941fzla1cM',
-    appId: '1:128498222438:android:4b0456d020df0b3f0534a7',
-    messagingSenderId: '128498222438',
-    projectId: 'bbc-listening-english',
-    databaseURL: 'https://bbc-listening-english.firebaseio.com',
-    storageBucket: 'bbc-listening-english.appspot.com',
+    apiKey: 'AIzaSyAUFiWS5JD7R5Dg0C9-UXjtx8kne7idrWY',
+    appId: '1:366421110277:android:4a17a71a66c825dd02366c',
+    messagingSenderId: '366421110277',
+    projectId: 'lingua-us',
+    databaseURL: 'https://lingua-us-default-rtdb.firebaseio.com',
+    storageBucket: 'lingua-us.firebasestorage.app',
   );
 
+  /// TODO(lingua-us): Replace apiKey/appId after adding
+  /// ios/Runner/GoogleService-Info.plist for bundle
+  /// com.learningenglish.americaenglish.
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDqFQ2I7I1hJ8vEbe5xinI-PoSayWEpG2k',
-    appId: '1:128498222438:ios:6a28f807827da6ea0534a7',
-    messagingSenderId: '128498222438',
-    projectId: 'bbc-listening-english',
-    databaseURL: 'https://bbc-listening-english.firebaseio.com',
-    storageBucket: 'bbc-listening-english.appspot.com',
-    androidClientId: '128498222438-ajigulkv0l926j8fqh7gcb7g4psqog6o.apps.googleusercontent.com',
-    iosClientId: '128498222438-hm17267tb543u524v3so193q1hqujtse.apps.googleusercontent.com',
-    iosBundleId: 'com.learningenglish.studyingbbc.bbcReborn',
+    apiKey: 'AIzaSyAUFiWS5JD7R5Dg0C9-UXjtx8kne7idrWY',
+    appId: '1:366421110277:android:4a17a71a66c825dd02366c',
+    messagingSenderId: '366421110277',
+    projectId: 'lingua-us',
+    databaseURL: 'https://lingua-us-default-rtdb.firebaseio.com',
+    storageBucket: 'lingua-us.firebasestorage.app',
+    iosBundleId: 'com.learningenglish.americaenglish',
   );
 }

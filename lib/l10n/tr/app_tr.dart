@@ -1,10 +1,10 @@
 class AppTr {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Learning English 6 minutes',
-    'welcomeMessage': 'Learning English 6 minutes uygulamasına hoş geldiniz!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'LinguaUS uygulamasına hoş geldiniz!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Öğrenmeye devam et',
     'reviewToday': 'Bugün tekrar et',
     'newEpisode': 'Yeni bölüm',
@@ -25,7 +25,7 @@ class AppTr {
     'checklistPractice': 'Alıştırma',
     'dueVocabCount': 'Tekrar edilecek {count} kelime',
     'dueGrammarCount': 'Tekrar edilecek {count} dilbilgisi',
-    'homeHeroTitle': 'Learning English 6 minutes uygulamasına hoş geldiniz',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'Kısa ve güncel derslerle her gün dinleme çalışın.',
     'startPracticingListening': 'Dinleme çalışmasına başla',
     'chooseListeningCategory': 'Bir dinleme kategorisi seçin',

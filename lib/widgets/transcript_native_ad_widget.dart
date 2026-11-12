@@ -43,7 +43,8 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
   bool _isAdLoading = false;
 
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _productionAdUnitId = 'ca-app-pub-2189112136936277/5841628891';
+  static const String _productionAdUnitId =
+      'ca-app-pub-3414812429495926/8047340859';
 
   final LanguageManager _languageManager = LanguageManager();
 

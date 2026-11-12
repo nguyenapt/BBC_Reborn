@@ -1,10 +1,10 @@
 class AppJa {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC英語学習',
-    'welcomeMessage': '「6分で英語を学ぶ」へようこそ！',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'LinguaUS へようこそ！',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
@@ -25,7 +25,7 @@ class AppJa {
     'checklistPractice': 'Practice',
     'dueVocabCount': '{count} words to review',
     'dueGrammarCount': '{count} grammar to review',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

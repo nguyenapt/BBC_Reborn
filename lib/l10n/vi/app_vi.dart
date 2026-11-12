@@ -1,10 +1,10 @@
 class AppVi {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Learning English 6 minutes',
-    'welcomeMessage': 'Chào mừng đến với Learning English 6 minutes!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'Chào mừng đến với LinguaUS!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Tiếp tục học',
     'reviewToday': 'Ôn hôm nay',
     'newEpisode': 'Episode mới',
@@ -25,7 +25,7 @@ class AppVi {
     'checklistPractice': 'Luyện tập',
     'dueVocabCount': '{count} từ cần ôn',
     'dueGrammarCount': '{count} ngữ pháp cần ôn',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'Luyện nghe hằng ngày với bài học ngắn, hiện đại.',
     'startPracticingListening': 'Bắt đầu luyện nghe',
     'chooseListeningCategory': 'Chọn danh mục luyện nghe',

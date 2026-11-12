@@ -1,10 +1,10 @@
 class AppKo {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC 영어 학습',
-    'welcomeMessage': '「6분으로 영어를 배우자」에 오신 것을 환영합니다!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'LinguaUS에 오신 것을 환영합니다!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
@@ -25,7 +25,7 @@ class AppKo {
     'checklistPractice': 'Practice',
     'dueVocabCount': '{count} words to review',
     'dueGrammarCount': '{count} grammar to review',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',

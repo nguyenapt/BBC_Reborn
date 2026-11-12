@@ -1,10 +1,10 @@
 class AppIt {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Learning English 6 minutes',
-    'welcomeMessage': 'Benvenuto in Learning English 6 minutes!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'Benvenuto in LinguaUS!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Continua a imparare',
     'reviewToday': 'Ripassa oggi',
     'newEpisode': 'Nuovo episodio',
@@ -25,7 +25,7 @@ class AppIt {
     'checklistPractice': 'Pratica',
     'dueVocabCount': '{count} parole da ripassare',
     'dueGrammarCount': '{count} punti di grammatica da ripassare',
-    'homeHeroTitle': 'Benvenuto in Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': "Esercitati nell'ascolto ogni giorno con lezioni brevi e moderne.",
     'startPracticingListening': "Inizia a praticare l'ascolto",
     'chooseListeningCategory': 'Scegli una categoria di ascolto',

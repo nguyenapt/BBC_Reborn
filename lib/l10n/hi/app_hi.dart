@@ -1,10 +1,10 @@
 class AppHi {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'Learning English 6 minutes',
-    'welcomeMessage': 'Learning English 6 minutes में आपका स्वागत है!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': 'LinguaUS में आपका स्वागत है!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'सीखना जारी रखें',
     'reviewToday': 'आज दोहराएँ',
     'newEpisode': 'नया एपिसोड',
@@ -25,7 +25,7 @@ class AppHi {
     'checklistPractice': 'अभ्यास',
     'dueVocabCount': '{count} शब्द दोहराने हैं',
     'dueGrammarCount': '{count} व्याकरण दोहराने हैं',
-    'homeHeroTitle': 'Learning English 6 minutes में आपका स्वागत है',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'छोटे, आधुनिक पाठों के साथ रोज़ सुनने का अभ्यास करें।',
     'startPracticingListening': 'सुनने का अभ्यास शुरू करें',
     'chooseListeningCategory': 'सुनने की एक श्रेणी चुनें',

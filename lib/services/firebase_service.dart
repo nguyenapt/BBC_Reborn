@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
+import '../config/firebase_rtdb_config.dart';
 import '../config/rtdb_list_config.dart';
 import '../models/category.dart';
 import '../models/episode.dart';
@@ -10,7 +11,7 @@ import 'local_database_service.dart';
 import 'web_api_daily_cache.dart';
 
 class FirebaseService {
-  static const String _baseUrl = 'https://bbc-listening-english.firebaseio.com';
+  static const String _baseUrl = kFirebaseRtdbBaseUrl;
 
   final LocalDatabaseService _apiCacheDb = LocalDatabaseService();
 

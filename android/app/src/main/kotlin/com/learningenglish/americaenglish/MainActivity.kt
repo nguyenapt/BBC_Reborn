@@ -1,4 +1,4 @@
-package com.learningenglish.studyingbbc.bbc_reborn
+package com.learningenglish.americaenglish
 
 import android.Manifest
 import android.content.Intent

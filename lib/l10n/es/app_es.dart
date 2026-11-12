@@ -1,10 +1,10 @@
 class AppEs {
   static const Map<String, String> texts = {
     // App Info
-    'appTitle': 'BBC Aprende Inglés',
-    'welcomeMessage': '¡Bienvenido a aprender inglés - 6 minutos!',
-    'homeTitleMain': 'Learning English',
-    'homeTitleSub': '6 minutes',
+    'appTitle': 'LinguaUS - American English',
+    'welcomeMessage': '¡Bienvenido a LinguaUS!',
+    'homeTitleMain': 'LinguaUS',
+    'homeTitleSub': 'American English',
     'continueLearning': 'Continue learning',
     'reviewToday': 'Review today',
     'newEpisode': 'New episode',
@@ -25,7 +25,7 @@ class AppEs {
     'checklistPractice': 'Practice',
     'dueVocabCount': '{count} words to review',
     'dueGrammarCount': '{count} grammar to review',
-    'homeHeroTitle': 'Welcome to Learning English 6 minutes',
+    'homeHeroTitle': 'Welcome to LinguaUS',
     'homeHeroSubtitle': 'Practice listening daily with short, modern lessons.',
     'startPracticingListening': 'Start practicing listening',
     'chooseListeningCategory': 'Choose a listening category',
