@@ -503,10 +503,11 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ]
                                 : null,
                           ),
-                          // Padding trong card — avatar không sát border section.
-                          padding: EdgeInsets.symmetric(
-                            vertical: isActive ? 8 : 5,
-                            horizontal: 8,
+                          padding: EdgeInsets.fromLTRB(
+                            4,
+                            isActive ? 4 : 3,
+                            8,
+                            isActive ? 8 : 5,
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,20 +526,20 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   );
                                 },
                                 child: CircleAvatar(
-                                  radius: 17,
+                                  radius: 13,
                                   backgroundColor:
                                       speakerColor.withOpacity(0.22),
                                   child: Text(
                                     _speakerInitial(line.speaker),
                                     style: TextStyle(
-                                      fontSize: 15,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: speakerColor,
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 8),
                               // Speaker + text + nút cùng cột → thẳng hàng trái.
                               Expanded(
                                 child: Column(
