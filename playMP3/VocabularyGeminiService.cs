@@ -250,6 +250,8 @@ Important: Return ONLY the JSON object, nothing else.";
                     var respText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var code = (int)resp.StatusCode;
 
+                    GrammarGeminiService.ThrowIfModelNotFound(code, respText);
+
                     if (code == 429)
                     {
                         lastDetail = GrammarGeminiService.FormatGeminiHttpError(429, respText);
@@ -313,6 +315,8 @@ Important: Return ONLY the JSON object, nothing else.";
                     await Task.Delay(waitMs).ConfigureAwait(false);
                     continue;
                 }
+
+                GrammarGeminiService.ThrowIfModelNotFound(code, respText);
 
                 if (!resp.IsSuccessStatusCode)
                 {

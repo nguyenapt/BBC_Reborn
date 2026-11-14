@@ -11,6 +11,9 @@ import '../l10n/es/app_es.dart';
 import '../l10n/pt/app_pt.dart';
 import '../l10n/fr/app_fr.dart';
 import '../l10n/de/app_de.dart';
+import '../l10n/tr/app_tr.dart';
+import '../l10n/it/app_it.dart';
+import '../l10n/hi/app_hi.dart';
 
 class LanguageManager extends ChangeNotifier {
   static final LanguageManager _instance = LanguageManager._internal();
@@ -34,6 +37,9 @@ class LanguageManager extends ChangeNotifier {
     Locale('pt', ''), // Portuguese
     Locale('fr', ''), // French
     Locale('de', ''), // German
+    Locale('tr', ''), // Turkish
+    Locale('it', ''), // Italian
+    Locale('hi', ''), // Hindi
   ];
 
   // Tên ngôn ngữ hiển thị
@@ -49,6 +55,9 @@ class LanguageManager extends ChangeNotifier {
     'pt': 'Português',
     'fr': 'Français',
     'de': 'Deutsch',
+    'tr': 'Türkçe',
+    'it': 'Italiano',
+    'hi': 'हिन्दी',
   };
 
   /// English names for consistent A–Z ordering in language pickers.
@@ -59,10 +68,13 @@ class LanguageManager extends ChangeNotifier {
     'en': 'English',
     'es': 'Spanish',
     'fr': 'French',
+    'hi': 'Hindi',
+    'it': 'Italian',
     'ja': 'Japanese',
     'ko': 'Korean',
     'pt': 'Portuguese',
     'ru': 'Russian',
+    'tr': 'Turkish',
     'vi': 'Vietnamese',
   };
 
@@ -190,6 +202,12 @@ class LanguageManager extends ChangeNotifier {
         return AppFr.texts[key] ?? AppEn.texts[key] ?? key;
       case 'de':
         return AppDe.texts[key] ?? AppEn.texts[key] ?? key;
+      case 'tr':
+        return AppTr.texts[key] ?? AppEn.texts[key] ?? key;
+      case 'it':
+        return AppIt.texts[key] ?? AppEn.texts[key] ?? key;
+      case 'hi':
+        return AppHi.texts[key] ?? AppEn.texts[key] ?? key;
       default:
         return AppEn.texts[key] ?? key;
     }

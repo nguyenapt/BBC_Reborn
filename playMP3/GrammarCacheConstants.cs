@@ -67,7 +67,23 @@ namespace playMP3
             "vocabulary_by_episode",
         };
 
-        /// <summary>Gemini REST model id (playMP3 tool); intentionally flash-lite for speed/cost vs Flutter app.</summary>
-        public const string GeminiModelId = "gemini-2.5-flash-lite";
+        /// <summary>Default Gemini REST model id (playMP3 tool); flash-lite for speed/cost vs Flutter app.</summary>
+        public const string DefaultGeminiModelId = "gemini-3.5-flash-lite";
+
+        private static string _geminiModelId = DefaultGeminiModelId;
+
+        /// <summary>
+        /// Gemini REST model id (playMP3 tool). Override via service.config &lt;GeminiModelId&gt;.
+        /// Intentionally flash-lite for speed/cost vs Flutter app.
+        /// </summary>
+        public static string GeminiModelId
+        {
+            get { return string.IsNullOrWhiteSpace(_geminiModelId) ? DefaultGeminiModelId : _geminiModelId; }
+            set
+            {
+                var t = (value ?? string.Empty).Trim();
+                _geminiModelId = string.IsNullOrEmpty(t) ? DefaultGeminiModelId : t;
+            }
+        }
     }
 }

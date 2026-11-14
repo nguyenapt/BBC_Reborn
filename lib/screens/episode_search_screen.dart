@@ -5,6 +5,7 @@ import '../services/language_manager.dart';
 import '../services/local_database_service.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
+import '../utils/user_facing_error.dart';
 
 class EpisodeSearchScreen extends StatefulWidget {
   const EpisodeSearchScreen({super.key});
@@ -64,7 +65,7 @@ class _EpisodeSearchScreenState extends State<EpisodeSearchScreen> {
       if (!mounted) return;
       setState(() {
         _isSearching = false;
-        _error = e.toString();
+        _error = UserFacingError.message(e);
       });
     }
   }

@@ -104,6 +104,7 @@ class AppEn {
     'downloaded': 'Downloaded',
     'episodeInfo': 'Episode Info',
     'transcript': 'Transcript',
+    'subtitleMode': 'Subtitle',
     'transcriptLoop': 'Loop',
     'transcriptLooping': 'Looping',
     'reference': 'Reference',
@@ -291,7 +292,7 @@ class AppEn {
     'privacyOptionsStatusUpdating': 'Updating',
     'managePrivacyChoices': 'Manage privacy choices',
     'privacyOptionsUpdateSuccess': 'Ad privacy choices updated.',
-    'privacyOptionsOpenError': 'Could not open privacy options: {error}',
+    'privacyOptionsOpenError': 'Could not open privacy options. Please try again.',
     'privacyOptionsNotRequiredInfo':
         'Privacy options are currently not required in your region.',
     
@@ -313,8 +314,8 @@ class AppEn {
     'removedFromVocabularies': 'Remove from vocabularies',
     'loadingFavouritesError': 'Loading favourites...',
     'loadingVocabulariesError': 'Loading vocabularies...',
-    'loadingFavouritesErrorDesc': 'An error occurred: {error}',
-    'loadingVocabulariesErrorDesc': 'An error occurred: {error}',
+    'loadingFavouritesErrorDesc': 'Could not load favourites. Please try again.',
+    'loadingVocabulariesErrorDesc': 'Could not load vocabularies. Please try again.',
     'doubleBackExit': 'Press the back button again to exit',
 
     // Speaking practice

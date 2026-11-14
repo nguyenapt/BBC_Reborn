@@ -22,6 +22,7 @@ import '../widgets/streak_widget.dart';
 import '../widgets/daily_goal_widget.dart';
 import '../widgets/other_programs_category_widget.dart';
 import '../utils/category_names.dart';
+import '../utils/user_facing_error.dart';
 import 'categories_screen.dart';
 import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
@@ -138,7 +139,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print('Error loading data: $e');
       setState(() {
-        _error = e.toString();
+        _error = UserFacingError.message(e);
         _isLoading = false;
       });
     }

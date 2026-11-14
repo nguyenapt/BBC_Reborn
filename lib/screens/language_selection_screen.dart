@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/language_manager.dart';
 import '../services/user_profile_service.dart';
+import '../utils/user_facing_error.dart';
 import '../main.dart';
 import 'ads_support_notice_screen.dart';
 import 'onboarding_profile_screen.dart';
@@ -85,6 +86,24 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       nativeName: 'Tiếng Việt',
       flag: '🇻🇳',
     ),
+    LanguageOption(
+      locale: Locale('tr'),
+      name: 'Turkish',
+      nativeName: 'Türkçe',
+      flag: '🇹🇷',
+    ),
+    LanguageOption(
+      locale: Locale('it'),
+      name: 'Italian',
+      nativeName: 'Italiano',
+      flag: '🇮🇹',
+    ),
+    LanguageOption(
+      locale: Locale('hi'),
+      name: 'Hindi',
+      nativeName: 'हिन्दी',
+      flag: '🇮🇳',
+    ),
   ];
 
   late final List<LanguageOption> _languages;
@@ -167,7 +186,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(UserFacingError.message(e)),
             backgroundColor: Colors.red,
           ),
         );

@@ -27,6 +27,7 @@ import '../widgets/transcript_native_ad_widget.dart';
 import 'vocabulary_practice_screen.dart';
 import '../theme/vocabulary_theme.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
+import '../utils/user_facing_error.dart';
 
 class MyLearningScreen extends StatefulWidget {
   final bool scrollToDailyGoal;
@@ -158,7 +159,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     try {
       _favouriteEpisodes = await _storageService.getFavouriteEpisodes();
     } catch (e) {
-      _favouritesError = e.toString();
+      _favouritesError = UserFacingError.message(e);
     } finally {
       if (mounted) {
         setState(() {
@@ -177,7 +178,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     try {
       _savedVocabularies = _vocabularyService.savedVocabularies;
     } catch (e) {
-      _vocabulariesError = e.toString();
+      _vocabulariesError = UserFacingError.message(e);
     } finally {
       if (mounted) {
         setState(() {
@@ -196,7 +197,7 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     try {
       _savedGrammarItems = _savedGrammarService.items;
     } catch (e) {
-      _savedGrammarError = e.toString();
+      _savedGrammarError = UserFacingError.message(e);
     } finally {
       if (mounted) {
         setState(() {

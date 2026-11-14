@@ -43,6 +43,12 @@ class AIGrammarService {
         return 'French';
       case 'de':
         return 'German';
+      case 'tr':
+        return 'Turkish';
+      case 'it':
+        return 'Italian';
+      case 'hi':
+        return 'Hindi';
       default:
         return 'English';
     }

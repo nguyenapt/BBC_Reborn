@@ -104,6 +104,7 @@ class AppFr {
     'downloaded': 'Téléchargé',
     'episodeInfo': 'Infos de l\'épisode',
     'transcript': 'Transcription',
+    'subtitleMode': 'Sous-titres',
     'transcriptLoop': 'Boucle',
     'transcriptLooping': 'En boucle',
     'reference': 'Référence',
@@ -292,7 +293,7 @@ class AppFr {
     'privacyOptionsStatusUpdating': 'Mise à jour',
     'managePrivacyChoices': 'Gérer les choix de confidentialité',
     'privacyOptionsUpdateSuccess': 'Choix de confidentialité des publicités mis à jour.',
-    'privacyOptionsOpenError': 'Impossible d\'ouvrir les options de confidentialité : {error}',
+    'privacyOptionsOpenError': 'Impossible d\'ouvrir les options de confidentialité. Veuillez réessayer.',
     'privacyOptionsNotRequiredInfo':
         'Les options de confidentialité ne sont pas obligatoires dans votre région pour le moment.',
 
@@ -314,8 +315,8 @@ class AppFr {
     'removedFromVocabularies': 'Retirer du vocabulaire',
     'loadingFavouritesError': 'Chargement des favoris...',
     'loadingVocabulariesError': 'Chargement du vocabulaire...',
-    'loadingFavouritesErrorDesc': 'Une erreur s\'est produite : {error}',
-    'loadingVocabulariesErrorDesc': 'Une erreur s\'est produite : {error}',
+    'loadingFavouritesErrorDesc': 'Impossible de charger les favoris. Veuillez réessayer.',
+    'loadingVocabulariesErrorDesc': 'Impossible de charger le vocabulaire. Veuillez réessayer.',
     'doubleBackExit': 'Appuyez à nouveau sur retour pour quitter',
 
     // Speaking practice

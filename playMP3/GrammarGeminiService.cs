@@ -92,6 +92,8 @@ namespace playMP3
                     var respText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var code = (int)resp.StatusCode;
 
+                    ThrowIfModelNotFound(code, respText);
+
                     if (code == 429)
                     {
                         lastDetail = FormatGeminiHttpError(429, respText);
@@ -211,6 +213,8 @@ namespace playMP3
                     continue;
                 }
 
+                ThrowIfModelNotFound(code, respText);
+
                 if (!resp.IsSuccessStatusCode)
                 {
                     non429Failures++;
@@ -276,6 +280,13 @@ namespace playMP3
             }
 
             return 65_000;
+        }
+
+        /// <summary>404 means the REST model id is unavailable — do not retry or rotate API keys.</summary>
+        internal static void ThrowIfModelNotFound(int statusCode, string respText)
+        {
+            if (statusCode == 404)
+                throw new InvalidOperationException(FormatGeminiHttpError(404, respText));
         }
 
         internal static string FormatGeminiHttpError(int statusCode, string respText)

@@ -104,6 +104,7 @@ class AppDe {
     'downloaded': 'Heruntergeladen',
     'episodeInfo': 'Folgeninfo',
     'transcript': 'Transkript',
+    'subtitleMode': 'Untertitel',
     'transcriptLoop': 'Schleife',
     'transcriptLooping': 'Wiederholt',
     'reference': 'Referenz',
@@ -292,7 +293,7 @@ class AppDe {
     'privacyOptionsStatusUpdating': 'Wird aktualisiert',
     'managePrivacyChoices': 'Datenschutzeinstellungen verwalten',
     'privacyOptionsUpdateSuccess': 'Datenschutzeinstellungen für Werbung aktualisiert.',
-    'privacyOptionsOpenError': 'Datenschutzoptionen konnten nicht geöffnet werden: {error}',
+    'privacyOptionsOpenError': 'Datenschutzoptionen konnten nicht geöffnet werden. Bitte erneut versuchen.',
     'privacyOptionsNotRequiredInfo':
         'Datenschutzoptionen sind in Ihrer Region derzeit nicht erforderlich.',
 
@@ -314,8 +315,8 @@ class AppDe {
     'removedFromVocabularies': 'Aus Vokabelliste entfernen',
     'loadingFavouritesError': 'Favoriten werden geladen...',
     'loadingVocabulariesError': 'Vokabeln werden geladen...',
-    'loadingFavouritesErrorDesc': 'Ein Fehler ist aufgetreten: {error}',
-    'loadingVocabulariesErrorDesc': 'Ein Fehler ist aufgetreten: {error}',
+    'loadingFavouritesErrorDesc': 'Favoriten konnten nicht geladen werden. Bitte erneut versuchen.',
+    'loadingVocabulariesErrorDesc': 'Vokabeln konnten nicht geladen werden. Bitte erneut versuchen.',
     'doubleBackExit': 'Zum Beenden erneut auf Zurück tippen',
 
     // Speaking practice
