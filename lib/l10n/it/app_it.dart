@@ -104,6 +104,7 @@ class AppIt {
     'downloaded': 'Scaricato',
     'episodeInfo': 'Info episodio',
     'transcript': 'Trascrizione',
+    'subtitleMode': 'Sottotitoli',
     'transcriptLoop': 'Ciclo',
     'transcriptLooping': 'In ciclo',
     'reference': 'Riferimento',

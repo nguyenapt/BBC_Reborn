@@ -21,6 +21,7 @@ import '../services/admob_service.dart';
 import '../widgets/audio_player_widget.dart';
 import '../widgets/episode_info_slide.dart';
 import '../widgets/transcript_slide.dart';
+import '../widgets/subtitle_cinema_panel.dart';
 import '../widgets/vocabulary_slide.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/question_slide.dart';
@@ -43,8 +44,11 @@ class EpisodeDetailScreen extends StatefulWidget {
   State<EpisodeDetailScreen> createState() => _EpisodeDetailScreenState();
 }
 
+enum _TranscriptDisplayMode { transcript, subtitle }
+
 class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   static const String _prefAutoPlayNoticeShown = 'auto_play_enabled_notice_shown';
+  static const String _prefTranscriptDisplayMode = 'transcript_display_mode';
 
   static const double _playerBottomOffset = 10;
   static const double _contentPlayerGap = 16;
@@ -64,6 +68,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   List<TranscriptLine> _parsedTranscriptLines = [];
   late final VoidCallback _audioServiceListener;
   bool _exitFinalized = false;
+  _TranscriptDisplayMode _transcriptDisplayMode =
+      _TranscriptDisplayMode.transcript;
 
   bool _mustFetchFullEpisode(Episode e) {
     if (!RtdbListConfig.useSlimListPaths) return false;
@@ -107,6 +113,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     // Load episode vào audio service với category episodes
     _audioService.loadEpisodeWithCategory(_episode, widget.categoryEpisodes);
     unawaited(_learningProgress.touchEpisode(_episode));
+    unawaited(_loadTranscriptDisplayModePref());
     _scheduleDebugDetailFetchNotice();
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(widget.episode);
@@ -269,6 +276,33 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       }
     }
     return null;
+  }
+
+  bool get _hasTimedTranscript => _parsedTranscriptLines.any(
+        (line) => !(line.startTime == 0 && line.endTime == 0),
+      );
+
+  bool get _isSubtitleMode =>
+      _transcriptDisplayMode == _TranscriptDisplayMode.subtitle &&
+      _hasTimedTranscript;
+
+  Future<void> _loadTranscriptDisplayModePref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_prefTranscriptDisplayMode);
+    if (!mounted) return;
+    if (raw == 'subtitle') {
+      setState(() => _transcriptDisplayMode = _TranscriptDisplayMode.subtitle);
+    }
+  }
+
+  Future<void> _setTranscriptDisplayMode(_TranscriptDisplayMode mode) async {
+    if (_transcriptDisplayMode == mode) return;
+    setState(() => _transcriptDisplayMode = mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _prefTranscriptDisplayMode,
+      mode == _TranscriptDisplayMode.subtitle ? 'subtitle' : 'transcript',
+    );
   }
 
   void _focusCurrentTranscriptLine() {
@@ -657,6 +691,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
             ),
           ),
           _buildDetailTabs(context, categoryColor),
+          if (_currentPageIndex == 0 && _hasTimedTranscript)
+            _buildTranscriptSubtitleToggle(context, categoryColor),
           Expanded(
             child: Builder(
               builder: (context) {
@@ -678,6 +714,27 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     ListenableBuilder(
                       listenable: _audioService,
                       builder: (context, child) {
+                        if (_isSubtitleMode) {
+                          return SubtitleCinemaPanel(
+                            episode: _episode,
+                            lines: _parsedTranscriptLines,
+                            currentPositionMs:
+                                _audioService.currentPositionMs,
+                            scrollBottomInset: scrollBottomInset,
+                            onToggleLoopLine: (startMs, endMs) {
+                              return _audioService.toggleLineLoop(
+                                startMs: startMs,
+                                endMs: endMs,
+                              );
+                            },
+                            isLineLooping: (startMs, endMs) {
+                              return _audioService.isLineLoopActive(
+                                startMs: startMs,
+                                endMs: endMs,
+                              );
+                            },
+                          );
+                        }
                         return TranscriptSlide(
                           episode: _episode,
                           learningProgress: _learningProgress,
@@ -782,7 +839,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               builder: (context, child) {
                 _scheduleMeasurePlayerHeight();
                 final activeLine = _currentActiveTranscriptLine();
-                final shouldShowCurrentPanel = activeLine != null &&
+                final shouldShowCurrentPanel = !_isSubtitleMode &&
+                    activeLine != null &&
                     (_audioService.isPlaying ||
                         _audioService.isPaused ||
                         _audioService.currentPositionMs > 0);
@@ -812,6 +870,95 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
         ),
         );
       },
+    );
+  }
+
+  Widget _buildTranscriptSubtitleToggle(
+    BuildContext context,
+    Color categoryColor,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurface.withOpacity(0.55);
+    final isSubtitle = _isSubtitleMode;
+    final labels = (
+      transcript: _languageManager.getText('transcript'),
+      subtitle: _languageManager.getText('subtitleMode'),
+    );
+
+    Widget segment({
+      required String label,
+      required bool selected,
+      required VoidCallback onTap,
+    }) {
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: selected ? categoryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            alignment: Alignment.center,
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : muted,
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 2),
+      child: Align(
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 136),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withOpacity(0.55),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: scheme.outlineVariant.withOpacity(0.55),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Row(
+                children: [
+                  segment(
+                    label: labels.transcript,
+                    selected: !isSubtitle,
+                    onTap: () => unawaited(
+                      _setTranscriptDisplayMode(
+                        _TranscriptDisplayMode.transcript,
+                      ),
+                    ),
+                  ),
+                  segment(
+                    label: labels.subtitle,
+                    selected: isSubtitle,
+                    onTap: () => unawaited(
+                      _setTranscriptDisplayMode(
+                        _TranscriptDisplayMode.subtitle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

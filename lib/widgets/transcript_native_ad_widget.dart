@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
 import '../services/language_manager.dart';
-import 'learning_checklist_bar.dart';
 import 'native_ad_theme.dart';
 import 'passage_panel_decoration.dart';
 
@@ -58,6 +57,8 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
       // Không dùng TemplateType.small: layout SDK dùng ImageView cho ảnh chính → AdMob
       // Native Validator báo "MediaView not used". Medium template có MediaView.
       case TranscriptNativeAdSlot.episodeTranscript:
+        // Slightly smaller than before — centered, avoids checklist without left skew.
+        return (TemplateType.medium, 10, 220);
       case TranscriptNativeAdSlot.speakingListTile:
         return (TemplateType.medium, 10, 260);
       case TranscriptNativeAdSlot.grammarPassagePanel:
@@ -240,31 +241,37 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
     final scheme = Theme.of(context).colorScheme;
     final (_, radius, adHeight) = _slotMetrics();
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 14,
-        bottom: 14,
-        right: LearningChecklistBar.adRightClearance,
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.65),
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _attributionRowEpisode(scheme),
-              const SizedBox(height: 8),
-              _adSizedBox(adHeight),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final adW = (constraints.maxWidth * 0.82).clamp(0.0, double.infinity);
+          return Center(
+            child: SizedBox(
+              width: adW,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(radius),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.65),
+                    width: 1,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _attributionRowEpisode(scheme),
+                      const SizedBox(height: 8),
+                      _adSizedBox(adHeight),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

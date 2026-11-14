@@ -104,6 +104,7 @@ class AppDe {
     'downloaded': 'Heruntergeladen',
     'episodeInfo': 'Folgeninfo',
     'transcript': 'Transkript',
+    'subtitleMode': 'Untertitel',
     'transcriptLoop': 'Schleife',
     'transcriptLooping': 'Wiederholt',
     'reference': 'Referenz',
