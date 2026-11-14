@@ -1,23 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../config/ai_config.dart';
 import '../models/episode.dart';
 import '../models/grammar_explanation.dart';
 import '../models/transcript_line.dart';
-import '../services/admob_service.dart';
 import '../services/ai/ai_error_handler.dart';
-import '../services/ai/exceptions.dart';
 import '../services/ai_grammar_service.dart';
 import '../services/ai_translation_service.dart';
-import '../services/heart_service.dart';
 import '../services/language_manager.dart';
 import '../services/learning_analytics_service.dart';
 import '../services/review_reminder_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../utils/category_colors.dart';
-import '../utils/user_facing_error.dart';
-import 'episode_detail_tab_panel.dart';
 import 'grammar_explanation_widget.dart';
+import 'heart_economy_ui.dart';
 import 'native_ad_widget.dart';
 
 /// Cinema-style subtitle view: native ad + active EN cue + Repeat/Translate/Grammar.
@@ -392,29 +390,41 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
     String lineText,
     int lineIndex,
   ) async {
+    // Same flow as TranscriptSlide._translateLine.
     if (_lineTranslations.containsKey(lineText)) return;
     if (_lineTranslating[lineText] == true) return;
 
-    setState(() => _lineTranslating[lineText] = true);
+    setState(() {
+      _lineTranslating[lineText] = true;
+    });
+
     try {
+      final episodeId = widget.episode.id ?? '';
       final translated = await _translationService.translateTranscriptLine(
         lineText,
-        widget.episode.id ?? '',
+        episodeId,
         lineIndex,
       );
-      if (!mounted) return;
-      setState(() {
-        _lineTranslations[lineText] = translated;
-        _lineTranslating[lineText] = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _lineTranslations[lineText] = translated;
+          _lineTranslating[lineText] = false;
+        });
+        unawaited(HeartEconomyUi.maybeShowCreditsSnack(context, episodeId));
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _lineTranslating[lineText] = false);
-      _showErrorSnackBar(
-        context,
-        e,
-        onRetry: () => _translateLine(context, lineText, lineIndex),
-      );
+      debugPrint('Error translating line: $e');
+      if (mounted) {
+        setState(() {
+          _lineTranslating[lineText] = false;
+        });
+        _showErrorSnackBar(
+          context,
+          e,
+          onRetry: () => _translateLine(context, lineText, lineIndex),
+        );
+      }
     }
   }
 
@@ -693,67 +703,29 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
     }
   }
 
-  void _showErrorSnackBar(
+  /// Same as TranscriptSlide: Episode Pass / credits / hearts via HeartEconomyUi.
+  Future<void> _showErrorSnackBar(
     BuildContext context,
     dynamic error, {
     required VoidCallback onRetry,
-  }) {
-    final heartService = HeartService();
-    final admobService = AdMobService();
+  }) async {
+    final episodeId = widget.episode.id ?? '';
+    final handled = await HeartEconomyUi.handleError(
+      context,
+      error,
+      onRetry: onRetry,
+      episodeId: episodeId,
+    );
+    if (handled || !context.mounted) return;
 
-    if (error is NoHeartsException && heartService.canEarnMoreHearts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Watch Ads',
-            textColor: Theme.of(context).colorScheme.onInverseSurface,
-            onPressed: () {
-              if (admobService.isRewardedAdReady()) {
-                admobService.showRewardedAd(
-                  onRewarded: () {
-                    heartService.earnHeart();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('❤️ You earned 1 heart!'),
-                        backgroundColor: Color(0xFF7A5CFF),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    Future.delayed(const Duration(milliseconds: 500), onRetry);
-                  },
-                  onAdFailedToShow: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(UserFacingError.message(error)),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  },
-                );
-              } else {
-                admobService.createRewardedAd();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ad is loading, please try again in a moment'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AIErrorHandler.getErrorMessage(error)),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: onRetry,
         ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AIErrorHandler.getErrorMessage(error)),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: onRetry,
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 }
