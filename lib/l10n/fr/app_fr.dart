@@ -104,6 +104,7 @@ class AppFr {
     'downloaded': 'Téléchargé',
     'episodeInfo': 'Infos de l\'épisode',
     'transcript': 'Transcription',
+    'subtitleMode': 'Sous-titres',
     'transcriptLoop': 'Boucle',
     'transcriptLooping': 'En boucle',
     'reference': 'Référence',

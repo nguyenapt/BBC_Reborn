@@ -104,6 +104,7 @@ class AppVi {
     'downloaded': 'Đã tải',
     'episodeInfo': 'Thông tin Episode',
     'transcript': 'Bản ghi',
+    'subtitleMode': 'Phụ đề',
     'transcriptLoop': 'Lặp',
     'transcriptLooping': 'Đang lặp',
     'reference': 'Tham khảo',
