@@ -124,6 +124,7 @@ class AppAr {
     'downloaded': 'تم التحميل',
     'episodeInfo': 'معلومات الحلقة',
     'transcript': 'النص',
+    'subtitleMode': 'الترجمة',
     'transcriptLoop': 'تكرار',
     'transcriptLooping': 'يتكرر',
     'reference': 'مرجع',

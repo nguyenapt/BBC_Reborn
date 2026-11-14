@@ -124,6 +124,7 @@ class AppZh {
     'downloaded': '已下载',
     'episodeInfo': '课程信息',
     'transcript': '文本',
+    'subtitleMode': '字幕',
     'transcriptLoop': '循环',
     'transcriptLooping': '循环中',
     'reference': '参考',

@@ -124,6 +124,7 @@ class AppJa {
     'downloaded': 'ダウンロード済み',
     'episodeInfo': 'エピソード情報',
     'transcript': '台本',
+    'subtitleMode': '字幕',
     'transcriptLoop': 'ループ',
     'transcriptLooping': 'ループ中',
     'reference': '参考',
