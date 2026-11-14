@@ -421,6 +421,8 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                     controller: _scrollController,
                     padding: EpisodeDetailTabPanel.scrollPadding(
                       widget.scrollBottomInset,
+                      left: 8,
+                      right: 8,
                     ),
                     itemCount: transcriptLines.length + _adPositions.length,
                     itemBuilder: (context, index) {
@@ -501,277 +503,351 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   ]
                                 : null,
                           ),
-                          padding: EdgeInsets.all(isActive ? 8 : 5),
-                          child: Column(
+                          // Padding trong card — avatar không sát border section.
+                          padding: EdgeInsets.symmetric(
+                            vertical: isActive ? 8 : 5,
+                            horizontal: 8,
+                          ),
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  AnimatedBuilder(
-                                    animation: _breathController,
-                                    builder: (context, child) {
-                                      final scale =
-                                          isActive ? (1.0 + (_breathController.value * 0.11)) : 1.0;
-                                      return Transform.scale(
-                                        alignment: Alignment.center,
-                                        scale: scale,
-                                        child: child,
-                                      );
-                                    },
-                                    child: CircleAvatar(
-                                      radius: 17,
-                                      backgroundColor: speakerColor.withOpacity(0.22),
-                                      child: Text(
-                                        _speakerInitial(line.speaker),
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: speakerColor,
-                                        ),
-                                      ),
+                              AnimatedBuilder(
+                                animation: _breathController,
+                                builder: (context, child) {
+                                  final scale = isActive
+                                      ? (1.0 +
+                                          (_breathController.value * 0.11))
+                                      : 1.0;
+                                  return Transform.scale(
+                                    alignment: Alignment.center,
+                                    scale: scale,
+                                    child: child,
+                                  );
+                                },
+                                child: CircleAvatar(
+                                  radius: 17,
+                                  backgroundColor:
+                                      speakerColor.withOpacity(0.22),
+                                  child: Text(
+                                    _speakerInitial(line.speaker),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: speakerColor,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Speaker + text + nút cùng cột → thẳng hàng trái.
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
                                       line.speaker.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.65,
-                                        color: isActive ? categoryColor : speakerColor,
+                                        color: isActive
+                                            ? categoryColor
+                                            : speakerColor,
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              SelectableText(
-                                quoted,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  fontStyle: FontStyle.normal,
-                                  fontWeight:
-                                      isActive ? FontWeight.w600 : FontWeight.normal,
-                                  color: isActive
-                                      ? categoryColor
-                                      : Theme.of(context).colorScheme.onSurface.withOpacity(
-                                            isPassed ? 0.55 : 0.9,
-                                          ),
-                                ),
-                                contextMenuBuilder: (context, editableTextState) {
-                                  return AdaptiveTextSelectionToolbar.buttonItems(
-                                    anchors: editableTextState.contextMenuAnchors,
-                                    buttonItems: <ContextMenuButtonItem>[
-                                      ContextMenuButtonItem(
-                                        label: 'Copy',
-                                        onPressed: () {
-                                          final selectedText = editableTextState
-                                              .textEditingValue.selection
-                                              .textInside(
-                                            editableTextState.textEditingValue.text,
-                                          );
-                                          if (selectedText.isNotEmpty) {
-                                            Clipboard.setData(
-                                                ClipboardData(text: selectedText));
-                                            editableTextState.hideToolbar();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  _languageManager.getText(
-                                                    'copiedToClipboard',
-                                                  ),
+                                    const SizedBox(height: 4),
+                                    SelectableText(
+                                      quoted,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        height: 1.4,
+                                        fontStyle: FontStyle.normal,
+                                        fontWeight: isActive
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        color: isActive
+                                            ? categoryColor
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(
+                                                  isPassed ? 0.55 : 0.9,
                                                 ),
-                                              ),
-                                            );
-                                          }
-                                        },
                                       ),
-                                      ContextMenuButtonItem(
-                                        label: 'Translate',
-                                        onPressed: () {
-                                          final selectedText = editableTextState
-                                              .textEditingValue.selection
-                                              .textInside(
-                                            editableTextState.textEditingValue.text,
-                                          );
-                                          if (selectedText.isNotEmpty) {
-                                            _openGoogleTranslate(context, selectedText);
-                                            editableTextState.hideToolbar();
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              if (_lineTranslations.containsKey(line.text))
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: SelectableText(
-                                    _lineTranslations[line.text]!,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      height: 1.35,
-                                      fontStyle: FontStyle.italic,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withOpacity(0.6),
-                                    ),
-                                  ),
-                                ),
-                              if (_showTranslation &&
-                                  _translations != null &&
-                                  !_lineTranslations.containsKey(line.text))
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: SelectableText(
-                                    _translations![line.text] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      height: 1.35,
-                                      fontStyle: FontStyle.italic,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withOpacity(0.6),
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 2,
-                                runSpacing: 0,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  if (hasTimeInfo)
-                                    InkWell(
-                                      onTap: () => widget.onPlayAtTime?.call(line.startTime),
-                                      borderRadius: BorderRadius.circular(999),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.volume_up_rounded,
-                                              color: categoryColor,
-                                              size: 16,
+                                      contextMenuBuilder:
+                                          (context, editableTextState) {
+                                        return AdaptiveTextSelectionToolbar
+                                            .buttonItems(
+                                          anchors: editableTextState
+                                              .contextMenuAnchors,
+                                          buttonItems: <
+                                              ContextMenuButtonItem>[
+                                            ContextMenuButtonItem(
+                                              label: 'Copy',
+                                              onPressed: () {
+                                                final selectedText =
+                                                    editableTextState
+                                                        .textEditingValue
+                                                        .selection
+                                                        .textInside(
+                                                  editableTextState
+                                                      .textEditingValue.text,
+                                                );
+                                                if (selectedText.isNotEmpty) {
+                                                  Clipboard.setData(
+                                                    ClipboardData(
+                                                      text: selectedText,
+                                                    ),
+                                                  );
+                                                  editableTextState
+                                                      .hideToolbar();
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        _languageManager
+                                                            .getText(
+                                                          'copiedToClipboard',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _languageManager.getText('checklistListen'),
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: categoryColor,
-                                                height: 1.0,
-                                              ),
+                                            ContextMenuButtonItem(
+                                              label: 'Translate',
+                                              onPressed: () {
+                                                final selectedText =
+                                                    editableTextState
+                                                        .textEditingValue
+                                                        .selection
+                                                        .textInside(
+                                                  editableTextState
+                                                      .textEditingValue.text,
+                                                );
+                                                if (selectedText.isNotEmpty) {
+                                                  _openGoogleTranslate(
+                                                    context,
+                                                    selectedText,
+                                                  );
+                                                  editableTextState
+                                                      .hideToolbar();
+                                                }
+                                              },
                                             ),
                                           ],
-                                        ),
-                                      ),
-                                    ),
-                                  if (hasTimeInfo && widget.onToggleLoopLine != null)
-                                    Builder(
-                                      builder: (context) {
-                                        final loopEndMs = _effectiveLoopEndMs(
-                                          line,
-                                          transcriptIndex,
-                                          transcriptLines,
-                                        );
-                                        final canLoop = loopEndMs > line.startTime;
-                                        if (!canLoop) {
-                                          return const SizedBox.shrink();
-                                        }
-                                        final isLooping = widget.isLineLooping?.call(
-                                              line.startTime,
-                                              loopEndMs,
-                                            ) ??
-                                            false;
-                                        final loopColor = isLooping
-                                            ? const Color(0xFF10B981) // emerald
-                                            : categoryColor;
-                                        return InkWell(
-                                          onTap: () {
-                                            widget.onToggleLoopLine!(
-                                              line.startTime,
-                                              loopEndMs,
-                                            );
-                                          },
-                                          borderRadius: BorderRadius.circular(999),
-                                          child: Padding(
-                                            // Hit area lớn hơn; icon giữ size 16.
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 8,
-                                            ),
-                                            child: Icon(
-                                              Icons.repeat_rounded,
-                                              color: loopColor,
-                                              size: 16,
-                                            ),
-                                          ),
                                         );
                                       },
                                     ),
-                                  InkWell(
-                                    onTap: () =>
-                                        _translateLine(context, line.text, transcriptIndex),
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
+                                    if (_lineTranslations
+                                        .containsKey(line.text))
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: SelectableText(
+                                          _lineTranslations[line.text]!,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            height: 1.35,
+                                            fontStyle: FontStyle.italic,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.6),
+                                          ),
+                                        ),
                                       ),
-                                      child: _lineTranslating[line.text] == true
-                                          ? SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<Color>(
-                                                  primaryColor,
-                                                ),
+                                    if (_showTranslation &&
+                                        _translations != null &&
+                                        !_lineTranslations
+                                            .containsKey(line.text))
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: SelectableText(
+                                          _translations![line.text] ?? '',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            height: 1.35,
+                                            fontStyle: FontStyle.italic,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.6),
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 2,
+                                      runSpacing: 0,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        if (hasTimeInfo)
+                                          InkWell(
+                                            onTap: () => widget.onPlayAtTime
+                                                ?.call(line.startTime),
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                0,
+                                                8,
+                                                10,
+                                                8,
                                               ),
-                                            )
-                                          : Icon(
-                                              _lineTranslations.containsKey(line.text)
-                                                  ? Icons.translate
-                                                  : Icons.translate_outlined,
-                                              color: primaryColor,
+                                              child: Row(
+                                                mainAxisSize:
+                                                    MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.volume_up_rounded,
+                                                    color: categoryColor,
+                                                    size: 16,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    _languageManager.getText(
+                                                      'checklistListen',
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: categoryColor,
+                                                      height: 1.0,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        if (hasTimeInfo &&
+                                            widget.onToggleLoopLine != null)
+                                          Builder(
+                                            builder: (context) {
+                                              final loopEndMs =
+                                                  _effectiveLoopEndMs(
+                                                line,
+                                                transcriptIndex,
+                                                transcriptLines,
+                                              );
+                                              final canLoop =
+                                                  loopEndMs > line.startTime;
+                                              if (!canLoop) {
+                                                return const SizedBox.shrink();
+                                              }
+                                              final isLooping = widget
+                                                      .isLineLooping
+                                                      ?.call(
+                                                    line.startTime,
+                                                    loopEndMs,
+                                                  ) ??
+                                                  false;
+                                              final loopColor = isLooping
+                                                  ? const Color(0xFF10B981)
+                                                  : categoryColor;
+                                              return InkWell(
+                                                onTap: () {
+                                                  widget.onToggleLoopLine!(
+                                                    line.startTime,
+                                                    loopEndMs,
+                                                  );
+                                                },
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                    0,
+                                                    8,
+                                                    10,
+                                                    8,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.repeat_rounded,
+                                                    color: loopColor,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        InkWell(
+                                          onTap: () => _translateLine(
+                                            context,
+                                            line.text,
+                                            transcriptIndex,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              0,
+                                              8,
+                                              10,
+                                              8,
+                                            ),
+                                            child: _lineTranslating[
+                                                        line.text] ==
+                                                    true
+                                                ? SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                              Color>(
+                                                        primaryColor,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    _lineTranslations
+                                                            .containsKey(
+                                                      line.text,
+                                                    )
+                                                        ? Icons.translate
+                                                        : Icons
+                                                            .translate_outlined,
+                                                    color: primaryColor,
+                                                    size: 16,
+                                                  ),
+                                          ),
+                                        ),
+                                        InkWell(
+                                          onTap: () =>
+                                              _showGrammarExplanation(
+                                            context,
+                                            line.text,
+                                            transcriptIndex,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              0,
+                                              8,
+                                              10,
+                                              8,
+                                            ),
+                                            child: Icon(
+                                              Icons.lightbulb_outline,
+                                              color: tertiaryColor,
                                               size: 16,
                                             ),
-                                    ),
-                                  ),
-                                  InkWell(
-                                    onTap: () => _showGrammarExplanation(
-                                          context,
-                                          line.text,
-                                          transcriptIndex,
+                                          ),
                                         ),
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
-                                      child: Icon(
-                                        Icons.lightbulb_outline,
-                                        color: tertiaryColor,
-                                        size: 16,
-                                      ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -782,8 +858,12 @@ class _TranscriptSlideState extends State<TranscriptSlide>
       );
     }
 
-    return EpisodeDetailTabPanel(
-      child: emptyOrList(),
+    // Lề list 8px trái/phải; bỏ horizontal pad của panel.
+    return SizedBox.expand(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+        child: emptyOrList(),
+      ),
     );
   }
 
