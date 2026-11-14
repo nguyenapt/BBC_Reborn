@@ -3,10 +3,7 @@ import '../models/episode.dart';
 import '../services/image_cache_service.dart';
 import '../utils/category_colors.dart';
 import '../utils/category_names.dart';
-import '../utils/series_sub_badge_style.dart';
 import '../services/language_manager.dart';
-import 'another_series_sub_section.dart';
-import 'compact_ghost_badge.dart';
 
 class OtherProgramsCategoryWidget extends StatelessWidget {
   final String categoryName;
@@ -29,27 +26,6 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
   });
 
   Widget _titleRow(BuildContext context, Color strongAccent) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isAnotherSeriesSub =
-        CategoryNames.anotherSeriesSubCodes.contains(categoryName);
-
-    if (isAnotherSeriesSub) {
-      final style = SeriesSubBadgeStyle.forCode(
-        categoryName,
-        colorScheme,
-      );
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        child: CompactGhostBadge(
-          icon: style.icon,
-          label: style.label,
-          color: style.color,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      );
-    }
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
@@ -85,18 +61,6 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (CategoryNames.anotherSeriesSubCodes.contains(categoryName)) {
-      return AnotherSeriesSubSection(
-        categoryCode: categoryName,
-        episodes: episodes,
-        languageManager: languageManager,
-        onEpisodeTap: onEpisodeTap,
-        onViewAllTap: onViewAllTap,
-        compact: true,
-        showPlaceholderWhenEmpty: showPlaceholderWhenEmpty,
-      );
-    }
-
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
@@ -215,126 +179,98 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Thumbnail theo tỉ lệ gốc 266:150
-              ImageCacheService().buildCachedImage(
-                imageUrl: episode.thumbImage,
-                width: 150,
-                height: 85,
-                fit: BoxFit.cover,
-                borderRadius: BorderRadius.circular(8),
-                showWatermark: true,
-              ),
-              const SizedBox(width: 10),
-              // Thông tin bên phải
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 6),
-                    // Episode Name (16px)
-                    Text(
-                      episode.episodeName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Summary
-                    Text(
-                      episode.summary?.isNotEmpty == true
-                          ? episode.summary!
-                          : episode.shortTranscript,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurface.withOpacity(0.68),
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Category và Duration (bỏ date)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Thumbnail theo tỉ lệ gốc 266:150
+                  ImageCacheService().buildCachedImage(
+                    imageUrl: episode.thumbImage,
+                    width: 150,
+                    height: 85,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(8),
+                    showWatermark: true,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (episode.hasLevel) ...[
-                          CompactGhostBadge(
-                            icon: Icons.school_outlined,
-                            label: episode.level!.trim(),
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                        if (CategoryNames.anotherSeriesSubCodes
-                            .contains(episode.category)) ...[
-                          Builder(
-                            builder: (context) {
-                              final style = SeriesSubBadgeStyle.forCode(
-                                episode.category,
-                                colorScheme,
-                              );
-                              return CompactGhostBadge(
-                                icon: style.icon,
-                                label: style.label,
-                                color: style.color,
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                        ] else ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: CategoryColors.getCategoryBackgroundColor(
-                                episode.category,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: CategoryColors.getCategoryBorderColor(
-                                  episode.category,
-                                ),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              episode.category,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: CategoryColors.getCategoryColor(
-                                  episode.category,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: colorScheme.onSurface.withOpacity(0.65),
-                        ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          episode.duration,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurface.withOpacity(0.65),
+                          episode.episodeName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          episode.summary?.isNotEmpty == true
+                              ? episode.summary!
+                              : episode.shortTranscript,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurface.withOpacity(0.68),
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Category + duration — full-width, căn trái (giống EpisodeRow).
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: CategoryColors.getCategoryBackgroundColor(
+                        episode.category,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: CategoryColors.getCategoryBorderColor(
+                          episode.category,
+                        ),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      episode.category,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: CategoryColors.getCategoryColor(episode.category),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: colorScheme.onSurface.withOpacity(0.65),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    episode.duration,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -432,26 +368,6 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
 
   IconData _getCategoryIcon(String code) {
     switch (code) {
-      case 'AC':
-        return Icons.palette_outlined;
-      case 'HL':
-        return Icons.spa_outlined;
-      case 'WS':
-        return Icons.menu_book_outlined;
-      case 'CD':
-        return Icons.groups_outlined;
-      case 'EK':
-        return Icons.all_inclusive_outlined;
-      case 'AMS':
-        return Icons.auto_stories_outlined;
-      case 'LLE':
-        return Icons.school_outlined;
-      case 'ON':
-        return Icons.article_outlined;
-      case 'NC':
-        return Icons.forum_outlined;
-      case 'SC':
-        return Icons.chat_outlined;
       case '6M':
       case '6MGB':
       case '6MGI':

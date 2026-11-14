@@ -45,148 +45,149 @@ class EpisodeRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Thumbnail bên trái theo tỉ lệ gốc 266:150
-              Stack(
-                clipBehavior: Clip.none,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ImageCacheService().buildCachedImage(
-                    imageUrl: episode.thumbImage,
-                    width: isLatest ? 150 : 100,
-                    height: isLatest ? 85 : 56,
-                    fit: BoxFit.cover,
-                    borderRadius: BorderRadius.circular(8),
-                    showWatermark: true,
+                  // Thumbnail bên trái theo tỉ lệ gốc 266:150
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ImageCacheService().buildCachedImage(
+                        imageUrl: episode.thumbImage,
+                        width: isLatest ? 150 : 100,
+                        height: isLatest ? 85 : 56,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(8),
+                        showWatermark: true,
+                      ),
+                      if (learningProgress != null &&
+                          learningProgress!.shouldShowProgressRing)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: EpisodeProgressRing(
+                            progress: learningProgress!.ringProgressValue,
+                            size: 20,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                    ],
                   ),
-                  if (learningProgress != null &&
-                      learningProgress!.shouldShowProgressRing)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: EpisodeProgressRing(
-                        progress: learningProgress!.ringProgressValue,
-                        size: 20,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 10),
-              // Thông tin bên phải
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [                    
-                    const SizedBox(height: 6),
-                    // Episode Name (to hơn 2px nếu là episode mới nhất)
-                    Text(
-                      episode.episodeName,
-                      style: TextStyle(
-                        fontSize: isLatest ? 16 : 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Summary (short text) với fallback là shortTranscript
-                    Text(
-                      episode.summary?.isNotEmpty == true 
-                          ? episode.summary! 
-                          : episode.shortTranscript,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurface.withOpacity(0.68),
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Duration và Published Date
-                    //Căn phải 2 text này
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (showLevelBadge && episode.hasLevel) ...[
-                          CompactGhostBadge(
-                            icon: Icons.school_outlined,
-                            label: episode.level!.trim(),
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                        if (showCompactSubBadge && subBadgeStyle != null) ...[
-                          CompactGhostBadge(
-                            icon: subBadgeStyle.icon,
-                            label: subBadgeStyle.label,
-                            color: subBadgeStyle.color,
-                          ),
-                          const SizedBox(width: 10),
-                        ] else if (!showCompactSubBadge) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: CategoryColors.getCategoryBackgroundColor(
-                                episode.category,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: CategoryColors.getCategoryBorderColor(
-                                  episode.category,
-                                ),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              episode.category,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: CategoryColors.getCategoryColor(
-                                  episode.category,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: colorScheme.onSurface.withOpacity(0.65),
-                        ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          episode.duration,
+                          episode.episodeName,
                           style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurface.withOpacity(0.65),
+                            fontSize: isLatest ? 16 : 14,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.calendar_today,
-                          size: 14,
-                          color: colorScheme.onSurface.withOpacity(0.65),
-                        ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          _formatDate(episode.publishedDate),
+                          episode.summary?.isNotEmpty == true
+                              ? episode.summary!
+                              : episode.shortTranscript,
                           style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurface.withOpacity(0.65),
+                            fontSize: 12,
+                            color: colorScheme.onSurface.withOpacity(0.68),
+                            height: 1.4,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Level / sub / category + duration + date — full-width, căn trái.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  if (showLevelBadge && episode.hasLevel) ...[
+                    CompactGhostBadge(
+                      icon: Icons.school_outlined,
+                      label: episode.level!.trim(),
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 10),
                   ],
-                ),
+                  if (showCompactSubBadge && subBadgeStyle != null) ...[
+                    CompactGhostBadge(
+                      icon: subBadgeStyle.icon,
+                      label: subBadgeStyle.label,
+                      color: subBadgeStyle.color,
+                    ),
+                    const SizedBox(width: 10),
+                  ] else if (!showCompactSubBadge) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: CategoryColors.getCategoryBackgroundColor(
+                          episode.category,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: CategoryColors.getCategoryBorderColor(
+                            episode.category,
+                          ),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        episode.category,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: CategoryColors.getCategoryColor(
+                            episode.category,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: colorScheme.onSurface.withOpacity(0.65),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    episode.duration,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: colorScheme.onSurface.withOpacity(0.65),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDate(episode.publishedDate),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

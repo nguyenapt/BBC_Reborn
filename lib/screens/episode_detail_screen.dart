@@ -895,37 +895,33 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurface.withOpacity(0.55);
     final isSubtitle = _isSubtitleMode;
-    final labels = (
-      transcript: _languageManager.getText('transcript'),
-      subtitle: _languageManager.getText('subtitleMode'),
-    );
 
     Widget segment({
-      required String label,
+      required IconData icon,
+      required String tooltip,
       required bool selected,
       required VoidCallback onTap,
     }) {
       return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: selected ? categoryColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            alignment: Alignment.center,
-            child: AnimatedDefaultTextStyle(
+        child: Tooltip(
+          message: tooltip,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              decoration: BoxDecoration(
+                color: selected ? categoryColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                size: 16,
                 color: selected ? Colors.white : muted,
               ),
-              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
           ),
         ),
@@ -937,7 +933,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       child: Align(
         alignment: Alignment.center,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 136),
+          constraints: const BoxConstraints(maxWidth: 88),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest.withOpacity(0.55),
@@ -951,7 +947,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
               child: Row(
                 children: [
                   segment(
-                    label: labels.transcript,
+                    icon: Icons.notes_rounded,
+                    tooltip: _languageManager.getText('transcript'),
                     selected: !isSubtitle,
                     onTap: () => unawaited(
                       _setTranscriptDisplayMode(
@@ -960,7 +957,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
                     ),
                   ),
                   segment(
-                    label: labels.subtitle,
+                    icon: Icons.subtitles_rounded,
+                    tooltip: _languageManager.getText('subtitleMode'),
                     selected: isSubtitle,
                     onTap: () => unawaited(
                       _setTranscriptDisplayMode(
