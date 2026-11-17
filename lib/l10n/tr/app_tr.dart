@@ -104,6 +104,7 @@ class AppTr {
     'downloaded': 'İndirildi',
     'episodeInfo': 'Bölüm bilgisi',
     'transcript': 'Metin',
+    'subtitleMode': 'Altyazı',
     'transcriptLoop': 'Döngü',
     'transcriptLooping': 'Döngüde',
     'reference': 'Kaynak',

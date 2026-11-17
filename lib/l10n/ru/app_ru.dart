@@ -99,6 +99,7 @@ class AppRu {
     'downloaded': 'Скачано',
     'episodeInfo': 'Информация об эпизоде',
     'transcript': 'Транскрипт',
+    'subtitleMode': 'Субтитры',
     'transcriptLoop': 'Повтор',
     'transcriptLooping': 'Повтор…',
     'reference': 'Справка',

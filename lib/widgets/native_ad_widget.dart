@@ -13,12 +13,18 @@ enum NativeAdLayout {
 
   /// Minimal chrome; ad fills remaining space (interstitial fallback route).
   interstitialFallback,
+
+  /// Compact strip (subtitle / above-player): medium template, chiều cao thấp.
+  compact,
 }
 
 class NativeAdWidget extends StatefulWidget {
   /// Min width khuyến nghị cho TemplateType.medium (AdMob validator).
   static const double embeddedMediumMinWidth = 320;
   static const double embeddedMediumAdHeight = 320;
+
+  /// Chiều cao vùng AdWidget cho [NativeAdLayout.compact].
+  static const double compactAdHeight = 148;
 
   final String category;
   final String? adUnitId;
@@ -341,6 +347,67 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     );
   }
 
+  Widget _compactBuild(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.28),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.ads_click, color: colorScheme.primary, size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _languageManager.getText('adAttributionLabel'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface.withValues(alpha: 0.75),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_isAdLoading)
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: NativeAdWidget.compactAdHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _adBody(colorScheme),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
@@ -355,6 +422,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
             return _embeddedBuild(context);
           case NativeAdLayout.interstitialFallback:
             return _interstitialFallbackBuild(context);
+          case NativeAdLayout.compact:
+            return _compactBuild(context);
         }
       },
     );

@@ -179,92 +179,98 @@ class OtherProgramsCategoryWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Thumbnail theo tỉ lệ gốc 266:150
-              ImageCacheService().buildCachedImage(
-                imageUrl: episode.thumbImage,
-                width: 150,
-                height: 85,
-                fit: BoxFit.cover,
-                borderRadius: BorderRadius.circular(8),
-                showWatermark: true,
-              ),
-              const SizedBox(width: 10),
-              // Thông tin bên phải
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 6),
-                    // Episode Name (16px)
-                    Text(
-                      episode.episodeName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Summary
-                    Text(
-                      episode.summary?.isNotEmpty == true
-                          ? episode.summary!
-                          : episode.shortTranscript,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurface.withOpacity(0.68),
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Category và Duration (bỏ date)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Thumbnail theo tỉ lệ gốc 266:150
+                  ImageCacheService().buildCachedImage(
+                    imageUrl: episode.thumbImage,
+                    width: 150,
+                    height: 85,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(8),
+                    showWatermark: true,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Category
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: CategoryColors.getCategoryBackgroundColor(episode.category),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: CategoryColors.getCategoryBorderColor(episode.category),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            episode.category,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: CategoryColors.getCategoryColor(episode.category),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: colorScheme.onSurface.withOpacity(0.65),
-                        ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          episode.duration,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurface.withOpacity(0.65),
+                          episode.episodeName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          episode.summary?.isNotEmpty == true
+                              ? episode.summary!
+                              : episode.shortTranscript,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurface.withOpacity(0.68),
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Category + duration — full-width, căn trái (giống EpisodeRow).
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: CategoryColors.getCategoryBackgroundColor(
+                        episode.category,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: CategoryColors.getCategoryBorderColor(
+                          episode.category,
+                        ),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      episode.category,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: CategoryColors.getCategoryColor(episode.category),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: colorScheme.onSurface.withOpacity(0.65),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    episode.duration,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.65),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -104,6 +104,7 @@ class AppHi {
     'downloaded': 'डाउनलोड हो गया',
     'episodeInfo': 'एपिसोड जानकारी',
     'transcript': 'प्रतिलेख',
+    'subtitleMode': 'उपशीर्षक',
     'transcriptLoop': 'लूप',
     'transcriptLooping': 'लूप चल रहा है',
     'reference': 'संदर्भ',

@@ -99,6 +99,7 @@ class AppEs {
     'downloaded': 'Descargado',
     'episodeInfo': 'Información del Episodio',
     'transcript': 'Transcripción',
+    'subtitleMode': 'Subtítulos',
     'transcriptLoop': 'Bucle',
     'transcriptLooping': 'En bucle',
     'reference': 'Referencia',
