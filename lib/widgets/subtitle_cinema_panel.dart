@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../config/ai_config.dart';
 import '../models/episode.dart';
@@ -14,11 +15,12 @@ import '../services/learning_analytics_service.dart';
 import '../services/review_reminder_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../utils/category_colors.dart';
+import 'banner_ad_widget.dart';
+import 'episode_detail_tab_panel.dart';
 import 'grammar_explanation_widget.dart';
 import 'heart_economy_ui.dart';
-import 'native_ad_widget.dart';
 
-/// Cinema-style subtitle view: native ad + active EN cue + Repeat/Translate/Grammar.
+/// Cinema-style subtitle view: EN cue + actions on top, banner ad below.
 class SubtitleCinemaPanel extends StatefulWidget {
   final Episode episode;
   final List<TranscriptLine> lines;
@@ -148,238 +150,212 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
     final translating =
         hasCue && (_lineTranslating[line.text] == true);
 
-    // Không dùng bottom pad của EpisodeDetailTabPanel — cụm nút sát player (~2px).
+    // Player inset 18 — banner cùng bề ngang; gap với player = 8px.
+    const playerGapInInset = 16.0; // khớp EpisodeDetailScreen._contentPlayerGap
+    final bottomPad =
+        (widget.scrollBottomInset - playerGapInInset + 8).clamp(0.0, 400.0);
+    final playerHInset = EpisodeDetailTabPanel.contentHorizontalInset;
+    final bannerWidth =
+        MediaQuery.sizeOf(context).width - playerHInset * 2;
+
+    Widget actionPad({required Widget child}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: child,
+      );
+    }
+
     return SizedBox.expand(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: widget.scrollBottomInset),
-          child: LayoutBuilder(
-          builder: (context, constraints) {
-            const hPad = 12.0;
-            // Ad band cố định — sát switch (~2px), phần còn lại cho transcript.
-            final adBandH =
-                (constraints.maxHeight * 0.48).clamp(168.0, 236.0);
-            final adW = ((constraints.maxWidth - hPad * 2) * 0.82)
-                .clamp(0.0, double.infinity);
-            final adH = (adBandH - 4).clamp(0.0, 232.0);
-
-            return Column(
-              children: [
-                SizedBox(
-                  height: adBandH,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(hPad, 2, hPad, 2),
-                    child: Center(
-                      child: SizedBox(
-                        width: adW,
-                        height: adH,
-                        child: NativeAdWidget(
-                          category: widget.episode.category,
-                          layout: NativeAdLayout.interstitialFallback,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Speaker + EN + dịch: text thẳng hàng với hình tròn (cột start).
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.only(bottom: bottomPad),
+        child: Column(
+          children: [
+            // Speaker + EN + dịch — phía trên.
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                radius: 17,
-                                backgroundColor:
-                                    speakerColor.withOpacity(0.22),
-                                child: Text(
-                                  _speakerInitial(speakerRaw),
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: speakerColor,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  hasCue ? speakerLabel : '…',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.65,
-                                    color: hasCue
-                                        ? speakerColor
-                                        : scheme.onSurface.withOpacity(0.35),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
+                          CircleAvatar(
+                            radius: 17,
+                            backgroundColor: speakerColor.withOpacity(0.22),
                             child: Text(
-                              hasCue
-                                  ? (enText.isNotEmpty ? enText : '…')
-                                  : '…',
-                              key: ValueKey<String>(
-                                hasCue
-                                    ? '${index}_${line.speaker}_$enText'
-                                    : 'empty',
-                              ),
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                fontSize: 16,
-                                height: 1.35,
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurface
-                                    .withOpacity(hasCue ? 0.92 : 0.35),
+                              _speakerInitial(speakerRaw),
+                              style: GoogleFonts.nunitoSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: speakerColor,
                               ),
                             ),
                           ),
-                          if (translated != null &&
-                              translated.trim().isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                translated,
-                                textAlign: TextAlign.left,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.35,
-                                  fontStyle: FontStyle.italic,
-                                  color:
-                                      scheme.onSurface.withOpacity(0.62),
-                                ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              hasCue ? speakerLabel : '…',
+                              style: GoogleFonts.nunitoSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.65,
+                                color: hasCue
+                                    ? speakerColor
+                                    : scheme.onSurface.withOpacity(0.35),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-                // Cụm nút cố định, sát player (~2px).
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 2),
-                  child: Wrap(
-                    spacing: 2,
-                    runSpacing: 0,
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Builder(
-                        builder: (context) {
-                          if (!hasCue || widget.onToggleLoopLine == null) {
-                            return const SizedBox.shrink();
-                          }
-                          final loopEnd = _effectiveLoopEndMs(line, index);
-                          if (loopEnd <= line.startTime) {
-                            return const SizedBox.shrink();
-                          }
-                          final isLooping = widget.isLineLooping?.call(
-                                line.startTime,
-                                loopEnd,
-                              ) ??
-                              false;
-                          final loopColor = isLooping
-                              ? const Color(0xFF10B981)
-                              : categoryColor;
-                          return InkWell(
-                            onTap: () {
-                              widget.onToggleLoopLine!(
-                                line.startTime,
-                                loopEnd,
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(999),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              child: Icon(
-                                Icons.repeat_rounded,
-                                color: loopColor,
-                                size: 16,
-                              ),
+                      const SizedBox(height: 4),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: Text(
+                          hasCue ? (enText.isNotEmpty ? enText : '…') : '…',
+                          key: ValueKey<String>(
+                            hasCue
+                                ? '${index}_${line.speaker}_$enText'
+                                : 'empty',
+                          ),
+                          textAlign: TextAlign.left,
+                          style: GoogleFonts.nunitoSans(
+                            fontSize: 16,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface
+                                .withOpacity(hasCue ? 0.92 : 0.35),
+                          ),
+                        ),
+                      ),
+                      if (translated != null && translated.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            translated,
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.nunitoSans(
+                              fontSize: 13,
+                              height: 1.35,
+                              fontStyle: FontStyle.italic,
+                              color: scheme.onSurface.withOpacity(0.62),
                             ),
-                          );
-                        },
-                      ),
-                      InkWell(
-                        onTap: !hasCue || translating
-                            ? null
-                            : () =>
-                                _translateLine(context, line.text, index),
-                        borderRadius: BorderRadius.circular(999),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          child: translating
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      scheme.primary,
-                                    ),
-                                  ),
-                                )
-                              : Icon(
-                                  translated != null
-                                      ? Icons.translate
-                                      : Icons.translate_outlined,
-                                  color: hasCue
-                                      ? scheme.primary
-                                      : scheme.onSurface.withOpacity(0.28),
-                                  size: 16,
-                                ),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: !hasCue
-                            ? null
-                            : () => _showGrammarExplanation(
-                                  context,
-                                  line.text,
-                                  index,
-                                ),
-                        borderRadius: BorderRadius.circular(999),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          child: Icon(
-                            Icons.lightbulb_outline,
-                            color: hasCue
-                                ? scheme.tertiary
-                                : scheme.onSurface.withOpacity(0.28),
-                            size: 16,
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ),
+            // Cụm action — cách banner 4px.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: Wrap(
+                spacing: 2,
+                runSpacing: 0,
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Builder(
+                    builder: (context) {
+                      if (!hasCue || widget.onToggleLoopLine == null) {
+                        return const SizedBox.shrink();
+                      }
+                      final loopEnd = _effectiveLoopEndMs(line, index);
+                      if (loopEnd <= line.startTime) {
+                        return const SizedBox.shrink();
+                      }
+                      final isLooping = widget.isLineLooping?.call(
+                            line.startTime,
+                            loopEnd,
+                          ) ??
+                          false;
+                      final loopColor = isLooping
+                          ? const Color(0xFF10B981)
+                          : categoryColor;
+                      return InkWell(
+                        onTap: () {
+                          widget.onToggleLoopLine!(
+                            line.startTime,
+                            loopEnd,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(999),
+                        child: actionPad(
+                          child: Icon(
+                            Icons.repeat_rounded,
+                            color: loopColor,
+                            size: 16,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  InkWell(
+                    onTap: !hasCue || translating
+                        ? null
+                        : () => _translateLine(context, line.text, index),
+                    borderRadius: BorderRadius.circular(999),
+                    child: actionPad(
+                      child: translating
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scheme.primary,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              translated != null
+                                  ? Icons.translate
+                                  : Icons.translate_outlined,
+                              color: hasCue
+                                  ? scheme.primary
+                                  : scheme.onSurface.withOpacity(0.28),
+                              size: 16,
+                            ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: !hasCue
+                        ? null
+                        : () => _showGrammarExplanation(
+                              context,
+                              line.text,
+                              index,
+                            ),
+                    borderRadius: BorderRadius.circular(999),
+                    child: actionPad(
+                      child: Icon(
+                        Icons.lightbulb_outline,
+                        color: hasCue
+                            ? scheme.tertiary
+                            : scheme.onSurface.withOpacity(0.28),
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Banner adaptive = đúng bề ngang section player (inset 18).
+            Padding(
+              padding: EdgeInsets.fromLTRB(playerHInset, 0, playerHInset, 0),
+              child: BannerAdWidget(
+                adaptive: true,
+                adaptiveWidth: bannerWidth,
+                margin: EdgeInsets.zero,
+              ),
+            ),
+          ],
         ),
       ),
     );

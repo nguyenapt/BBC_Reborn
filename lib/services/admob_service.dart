@@ -14,6 +14,11 @@ class AdMobService {
   // Google's Official Test Ad Unit IDs
   static const String _testBannerAdUnitIdAndroid = 'ca-app-pub-3940256099942544/6300978111';
   static const String _testBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716';
+  /// Official collapsible banner test units (Google docs).
+  static const String _testCollapsibleBannerAdUnitIdAndroid =
+      'ca-app-pub-3940256099942544/2014213617';
+  static const String _testCollapsibleBannerAdUnitIdIOS =
+      'ca-app-pub-3940256099942544/8388050270';
   static const String _testInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
   static const String _testInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
   static const String _testAppOpenAdUnitIdAndroid = 'ca-app-pub-3940256099942544/3419835294';
@@ -103,9 +108,18 @@ class AdMobService {
   static const String _appOpenLastShownPrefKey = 'admob.app_open.last_shown_iso';
 
   // Helper methods để lấy đúng Ad Unit ID dựa trên debug mode
-  String _getBannerAdUnitId() {
+  String _getBannerAdUnitId({bool collapsible = false}) {
     if (kDebugMode) {
-      print('🔧 DEBUG MODE: Using TEST Banner Ad Unit ID');
+      print(
+        collapsible
+            ? '🔧 DEBUG MODE: Using TEST Collapsible Banner Ad Unit ID'
+            : '🔧 DEBUG MODE: Using TEST Banner Ad Unit ID',
+      );
+      if (collapsible) {
+        return Platform.isAndroid
+            ? _testCollapsibleBannerAdUnitIdAndroid
+            : _testCollapsibleBannerAdUnitIdIOS;
+      }
       return Platform.isAndroid ? _testBannerAdUnitIdAndroid : _testBannerAdUnitIdIOS;
     } else {
       print('🚀 PRODUCTION MODE: Using PRODUCTION Banner Ad Unit ID');
@@ -172,23 +186,40 @@ class AdMobService {
     print('AdMob service initialized (MobileAds already initialized in main.dart)');
   }
 
-  // Tạo Banner Ad
-  BannerAd createBannerAd() {
+  /// Tạo Banner Ad ([size] mặc định 320x50; adaptive truyền size đã resolve).
+  /// [collapsible]: `top` | `bottom` — AdMob collapsible overlay (Google demand).
+  BannerAd createBannerAd({
+    AdSize size = AdSize.banner,
+    String? collapsible,
+  }) {
     if (kIsWeb) {
       throw UnsupportedError('Banner ads không được hỗ trợ trên web');
     }
     if (!_guardSdkReady('createBannerAd')) {
       throw StateError('MobileAds SDK not initialized');
     }
-    final adUnitId = _getBannerAdUnitId();
-    
+    final useCollapsible =
+        collapsible == 'top' || collapsible == 'bottom';
+    final adUnitId = _getBannerAdUnitId(collapsible: useCollapsible);
+    final request = useCollapsible
+        ? AdRequest(extras: {'collapsible': collapsible!})
+        : const AdRequest();
+
     return BannerAd(
       adUnitId: adUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
+      size: size,
+      request: request,
       listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          print('Banner ad loaded');
+        onAdLoaded: (ad) async {
+          if (useCollapsible && ad is BannerAd) {
+            final isCollapsible = await ad.isCollapsible;
+            print(
+              'Banner ad loaded'
+              '${isCollapsible ? ' (collapsible)' : ' (not collapsible fill)'}',
+            );
+          } else {
+            print('Banner ad loaded');
+          }
         },
         onAdFailedToLoad: (ad, error) {
           print('Banner ad failed to load: $error');

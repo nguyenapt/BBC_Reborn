@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
@@ -531,7 +532,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                       speakerColor.withOpacity(0.22),
                                   child: Text(
                                     _speakerInitial(line.speaker),
-                                    style: TextStyle(
+                                    style: GoogleFonts.nunitoSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: speakerColor,
@@ -547,7 +548,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   children: [
                                     Text(
                                       line.speaker.toUpperCase(),
-                                      style: TextStyle(
+                                      style: GoogleFonts.nunitoSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.65,
@@ -559,7 +560,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     const SizedBox(height: 4),
                                     SelectableText(
                                       quoted,
-                                      style: TextStyle(
+                                      style: GoogleFonts.nunitoSans(
                                         fontSize: 14,
                                         height: 1.4,
                                         fontStyle: FontStyle.normal,
@@ -648,7 +649,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                         padding: const EdgeInsets.only(top: 4),
                                         child: SelectableText(
                                           _lineTranslations[line.text]!,
-                                          style: TextStyle(
+                                          style: GoogleFonts.nunitoSans(
                                             fontSize: 13,
                                             height: 1.35,
                                             fontStyle: FontStyle.italic,
@@ -667,7 +668,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                         padding: const EdgeInsets.only(top: 4),
                                         child: SelectableText(
                                           _translations![line.text] ?? '',
-                                          style: TextStyle(
+                                          style: GoogleFonts.nunitoSans(
                                             fontSize: 13,
                                             height: 1.35,
                                             fontStyle: FontStyle.italic,

@@ -7,10 +7,23 @@ class BannerAdWidget extends StatefulWidget {
   final double? height;
   final EdgeInsetsGeometry? margin;
 
+  /// Khi true: banner adaptive theo chiều ngang available (rộng hơn banner 320 cố định).
+  final bool adaptive;
+
+  /// Chiều ngang (dp) cho adaptive; null = gần full screen width.
+  final double? adaptiveWidth;
+
+  /// AdMob collapsible: `top` | `bottom`. Null = banner thường.
+  /// Collapsible cần adaptive anchored; widget sẽ tự bật adaptive.
+  final String? collapsible;
+
   const BannerAdWidget({
     super.key,
     this.height,
     this.margin,
+    this.adaptive = false,
+    this.adaptiveWidth,
+    this.collapsible,
   });
 
   @override
@@ -20,11 +33,19 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
+  bool _loadStarted = false;
+  double _adHeight = 50;
+
+  bool get _useAdaptive =>
+      widget.adaptive || widget.collapsible == 'top' || widget.collapsible == 'bottom';
 
   @override
-  void initState() {
-    super.initState();
-    _loadBannerAd();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loadStarted) {
+      _loadStarted = true;
+      _loadBannerAd();
+    }
   }
 
   Future<void> _loadBannerAd() async {
@@ -32,11 +53,29 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     final ready = await AdMobService().waitUntilSdkReady();
     if (!mounted || !ready) return;
     try {
-      _bannerAd = AdMobService().createBannerAd();
+      AdSize size = AdSize.banner;
+      if (_useAdaptive) {
+        final width = (widget.adaptiveWidth ?? MediaQuery.sizeOf(context).width)
+            .truncate()
+            .clamp(320, 1200);
+        final adaptive =
+            await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+          width,
+        );
+        if (adaptive != null) {
+          size = adaptive;
+        }
+      }
+
+      _bannerAd = AdMobService().createBannerAd(
+        size: size,
+        collapsible: widget.collapsible,
+      );
       await _bannerAd?.load();
       if (mounted) {
         setState(() {
           _isAdLoaded = true;
+          _adHeight = size.height.toDouble();
         });
       }
     } catch (e) {
@@ -61,8 +100,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
 
     return Container(
-      height: widget.height ?? 50,
+      width: _useAdaptive ? double.infinity : null,
+      height: widget.height ?? _adHeight,
       margin: widget.margin ?? const EdgeInsets.all(8.0),
+      alignment: Alignment.center,
       child: AdWidget(ad: _bannerAd!),
     );
   }
