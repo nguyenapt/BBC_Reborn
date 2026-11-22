@@ -352,11 +352,29 @@ class _TranscriptSlideState extends State<TranscriptSlide>
   void _scrollToActiveLine() {
     if (!_scrollController.hasClients) return;
     final activeIndex = _currentActiveIndex;
-    if (activeIndex == null || activeIndex < 0 || activeIndex >= transcriptLines.length) {
+    if (activeIndex == null ||
+        activeIndex < 0 ||
+        activeIndex >= transcriptLines.length) {
       return;
     }
+
+    if (activeIndex < _lineKeys.length) {
+      final ctx = _lineKeys[activeIndex].currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+          alignment: 0.2,
+        );
+        return;
+      }
+    }
+
     final displayIndex = _displayIndexForTranscriptIndex(activeIndex);
-    final target = (displayIndex * 112.0)
+    final scale = _languageManager.textScaleFactor;
+    final estimatedRowHeight = 112.0 * scale;
+    final target = (displayIndex * estimatedRowHeight)
         .clamp(0.0, _scrollController.position.maxScrollExtent);
     _scrollController.animateTo(
       target,
@@ -381,6 +399,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
     final categoryColor = CategoryColors.getCategoryColor(widget.episode.category);
     final primaryColor = Theme.of(context).colorScheme.primary;
     final tertiaryColor = Theme.of(context).colorScheme.tertiary;
+    final fontScale = _languageManager.textScaleFactor;
 
     Widget emptyOrList() {
       if (widget.isAwaitingFullEpisode && transcriptLines.isEmpty) {
@@ -533,7 +552,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                   child: Text(
                                     _speakerInitial(line.speaker),
                                     style: GoogleFonts.nunitoSans(
-                                      fontSize: 12,
+                                      fontSize: 12 * fontScale,
                                       fontWeight: FontWeight.bold,
                                       color: speakerColor,
                                     ),
@@ -549,7 +568,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     Text(
                                       line.speaker.toUpperCase(),
                                       style: GoogleFonts.nunitoSans(
-                                        fontSize: 13,
+                                        fontSize: 13 * fontScale,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.65,
                                         color: isActive
@@ -561,7 +580,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                     SelectableText(
                                       quoted,
                                       style: GoogleFonts.nunitoSans(
-                                        fontSize: 14,
+                                        fontSize: 14 * fontScale,
                                         height: 1.4,
                                         fontStyle: FontStyle.normal,
                                         fontWeight: isActive
@@ -650,7 +669,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                         child: SelectableText(
                                           _lineTranslations[line.text]!,
                                           style: GoogleFonts.nunitoSans(
-                                            fontSize: 13,
+                                            fontSize: 13 * fontScale,
                                             height: 1.35,
                                             fontStyle: FontStyle.italic,
                                             color: Theme.of(context)
@@ -669,7 +688,7 @@ class _TranscriptSlideState extends State<TranscriptSlide>
                                         child: SelectableText(
                                           _translations![line.text] ?? '',
                                           style: GoogleFonts.nunitoSans(
-                                            fontSize: 13,
+                                            fontSize: 13 * fontScale,
                                             height: 1.35,
                                             fontStyle: FontStyle.italic,
                                             color: Theme.of(context)

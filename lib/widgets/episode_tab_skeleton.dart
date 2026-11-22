@@ -18,9 +18,14 @@ class EpisodeTabSkeleton extends StatelessWidget {
       accentColor,
       0.08,
     )!.withOpacity(0.72);
-    final w = MediaQuery.sizeOf(context).width - 32;
     final widths = [1.0, 0.88, 0.95, 0.72, 0.84, 0.9, 0.65, 0.92, 0.78, 0.86];
-    return ListView(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = (constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : MediaQuery.sizeOf(context).width) -
+            32;
+        return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       children: [
         for (var i = 0; i < lineCount; i++) ...[
@@ -65,6 +70,8 @@ class EpisodeTabSkeleton extends StatelessWidget {
           SizedBox(height: i == lineCount - 1 ? 0 : 18),
         ],
       ],
+        );
+      },
     );
   }
 }

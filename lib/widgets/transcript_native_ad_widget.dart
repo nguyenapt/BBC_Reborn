@@ -244,7 +244,8 @@ class _TranscriptNativeAdWidgetState extends State<TranscriptNativeAdWidget> {
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final adW = (constraints.maxWidth * 0.82).clamp(0.0, double.infinity);
+          final adW =
+              (constraints.maxWidth * 0.82).clamp(0.0, 420.0);
           return Center(
             child: SizedBox(
               width: adW,

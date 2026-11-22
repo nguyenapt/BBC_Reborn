@@ -149,14 +149,13 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
         hasCue ? _lineTranslations[line.text] : null;
     final translating =
         hasCue && (_lineTranslating[line.text] == true);
+    final fontScale = _languageManager.textScaleFactor;
 
     // Player inset 18 — banner cùng bề ngang; gap với player = 8px.
     const playerGapInInset = 16.0; // khớp EpisodeDetailScreen._contentPlayerGap
     final bottomPad =
         (widget.scrollBottomInset - playerGapInInset + 8).clamp(0.0, 400.0);
     final playerHInset = EpisodeDetailTabPanel.contentHorizontalInset;
-    final bannerWidth =
-        MediaQuery.sizeOf(context).width - playerHInset * 2;
 
     Widget actionPad({required Widget child}) {
       return Padding(
@@ -165,7 +164,15 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
       );
     }
 
-    return SizedBox.expand(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final paneWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final bannerWidth =
+            (paneWidth - playerHInset * 2).clamp(0.0, 1200.0);
+
+        return SizedBox.expand(
       child: Padding(
         padding: EdgeInsets.only(bottom: bottomPad),
         child: Column(
@@ -189,7 +196,7 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
                             child: Text(
                               _speakerInitial(speakerRaw),
                               style: GoogleFonts.nunitoSans(
-                                fontSize: 15,
+                                fontSize: 15 * fontScale,
                                 fontWeight: FontWeight.bold,
                                 color: speakerColor,
                               ),
@@ -200,7 +207,7 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
                             child: Text(
                               hasCue ? speakerLabel : '…',
                               style: GoogleFonts.nunitoSans(
-                                fontSize: 13,
+                                fontSize: 13 * fontScale,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.65,
                                 color: hasCue
@@ -225,7 +232,7 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
                           ),
                           textAlign: TextAlign.left,
                           style: GoogleFonts.nunitoSans(
-                            fontSize: 16,
+                            fontSize: 16 * fontScale,
                             height: 1.35,
                             fontWeight: FontWeight.w600,
                             color: scheme.onSurface
@@ -240,7 +247,7 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
                             translated,
                             textAlign: TextAlign.left,
                             style: GoogleFonts.nunitoSans(
-                              fontSize: 13,
+                              fontSize: 13 * fontScale,
                               height: 1.35,
                               fontStyle: FontStyle.italic,
                               color: scheme.onSurface.withOpacity(0.62),
@@ -346,7 +353,7 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
                 ],
               ),
             ),
-            // Banner adaptive = đúng bề ngang section player (inset 18).
+            // Banner adaptive = đúng bề ngang pane (inset 18).
             Padding(
               padding: EdgeInsets.fromLTRB(playerHInset, 0, playerHInset, 0),
               child: BannerAdWidget(
@@ -358,6 +365,8 @@ class _SubtitleCinemaPanelState extends State<SubtitleCinemaPanel> {
           ],
         ),
       ),
+        );
+      },
     );
   }
 

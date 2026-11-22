@@ -231,7 +231,7 @@ class _AuthDialogState extends State<AuthDialog> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            content: Text(_localizeAuthError(result.error)),
             backgroundColor: Colors.red,
           ),
         );
@@ -248,6 +248,17 @@ class _AuthDialogState extends State<AuthDialog> {
         _isLoading = false;
       });
     }
+  }
+
+  String _localizeAuthError(String? error) {
+    if (error == null || error.isEmpty) {
+      return _languageManager.getText('unknownError');
+    }
+    final localized = _languageManager.getText(error);
+    if (localized == error) {
+      return _languageManager.getText('unknownError');
+    }
+    return localized;
   }
 
   Future<void> _handleGoogleLogin() async {
@@ -269,7 +280,7 @@ class _AuthDialogState extends State<AuthDialog> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            content: Text(_localizeAuthError(result.error)),
             backgroundColor: Colors.red,
           ),
         );
