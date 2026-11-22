@@ -20,12 +20,14 @@ class VocabularySlide extends StatefulWidget {
   /// Đang tải vocab đầy đủ từ RTDB — skeleton thay vì ad/empty.
   final bool isAwaitingFullEpisode;
   final double scrollBottomInset;
+  final bool reserveChecklistClearance;
 
   const VocabularySlide({
     super.key,
     required this.episode,
     this.isAwaitingFullEpisode = false,
     this.scrollBottomInset = 0,
+    this.reserveChecklistClearance = true,
   });
 
   @override
@@ -129,9 +131,15 @@ class _VocabularySlideState extends State<VocabularySlide> {
                 builder: (context, constraints) {
                   const margin = 12.0;
                   final w = constraints.maxWidth;
-                  final clearance = LearningChecklistBar.adRightClearance;
+                  final clearance = widget.reserveChecklistClearance
+                      ? LearningChecklistBar.adRightClearance
+                      : 0.0;
                   final adWidth =
                       (w - clearance - margin * 2).clamp(0.0, double.infinity);
+                  // Native medium template cần ~320dp — ẩn khi pane quá hẹp.
+                  if (adWidth < 300) {
+                    return const SizedBox.shrink();
+                  }
                   return SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
                       margin,

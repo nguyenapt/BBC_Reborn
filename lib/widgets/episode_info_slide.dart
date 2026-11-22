@@ -17,6 +17,7 @@ class EpisodeInfoSlide extends StatelessWidget {
   final Function(Episode) onEpisodeTap;
   final LanguageManager languageManager;
   final double scrollBottomInset;
+  final bool reserveChecklistClearance;
 
   const EpisodeInfoSlide({
     super.key,
@@ -25,89 +26,123 @@ class EpisodeInfoSlide extends StatelessWidget {
     required this.onEpisodeTap,
     required this.languageManager,
     this.scrollBottomInset = 0,
+    this.reserveChecklistClearance = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final adRight = reserveChecklistClearance
+        ? LearningChecklistBar.adRightClearance
+        : 0.0;
     return EpisodeDetailTabPanel(
-      child: SingleChildScrollView(
-        padding: EpisodeDetailTabPanel.scrollPadding(scrollBottomInset),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCurrentEpisodeSection(context),
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.only(
-                right: LearningChecklistBar.adRightClearance,
-              ),
-              child: BannerAdWidget(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bannerWidth =
+              (constraints.maxWidth - adRight).clamp(0.0, 1200.0);
+          return SingleChildScrollView(
+            padding: EpisodeDetailTabPanel.scrollPadding(scrollBottomInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCurrentEpisodeSection(
+                  context,
+                  paneWidth: constraints.maxWidth,
+                ),
+                const SizedBox(height: 24),
+                if (bannerWidth >= 320)
+                  Padding(
+                    padding: EdgeInsets.only(right: adRight),
+                    child: BannerAdWidget(
+                      adaptive: true,
+                      adaptiveWidth: bannerWidth,
+                    ),
+                  ),
+                _buildTopEpisodesSection(context),
+              ],
             ),
-            _buildTopEpisodesSection(context),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCurrentEpisodeSection(BuildContext context) {
+  Widget _buildCurrentEpisodeSection(
+    BuildContext context, {
+    required double paneWidth,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final categoryColor = colorScheme.primary;
-    
+    final useColumn = paneWidth < 360;
+    final innerWidth = (paneWidth - 32).clamp(0.0, 1200.0);
+    final columnThumbWidth = innerWidth;
+    final columnThumbHeight = columnThumbWidth * (_mainThumbHeight / _mainThumbWidth);
+
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (episode.summary != null && episode.summary!.isNotEmpty)
+          Text(
+            episode.summary!,
+            style: TextStyle(
+              fontSize: 16,
+              color: colorScheme.onSurface,
+              height: 1.4,
+            ),
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+          )
+        else
+          Text(
+            languageManager.getText('noSummary'),
+            style: TextStyle(
+              fontSize: 14,
+              color: colorScheme.onSurface.withOpacity(0.5),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outline.withOpacity(0.3),
           width: 1,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Thumbnail
-          ImageCacheService().buildCachedImage(
-            imageUrl: episode.thumbImage,
-            width: _mainThumbWidth,
-            height: _mainThumbHeight,
-            fit: BoxFit.cover,
-            borderRadius: BorderRadius.circular(8),
-            showWatermark: true,
-          ),
-          const SizedBox(width: 16),
-          // Episode Info
-          Expanded(
-            child: Column(
+      child: useColumn
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ImageCacheService().buildCachedImage(
+                  imageUrl: episode.thumbImage,
+                  width: columnThumbWidth,
+                  height: columnThumbHeight,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(8),
+                  showWatermark: true,
+                ),
+                const SizedBox(height: 12),
+                summary,
+              ],
+            )
+          : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Summary
-                if (episode.summary != null && episode.summary!.isNotEmpty)
-                  Text(
-                    episode.summary!,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      height: 1.4,
-                    ),
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                else
-                  Text(
-                    languageManager.getText('noSummary'),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),                
+                ImageCacheService().buildCachedImage(
+                  imageUrl: episode.thumbImage,
+                  width: _mainThumbWidth,
+                  height: _mainThumbHeight,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(8),
+                  showWatermark: true,
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: summary),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 

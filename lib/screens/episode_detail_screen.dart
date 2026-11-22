@@ -9,6 +9,7 @@ import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
 import '../utils/category_names.dart';
+import '../utils/responsive_layout.dart';
 import '../services/audio_player_service.dart';
 import '../services/firebase_service.dart';
 import '../services/local_database_service.dart';
@@ -62,6 +63,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   late Episode _episode;
   bool _hydratingFullEpisode = false;
   int _currentPageIndex = 0; // Transcript
+  /// Last Reference/Vocab/Questions tab (1–3) for split right pane.
+  int _lastRightTabIndex = 1;
   int _scrollToActiveTranscriptRequestId = 0;
   bool _isHandlingBackNavigation = false;
   double _playerHeight = _fallbackPlayerHeight;
@@ -95,6 +98,7 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     );
     final initialTab = (saved?.lastTabIndex ?? 0).clamp(0, 3);
     _currentPageIndex = initialTab;
+    _lastRightTabIndex = initialTab >= 1 ? initialTab : 1;
     _pageController = PageController(initialPage: initialTab);
 
     if (saved != null &&
@@ -156,8 +160,11 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       _hydratingFullEpisode = _mustFetchFullEpisode(_episode);
       _rebuildParsedTranscriptLines();
       _currentPageIndex = 0;
+      _lastRightTabIndex = 1;
     });
-    _pageController.jumpToPage(0);
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
     unawaited(_learningProgress.touchEpisode(_episode));
     Future.microtask(_hydrateFullEpisodeIfNeeded);
     _scheduleDebugSqliteSourceNotice(_episode);
@@ -312,11 +319,40 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       _currentPageIndex = 0;
       _scrollToActiveTranscriptRequestId++;
     });
-    _pageController.animateToPage(
-      0,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _goToDetailTab(int index) {
+    final tab = index.clamp(0, 3);
+    setState(() {
+      _currentPageIndex = tab;
+      if (tab >= 1) _lastRightTabIndex = tab;
+      if (tab == 0) _scrollToActiveTranscriptRequestId++;
+    });
+    unawaited(
+      _learningProgress.updateTabIndex(episode: _episode, tabIndex: tab),
     );
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        tab,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _syncPageControllerIfNeeded() {
+    if (!_pageController.hasClients) return;
+    final page = _pageController.page?.round();
+    if (page != null && page != _currentPageIndex) {
+      _pageController.jumpToPage(_currentPageIndex);
+    }
   }
 
   /// Debug: báo đường dẫn sẽ dùng khi mở detail từ Home/List.
@@ -529,351 +565,622 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
           ),
         ],
       ),
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Column(
-            children: [
-              // Episode Name Header
-              Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: categoryColor.withOpacity(0.2),
-                  width: 1,
-                ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final split = ResponsiveLayout.useEpisodeSplitLayout(
+            context,
+            width: constraints.maxWidth,
+          );
+          if (split) {
+            return _buildSplitBody(context, categoryColor, constraints);
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _syncPageControllerIfNeeded();
+          });
+          return _buildCompactBody(context, categoryColor);
+        },
+      ),
+        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactBody(BuildContext context, Color categoryColor) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          children: [
+            _buildEpisodeHeader(context, categoryColor),
+            _buildDetailTabs(context, categoryColor),
+            if (_currentPageIndex == 0)
+              _buildTranscriptToolbar(
+                context,
+                categoryColor,
+                splitLayout: false,
+              ),
+            Expanded(
+              child: Builder(
+                builder: (context) {
+                  final scrollBottomInset = _contentBottomInset(context);
+                  return PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPageIndex = index;
+                        if (index >= 1) _lastRightTabIndex = index;
+                      });
+                      unawaited(
+                        _learningProgress.updateTabIndex(
+                          episode: _episode,
+                          tabIndex: index,
+                        ),
+                      );
+                    },
+                    children: [
+                      _buildTranscriptPane(
+                        context,
+                        scrollBottomInset: scrollBottomInset,
+                      ),
+                      ..._buildSideSlides(
+                        context,
+                        scrollBottomInset: scrollBottomInset,
+                        reserveChecklistClearance: true,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-            child: Row(
+          ],
+        ),
+        Positioned(
+          right: LearningChecklistBar.laneOuterPadding,
+          top: 0,
+          bottom: _checklistBottomInset(context),
+          child: SafeArea(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ListenableBuilder(
+                listenable: _learningProgress,
+                builder: (context, child) {
+                  return LearningChecklistBar(
+                    accentColor: categoryColor,
+                    progress: _learningProgress.getProgress(
+                      LearningProgressService.episodeKey(_episode),
+                    ),
+                    onStepTap: _goToDetailTab,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: EpisodeDetailTabPanel.contentHorizontalInset,
+          right: EpisodeDetailTabPanel.contentHorizontalInset,
+          bottom:
+              _playerBottomOffset + MediaQuery.viewPaddingOf(context).bottom,
+          child: _buildAudioPlayer(
+            context,
+            docked: false,
+            showCurrentPanel: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSplitBody(
+    BuildContext context,
+    Color categoryColor,
+    BoxConstraints constraints,
+  ) {
+    final hingeGap = ResponsiveLayout.hingeGapWidth(context);
+    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+    final rightTab =
+        _currentPageIndex >= 1 ? _currentPageIndex : _lastRightTabIndex;
+    final rightStackIndex = (rightTab - 1).clamp(0, 2);
+
+    return Column(
+      children: [
+        _buildEpisodeHeader(context, categoryColor),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _buildTranscriptToolbar(
+                      context,
+                      categoryColor,
+                      splitLayout: true,
+                    ),
+                    Expanded(
+                      child: _buildTranscriptPane(
+                        context,
+                        scrollBottomInset: safeBottom + 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hingeGap > 0)
+                SizedBox(width: hingeGap)
+              else
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withOpacity(0.55),
+                ),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _buildDetailTabs(
+                      context,
+                      categoryColor,
+                      splitMode: true,
+                      selectedTabOverride: rightTab,
+                    ),
+                    Expanded(
+                      child: IndexedStack(
+                        index: rightStackIndex,
+                        children: _buildSideSlides(
+                          context,
+                          scrollBottomInset: 0,
+                          reserveChecklistClearance: false,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(8, 4, 8, 8 + safeBottom),
+                      child: _buildAudioPlayer(
+                        context,
+                        docked: true,
+                        showCurrentPanel: false,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEpisodeHeader(BuildContext context, Color categoryColor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: categoryColor.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SelectableText(
-                        _episode.episodeName,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 17.5,
-                          fontWeight: FontWeight.w700,
-                          height: 1.25,
-                          letterSpacing: -0.2,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.95),
-                        ),
-                        contextMenuBuilder: (context, editableTextState) {
-                          return AdaptiveTextSelectionToolbar.buttonItems(
-                            anchors: editableTextState.contextMenuAnchors,
-                            buttonItems: <ContextMenuButtonItem>[
-                              ContextMenuButtonItem(
-                                label: 'Copy',
-                                onPressed: () {
-                                  final selectedText = editableTextState
-                                      .textEditingValue.selection
-                                      .textInside(
-                                    editableTextState.textEditingValue.text,
-                                  );
-                                  if (selectedText.isNotEmpty) {
-                                    Clipboard.setData(
-                                      ClipboardData(text: selectedText),
-                                    );
-                                    editableTextState.hideToolbar();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          _languageManager
-                                              .getText('copiedToClipboard'),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                              ContextMenuButtonItem(
-                                label: 'Translate',
-                                onPressed: () {
-                                  final selectedText = editableTextState
-                                      .textEditingValue.selection
-                                      .textInside(
-                                    editableTextState.textEditingValue.text,
-                                  );
-                                  if (selectedText.isNotEmpty) {
-                                    _openGoogleTranslate(selectedText);
-                                    editableTextState.hideToolbar();
-                                  }
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: categoryColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _episode.category,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                SelectableText(
+                  _episode.episodeName,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                    letterSpacing: -0.2,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.95),
                   ),
-                ),
-                const SizedBox(width: 10),
-                // Right: fixed top — duration / published date (không theo chiều cao title)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.access_time_filled_rounded,
-                            size: 15,
-                            color: Color(0xFFE65100), // cam đậm
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            _episode.duration,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.55),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (!_isOtherProgramsCategory(_episode.category)) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.calendar_month_rounded,
-                              size: 14,
-                              color: Color(0xFF1565C0), // xanh dương đậm
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              _formatDate(_episode.publishedDate),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.55),
-                              ),
-                            ),
-                          ],
+                  contextMenuBuilder: (context, editableTextState) {
+                    return AdaptiveTextSelectionToolbar.buttonItems(
+                      anchors: editableTextState.contextMenuAnchors,
+                      buttonItems: <ContextMenuButtonItem>[
+                        ContextMenuButtonItem(
+                          label: 'Copy',
+                          onPressed: () {
+                            final selectedText = editableTextState
+                                .textEditingValue.selection
+                                .textInside(
+                              editableTextState.textEditingValue.text,
+                            );
+                            if (selectedText.isNotEmpty) {
+                              Clipboard.setData(
+                                ClipboardData(text: selectedText),
+                              );
+                              editableTextState.hideToolbar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _languageManager
+                                        .getText('copiedToClipboard'),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        ContextMenuButtonItem(
+                          label: 'Translate',
+                          onPressed: () {
+                            final selectedText = editableTextState
+                                .textEditingValue.selection
+                                .textInside(
+                              editableTextState.textEditingValue.text,
+                            );
+                            if (selectedText.isNotEmpty) {
+                              _openGoogleTranslate(selectedText);
+                              editableTextState.hideToolbar();
+                            }
+                          },
                         ),
                       ],
-                    ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: categoryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _episode.category,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          _buildDetailTabs(context, categoryColor),
-          if (_currentPageIndex == 0 && _hasTimedTranscript)
-            _buildTranscriptSubtitleToggle(context, categoryColor),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                final scrollBottomInset = _contentBottomInset(context);
-                return PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPageIndex = index;
-                    });
-                    unawaited(
-                      _learningProgress.updateTabIndex(
-                        episode: _episode,
-                        tabIndex: index,
-                      ),
-                    );
-                  },
+          const SizedBox(width: 10),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ListenableBuilder(
-                      listenable: _audioService,
-                      builder: (context, child) {
-                        if (_isSubtitleMode) {
-                          return SubtitleCinemaPanel(
-                            episode: _episode,
-                            lines: _parsedTranscriptLines,
-                            currentPositionMs:
-                                _audioService.currentPositionMs,
-                            scrollBottomInset: scrollBottomInset,
-                            onToggleLoopLine: (startMs, endMs) {
-                              return _audioService.toggleLineLoop(
-                                startMs: startMs,
-                                endMs: endMs,
-                              );
-                            },
-                            isLineLooping: (startMs, endMs) {
-                              return _audioService.isLineLoopActive(
-                                startMs: startMs,
-                                endMs: endMs,
-                              );
-                            },
-                          );
-                        }
-                        return TranscriptSlide(
-                          episode: _episode,
-                          learningProgress: _learningProgress,
-                          isAwaitingFullEpisode: _hydratingFullEpisode,
-                          scrollBottomInset: scrollBottomInset,
-                          currentPositionMs: _audioService.currentPositionMs,
-                          scrollToActiveRequestId:
-                              _scrollToActiveTranscriptRequestId,
-                          onPlayAtTime: (startTimeMs) {
-                            _audioService.clearAbRepeat();
-                            // Pending seek: lần đầu play (chưa có source) vẫn nhảy đúng dòng.
-                            _audioService.setPendingSeekPosition(
-                              Duration(milliseconds: startTimeMs),
-                            );
-                            _audioService.play();
-                          },
-                          onToggleLoopLine: (startMs, endMs) {
-                            return _audioService.toggleLineLoop(
-                              startMs: startMs,
-                              endMs: endMs,
-                            );
-                          },
-                          isLineLooping: (startMs, endMs) {
-                            return _audioService.isLineLoopActive(
-                              startMs: startMs,
-                              endMs: endMs,
-                            );
-                          },
-                        );
-                      },
+                    const Icon(
+                      Icons.access_time_filled_rounded,
+                      size: 15,
+                      color: Color(0xFFE65100),
                     ),
-                    EpisodeInfoSlide(
-                      languageManager: _languageManager,
-                      episode: _episode,
-                      scrollBottomInset: scrollBottomInset,
-                      topEpisodes: widget.categoryEpisodes,
-                      onEpisodeTap: (episode) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EpisodeDetailScreen(
-                              episode: episode,
-                              categoryEpisodes: widget.categoryEpisodes,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    VocabularySlide(
-                      episode: _episode,
-                      isAwaitingFullEpisode: _hydratingFullEpisode,
-                      scrollBottomInset: scrollBottomInset,
-                    ),
-                    QuestionSlide(
-                      episode: _episode,
-                      isAwaitingFullEpisode: _hydratingFullEpisode,
-                      scrollBottomInset: scrollBottomInset,
+                    const SizedBox(width: 3),
+                    Text(
+                      _episode.duration,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.55),
+                      ),
                     ),
                   ],
-                );
-              },
-            ),
-          ),
-            ],
-          ),
-          Positioned(
-            right: LearningChecklistBar.laneOuterPadding,
-            top: 0,
-            bottom: _checklistBottomInset(context),
-            child: SafeArea(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: ListenableBuilder(
-                  listenable: _learningProgress,
-                  builder: (context, child) {
-                    return LearningChecklistBar(
-                      accentColor: categoryColor,
-                      progress: _learningProgress.getProgress(
-                        LearningProgressService.episodeKey(_episode),
-                      ),
-                      onStepTap: (tabIndex) {
-                        setState(() => _currentPageIndex = tabIndex);
-                        _pageController.animateToPage(
-                          tabIndex,
-                          duration: const Duration(milliseconds: 280),
-                          curve: Curves.easeOutCubic,
-                        );
-                      },
-                    );
-                  },
                 ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: EpisodeDetailTabPanel.contentHorizontalInset,
-            right: EpisodeDetailTabPanel.contentHorizontalInset,
-            bottom: _playerBottomOffset +
-                MediaQuery.viewPaddingOf(context).bottom,
-            child: ListenableBuilder(
-              listenable: _audioService,
-              builder: (context, child) {
-                _scheduleMeasurePlayerHeight();
-                final activeLine = _currentActiveTranscriptLine();
-                final shouldShowCurrentPanel = !_isSubtitleMode &&
-                    activeLine != null &&
-                    (_audioService.isPlaying ||
-                        _audioService.isPaused ||
-                        _audioService.currentPositionMs > 0);
-                final speaker = activeLine != null && activeLine.speaker.trim().isNotEmpty
-                    ? activeLine.speaker.toUpperCase()
-                    : _languageManager.getText('speakerDefault');
-                final lineText = activeLine?.text.trim().isNotEmpty == true
-                    ? activeLine!.text
-                    : '...';
-                return KeyedSubtree(
-                  key: _playerKey,
-                  child: AudioPlayerWidget(
-                    audioService: _audioService,
-                    currentSpeaker: speaker,
-                    currentLineText: lineText,
-                    showCurrentPanel: shouldShowCurrentPanel,
-                    onCurrentPanelTap: _focusCurrentTranscriptLine,
-                    onPlayPressed: null,
-                    onAutoPlayEnabled: _onAutoPlayEnabledFirstTime,
+                if (!_isOtherProgramsCategory(_episode.category)) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.calendar_month_rounded,
+                        size: 14,
+                        color: Color(0xFF1565C0),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        _formatDate(_episode.publishedDate),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.55),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
+                ],
+              ],
             ),
           ),
         ],
       ),
-        ),
+    );
+  }
+
+  Widget _buildTranscriptPane(
+    BuildContext context, {
+    required double scrollBottomInset,
+  }) {
+    return ListenableBuilder(
+      listenable: _audioService,
+      builder: (context, child) {
+        if (_isSubtitleMode) {
+          return SubtitleCinemaPanel(
+            episode: _episode,
+            lines: _parsedTranscriptLines,
+            currentPositionMs: _audioService.currentPositionMs,
+            scrollBottomInset: scrollBottomInset,
+            onToggleLoopLine: (startMs, endMs) {
+              return _audioService.toggleLineLoop(
+                startMs: startMs,
+                endMs: endMs,
+              );
+            },
+            isLineLooping: (startMs, endMs) {
+              return _audioService.isLineLoopActive(
+                startMs: startMs,
+                endMs: endMs,
+              );
+            },
+          );
+        }
+        return TranscriptSlide(
+          episode: _episode,
+          learningProgress: _learningProgress,
+          isAwaitingFullEpisode: _hydratingFullEpisode,
+          scrollBottomInset: scrollBottomInset,
+          currentPositionMs: _audioService.currentPositionMs,
+          scrollToActiveRequestId: _scrollToActiveTranscriptRequestId,
+          onPlayAtTime: (startTimeMs) {
+            _audioService.clearAbRepeat();
+            _audioService.setPendingSeekPosition(
+              Duration(milliseconds: startTimeMs),
+            );
+            _audioService.play();
+          },
+          onToggleLoopLine: (startMs, endMs) {
+            return _audioService.toggleLineLoop(
+              startMs: startMs,
+              endMs: endMs,
+            );
+          },
+          isLineLooping: (startMs, endMs) {
+            return _audioService.isLineLoopActive(
+              startMs: startMs,
+              endMs: endMs,
+            );
+          },
         );
       },
+    );
+  }
+
+  List<Widget> _buildSideSlides(
+    BuildContext context, {
+    required double scrollBottomInset,
+    required bool reserveChecklistClearance,
+  }) {
+    return [
+      EpisodeInfoSlide(
+        languageManager: _languageManager,
+        episode: _episode,
+        scrollBottomInset: scrollBottomInset,
+        reserveChecklistClearance: reserveChecklistClearance,
+        topEpisodes: widget.categoryEpisodes,
+        onEpisodeTap: (episode) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EpisodeDetailScreen(
+                episode: episode,
+                categoryEpisodes: widget.categoryEpisodes,
+              ),
+            ),
+          );
+        },
+      ),
+      VocabularySlide(
+        episode: _episode,
+        isAwaitingFullEpisode: _hydratingFullEpisode,
+        scrollBottomInset: scrollBottomInset,
+        reserveChecklistClearance: reserveChecklistClearance,
+      ),
+      QuestionSlide(
+        episode: _episode,
+        isAwaitingFullEpisode: _hydratingFullEpisode,
+        scrollBottomInset: scrollBottomInset,
+      ),
+    ];
+  }
+
+  Widget _buildAudioPlayer(
+    BuildContext context, {
+    required bool docked,
+    required bool showCurrentPanel,
+  }) {
+    return ListenableBuilder(
+      listenable: _audioService,
+      builder: (context, child) {
+        _scheduleMeasurePlayerHeight();
+        final activeLine = _currentActiveTranscriptLine();
+        final shouldShowCurrentPanel = showCurrentPanel &&
+            !_isSubtitleMode &&
+            activeLine != null &&
+            (_audioService.isPlaying ||
+                _audioService.isPaused ||
+                _audioService.currentPositionMs > 0);
+        final speaker =
+            activeLine != null && activeLine.speaker.trim().isNotEmpty
+                ? activeLine.speaker.toUpperCase()
+                : _languageManager.getText('speakerDefault');
+        final lineText = activeLine?.text.trim().isNotEmpty == true
+            ? activeLine!.text
+            : '...';
+        return KeyedSubtree(
+          key: _playerKey,
+          child: AudioPlayerWidget(
+            audioService: _audioService,
+            currentSpeaker: speaker,
+            currentLineText: lineText,
+            showCurrentPanel: shouldShowCurrentPanel,
+            onCurrentPanelTap: _focusCurrentTranscriptLine,
+            onPlayPressed: null,
+            onAutoPlayEnabled: _onAutoPlayEnabledFirstTime,
+            docked: docked,
+          ),
+        );
+      },
+    );
+  }
+
+  static const List<String> _fontSizeSteps = ['small', 'normal', 'large'];
+  static const Map<String, String> _fontSizeMenuLabels = {
+    'small': 'A−',
+    'normal': 'Aa',
+    'large': 'A+',
+  };
+  static const Map<String, double> _fontSizeMenuLabelSizes = {
+    'small': 13,
+    'normal': 14,
+    'large': 16,
+  };
+  static const double _toolbarPillWidth = 88;
+  static const double _toolbarPillHeight = 30;
+  static const double _fontSizeButtonWidth = 40;
+  static const double _fontSizeButtonHeight = 28;
+
+  Widget _buildTranscriptToolbar(
+    BuildContext context,
+    Color categoryColor, {
+    required bool splitLayout,
+  }) {
+    // Landscape/split: top 6 khớp tabs phải; portrait giữ top 0.
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, splitLayout ? 6 : 0, 12, 4),
+      child: SizedBox(
+        height: _toolbarPillHeight,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (_hasTimedTranscript)
+              _buildTranscriptSubtitleToggle(context, categoryColor),
+            Row(
+              children: [
+                if (splitLayout)
+                  ListenableBuilder(
+                    listenable: _learningProgress,
+                    builder: (context, child) {
+                      return LearningChecklistBar(
+                        direction: Axis.horizontal,
+                        diameter: _toolbarPillHeight,
+                        accentColor: categoryColor,
+                        progress: _learningProgress.getProgress(
+                          LearningProgressService.episodeKey(_episode),
+                        ),
+                        onStepTap: _goToDetailTab,
+                      );
+                    },
+                  ),
+                const Spacer(),
+                _buildFontSizeMenuButton(context),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFontSizeMenuButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final current = _languageManager.currentFontSize;
+
+    return PopupMenuButton<String>(
+      tooltip: _languageManager.getText('fontSize'),
+      initialValue: current,
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, _fontSizeButtonHeight + 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (value) => _languageManager.changeFontSize(value),
+      itemBuilder: (context) {
+        return [
+          for (final size in _fontSizeSteps)
+            PopupMenuItem<String>(
+              value: size,
+              height: 40,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 18,
+                    child: size == current
+                        ? Icon(
+                            Icons.check,
+                            size: 15,
+                            color: scheme.primary,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _fontSizeMenuLabels[size]!,
+                    style: TextStyle(
+                      fontSize: _fontSizeMenuLabelSizes[size],
+                      fontWeight:
+                          size == current ? FontWeight.w700 : FontWeight.w600,
+                      color: size == current
+                          ? scheme.primary
+                          : scheme.onSurface.withOpacity(0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ];
+      },
+      child: SizedBox(
+        width: _fontSizeButtonWidth,
+        height: _fontSizeButtonHeight,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withOpacity(0.55),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: scheme.outlineVariant.withOpacity(0.55),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              'Aa',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface.withOpacity(0.85),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -884,96 +1191,113 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurface.withOpacity(0.55);
     final isSubtitle = _isSubtitleMode;
-    final labels = (
-      transcript: _languageManager.getText('transcript'),
-      subtitle: _languageManager.getText('subtitleMode'),
-    );
 
     Widget segment({
-      required String label,
+      required IconData icon,
+      required String tooltip,
       required bool selected,
       required VoidCallback onTap,
     }) {
       return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: selected ? categoryColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            alignment: Alignment.center,
-            child: AnimatedDefaultTextStyle(
+        child: Tooltip(
+          message: tooltip,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              decoration: BoxDecoration(
+                color: selected ? categoryColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                size: 16,
                 color: selected ? Colors.white : muted,
               ),
-              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
           ),
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 2),
-      child: Align(
-        alignment: Alignment.center,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 136),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withOpacity(0.55),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: scheme.outlineVariant.withOpacity(0.55),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Row(
-                children: [
-                  segment(
-                    label: labels.transcript,
-                    selected: !isSubtitle,
-                    onTap: () => unawaited(
-                      _setTranscriptDisplayMode(
-                        _TranscriptDisplayMode.transcript,
-                      ),
-                    ),
+    return SizedBox(
+      width: _toolbarPillWidth,
+      height: _toolbarPillHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withOpacity(0.55),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: scheme.outlineVariant.withOpacity(0.55),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Row(
+            children: [
+              segment(
+                icon: Icons.notes_rounded,
+                tooltip: _languageManager.getText('transcript'),
+                selected: !isSubtitle,
+                onTap: () => unawaited(
+                  _setTranscriptDisplayMode(
+                    _TranscriptDisplayMode.transcript,
                   ),
-                  segment(
-                    label: labels.subtitle,
-                    selected: isSubtitle,
-                    onTap: () => unawaited(
-                      _setTranscriptDisplayMode(
-                        _TranscriptDisplayMode.subtitle,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              segment(
+                icon: Icons.subtitles_rounded,
+                tooltip: _languageManager.getText('subtitleMode'),
+                selected: isSubtitle,
+                onTap: () => unawaited(
+                  _setTranscriptDisplayMode(
+                    _TranscriptDisplayMode.subtitle,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailTabs(BuildContext context, Color categoryColor) {
+  Widget _buildDetailTabs(
+    BuildContext context,
+    Color categoryColor, {
+    bool splitMode = false,
+    int? selectedTabOverride,
+  }) {
     final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.55);
-    final tabs = <({IconData icon, String label})>[
-      (icon: Icons.description_rounded, label: _languageManager.getText('transcript')),
-      (icon: Icons.menu_book_rounded, label: _languageManager.getText('reference')),
-      (icon: Icons.translate_rounded, label: _languageManager.getText('vocabulary')),
-      (icon: Icons.quiz_outlined, label: _languageManager.getText('questionsTab')),
+    final allTabs = <({int index, IconData icon, String label})>[
+      (
+        index: 0,
+        icon: Icons.description_rounded,
+        label: _languageManager.getText('transcript'),
+      ),
+      (
+        index: 1,
+        icon: Icons.menu_book_rounded,
+        label: _languageManager.getText('reference'),
+      ),
+      (
+        index: 2,
+        icon: Icons.translate_rounded,
+        label: _languageManager.getText('vocabulary'),
+      ),
+      (
+        index: 3,
+        icon: Icons.quiz_outlined,
+        label: _languageManager.getText('questionsTab'),
+      ),
     ];
+    final tabs =
+        splitMode ? allTabs.where((t) => t.index != 0).toList() : allTabs;
+    final selectedIndex = selectedTabOverride ?? _currentPageIndex;
 
     const tabRadius = 10.0;
 
@@ -983,54 +1307,52 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
       child: Row(
         children: [
           ...List.generate(tabs.length, (i) {
-          final selected = _currentPageIndex == i;
-          final t = tabs[i];
-          return Padding(
-            padding: EdgeInsets.only(left: i == 0 ? 0 : 2, right: 2),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(tabRadius),
-                onTap: () {
-                  _pageController.animateToPage(
-                    i,
-                    duration: const Duration(milliseconds: 320),
-                    curve: Curves.easeOutCubic,
-                  );
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: selected ? categoryColor.withOpacity(0.22) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(tabRadius),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        t.icon,
-                        size: 18,
-                        color: selected ? categoryColor : muted,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        t.label,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            final t = tabs[i];
+            final selected = selectedIndex == t.index;
+            return Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 2, right: 2),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(tabRadius),
+                  onTap: () => _goToDetailTab(t.index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? categoryColor.withOpacity(0.22)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(tabRadius),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          t.icon,
+                          size: 18,
                           color: selected ? categoryColor : muted,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 5),
+                        Text(
+                          t.label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected ? categoryColor : muted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
-        const SizedBox(width: 4),
-      ],
+            );
+          }),
+          const SizedBox(width: 4),
+        ],
       ),
     );
   }

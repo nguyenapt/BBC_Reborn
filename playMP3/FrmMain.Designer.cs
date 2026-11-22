@@ -1829,9 +1829,9 @@ namespace playMP3
             this.cbAutoSubmitGrammarPassage.AutoSize = true;
             this.cbAutoSubmitGrammarPassage.Location = new System.Drawing.Point(1396, 1003);
             this.cbAutoSubmitGrammarPassage.Name = "cbAutoSubmitGrammarPassage";
-            this.cbAutoSubmitGrammarPassage.Size = new System.Drawing.Size(86, 17);
+            this.cbAutoSubmitGrammarPassage.Size = new System.Drawing.Size(250, 17);
             this.cbAutoSubmitGrammarPassage.TabIndex = 50;
-            this.cbAutoSubmitGrammarPassage.Text = "Auto Submit ";
+            this.cbAutoSubmitGrammarPassage.Text = "Auto Submit (theo checkbox Export/FCM)";
             this.cbAutoSubmitGrammarPassage.UseVisualStyleBackColor = true;
             // 
             // btnPurgeAiCache

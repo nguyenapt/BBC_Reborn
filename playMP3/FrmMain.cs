@@ -2814,7 +2814,7 @@ namespace playMP3
 
             var fillMessage = errorRowsMode
                 ? "Đã gọi lại " + targets.Count + " ô lỗi."
-                : "Đã điền grammar passage (1 request/dòng đã chọn) cho các tab có transcript.";
+                : "Đã phân tích grammar passage tiếng Anh (1 request/dòng đã chọn) rồi dịch sang các tab.";
 
             if (cbAutoSubmitGrammarPassage != null && cbAutoSubmitGrammarPassage.Checked)
             {

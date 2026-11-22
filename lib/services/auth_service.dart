@@ -18,6 +18,7 @@ class AuthService extends ChangeNotifier {
   static const String _isLoggedInKey = 'is_logged_in';
   static const String _googleWebClientId =
       '128498222438-altvtff6csvmb4npdf1fujn2vgjeb272.apps.googleusercontent.com';
+  static const String requiresRecentLoginCode = 'requires-recent-login';
 
   static bool get _useFirebaseAuth =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -61,7 +62,7 @@ class AuthService extends ChangeNotifier {
 
   Future<AuthResult> loginWithEmail(String email, String password) async {
     if (!_useFirebaseAuth) {
-      return AuthResult.error('Đăng nhập cloud chỉ khả dụng trên Android/iOS');
+      return AuthResult.error('authCloudUnavailable');
     }
 
     try {
@@ -71,7 +72,7 @@ class AuthService extends ChangeNotifier {
       );
       final user = credential.user;
       if (user == null) {
-        return AuthResult.error('Đăng nhập thất bại');
+        return AuthResult.error('authLoginFailed');
       }
       _applyFirebaseUser(user);
       await _cacheUserDisplay(user);
@@ -90,17 +91,17 @@ class AuthService extends ChangeNotifier {
     String name,
   ) async {
     if (!_useFirebaseAuth) {
-      return AuthResult.error('Đăng ký cloud chỉ khả dụng trên Android/iOS');
+      return AuthResult.error('authCloudUnavailable');
     }
 
     if (!_isValidEmail(email)) {
-      return AuthResult.error('Email không hợp lệ');
+      return AuthResult.error('authInvalidEmail');
     }
     if (password.length < 6) {
-      return AuthResult.error('Mật khẩu phải có ít nhất 6 ký tự');
+      return AuthResult.error('passwordMinLength');
     }
     if (name.trim().isEmpty) {
-      return AuthResult.error('Tên không được để trống');
+      return AuthResult.error('nameRequired');
     }
 
     try {
@@ -111,7 +112,7 @@ class AuthService extends ChangeNotifier {
       );
       final user = credential.user;
       if (user == null) {
-        return AuthResult.error('Đăng ký thất bại');
+        return AuthResult.error('authRegisterFailed');
       }
       await user.updateDisplayName(name.trim());
       await user.reload();
@@ -122,7 +123,7 @@ class AuthService extends ChangeNotifier {
         await UserCloudSyncService().syncOnLogin(refreshed.uid);
         return AuthResult.success(_currentUser!);
       }
-      return AuthResult.error('Đăng ký thất bại');
+      return AuthResult.error('authRegisterFailed');
     } on fb.FirebaseAuthException catch (e) {
       return AuthResult.error(_mapFirebaseAuthError(e));
     } catch (e) {
@@ -132,13 +133,13 @@ class AuthService extends ChangeNotifier {
 
   Future<AuthResult> loginWithGoogle() async {
     if (!_useFirebaseAuth) {
-      return AuthResult.error('Đăng nhập Google chỉ khả dụng trên Android/iOS');
+      return AuthResult.error('authCloudUnavailable');
     }
 
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        return AuthResult.error('Đăng nhập bị hủy');
+        return AuthResult.error('authLoginCancelled');
       }
 
       final GoogleSignInAuthentication googleAuth =
@@ -152,7 +153,7 @@ class AuthService extends ChangeNotifier {
           await fb.FirebaseAuth.instance.signInWithCredential(credential);
       final user = userCredential.user;
       if (user == null) {
-        return AuthResult.error('Đăng nhập Google thất bại');
+        return AuthResult.error('authGoogleFailed');
       }
 
       _applyFirebaseUser(user);
@@ -190,6 +191,123 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Xóa tài khoản: re-auth → xóa RTDB → xóa Auth → clear session.
+  /// Email chưa có [password] → trả [requiresRecentLoginCode] để UI hỏi mật khẩu.
+  Future<AuthResult> deleteAccount({String? password}) async {
+    if (!_useFirebaseAuth) {
+      return AuthResult.error('authDeleteUnavailable');
+    }
+
+    final user = fb.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return AuthResult.error('authNotLoggedIn');
+    }
+
+    final uid = user.uid;
+    final provider = _primaryProvider(user);
+
+    try {
+      if (provider == 'email' && (password == null || password.isEmpty)) {
+        return AuthResult.error(requiresRecentLoginCode);
+      }
+
+      final reauth = await _reauthenticate(
+        user,
+        provider: provider,
+        password: password,
+      );
+      if (!reauth.isSuccess) {
+        return reauth;
+      }
+
+      final refreshed = fb.FirebaseAuth.instance.currentUser;
+      if (refreshed == null) {
+        return AuthResult.error('authReauthFailed');
+      }
+
+      await UserCloudSyncService().deleteUserCloudData(uid);
+      await refreshed.delete();
+      await _clearLocalSessionAfterDelete();
+      return AuthResult.success(null);
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+      return AuthResult.error(UserFacingError.message(e));
+    }
+  }
+
+  String _primaryProvider(fb.User user) {
+    if (_currentUser?.provider != null && _currentUser!.provider.isNotEmpty) {
+      return _currentUser!.provider;
+    }
+    if (user.providerData.isEmpty) return 'firebase';
+    return _providerLabel(user.providerData.first.providerId);
+  }
+
+  Future<AuthResult> _reauthenticate(
+    fb.User user, {
+    required String provider,
+    String? password,
+  }) async {
+    try {
+      if (provider == 'email') {
+        final email = user.email;
+        if (email == null || email.isEmpty) {
+          return AuthResult.error('authEmailMissing');
+        }
+        if (password == null || password.isEmpty) {
+          return AuthResult.error(requiresRecentLoginCode);
+        }
+        final credential = fb.EmailAuthProvider.credential(
+          email: email,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+        return AuthResult.success(_currentUser);
+      }
+
+      if (provider == 'google') {
+        await _googleSignIn.signOut();
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          return AuthResult.error('authLoginCancelled');
+        }
+        final googleAuth = await googleUser.authentication;
+        if (googleAuth.idToken == null) {
+          return AuthResult.error('authGoogleTokenFailed');
+        }
+        final credential = fb.GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await user.reauthenticateWithCredential(credential);
+        return AuthResult.success(_currentUser);
+      }
+
+      return AuthResult.error('authReauthUnsupported');
+    } on fb.FirebaseAuthException catch (e) {
+      return AuthResult.error(_mapFirebaseAuthError(e));
+    } catch (e) {
+      return AuthResult.error(UserFacingError.message(e));
+    }
+  }
+
+  Future<void> _clearLocalSessionAfterDelete() async {
+    UserCloudSyncService().onUserSignedOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userKey);
+    await prefs.remove(_isLoggedInKey);
+
+    _currentUser = null;
+    _isLoggedIn = false;
+    notifyListeners();
+  }
+
   void _applyFirebaseUser(fb.User fbUser) {
     final provider = fbUser.providerData.isNotEmpty
         ? _providerLabel(fbUser.providerData.first.providerId)
@@ -221,25 +339,28 @@ class AuthService extends ChangeNotifier {
     return providerId;
   }
 
+  /// Trả về key l10n (hoặc [requiresRecentLoginCode]) — UI gọi LanguageManager.getText.
   String _mapFirebaseAuthError(fb.FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'Tài khoản không tồn tại';
+        return 'authUserNotFound';
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Email hoặc mật khẩu không đúng';
+        return 'authWrongPassword';
       case 'email-already-in-use':
-        return 'Email đã được sử dụng';
+        return 'authEmailInUse';
       case 'weak-password':
-        return 'Mật khẩu quá yếu';
+        return 'authWeakPassword';
       case 'invalid-email':
-        return 'Email không hợp lệ';
+        return 'authInvalidEmail';
       case 'user-disabled':
-        return 'Tài khoản đã bị vô hiệu hóa';
+        return 'authUserDisabled';
       case 'too-many-requests':
-        return 'Quá nhiều lần thử. Vui lòng thử lại sau';
+        return 'authTooManyRequests';
+      case 'requires-recent-login':
+        return requiresRecentLoginCode;
       default:
-        return e.message ?? 'Lỗi xác thực (${e.code})';
+        return 'authGenericError';
     }
   }
 
