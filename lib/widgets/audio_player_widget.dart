@@ -10,6 +10,8 @@ class AudioPlayerWidget extends StatefulWidget {
   final bool showCurrentPanel;
   final VoidCallback? onCurrentPanelTap;
   final VoidCallback? onAutoPlayEnabled;
+  /// Docked in a split-pane column (lighter chrome than floating).
+  final bool docked;
 
   const AudioPlayerWidget({
     super.key,
@@ -20,6 +22,7 @@ class AudioPlayerWidget extends StatefulWidget {
     required this.showCurrentPanel,
     this.onCurrentPanelTap,
     this.onAutoPlayEnabled,
+    this.docked = false,
   });
 
   @override
@@ -32,22 +35,39 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(widget.docked ? 16 : 22),
+        border: widget.docked
+            ? Border.all(color: scheme.outlineVariant.withOpacity(0.45))
+            : null,
+        boxShadow: widget.docked
+            ? [
+                BoxShadow(
+                  color: scheme.shadow.withOpacity(0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: scheme.shadow.withOpacity(0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+        padding: EdgeInsets.fromLTRB(
+          10,
+          widget.docked ? 4 : 6,
+          10,
+          widget.docked ? 2 : 4,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -84,6 +104,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   Widget _buildCurrentTranscriptPanel(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final fontScale =
+        LanguageManager().textScaleFactor.clamp(0.85, 1.15);
     return GestureDetector(
       onTap: widget.onCurrentPanelTap,
       behavior: HitTestBehavior.opaque,
@@ -109,7 +131,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
               child: Text(
                 widget.currentLineText,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 13 * fontScale,
                   height: 1.25,
                   color: colorScheme.onSurface.withOpacity(0.92),
                 ),
@@ -133,7 +155,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                 child: Text(
                   widget.currentSpeaker,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 10 * fontScale,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.35,
                     color: colorScheme.primary,

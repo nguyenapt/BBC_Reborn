@@ -13,12 +13,17 @@ class LearningChecklistBar extends StatelessWidget {
   final EpisodeLearningProgress? progress;
   final Color accentColor;
   final void Function(int tabIndex)? onStepTap;
+  final Axis direction;
+  /// Đường kính icon; mặc định [iconSize]. Toolbar ngang nên ~28–30 cho khớp switch/Aa.
+  final double diameter;
 
   const LearningChecklistBar({
     super.key,
     this.progress,
     required this.accentColor,
     this.onStepTap,
+    this.direction = Axis.vertical,
+    this.diameter = iconSize,
   });
 
   @override
@@ -53,23 +58,33 @@ class LearningChecklistBar extends StatelessWidget {
       ),
     ];
 
+    final gap = direction == Axis.horizontal
+        ? (diameter <= 30 ? 4.0 : 8.0)
+        : 8.0;
+
+    final children = <Widget>[
+      for (int i = 0; i < steps.length; i++) ...[
+        if (i > 0)
+          SizedBox(
+            width: direction == Axis.horizontal ? gap : 0,
+            height: direction == Axis.vertical ? gap : 0,
+          ),
+        _ChecklistIcon(
+          step: steps[i],
+          accentColor: accentColor,
+          diameter: diameter,
+          onTap: onStepTap == null
+              ? null
+              : () => onStepTap!(steps[i].tabIndex),
+        ),
+      ],
+    ];
+
     return Material(
       color: Colors.transparent,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int i = 0; i < steps.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            _ChecklistIcon(
-              step: steps[i],
-              accentColor: accentColor,
-              onTap: onStepTap == null
-                  ? null
-                  : () => onStepTap!(steps[i].tabIndex),
-            ),
-          ],
-        ],
-      ),
+      child: direction == Axis.horizontal
+          ? Row(mainAxisSize: MainAxisSize.min, children: children)
+          : Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }
@@ -94,11 +109,13 @@ class _ChecklistIcon extends StatelessWidget {
 
   final _Step step;
   final Color accentColor;
+  final double diameter;
   final VoidCallback? onTap;
 
   const _ChecklistIcon({
     required this.step,
     required this.accentColor,
+    required this.diameter,
     this.onTap,
   });
 
@@ -108,6 +125,10 @@ class _ChecklistIcon extends StatelessWidget {
     final inactiveColor = colorScheme.brightness == Brightness.dark
         ? Colors.white.withOpacity(0.42)
         : colorScheme.onSurface.withOpacity(0.34);
+    final scale = diameter / LearningChecklistBar.iconSize;
+    final glyphSize = (17 * scale).clamp(12.0, 17.0);
+    final badgeSize = (13 * scale).clamp(10.0, 13.0);
+    final badgeIconSize = (8 * scale).clamp(6.0, 8.0);
 
     return Tooltip(
       message: step.label,
@@ -118,8 +139,8 @@ class _ChecklistIcon extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Container(
-              width: LearningChecklistBar.iconSize,
-              height: LearningChecklistBar.iconSize,
+              width: diameter,
+              height: diameter,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: step.done
@@ -134,23 +155,23 @@ class _ChecklistIcon extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: colorScheme.shadow.withOpacity(0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    blurRadius: 8 * scale,
+                    offset: Offset(0, 2 * scale),
                   ),
                 ],
               ),
               child: Icon(
                 step.icon,
-                size: 17,
+                size: glyphSize,
                 color: step.done ? accentColor : inactiveColor,
               ),
             ),
             Positioned(
-              right: -2,
-              bottom: -2,
+              right: -2 * scale,
+              bottom: -2 * scale,
               child: Container(
-                width: 13,
-                height: 13,
+                width: badgeSize,
+                height: badgeSize,
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
                   shape: BoxShape.circle,
@@ -170,7 +191,7 @@ class _ChecklistIcon extends StatelessWidget {
                 ),
                 child: Icon(
                   step.done ? Icons.check_rounded : Icons.close_rounded,
-                  size: 8,
+                  size: badgeIconSize,
                   color: step.done ? _completedGreen : Colors.red.shade600,
                 ),
               ),

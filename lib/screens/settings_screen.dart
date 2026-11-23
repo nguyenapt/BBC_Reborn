@@ -36,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _dailyPracticeNotif = true;
   bool _wordOfDayNotif = true;
   bool _speakingReviewNotif = true;
+  bool _isDeletingAccount = false;
 
   @override
   void initState() {
@@ -198,6 +199,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _buildThemeSection(),
         const SizedBox(height: 16),
 
+        // Font Size Section
+        _buildFontSizeSection(),
+        const SizedBox(height: 16),
+
         // Cache Section
         _buildCacheSection(),
         const SizedBox(height: 16),
@@ -257,6 +262,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[600],
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _isDeletingAccount ? null : _handleDeleteAccount,
+                  icon: _isDeletingAccount
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_forever_outlined),
+                  label: Text(_languageManager.getText('deleteAccount')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red[700],
+                    side: BorderSide(color: Colors.red[300]!),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -413,7 +441,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? _languageManager.getText('unknownError')),
+            content: Text(
+              _localizeAuthError(
+                result.error,
+                fallbackKey: 'unknownError',
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -450,6 +483,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmed == true) {
       await _authService.logout();
+      if (!mounted) return;
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_languageManager.getText('logoutSuccess')),
@@ -457,6 +492,136 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_languageManager.getText('deleteAccountConfirmTitle')),
+        content: Text(_languageManager.getText('deleteAccountConfirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(_languageManager.getText('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            child: Text(_languageManager.getText('deleteAccount')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _runDeleteAccount();
+  }
+
+  Future<void> _runDeleteAccount({String? password}) async {
+    setState(() => _isDeletingAccount = true);
+
+    AuthResult result;
+    try {
+      result = await _authService.deleteAccount(password: password);
+    } catch (e) {
+      result = AuthResult.error(UserFacingError.message(e));
+    }
+
+    if (!mounted) return;
+    setState(() => _isDeletingAccount = false);
+
+    if (result.isSuccess) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_languageManager.getText('deleteAccountSuccess')),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
+    if (result.error == AuthService.requiresRecentLoginCode) {
+      final enteredPassword = await _promptPasswordForDelete();
+      if (enteredPassword == null || enteredPassword.isEmpty || !mounted) {
+        return;
+      }
+      await _runDeleteAccount(password: enteredPassword);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _localizeAuthError(
+            result.error,
+            fallbackKey: 'deleteAccountFailed',
+          ),
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  String _localizeAuthError(String? error, {required String fallbackKey}) {
+    if (error == null || error.isEmpty) {
+      return _languageManager.getText(fallbackKey);
+    }
+    final localized = _languageManager.getText(error);
+    // getText trả về chính key nếu thiếu bản dịch.
+    if (localized == error) {
+      return _languageManager.getText(fallbackKey);
+    }
+    return localized;
+  }
+
+  Future<String?> _promptPasswordForDelete() async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_languageManager.getText('reauthRequired')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_languageManager.getText('enterPasswordToDelete')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: _languageManager.getText('password'),
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (value) => Navigator.pop(context, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_languageManager.getText('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            child: Text(_languageManager.getText('deleteAccount')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return password;
   }
 
   Widget _buildCacheSection() {
@@ -922,6 +1087,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Text(_languageManager.getThemeName(theme)),
                     );
                   }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFontSizeSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.text_fields,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _languageManager.getText('fontSize'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('selectFontSize'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListenableBuilder(
+              listenable: _languageManager,
+              builder: (context, child) {
+                final current = _languageManager.currentFontSize;
+                final scale = _languageManager.textScaleFactor;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ['small', 'normal', 'large'].map((size) {
+                        final selected = current == size;
+                        return ChoiceChip(
+                          label: Text(_languageManager.getFontSizeName(size)),
+                          selected: selected,
+                          onSelected: (_) {
+                            _languageManager.changeFontSize(size);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'The BBC Learning English podcast helps you improve.',
+                      style: TextStyle(
+                        fontSize: 14 * scale,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

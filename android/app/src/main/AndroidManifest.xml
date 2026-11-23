@@ -10,6 +10,10 @@
 
     <!-- Quyền cho luyện nói -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Optional hardware: override transitive required=true from dependencies (Play Console). -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     
     <!-- Quyền cho audio background -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />

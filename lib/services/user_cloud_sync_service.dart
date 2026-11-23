@@ -81,6 +81,19 @@ class UserCloudSyncService {
     _lastSyncedUid = null;
   }
 
+  /// Xóa toàn bộ dữ liệu cloud của user (RTDB `users/$uid`).
+  Future<void> deleteUserCloudData(String uid) async {
+    if (!cloudAvailable || uid.isEmpty) return;
+    _pushTimer?.cancel();
+    _pendingPriority = null;
+    try {
+      await FirebaseDatabase.instance.ref('users/$uid').remove();
+    } catch (e) {
+      debugPrint('UserCloudSyncService.deleteUserCloudData error: $e');
+      rethrow;
+    }
+  }
+
   /// Lên lịch đẩy full snapshot. [priority] quyết định debounce.
   /// Listening mặc định không gọi trực tiếp — dùng [scheduleListeningPush] hoặc flush lúc pause.
   void schedulePush({CloudPushPriority priority = CloudPushPriority.normal}) {
