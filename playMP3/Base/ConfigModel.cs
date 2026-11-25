@@ -21,12 +21,6 @@ namespace playMP3.Base
         /// <summary>Delay (ms) between grammar API calls; optional GeminiRequestDelayMs in service.config.</summary>
         public int GeminiRequestDelayMs { get; set; } = 4500;
 
-        /// <summary>Path to Firebase service account JSON for FCM (Configurations/FcmServiceAccountPath) — BBC.</summary>
-        public string FcmServiceAccountPath { get; set; }
-
-        /// <summary>Path to Firebase service account JSON for FCM VOA project (Configurations/FcmServiceAccountPathVOA).</summary>
-        public string FcmServiceAccountPathVoa { get; set; }
-
         /// <summary>Default on/off for episode push; UI checkbox can override per submit.</summary>
         public bool SendEpisodePush { get; set; } = true;
 
@@ -91,6 +85,10 @@ namespace playMP3.Base
         public string ApiKey { get; set; }
         public string Secret { get; set; }
         public string Storage { get; set; }
+
+        /// <summary>Firebase service account JSON for this cloud (CloudService/FcmServiceAccountPath).</summary>
+        public string FcmServiceAccountPath { get; set; }
+
         public bool IsSelected { get; set; }
     }
 }

@@ -107,6 +107,7 @@ namespace playMP3
 
             UpdateASSeriesChildVisibility();
             UpdateCbLevelEnabled();
+            UpdateLinguaUsFieldVisibility();
             UpdateSendEpisodePushLabel();
         }
 
@@ -117,18 +118,63 @@ namespace playMP3
             return string.Equals(name, "VOA", StringComparison.OrdinalIgnoreCase);
         }
 
-        private string ResolveFcmProfileName()
+        private bool IsLinguaUsCloudService()
         {
-            return IsVoaCloudService()
-                ? EpisodeFcmSender.ProfileVoa
-                : EpisodeFcmSender.ProfileBbc;
+            var name = GetSelectedCloudService()?.Name;
+            return string.Equals(name, "LinguaUS", StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// LinguaUS: <c>{category}/sub-categories/{sub}/episodes/{number}</c>.
+        /// Không chèn năm, không ghi List, không ghi HomePage.
+        /// </summary>
+        private string BuildLinguaUsEpisodeRtdbPath()
+        {
+            var category = (cbCategory?.Text ?? string.Empty).Trim().Trim('/');
+            var sub = (txtSubCategory?.Text ?? string.Empty).Trim().Trim('/');
+            var number = (txtNumber?.Text ?? string.Empty).Trim().Trim('/');
+
+            if (string.IsNullOrEmpty(category) || category.IndexOf('/') >= 0)
+                throw new InvalidOperationException("LinguaUS: chọn category (A1, A2, B1, …).");
+            if (string.IsNullOrEmpty(sub) || sub.IndexOf('/') >= 0)
+                throw new InvalidOperationException("LinguaUS: nhập Sub category là một node (ví dụ 0 hoặc 1).");
+            if (string.IsNullOrEmpty(number) || number.IndexOf('/') >= 0)
+                throw new InvalidOperationException("LinguaUS: nhập Number là node trong episodes (ví dụ 0).");
+
+            return category + "/sub-categories/" + sub + "/episodes/" + number;
+        }
+
+        /// <summary>LinguaUS hiện Sub category và ẩn Home number. Cloud khác giữ nguyên form BBC/VOA.</summary>
+        private void UpdateLinguaUsFieldVisibility()
+        {
+            var lingua = IsLinguaUsCloudService();
+            if (txtSubCategory != null)
+                txtSubCategory.Visible = lingua;
+            if (label3 != null)
+                label3.Visible = lingua;
+            if (txtHomeNumber != null)
+                txtHomeNumber.Visible = !lingua;
+            if (label38 != null)
+                label38.Visible = !lingua;
+        }
+
+        private CloudService GetSelectedCloudService()
+        {
+            return (cbCloudService?.SelectedItem as CloudService)
+                   ?? ConfigModel.SelectedCloudService;
+        }
+
+        /// <summary>Named FirebaseApp id: cloud name (bbc, voa, british, linguaus, …).</summary>
+        private string ResolveFcmProfileName()
+        {
+            var name = GetSelectedCloudService()?.Name;
+            return string.IsNullOrWhiteSpace(name) ? string.Empty : name.Trim().ToLowerInvariant();
+        }
+
+        /// <summary>Service account JSON of the selected CloudService.</summary>
         private string ResolveFcmServiceAccountPath()
         {
-            if (IsVoaCloudService())
-                return ConfigModel.FcmServiceAccountPathVoa;
-            return ConfigModel.FcmServiceAccountPath;
+            return (GetSelectedCloudService()?.FcmServiceAccountPath ?? string.Empty).Trim();
         }
 
         private void UpdateSendEpisodePushLabel()
@@ -136,13 +182,9 @@ namespace playMP3
             if (cbSendEpisodePush == null)
                 return;
 
-            var path = ResolveFcmServiceAccountPath();
-            if (string.IsNullOrWhiteSpace(path) && !IsVoaCloudService())
-            {
-                var env = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
-                if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
-                    path = env;
-            }
+            var path = EpisodeFcmSender.ResolveServiceAccountPath(
+                ResolveFcmProfileName(),
+                ResolveFcmServiceAccountPath());
 
             var fileName = string.IsNullOrWhiteSpace(path)
                 ? null
@@ -153,7 +195,7 @@ namespace playMP3
                 : "Gửi push FCM (" + fileName + ")";
         }
 
-        /// <summary>BBC cloud → Type BBC; VOA cloud → Type VOA; khác → tất cả EpisodeTypes.</summary>
+        /// <summary>BBC → Type BBC; VOA → Type VOA; LinguaUS → Type LinguaUS; khác → tất cả EpisodeTypes.</summary>
         private void ApplyEpisodeTypeFilterForCloudService()
         {
             if (cbType == null || ConfigModel.EpisodeTypes == null || ConfigModel.EpisodeTypes.Count == 0)
@@ -166,7 +208,8 @@ namespace playMP3
 
             var cloudName = (cloud?.Name ?? ConfigModel.SelectedCloudService?.Name ?? string.Empty).Trim();
             var forceMatchCloud = string.Equals(cloudName, "BBC", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase);
+                                  || string.Equals(cloudName, "VOA", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(cloudName, "LinguaUS", StringComparison.OrdinalIgnoreCase);
 
             List<EpisodeTypeModel> filtered;
             if (forceMatchCloud)
@@ -839,6 +882,10 @@ namespace playMP3
                         {
                             cloudService.Storage = node.InnerText;
                         }
+                        else if (node.Name.Equals("FcmServiceAccountPath", StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            cloudService.FcmServiceAccountPath = (node.InnerText ?? string.Empty).Trim();
+                        }
                     }
 
                     ConfigModel.CloudServices.Add(cloudService);
@@ -862,14 +909,6 @@ namespace playMP3
                 var delayNode = m_xmld.SelectSingleNode("/Configurations/GeminiRequestDelayMs");
                 if (delayNode != null && int.TryParse((delayNode.InnerText ?? string.Empty).Trim(), out var delayMs) && delayMs >= 0 && delayMs <= 120_000)
                     ConfigModel.GeminiRequestDelayMs = delayMs;
-
-                var fcmPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPath");
-                if (fcmPathNode != null)
-                    ConfigModel.FcmServiceAccountPath = (fcmPathNode.InnerText ?? string.Empty).Trim();
-
-                var fcmVoaPathNode = m_xmld.SelectSingleNode("/Configurations/FcmServiceAccountPathVOA");
-                if (fcmVoaPathNode != null)
-                    ConfigModel.FcmServiceAccountPathVoa = (fcmVoaPathNode.InnerText ?? string.Empty).Trim();
 
                 var sendPushNode = m_xmld.SelectSingleNode("/Configurations/SendEpisodePush");
                 if (sendPushNode != null)
@@ -1021,27 +1060,43 @@ namespace playMP3
                 .Select(x => x.Category)
                 .Contains(cbCategory.Text);
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
-            episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+            if (IsLinguaUsCloudService())
+            {
+                episode.Category = (cbCategory.Text ?? string.Empty).Trim();
+                episode.RtdbPath = BuildLinguaUsEpisodeRtdbPath();
+            }
+            else
+            {
+                episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
+            }
 
             if (exportEpisodeDetail)
             {
-                await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-
-                var listEpisode = BuildListEpisodePayload(episode);
-
-                await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-
-                if (!string.IsNullOrEmpty(txtHomeNumber.Text))
+                if (IsLinguaUsCloudService())
                 {
-                    //if (cbType.Text == "BBC")
-                    //{
-                        await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                        await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
-                    //}
-                    //if (cbType.Text == "VOA")
-                    //{
-                    //    await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
-                    //}
+                    // Put thay Patch: node episodes/{n} trên console đang là chuỗi rỗng.
+                    await firebaseClient.Child(episode.RtdbPath).PutAsync(episode).ConfigureAwait(true);
+                }
+                else
+                {
+                    await firebaseClient.Child(categoryPath + "/" + txtNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+
+                    var listEpisode = BuildListEpisodePayload(episode);
+
+                    await firebaseClient.Child("List/" + categoryPath + "/" + txtNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+
+                    if (!string.IsNullOrEmpty(txtHomeNumber.Text))
+                    {
+                        //if (cbType.Text == "BBC")
+                        //{
+                            await firebaseClient.Child("HomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                            await firebaseClient.Child("List/HomePage/" + txtHomeNumber.Text).PatchAsync(listEpisode).ConfigureAwait(true);
+                        //}
+                        //if (cbType.Text == "VOA")
+                        //{
+                        //    await firebaseClient.Child("NewHomePage/" + txtHomeNumber.Text).PatchAsync(episode).ConfigureAwait(true);
+                        //}
+                    }
                 }
             }
 
@@ -1051,15 +1106,11 @@ namespace playMP3
                 {
                     var fcmProfile = ResolveFcmProfileName();
                     var fcmPath = ResolveFcmServiceAccountPath();
-                    if (!EpisodeFcmSender.TryConfigure(fcmProfile, fcmPath))
+                    if (!EpisodeFcmSender.TryConfigure(fcmProfile, fcmPath, txtUrl.Text, out var fcmError))
                     {
-                        var hint = IsVoaCloudService()
-                            ? "thêm FcmServiceAccountPathVOA trong service.config."
-                            : "thêm FcmServiceAccountPath trong service.config "
-                              + "hoặc đặt biến môi trường GOOGLE_APPLICATION_CREDENTIALS.";
                         MessageBox.Show(
                             this,
-                            "FCM chưa cấu hình cho " + fcmProfile.ToUpperInvariant() + ": " + hint,
+                            "FCM chưa gửi: " + fcmError,
                             "Push FCM",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Warning);
@@ -1122,6 +1173,7 @@ namespace playMP3
             ConfigModel.SelectedCloudService = selected;
             ApplyEpisodeTypeFilterForCloudService();
             UpdateCbLevelEnabled();
+            UpdateLinguaUsFieldVisibility();
             UpdateSendEpisodePushLabel();
             cbType.Focus();
         }
@@ -1225,11 +1277,14 @@ namespace playMP3
 
             txtNumber.Text = nextNumber + "";
 
-            var resultString = Regex.Match(txtHomeNumber.Text, @"\d+").Value;
+            if (!IsLinguaUsCloudService())
+            {
+                var resultString = Regex.Match(txtHomeNumber.Text, @"\d+").Value;
 
-            int nextHomeNumber = int.Parse(resultString) + 1;
+                int nextHomeNumber = int.Parse(resultString) + 1;
 
-            txtHomeNumber.Text = cbCategory.Text + "/" + nextHomeNumber;
+                txtHomeNumber.Text = cbCategory.Text + "/" + nextHomeNumber;
+            }
 
         }
 
@@ -1298,6 +1353,24 @@ namespace playMP3
             string categoryPath = firebaseCategoryPathRoot + (isSupportYear ? "/" + cbYear.Text : "");
             var canonicalEpisodeId = episode.Id.ToString();
             episode.GrammarVocabularyCacheKeys = BuildGrammarVocabularyCacheKeysCsv(canonicalEpisodeId);
+
+            if (IsLinguaUsCloudService())
+            {
+                var detailPath = BuildLinguaUsEpisodeRtdbPath();
+                episode.Category = (cbCategory?.Text ?? string.Empty).Trim();
+                episode.RtdbPath = detailPath;
+                var linguaRoot = new JObject
+                {
+                    ["exportedAt"] = DateTime.UtcNow.ToString("o"),
+                    ["schemaVersion"] = 1,
+                    ["episodeNumber"] = txtNumber.Text,
+                    ["subCategory"] = (txtSubCategory?.Text ?? string.Empty).Trim(),
+                    ["rtdbPath"] = detailPath,
+                    ["episode"] = JObject.FromObject(episode),
+                };
+                linguaRoot["ai_cache"] = BuildAiCacheExportPayload(canonicalEpisodeId);
+                return linguaRoot;
+            }
 
             episode.RtdbPath = categoryPath + "/" + txtNumber.Text;
 

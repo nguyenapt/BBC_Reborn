@@ -274,6 +274,8 @@ namespace playMP3
             this.toolStripProgressGrammar = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripStatusLabelGrammar = new System.Windows.Forms.ToolStripStatusLabel();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.txtSubCategory = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.grvRow)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -681,6 +683,8 @@ namespace playMP3
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.txtSubCategory);
+            this.groupBox3.Controls.Add(this.label3);
             this.groupBox3.Controls.Add(this.cbSendEpisodePush);
             this.groupBox3.Controls.Add(this.cbExportTranslation);
             this.groupBox3.Controls.Add(this.cbExportGrammar);
@@ -1829,7 +1833,7 @@ namespace playMP3
             this.cbAutoSubmitGrammarPassage.AutoSize = true;
             this.cbAutoSubmitGrammarPassage.Location = new System.Drawing.Point(1396, 1003);
             this.cbAutoSubmitGrammarPassage.Name = "cbAutoSubmitGrammarPassage";
-            this.cbAutoSubmitGrammarPassage.Size = new System.Drawing.Size(250, 17);
+            this.cbAutoSubmitGrammarPassage.Size = new System.Drawing.Size(223, 17);
             this.cbAutoSubmitGrammarPassage.TabIndex = 50;
             this.cbAutoSubmitGrammarPassage.Text = "Auto Submit (theo checkbox Export/FCM)";
             this.cbAutoSubmitGrammarPassage.UseVisualStyleBackColor = true;
@@ -2712,6 +2716,22 @@ namespace playMP3
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Action";
             // 
+            // txtSubCategory
+            // 
+            this.txtSubCategory.Location = new System.Drawing.Point(93, 55);
+            this.txtSubCategory.Name = "txtSubCategory";
+            this.txtSubCategory.Size = new System.Drawing.Size(216, 20);
+            this.txtSubCategory.TabIndex = 50;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(11, 58);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(70, 13);
+            this.label3.TabIndex = 49;
+            this.label3.Text = "Sub category";
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -3079,6 +3099,8 @@ namespace playMP3
         private System.Windows.Forms.Button btnPurgeAiCache;
         private System.Windows.Forms.Button btnMigrateRtdbPath;
         private System.Windows.Forms.CheckBox cbExportTranslation;
+        private System.Windows.Forms.TextBox txtSubCategory;
+        private System.Windows.Forms.Label label3;
     }
 }
 
