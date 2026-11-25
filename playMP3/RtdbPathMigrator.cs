@@ -26,6 +26,7 @@ namespace playMP3
             "List",
             "app_client_config",
             "ai_server_config",
+            "Configuration",
             "user_favourites",
         };
 

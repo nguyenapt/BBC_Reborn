@@ -109,28 +109,13 @@ class MediaNotificationLaunchHandler {
     final resolvedCategory = category ?? episode.category;
     if (resolvedCategory.isEmpty) return [episode];
 
-    final yearParsed = int.tryParse(episode.year ?? '');
-    if (yearParsed != null && yearParsed > 1800) {
-      try {
-        return await FirebaseService.getCategoryDataLegacyFull(
-          resolvedCategory,
-          yearParsed,
-        );
-      } catch (_) {}
-
-      try {
-        return await FirebaseService.getCategoryData(
-          resolvedCategory,
-          yearParsed,
-        );
-      } catch (_) {}
-    }
-
     try {
-      return await FirebaseService().getEpisodesByCategory(resolvedCategory);
+      final peers = await FirebaseService()
+          .getLevelEpisodesInSubOrder(resolvedCategory);
+      if (peers.isNotEmpty) return peers;
     } catch (e) {
-      debugPrint('MediaNotificationLaunchHandler: category load failed: $e');
-      return [episode];
+      debugPrint('MediaNotificationLaunchHandler: level load failed: $e');
     }
+    return [episode];
   }
 }

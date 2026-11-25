@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/grammar.dart';
 import '../models/episode.dart';
 import '../services/grammar_service.dart';
-import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
@@ -24,7 +23,6 @@ class _GrammarScreenState extends State<GrammarScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final GrammarService _grammarService = GrammarService();
-  final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LanguageManager _languageManager = LanguageManager();
   
   // Basic Grammar state
@@ -32,12 +30,10 @@ class _GrammarScreenState extends State<GrammarScreen>
   bool _isLoadingGrammar = true;
   String? _errorGrammar;
   
-  // English Grammar state
+  // English Grammar state (CEFR Grammar sub-categories)
   List<Episode> _egEpisodes = [];
   bool _isLoadingEG = false;
   String? _errorEG;
-  List<int> _loadedYears = [];
-  bool _loadingMoreEG = false;
 
   @override
   void initState() {
@@ -111,8 +107,8 @@ class _GrammarScreenState extends State<GrammarScreen>
   }
 
   Future<void> _loadEGData() async {
-    if (_egEpisodes.isNotEmpty && _loadedYears.isNotEmpty) {
-      return; // Đã load rồi
+    if (_egEpisodes.isNotEmpty) {
+      return;
     }
 
     setState(() {
@@ -121,20 +117,9 @@ class _GrammarScreenState extends State<GrammarScreen>
     });
 
     try {
-      final currentYear = DateTime.now().year;
-      final previousYear = currentYear - 1;
-      
-      // Lấy dữ liệu từ 2 năm gần nhất
-      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', currentYear);
-      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', previousYear);
-      
-      // Gộp episodes và sắp xếp theo publishedDate (mới nhất trước)
-      final allEpisodes = [...currentYearEpisodes, ...previousYearEpisodes];
-      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
+      final allEpisodes = await _grammarService.getGrammarEpisodesFromCefr();
       setState(() {
         _egEpisodes = allEpisodes;
-        _loadedYears = [currentYear, previousYear];
         _isLoadingEG = false;
       });
     } catch (e) {
@@ -143,63 +128,6 @@ class _GrammarScreenState extends State<GrammarScreen>
         _isLoadingEG = false;
       });
     }
-  }
-
-  Future<void> _loadMoreEGYears() async {
-    if (_loadingMoreEG) {
-      return; // Đang load rồi
-    }
-
-    setState(() {
-      _loadingMoreEG = true;
-    });
-
-    try {
-      if (_loadedYears.isEmpty) {
-        setState(() {
-          _loadingMoreEG = false;
-        });
-        return;
-      }
-
-      // Tìm năm nhỏ nhất đã load
-      final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
-      final nextYear = minLoadedYear - 1;
-
-      // Giới hạn load đến năm 2020
-      if (nextYear < 2020) {
-        setState(() {
-          _loadingMoreEG = false;
-        });
-        return;
-      }
-
-      // Lấy dữ liệu năm tiếp theo
-      final nextYearEpisodes = await _episodeCacheService.getCategoryEpisodes('EG', nextYear);
-      
-      // Gộp với episodes hiện có và sắp xếp lại
-      final allEpisodes = [..._egEpisodes, ...nextYearEpisodes];
-      allEpisodes.sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
-      setState(() {
-        _egEpisodes = allEpisodes;
-        _loadedYears = [..._loadedYears, nextYear];
-        _loadingMoreEG = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loadingMoreEG = false;
-      });
-      // Không hiển thị error khi load more, chỉ im lặng fail
-      print('Error loading more years for EG: $e');
-    }
-  }
-
-  bool _canLoadMoreEG() {
-    if (_loadedYears.isEmpty) return false;
-    
-    final minLoadedYear = _loadedYears.reduce((a, b) => a < b ? a : b);
-    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
   }
 
   void _navigateToGrammarDetail(Grammar grammar) {
@@ -482,35 +410,14 @@ class _GrammarScreenState extends State<GrammarScreen>
 
     return RefreshIndicator(
       onRefresh: () {
-        // Reset loaded years khi refresh
-        _loadedYears = [];
         _egEpisodes = [];
         return _loadEGData();
       },
       child: ListView.builder(
         padding: FloatingBottomNavBar.scrollPadding(context),
-        itemCount: _egEpisodes.length + 1 + (_canLoadMoreEG() ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
+        itemCount: _egEpisodes.length + 1, // episodes + banner
         itemBuilder: (context, index) {
-          // Load More button (trước banner ad)
-          if (_canLoadMoreEG() && index == _egEpisodes.length) {
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: _loadingMoreEG
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: _loadMoreEGYears,
-                      child: Text(_languageManager.getText('loadMore') ?? 'Load More'),
-                    ),
-            );
-          }
-
-          // Banner Ad (sau load more button hoặc sau episodes)
-          final bannerAdIndex = _canLoadMoreEG() ? _egEpisodes.length + 1 : _egEpisodes.length;
+          final bannerAdIndex = _egEpisodes.length;
           if (index == bannerAdIndex) {
             return const BannerAdWidget();
           }

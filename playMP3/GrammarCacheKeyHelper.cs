@@ -44,7 +44,7 @@ namespace playMP3
             return "grammar_" + hash + "_" + (languageCode ?? string.Empty).Trim();
         }
 
-        /// <summary>Path segment used in .../ai_cache/grammar/{sentenceHash}/{lang}.json</summary>
+        /// <summary>Legacy hash segment (hash path <c>ai_cache/grammar</c> retired; kept for CSV metadata).</summary>
         public static string GrammarSentenceHashPathSegment(string sentence, string languageCode, string episodeId, string modelVersion, string promptVersion)
         {
             var key = GrammarKey(sentence, languageCode, episodeId, modelVersion, promptVersion);

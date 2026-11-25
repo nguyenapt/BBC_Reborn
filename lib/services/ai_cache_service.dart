@@ -499,14 +499,8 @@ class AICacheService {
       }
     }
 
-    final firebaseCache = await _firebaseCache.getGrammar(
-      sentence,
-      languageCode,
-      episodeId: episodeId,
-      modelVersion: modelVersion,
-      promptVersion: promptVersion,
-    );
-    return firebaseCache;
+    // Hash path `ai_cache/grammar` retired — only grammar_by_episode.
+    return null;
   }
 
   Future<void> materializeGrammarLocal(
@@ -619,18 +613,7 @@ class AICacheService {
             (e) => debugPrint('Error saving grammar_by_episode: $e'),
           );
     }
-
-    // Save to Firebase cache (async)
-    _firebaseCache
-        .saveGrammar(
-          sentence,
-          languageCode,
-          grammarData,
-          episodeId: episodeId,
-          modelVersion: modelVersion,
-          promptVersion: promptVersion,
-        )
-        .catchError((e) => debugPrint('Error saving grammar to Firebase: $e'));
+    // Hash path `ai_cache/grammar` retired — only grammar_by_episode.
   }
 
   Map<String, dynamic> _mapLegacySentenceGrammarToPassage(
@@ -967,9 +950,8 @@ class AICacheService {
       }
     }
 
-    final firebaseCache =
-        await _firebaseCache.getVocabulary(word, languageCode);
-    return firebaseCache;
+    // Hash path `ai_cache/vocabulary` retired — only vocabulary_by_episode.
+    return null;
   }
 
   Future<void> materializeVocabularyLocal(
@@ -1048,10 +1030,7 @@ class AICacheService {
             (e) => debugPrint('Error saving vocabulary_by_episode: $e'),
           );
     }
-    
-    // Save to Firebase cache (async)
-    _firebaseCache.saveVocabulary(word, languageCode, vocabularyData)
-        .catchError((e) => debugPrint('Error saving vocabulary to Firebase: $e'));
+    // Hash path `ai_cache/vocabulary` retired — only vocabulary_by_episode.
   }
 
   // ========== Cache Management Methods ==========

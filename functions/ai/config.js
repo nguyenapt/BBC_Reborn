@@ -114,7 +114,7 @@ async function loadServerConfig() {
 
   ensureAdmin();
   try {
-    const snap = await admin.database().ref("ai_server_config").once("value");
+    const snap = await admin.database().ref("Configuration/ai_server_config").once("value");
     const val = snap.val();
     cachedServerConfig = mergeServerConfig(val);
   } catch {

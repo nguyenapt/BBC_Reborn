@@ -1,25 +1,24 @@
 {
   "rules": {
-    "app_client_config": {
-      ".read": true,
-      ".write": false
-    },
-    "ai_server_config": {
-      ".read": false,
-      ".write": false
+    "Configuration": {
+      "app-update": {
+        ".read": true,
+        ".write": false
+      },
+      "app_client_config": {
+        ".read": true,
+        ".write": false
+      },
+      "ai_server_config": {
+        ".read": false,
+        ".write": false
+      }
     },
     "ai_cache": {
       ".read": true,
       ".write": true,
       "translations": {
         "$episodeId": {
-          "$languageCode": {
-            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
-          }
-        }
-      },
-      "grammar": {
-        "$sentenceHash": {
           "$languageCode": {
             ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
           }
@@ -44,13 +43,6 @@
       "questions": {
         "$episodeId": {
           "$count": {
-            ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
-          }
-        }
-      },
-      "vocabulary": {
-        "$wordHash": {
-          "$languageCode": {
             ".validate": "newData.hasChildren(['data', 'createdAt', 'version'])"
           }
         }

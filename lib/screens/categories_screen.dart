@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import '../models/cefr_category.dart';
+import '../models/cefr_level.dart';
 import '../models/episode.dart';
+import '../models/sub_category.dart';
 import '../services/episode_cache_service.dart';
-import '../services/firebase_service.dart';
 import '../services/language_manager.dart';
 import '../services/learning_progress_service.dart';
 import '../services/episode_detail_open_helper.dart';
 import '../widgets/episode_row.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/floating_bottom_nav_bar.dart';
-import '../widgets/other_programs_category_widget.dart';
-import '../utils/category_names.dart';
 import '../utils/user_facing_error.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialTab;
-  
+
   const CategoriesScreen({super.key, this.initialTab});
 
   @override
@@ -23,68 +23,45 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen>
     with SingleTickerProviderStateMixin {
+  static const int _viewAllIndex = -1;
+
   late TabController _tabController;
   final LanguageManager _languageManager = LanguageManager();
   final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LearningProgressService _learningProgress = LearningProgressService();
-  
+
   late final VoidCallback _learningProgressListener;
-  // Data cho từng tab
-  Map<String, List<Episode>> _episodesData = {};
-  Map<String, bool> _loadingStates = {
-    '6M': false,
-    'TEWS': false,
-    'REE': false,
-    'AS': false,
+
+  final Map<String, CefrCategory> _levelData = {};
+  final Map<String, bool> _loadingStates = {
+    for (final code in CefrLevel.codes) code: false,
   };
-  Map<String, String?> _errorStates = {
-    '6M': null,
-    'TEWS': null,
-    'REE': null,
-    'AS': null,
+  final Map<String, String?> _errorStates = {
+    for (final code in CefrLevel.codes) code: null,
   };
-  // Theo dõi các năm đã load cho mỗi category
-  Map<String, List<int>> _loadedYears = {
-    '6M': [],
-    'TEWS': [],
-    'REE': [],
+
+  /// Selected subcategory index per level; [_viewAllIndex] = View all.
+  final Map<String, int> _selectedSubIndex = {
+    for (final code in CefrLevel.codes) code: 0,
   };
-  // Trạng thái loading more cho mỗi category
-  Map<String, bool> _loadingMoreStates = {
-    '6M': false,
-    'TEWS': false,
-    'REE': false,
-  };
-  // Data cho tab Another Series riêng (map sub -> episodes)
-  Map<String, List<Episode>> _anotherSeriesData = {};
-  List<String> _anotherSeriesDisplayOrder = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    
-    // Xác định tab ban đầu
-    final categories = ['6M', 'TEWS', 'REE', 'AS'];
-    String initialCategory = '6M'; // Default
-    
+    _tabController = TabController(length: CefrLevel.codes.length, vsync: this);
+
+    var initialIndex = 0;
     if (widget.initialTab != null) {
-      final tabIndex = categories.indexOf(widget.initialTab!);
+      final tabIndex = CefrLevel.codes.indexOf(widget.initialTab!.toUpperCase());
       if (tabIndex != -1) {
+        initialIndex = tabIndex;
         _tabController.index = tabIndex;
-        initialCategory = widget.initialTab!;
       }
     }
-    
-    // Load data cho tab được chọn
-    if (initialCategory == 'AS') {
-      _loadAnotherSeriesTabData();
-    } else {
-      _loadCategoryData(initialCategory);
-    }
-    
-    // Listen to tab changes
+
+    _loadLevel(CefrLevel.codes[initialIndex]);
     _tabController.addListener(_onTabChanged);
+
     _learningProgressListener = () {
       if (mounted) setState(() {});
     };
@@ -100,229 +77,57 @@ class _CategoriesScreenState extends State<CategoriesScreen>
     super.dispose();
   }
 
-  Future<void> _loadCategoryData(String category) async {
-    if (_episodesData.containsKey(category) && _loadedYears[category]!.isNotEmpty) {
-      return; // Đã load rồi
-    }
-
-    setState(() {
-      _loadingStates[category] = true;
-      _errorStates[category] = null;
-    });
-
-    try {
-      final currentYear = DateTime.now().year;
-      final previousYear = currentYear - 1;
-      
-      // Lấy dữ liệu từ cache trước, API chỉ gọi nếu chưa fetch hôm nay
-      final currentYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, currentYear);
-      final previousYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, previousYear);
-      
-      // Gộp episodes và loại trùng theo id
-      final Map<String, Episode> uniqueEpisodes = {};
-      for (final episode in [...currentYearEpisodes, ...previousYearEpisodes]) {
-        final key = episode.id ?? '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
-        uniqueEpisodes[key] = episode;
-      }
-      final allEpisodes = uniqueEpisodes.values.toList()
-        ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
-      setState(() {
-        _episodesData[category] = allEpisodes;
-        _loadedYears[category] = [currentYear, previousYear];
-        _loadingStates[category] = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorStates[category] = UserFacingError.message(e);
-        _loadingStates[category] = false;
-      });
-    }
-  }
-
-  Future<void> _loadMoreYears(String category) async {
-    if (_loadingMoreStates[category] == true) {
-      return; // Đang load rồi
-    }
-
-    setState(() {
-      _loadingMoreStates[category] = true;
-    });
-
-    try {
-      final loadedYears = _loadedYears[category]!;
-      if (loadedYears.isEmpty) {
-        setState(() {
-          _loadingMoreStates[category] = false;
-        });
-        return;
-      }
-
-      // Tìm năm nhỏ nhất đã load
-      final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
-      final nextYear = minLoadedYear - 1;
-
-      // Giới hạn load đến năm 2020
-      if (nextYear < 2020) {
-        setState(() {
-          _loadingMoreStates[category] = false;
-        });
-        return;
-      }
-
-      // Lấy dữ liệu năm tiếp theo
-      final nextYearEpisodes = await _episodeCacheService.getCategoryEpisodes(category, nextYear);
-      
-      // Gộp với episodes hiện có và sắp xếp lại
-      final currentEpisodes = _episodesData[category] ?? [];
-      final Map<String, Episode> uniqueEpisodes = {};
-      for (final episode in [...currentEpisodes, ...nextYearEpisodes]) {
-        final key = episode.id ?? '${episode.episodeName}-${episode.publishedDate.toIso8601String()}';
-        uniqueEpisodes[key] = episode;
-      }
-      final allEpisodes = uniqueEpisodes.values.toList()
-        ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-      
-      setState(() {
-        _episodesData[category] = allEpisodes;
-        _loadedYears[category] = [...loadedYears, nextYear];
-        _loadingMoreStates[category] = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loadingMoreStates[category] = false;
-      });
-      // Không hiển thị error khi load more, chỉ im lặng fail
-      print('Error loading more years for $category: $e');
-    }
-  }
-
-  bool _canLoadMore(String category) {
-    final loadedYears = _loadedYears[category] ?? [];
-    if (loadedYears.isEmpty) return false;
-    
-    final minLoadedYear = loadedYears.reduce((a, b) => a < b ? a : b);
-    return minLoadedYear > 2020; // Có thể load thêm nếu năm nhỏ nhất > 2020
-  }
+  String get _currentLevelCode => CefrLevel.codes[_tabController.index];
 
   void _onTabChanged() {
-    if (!_tabController.indexIsChanging) {
-      final currentIndex = _tabController.index;
-      final categories = ['6M', 'TEWS', 'REE', 'AS'];
-      final currentCategory = categories[currentIndex];
-      
-      print('Tab changed to: $currentCategory (index: $currentIndex)');
-      
-      if (currentCategory == 'AS') {
-        print('Loading Another Series tab data...');
-        _loadAnotherSeriesTabData();
-      } else {
-        _loadCategoryData(currentCategory);
-      }
+    if (_tabController.indexIsChanging) return;
+    _loadLevel(_currentLevelCode);
+  }
+
+  Future<void> _loadLevel(String levelCode) async {
+    if (_levelData.containsKey(levelCode)) return;
+    if (_loadingStates[levelCode] == true) return;
+
+    setState(() {
+      _loadingStates[levelCode] = true;
+      _errorStates[levelCode] = null;
+    });
+
+    try {
+      final level = await _episodeCacheService.getLevel(levelCode);
+      if (!mounted) return;
+      setState(() {
+        _levelData[levelCode] = level;
+        _selectedSubIndex[levelCode] =
+            level.subCategories.isNotEmpty ? level.subCategories.first.index : _viewAllIndex;
+        _loadingStates[levelCode] = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorStates[levelCode] = UserFacingError.message(e);
+        _loadingStates[levelCode] = false;
+      });
     }
+  }
+
+  List<Episode> _episodesForLevel(String levelCode) {
+    final level = _levelData[levelCode];
+    if (level == null) return const [];
+    final selected = _selectedSubIndex[levelCode] ?? 0;
+    if (selected == _viewAllIndex) {
+      return level.allEpisodesInSubOrder;
+    }
+    return level.subAt(selected)?.episodes ?? const [];
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
-    // Tìm danh sách episodes của category hiện tại
-    final currentIndex = _tabController.index;
-    final categories = ['6M', 'TEWS', 'REE', 'AS'];
-    final currentCategory = categories[currentIndex];
-    
-    List<Episode> categoryEpisodes = [];
-    if (currentCategory == 'AS') {
-      // Lấy tất cả episodes từ các sub trong Another Series tab
-      _anotherSeriesData.values.forEach((episodes) {
-        categoryEpisodes.addAll(episodes);
-      });
-    } else {
-      categoryEpisodes = _episodesData[currentCategory] ?? [];
-    }
-
+    final categoryEpisodes = _episodesForLevel(_currentLevelCode);
     EpisodeDetailOpenHelper.open(
       context: context,
       episode: episode,
       categoryEpisodes: categoryEpisodes,
     );
-  }
-
-  Future<void> _loadAnotherSeriesTabData() async {
-    if (_loadingStates['AS'] == true) {
-      print('Another Series tab data is already loading...');
-      return;
-    }
-
-    // Đã load đủ map (gồm mọi mục cố định như BSA) và có ít nhất một list episode?
-    final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
-    final hasAllFixedSlots =
-        fixedCodes.every((c) => _anotherSeriesData.containsKey(c));
-    final hasData = _anotherSeriesData.values.any((episodes) => episodes.isNotEmpty);
-    if (hasData && hasAllFixedSlots) {
-      print('Another Series tab data already loaded');
-      return;
-    }
-
-    print('Loading Another Series tab data from List/AS.json...');
-    setState(() {
-      _loadingStates['AS'] = true;
-      _errorStates['AS'] = null;
-    });
-
-    try {
-      final asSubs =
-          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: false);
-      print('Another Series subs=$asSubs');
-
-      final Map<String, List<Episode>> allData = {};
-      final subsWithData = <String>[];
-
-      for (final sub in asSubs) {
-        try {
-          print('Loading Another Series sub: $sub...');
-          // Cache SQLite + chỉ fetch tối đa 1 lần/ngày (nếu có data).
-          final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
-            sub,
-            forHomePage: false,
-          );
-          print('$sub - Total: ${episodes.length} episodes');
-          if (episodes.isNotEmpty) {
-            allData[sub] = episodes;
-            subsWithData.add(sub);
-          }
-        } catch (e) {
-          print('Error loading Another Series sub $sub: $e');
-        }
-      }
-
-      for (final category in CategoryNames.anotherSeriesFixedProgramCodes) {
-        try {
-          print('Loading fixed section $category...');
-          final episodes = await _episodeCacheService
-              .getAnotherSeriesFixedCategoryEpisodes(category);
-          print('$category - Total: ${episodes.length} episodes');
-          allData[category] = episodes;
-        } catch (e) {
-          print('Error loading fixed section $category: $e');
-          allData[category] = [];
-        }
-      }
-
-      final fixedCodes = CategoryNames.anotherSeriesFixedProgramCodes;
-      final fixedSet = fixedCodes.toSet();
-      final subsOrdered =
-          subsWithData.where((s) => !fixedSet.contains(s)).toList();
-
-      setState(() {
-        _anotherSeriesData = allData;
-        _anotherSeriesDisplayOrder = [...subsOrdered, ...fixedCodes];
-        _loadingStates['AS'] = false;
-      });
-    } catch (e) {
-      print('Error loading Another Series tab data: $e');
-      setState(() {
-        _errorStates['AS'] = UserFacingError.message(e);
-        _loadingStates['AS'] = false;
-      });
-    }
   }
 
   @override
@@ -334,22 +139,14 @@ class _CategoriesScreenState extends State<CategoriesScreen>
           backgroundColor: Theme.of(context).colorScheme.surface,
           body: Column(
             children: [
-              // Custom Header
               _buildHeader(),
-
-              const SizedBox(height: 16),
-              
-              // TabBar với shadow
+              const SizedBox(height: 12),
               _buildTabBar(),
-              // TabBarView content
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildCategoryContent('6M'),
-                    _buildCategoryContent('TEWS'),
-                    _buildCategoryContent('REE'),
-                    _buildAnotherSeriesContent(),
+                    for (final code in CefrLevel.codes) _buildLevelContent(code),
                   ],
                 ),
               ),
@@ -361,8 +158,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 
   Widget _buildHeader() {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       decoration: BoxDecoration(
@@ -382,8 +179,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         bottom: 16,
       ),
       child: Row(
-        children: [         
-          // Title và subtitle
+        children: [
           Expanded(
             child: Text(
               _languageManager.getText('categories'),
@@ -393,12 +189,11 @@ class _CategoriesScreenState extends State<CategoriesScreen>
               ),
             ),
           ),
-          // App icon đơn giản
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: colorScheme.surfaceVariant,
+              color: colorScheme.surfaceContainerHighest,
             ),
             child: Icon(
               Icons.list_outlined,
@@ -413,7 +208,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -428,6 +223,8 @@ class _CategoriesScreenState extends State<CategoriesScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
         indicator: UnderlineTabIndicator(
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.primary,
@@ -437,368 +234,162 @@ class _CategoriesScreenState extends State<CategoriesScreen>
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: Theme.of(context).colorScheme.primary,
-        unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        unselectedLabelColor:
+            Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         labelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
         ),
         unselectedLabelStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
-        dividerColor: Theme.of(context).colorScheme.surface.withOpacity(0),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
-        tabs: [
-          _buildTabLabel(0, '6 Minutes', 'English'),
-          _buildTabLabel(1, 'The English', 'We Speak'),
-          _buildTabLabel(2, 'Real Easy', 'English'),
-          _buildTabLabel(3, 'Another', 'Series'),
+        dividerColor: Colors.transparent,
+        tabs: [for (final code in CefrLevel.codes) Tab(text: code)],
+      ),
+    );
+  }
+
+  Widget _buildLevelContent(String levelCode) {
+    if (_loadingStates[levelCode] == true) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              _languageManager.getText('loading'),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final error = _errorStates[levelCode];
+    if (error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  _levelData.remove(levelCode);
+                  _loadLevel(levelCode);
+                },
+                child: Text(_languageManager.getText('tryAgain')),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final level = _levelData[levelCode];
+    if (level == null) {
+      return const SizedBox.shrink();
+    }
+
+    final episodes = _episodesForLevel(levelCode);
+    final bottomPad = FloatingBottomNavBar.scrollPadding(context).bottom;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSubCategoryChips(levelCode, level.subCategories),
+        Expanded(
+          child: episodes.isEmpty
+              ? Center(
+                  child: Text(
+                    _languageManager.getText('noData'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.fromLTRB(12, 8, 12, bottomPad + 16),
+                  itemCount: episodes.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: BannerAdWidget(),
+                      );
+                    }
+                    final episode = episodes[index - 1];
+                    final progress = _learningProgress
+                        .getProgress(episode.resolvedStorageId);
+                    return EpisodeRow(
+                      episode: episode,
+                      onTap: () => _navigateToEpisodeDetail(episode),
+                      languageManager: _languageManager,
+                      learningProgress: progress,
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubCategoryChips(
+    String levelCode,
+    List<SubCategory> subs,
+  ) {
+    final selected = _selectedSubIndex[levelCode] ?? 0;
+    final viewAllLabel = _languageManager.getText('viewAll');
+
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        children: [
+          for (final sub in subs) ...[
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(
+                  sub.text.isNotEmpty ? sub.text : 'Sub ${sub.index + 1}',
+                ),
+                selected: selected == sub.index,
+                onSelected: (_) {
+                  setState(() => _selectedSubIndex[levelCode] = sub.index);
+                },
+              ),
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: ChoiceChip(
+              label: Text(viewAllLabel),
+              selected: selected == _viewAllIndex,
+              onSelected: (_) {
+                setState(() => _selectedSubIndex[levelCode] = _viewAllIndex);
+              },
+            ),
+          ),
         ],
       ),
     );
   }
-
-  Widget _buildTabLabel(int index, String firstLine, String secondLine) {
-    return Tab(
-      child: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, child) {
-          final isSelected = _tabController.index == index;
-          final color = isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
-          
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  firstLine,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  secondLine,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w400,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCategoryContent(String category) {
-    if (_loadingStates[category] == true) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('loading'),
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_errorStates[category] != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('errorOccurred'),
-              style: TextStyle(
-                fontSize: 18, 
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorStates[category]!,
-              style: TextStyle(
-                fontSize: 14, 
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _loadCategoryData(category),
-              child: Text(_languageManager.getText('tryAgain')),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final episodes = _episodesData[category] ?? [];
-    
-    if (episodes.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.library_music_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('noData'),
-              style: TextStyle(
-                fontSize: 18, 
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No episodes available for $category',
-              style: TextStyle(
-                fontSize: 14, 
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () {
-        // Reset loaded years khi refresh
-        _loadedYears[category] = [];
-        _episodesData.remove(category);
-        return _loadCategoryData(category);
-      },
-      child: ListView.builder(
-        padding: FloatingBottomNavBar.scrollPadding(context),
-        itemCount: episodes.length + 1 + (_canLoadMore(category) ? 1 : 0) + 1, // +1 for load more button, +1 for banner ad
-        itemBuilder: (context, index) {
-          // Load More button (trước banner ad)
-          if (_canLoadMore(category) && index == episodes.length) {
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: _loadingMoreStates[category] == true
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () => _loadMoreYears(category),
-                      child: Text(_languageManager.getText('loadMore')),
-                    ),
-            );
-          }
-          
-          // Banner ad ở cuối danh sách
-          final bannerAdIndex = _canLoadMore(category) ? episodes.length + 1 : episodes.length;
-          if (index == bannerAdIndex) {
-            return const BannerAdWidget();
-          }
-          
-          if (index >= 0 && index < episodes.length) {
-            final episode = episodes[index];
-            final isLatest = index == 0; // Episode đầu tiên là mới nhất
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: EpisodeRow(
-                episode: episode,
-                onTap: () => _navigateToEpisodeDetail(episode),
-                languageManager: _languageManager,
-                isLatest: isLatest,
-                learningProgress: _learningProgress.getProgressForEpisode(episode),
-              ),
-            );
-          }
-          
-          // Fallback - không nên xảy ra
-          return const SizedBox.shrink();
-        },
-      ),
-    );
-  }
-
-  Widget _buildAnotherSeriesContent() {
-    if (_loadingStates['AS'] == true) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('loading'),
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_errorStates['AS'] != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('errorOccurred'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorStates['AS']!,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _loadAnotherSeriesTabData(),
-              child: Text(_languageManager.getText('tryAgain')),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_anotherSeriesData.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.library_music_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('noData'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Tránh trạng thái "màn trắng": map có key nhưng tất cả list episode rỗng
-    final hasAnyEpisodes =
-        _anotherSeriesData.values.any((episodes) => episodes.isNotEmpty);
-    if (!hasAnyEpisodes) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.library_music_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('noData'),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final subs = _anotherSeriesDisplayOrder;
-
-    return RefreshIndicator(
-      onRefresh: () {
-        _anotherSeriesData.clear();
-        _anotherSeriesDisplayOrder.clear();
-        return _loadAnotherSeriesTabData();
-      },
-      child: ListView.builder(
-        padding: FloatingBottomNavBar.scrollPadding(
-          context,
-          left: 0,
-          top: 8,
-          right: 0,
-          bottom: 8,
-        ),
-        itemCount: subs.length + 1, // +1 for banner ad
-        itemBuilder: (context, index) {
-          // Banner ad ở cuối
-          if (index == subs.length) {
-            return const BannerAdWidget();
-          }
-
-          final sub = subs[index];
-          final episodes = _anotherSeriesData[sub] ?? [];
-          final fixedSlots =
-              CategoryNames.anotherSeriesFixedProgramCodes.toSet();
-
-          if (episodes.isEmpty && !fixedSlots.contains(sub)) {
-            return const SizedBox.shrink();
-          }
-
-          return OtherProgramsCategoryWidget(
-            categoryName: sub,
-            episodes: episodes,
-            onEpisodeTap: (episode) => _navigateToEpisodeDetail(episode),
-            languageManager: _languageManager,
-            showPlaceholderWhenEmpty: fixedSlots.contains(sub),
-          );
-        },
-      ),
-    );
-  }
-
 }

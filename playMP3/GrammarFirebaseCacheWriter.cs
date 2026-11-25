@@ -11,6 +11,10 @@ namespace playMP3
     {
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
+        /// <summary>
+        /// PUT <c>ai_cache/grammar_by_episode/{episodeId}/{lineKey}/{lang}.json</c> only.
+        /// Legacy hash path <c>ai_cache/grammar</c> is retired.
+        /// </summary>
         public static async Task PutGrammarCacheAsync(
             string firebaseRtdbBaseUrl,
             string sentence,
@@ -24,14 +28,8 @@ namespace playMP3
 
             var baseUrl = GrammarCacheKeyHelper.NormalizeRtdbBaseUrl(firebaseRtdbBaseUrl);
             var safeEpisodeId = GrammarCacheKeyHelper.SanitizeFirebaseKey(episodeId.Trim());
-            var modelVersion = GrammarCacheConstants.GrammarModelVersion;
-            var promptVersion = GrammarCacheConstants.GrammarPromptVersion;
-            var sentenceHash = GrammarCacheKeyHelper.GrammarSentenceHashPathSegment(
-                sentence, languageCode, episodeId, modelVersion, promptVersion);
             var sentenceLineKey = GrammarCacheKeyHelper.GrammarEpisodeLineKey(sentence, lineNumber);
             var safeLang = GrammarCacheKeyHelper.SanitizeFirebaseKey(languageCode);
-            var legacyUrl = baseUrl + "/" + GrammarCacheConstants.AiCachePath
-                            + "/grammar/" + sentenceHash + "/" + safeLang + ".json";
             var byEpisodeUrl = baseUrl + "/" + GrammarCacheConstants.AiCachePath
                                + "/" + GrammarCacheConstants.GrammarByEpisodePath + "/" + safeEpisodeId + "/" + sentenceLineKey + "/" + safeLang + ".json";
 
@@ -48,11 +46,6 @@ namespace playMP3
                 GrammarCacheConstants.AiCacheEntryVersion,
                 GrammarCacheConstants.AiCacheTtlDays);
             var json = JsonConvert.SerializeObject(dto);
-
-            var legacyResp = await Http.PutAsync(legacyUrl, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
-            var legacyBody = await legacyResp.Content.ReadAsStringAsync().ConfigureAwait(false);
-            if (!legacyResp.IsSuccessStatusCode)
-                throw new InvalidOperationException("Firebase PUT " + (int)legacyResp.StatusCode + " " + legacyUrl + " " + legacyBody);
 
             var byEpisodeResp = await Http.PutAsync(byEpisodeUrl, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
             var byEpisodeBody = await byEpisodeResp.Content.ReadAsStringAsync().ConfigureAwait(false);

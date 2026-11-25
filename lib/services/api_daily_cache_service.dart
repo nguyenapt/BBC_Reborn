@@ -2,10 +2,7 @@ import '../models/episode.dart';
 import '../utils/debug_source_log.dart';
 import 'firebase_service.dart';
 
-/// Tái dùng [FirebaseService.getHomePageData] (cache tối đa một lần/ngày) cho favourites.
-///
-/// Theo dõi chi phí: Firebase Console → Realtime Database → Usage (downloaded GB);
-/// Google Cloud Billing → filter SKU Storage egress sau khi triển khai.
+/// Resolve favourites from CEFR level snapshots (daily-cached).
 class ApiDailyCacheService {
   static final ApiDailyCacheService _instance = ApiDailyCacheService._internal();
   factory ApiDailyCacheService() => _instance;
@@ -13,22 +10,21 @@ class ApiDailyCacheService {
 
   final FirebaseService _firebase = FirebaseService();
 
-  /// Resolve favourite từ cùng snapshot HomePage (không GET [HomePage.json] thêm).
-  Future<List<Episode>> episodesMatchingFavouriteIds(List<String> favouriteIds) async {
+  Future<List<Episode>> episodesMatchingFavouriteIds(
+    List<String> favouriteIds,
+  ) async {
     if (favouriteIds.isEmpty) return [];
     debugLogDataSource(
       'Favourites',
-      'Resolve favourites via getHomePageData() (shared HomePage cache — no extra GET)',
+      'Resolve favourites via getAllEpisodesFlat() (CEFR daily cache)',
     );
-    final categories = await _firebase.getHomePageData();
-    final out = <Episode>[];
+    final all = await _firebase.getAllEpisodesFlat();
     final set = favouriteIds.toSet();
-    for (final cat in categories) {
-      for (final ep in cat.episodes) {
-        final id = ep.id ?? '';
-        if (id.isNotEmpty && set.contains(id)) {
-          out.add(ep);
-        }
+    final out = <Episode>[];
+    for (final ep in all) {
+      final id = ep.id ?? '';
+      if (id.isNotEmpty && set.contains(id)) {
+        out.add(ep);
       }
     }
     return out;

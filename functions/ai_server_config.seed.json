@@ -1,4 +1,5 @@
 {
+  "_comment": "Upload under Configuration/ai_server_config in Firebase RTDB (lingua-us).",
   "allowedPackages": "com.learningenglish.americaenglish;com.learningenglish.studyingbbc.bbc_reborn;com.bbclearningenglish.listeningskills;com.learning.esllearning;com.learning.eslenglish",
   "enabled": true,
   "azureSpeechRegion": "southeastasia",

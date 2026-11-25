@@ -5,7 +5,7 @@ import '../main.dart';
 import '../models/daily_goal_config.dart';
 import '../models/episode.dart';
 import '../models/user_learning_profile.dart';
-import '../services/local_database_service.dart';
+import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../services/user_profile_service.dart';
 import 'ads_support_notice_screen.dart';
@@ -22,7 +22,6 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   static const String _adsNoticeSeenKey = 'ads_notice_seen_v1';
 
   final LanguageManager _languageManager = LanguageManager();
-  final LocalDatabaseService _databaseService = LocalDatabaseService();
   final UserProfileService _profileService = UserProfileService();
 
   EnglishLevel _level = EnglishLevel.intermediate;
@@ -36,17 +35,16 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
     try {
       String? recommendedId;
       try {
-        final year = DateTime.now().year;
-        var episodes =
-            await _databaseService.getEpisodesByCategoryYear('6M', year);
-        if (episodes.isEmpty) {
-          episodes =
-              await _databaseService.getEpisodesByCategoryYear('6M', year - 1);
-        }
-        final sorted = List<Episode>.from(episodes)
-          ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
-        if (sorted.isNotEmpty) {
-          recommendedId = sorted.first.resolvedStorageId;
+        final cefrCodes = _level.suggestedCefrCodes;
+        for (final code in cefrCodes) {
+          final level = await EpisodeCacheService().getLevel(code);
+          final episodes = level.allEpisodesInSubOrder;
+          if (episodes.isNotEmpty) {
+            final sorted = List<Episode>.from(episodes)
+              ..sort((a, b) => b.publishedDate.compareTo(a.publishedDate));
+            recommendedId = sorted.first.resolvedStorageId;
+            break;
+          }
         }
       } catch (e) {
         debugPrint('OnboardingProfile: episode lookup failed: $e');

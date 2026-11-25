@@ -2,7 +2,7 @@ import 'firebase_rtdb_config.dart';
 
 /// RTDB endpoint for client-readable heart economy config.
 ///
-/// Upload [functions/app_client_config.seed.json] under `app_client_config`
-/// in Firebase Console (same project as AppUpdate).
+/// Upload [functions/app_client_config.seed.json] under
+/// `Configuration/app_client_config` in Firebase Console.
 const String kHeartSystemRtdbUrl =
-    '$kFirebaseRtdbBaseUrl/app_client_config/heart_system.json';
+    '$kFirebaseRtdbBaseUrl/Configuration/app_client_config/heart_system.json';

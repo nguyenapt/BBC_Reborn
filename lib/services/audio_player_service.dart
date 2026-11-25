@@ -368,14 +368,16 @@ class AudioPlayerService extends ChangeNotifier {
 
     _currentAudioUrl = await _resolvePlaybackUrl(episode);
     
-    // Load episodes cùng category
+    // Load episodes cùng CEFR level / category
     try {
-      final categories = await _firebaseService.getHomePageData();
-      for (final category in categories) {
-        if (category.name == episode.category) {
-          _currentCategoryEpisodes = category.episodes;
-          _currentEpisodeIndex = _currentCategoryEpisodes.indexWhere((e) => e.id == episode.id);
-          break;
+      final levelCode = episode.category;
+      if (levelCode.isNotEmpty) {
+        final peers =
+            await _firebaseService.getLevelEpisodesInSubOrder(levelCode);
+        if (peers.isNotEmpty) {
+          _currentCategoryEpisodes = peers;
+          _currentEpisodeIndex =
+              _currentCategoryEpisodes.indexWhere((e) => e.id == episode.id);
         }
       }
     } catch (e) {

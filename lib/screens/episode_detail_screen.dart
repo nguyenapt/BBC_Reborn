@@ -8,7 +8,6 @@ import '../config/rtdb_list_config.dart';
 import '../models/episode.dart';
 import '../models/transcript_line.dart';
 import '../utils/category_colors.dart';
-import '../utils/category_names.dart';
 import '../utils/responsive_layout.dart';
 import '../services/audio_player_service.dart';
 import '../services/firebase_service.dart';
@@ -1358,8 +1357,8 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   }
 
   bool _isOtherProgramsCategory(String category) {
-    return CategoryNames.anotherSeriesFixedProgramCodes.contains(category) ||
-        CategoryNames.isAnotherSeriesSubcategory(category);
+    // Legacy BBC "Another Series" grouping removed; CEFR levels are primary.
+    return false;
   }
 
   String _formatDate(DateTime date) {

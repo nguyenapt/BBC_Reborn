@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
 import '../services/audio_player_service.dart';
-import '../models/category.dart';
+import '../models/cefr_level.dart';
 import '../models/episode_learning_progress.dart';
 import '../models/episode.dart';
 import '../models/vocabulary_item.dart';
 import '../services/firebase_service.dart';
-import '../services/episode_cache_service.dart';
 import '../services/language_manager.dart';
 import '../services/image_cache_service.dart';
 import '../services/episode_detail_open_helper.dart';
@@ -15,16 +14,12 @@ import '../services/learning_progress_service.dart';
 import '../services/saved_grammar_service.dart';
 import '../services/vocabulary_service.dart';
 import '../services/vocabulary_practice_service.dart';
-import '../widgets/category_group_box.dart';
 import '../widgets/heart_widget.dart';
 import '../widgets/home_learning_dashboard.dart';
 import '../widgets/streak_widget.dart';
 import '../widgets/daily_goal_widget.dart';
-import '../widgets/other_programs_category_widget.dart';
-import '../utils/category_names.dart';
 import '../utils/user_facing_error.dart';
 import 'categories_screen.dart';
-import 'grammar_screen.dart';
 import 'episode_search_screen.dart';
 import 'vocabulary_practice_screen.dart';
 import 'saved_screen.dart';
@@ -48,15 +43,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
-  final EpisodeCacheService _episodeCacheService = EpisodeCacheService();
   final LanguageManager _languageManager = LanguageManager();
   final LearningProgressService _learningProgress = LearningProgressService();
   final VocabularyService _vocabularyService = VocabularyService();
   final VocabularyPracticeService _vocabPracticeService = VocabularyPracticeService();
   final SavedGrammarService _savedGrammarService = SavedGrammarService();
-  List<Category> _categories = [];
-  List<Category> _anotherSeriesCategories = [];
-  Category? _bsaCategory;
+  List<Episode> _allEpisodes = [];
   bool _isLoading = true;
   String? _error;
   late final String _heroImageAsset;
@@ -118,26 +110,17 @@ class _HomePageState extends State<HomePage> {
         _error = null;
       });
 
-      print('Loading home page data...');
-      final categories = await _firebaseService.getHomePageData();
-      final anotherSeries = await _loadAnotherSeriesCategories();
-      final bsaEpisodes =
-          await _episodeCacheService.getAnotherSeriesFixedCategoryEpisodes('BSA');
-      final bsaCategory =
-          bsaEpisodes.isNotEmpty ? Category(name: 'BSA', episodes: bsaEpisodes) : null;
-      print('Loaded ${categories.length} categories, Another Series: ${anotherSeries.length}');
-
-      _preloadImages(categories, anotherSeries, bsaCategory: bsaCategory);
+      // CEFR flat list for continue / latest / thumbs — không còn HomePage 3-item sections.
+      final episodes = await _firebaseService.getAllEpisodesFlat();
+      _preloadImages(episodes);
 
       setState(() {
-        _categories = categories;
-        _anotherSeriesCategories = anotherSeries;
-        _bsaCategory = bsaCategory;
+        _allEpisodes = episodes;
         _isLoading = false;
       });
       await _resolveContinueEpisode();
     } catch (e) {
-      print('Error loading data: $e');
+      debugPrint('Error loading home data: $e');
       setState(() {
         _error = UserFacingError.message(e);
         _isLoading = false;
@@ -145,150 +128,61 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<List<Category>> _loadAnotherSeriesCategories() async {
-    try {
-      final subKeys =
-          await FirebaseService.fetchAnotherSeriesSubKeys(forHomePage: true);
-      final list = <Category>[];
-      for (final sub in subKeys) {
-        final episodes = await _episodeCacheService.getAnotherSeriesSubEpisodes(
-          sub,
-          forHomePage: true,
-        );
-        if (episodes.isNotEmpty) {
-          list.add(Category(name: sub, episodes: episodes));
-        }
-      }
-      return list;
-    } catch (e) {
-      print('Another Series (home) load error: $e');
-      return [];
-    }
-  }
-
-  /// Preload images for better performance
-  void _preloadImages(
-    List<Category> categories,
-    List<Category> anotherSeries, {
-    Category? bsaCategory,
-  }) {
+  void _preloadImages(List<Episode> episodes) {
     final imageUrls = <String>[];
-    
-    // Collect all image URLs from first few episodes of each category
-    for (final category in [
-      ...categories,
-      ...anotherSeries,
-      if (bsaCategory != null) bsaCategory,
-    ]) {
-      final episodes = category.episodes.take(1); // Preload 1 thumb/category — giảm Storage egress
-      for (final episode in episodes) {
-        if (episode.thumbImage.isNotEmpty) {
-          imageUrls.add(episode.thumbImage);
-        }
+    for (final episode in episodes.take(6)) {
+      if (episode.thumbImage.isNotEmpty) {
+        imageUrls.add(episode.thumbImage);
       }
     }
-    
-    // Preload images in background
     if (imageUrls.isNotEmpty) {
       ImageCacheService().preloadImages(imageUrls);
     }
   }
 
   void _navigateToEpisodeDetail(Episode episode) {
-    // Tìm category chứa episode này
-    Category? episodeCategory;
-    for (final category in _categories) {
-      if (category.name == episode.category) {
-        episodeCategory = category;
-        break;
-      }
-    }
-    if (episodeCategory == null) {
-      for (final category in _anotherSeriesCategories) {
-        if (category.name == episode.category) {
-          episodeCategory = category;
-          break;
-        }
-      }
-    }
-    if (episodeCategory == null && _bsaCategory != null) {
-      if (_bsaCategory!.name == episode.category) {
-        episodeCategory = _bsaCategory;
-      }
-    }
-
-    final resolvedCategory = episodeCategory;
-    if (resolvedCategory != null) {
-      EpisodeDetailOpenHelper.open(
-        context: context,
-        episode: episode,
-        categoryEpisodes: resolvedCategory.episodes,
-      );
-    } else {
-      // Fallback nếu không tìm thấy category
-      EpisodeDetailOpenHelper.open(
-        context: context,
-        episode: episode,
-        categoryEpisodes: [episode],
-      );
-    }
+    final peers = _allEpisodes
+        .where((e) => e.category == episode.category)
+        .toList();
+    EpisodeDetailOpenHelper.open(
+      context: context,
+      episode: episode,
+      categoryEpisodes: peers.isNotEmpty ? peers : [episode],
+    );
   }
 
-  void _navigateToCategory(String categoryName) {
-    if (CategoryNames.opensAnotherSeriesTab(categoryName)) {
-      if (widget.onNavigateToCategory != null) {
-        widget.onNavigateToCategory!('AS');
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const CategoriesScreen(initialTab: 'AS'),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Kiểm tra nếu là category EG (English Grammar) thì navigate đến Grammar screen
-    if (categoryName == 'EG') {
-      if (widget.onNavigateToGrammar != null) {
-        widget.onNavigateToGrammar!('English Grammar');
-      } else {
-        // Fallback: sử dụng Navigator.push
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const GrammarScreen(initialTab: 'English Grammar'),
-          ),
-        );
-      }
-      return;
-    }
-    
-    // Sử dụng callback từ main.dart nếu có, ngược lại sử dụng Navigator.push
+  void _navigateToCategory(String levelCode) {
+    final tab = CefrLevel.tryParse(levelCode)?.code ?? CefrLevel.a1.code;
     if (widget.onNavigateToCategory != null) {
-      widget.onNavigateToCategory!(categoryName);
+      widget.onNavigateToCategory!(tab);
     } else {
-      // Fallback: sử dụng Navigator.push
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CategoriesScreen(initialTab: categoryName),
+          builder: (context) => CategoriesScreen(initialTab: tab),
         ),
       );
     }
   }
 
+  String _cefrSubtitle(CefrLevel level) {
+    switch (level) {
+      case CefrLevel.a1:
+      case CefrLevel.a2:
+        return _languageManager.getText('levelBeginner');
+      case CefrLevel.b1:
+      case CefrLevel.b2:
+        return _languageManager.getText('levelIntermediate');
+      case CefrLevel.c1:
+      case CefrLevel.c2:
+        return _languageManager.getText('levelAdvanced');
+    }
+  }
+
   Episode? _findEpisodeById(String episodeId) {
-    for (final category in [
-      ..._categories,
-      ..._anotherSeriesCategories,
-      if (_bsaCategory != null) _bsaCategory!,
-    ]) {
-      for (final episode in category.episodes) {
-        if (episode.id == episodeId || episode.resolvedStorageId == episodeId) {
-          return episode;
-        }
+    for (final episode in _allEpisodes) {
+      if (episode.id == episodeId || episode.resolvedStorageId == episodeId) {
+        return episode;
       }
     }
     return null;
@@ -491,15 +385,10 @@ class _HomePageState extends State<HomePage> {
 
   Episode? _getLatestEpisode() {
     Episode? latest;
-    for (final category in [
-      ..._categories,
-      ..._anotherSeriesCategories,
-      if (_bsaCategory != null) _bsaCategory!,
-    ]) {
-      for (final episode in category.episodes) {
-        if (latest == null || episode.publishedDate.isAfter(latest.publishedDate)) {
-          latest = episode;
-        }
+    for (final episode in _allEpisodes) {
+      if (latest == null ||
+          episode.publishedDate.isAfter(latest.publishedDate)) {
+        latest = episode;
       }
     }
     return latest;
@@ -597,105 +486,6 @@ class _HomePageState extends State<HomePage> {
     return assets[index];
   }
 
-  /// Categories từ [getHomePageData] chưa render ở block ưu tiên / Another Series.
-  /// BSA bỏ qua khi đã có [_bsaCategory] (tránh trùng key `BSA` trong List/HomePage.json).
-  List<Category> _remainingHomeCategories() {
-    return _categories.where((c) {
-      if (c.name == '6M' || c.name == 'TEWS' || c.name == 'REE') return false;
-      if (c.name == 'BSA' && _bsaCategory != null) return false;
-      return true;
-    }).toList();
-  }
-
-  Widget _buildAnotherSeriesSection() {
-    if (_anotherSeriesCategories.isEmpty) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final strongAccent = Color.lerp(colorScheme.primary, colorScheme.onSurface, 0.22)!;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withOpacity(0.35),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                for (int i = 0; i < _anotherSeriesCategories.length; i++) ...[
-                  OtherProgramsCategoryWidget(
-                    categoryName: _anotherSeriesCategories[i].name,
-                    episodes: _anotherSeriesCategories[i].episodes,
-                    onEpisodeTap: _navigateToEpisodeDetail,
-                    languageManager: _languageManager,
-                    onViewAllTap: _navigateToCategory,
-                  ),
-                  if (i != _anotherSeriesCategories.length - 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Divider(
-                        height: 18,
-                        thickness: 1.2,
-                        color: colorScheme.outlineVariant.withOpacity(0.55),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          Positioned(
-            top: -10,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant.withOpacity(0.55),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.shadow.withOpacity(0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  _languageManager.getText('homeAnotherSeriesSection'),
-                  style: theme.textTheme.labelMedium!.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                    color: strongAccent,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCategorySection() {
     final theme = Theme.of(context);
     final cardColor = theme.colorScheme.surface;
@@ -718,51 +508,16 @@ class _HomePageState extends State<HomePage> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: '6',
-                    title: _languageManager.getText('categorySixMinutes'),
-                    subtitle: _languageManager.getText('categoryConversation'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('6M'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'T',
-                    title: _languageManager.getText('categoryTheEnglish'),
-                    subtitle: _languageManager.getText('categoryWeSpeak'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('TEWS'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'R',
-                    title: _languageManager.getText('categoryRealEasy'),
-                    subtitle: _languageManager.getText('categoryEnglish'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('REE'),
-                  ),
-                  _buildCategoryCard(
-                    width: cardWidth,
-                    letter: 'E',
-                    title: _languageManager.getText('categoryEnglish'),
-                    subtitle: _languageManager.getText('categoryGrammar'),
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('EG'),
-                  ),
-                  _buildCategoryCard(
-                    width: constraints.maxWidth,
-                    letter: 'A',
-                    title: 'Another',
-                    subtitle: 'Series',
-                    color: cardColor,
-                    badgeColor: theme.colorScheme.primary,
-                    onTap: () => _navigateToCategory('AS'),
-                  ),
+                  for (final level in CefrLevel.all)
+                    _buildCategoryCard(
+                      width: cardWidth,
+                      letter: level.code,
+                      title: level.code,
+                      subtitle: _cefrSubtitle(level),
+                      color: cardColor,
+                      badgeColor: theme.colorScheme.primary,
+                      onTap: () => _navigateToCategory(level.code),
+                    ),
                 ],
               );
             },
@@ -819,9 +574,10 @@ class _HomePageState extends State<HomePage> {
                     alignment: Alignment.center,
                     child: Text(
                       letter,
-                      style: theme.textTheme.labelLarge!.copyWith(
+                      style: theme.textTheme.labelMedium!.copyWith(
                         color: theme.colorScheme.onPrimary,
                         fontWeight: FontWeight.bold,
+                        fontSize: letter.length > 1 ? 11 : 14,
                       ),
                     ),
                   ),
@@ -906,104 +662,29 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (_categories.isEmpty &&
-        _anotherSeriesCategories.isEmpty &&
-        _bsaCategory == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _languageManager.getText('noData'),
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.72),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return RefreshIndicator(
       onRefresh: _loadData,
       child: CustomScrollView(
         slivers: <Widget>[
-          // PinnedHeaderSliver cho WelcomeHeader
           PinnedHeaderSliver(
             child: _buildPinnedHeader(),
           ),
-
           SliverToBoxAdapter(
             child: DailyGoalWidget(
               onTap: widget.onNavigateToMyHubDailyGoal,
             ),
           ),
-
           SliverToBoxAdapter(
             child: _buildLearningDashboard(),
           ),
-
           if (_shouldShowWelcomeHero())
             SliverToBoxAdapter(
               child: _buildHeroSection(),
             ),
-
-          // Category cards
+          // Card chọn category (giữ như cũ) — đã bỏ block 3 items 6M/TEWS/AS
           SliverToBoxAdapter(
             child: _buildCategorySection(),
           ),
-
-          // Priority sections: 6M -> TEWS -> REE
-          SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                for (final name in const ['6M', 'TEWS', 'REE'])
-                  ..._categories
-                      .where((c) => c.name == name)
-                      .map(
-                        (category) => CategoryGroupBox(
-                          category: category,
-                          onEpisodeTap: _navigateToEpisodeDetail,
-                          onViewAllTap: _navigateToCategory,
-                        ),
-                      ),
-                if (_bsaCategory != null)
-                  CategoryGroupBox(
-                    category: _bsaCategory!,
-                    onEpisodeTap: _navigateToEpisodeDetail,
-                    onViewAllTap: _navigateToCategory,
-                  ),
-              ],
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: _buildAnotherSeriesSection(),
-          ),
-
-          // Remaining categories (HomePage slim)
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final remaining = _remainingHomeCategories();
-                final category = remaining[index];
-                return CategoryGroupBox(
-                  category: category,
-                  onEpisodeTap: _navigateToEpisodeDetail,
-                  onViewAllTap: _navigateToCategory,
-                );
-              },
-              childCount: _remainingHomeCategories().length,
-            ),
-          ),          
-          
           SliverToBoxAdapter(
             child: SizedBox(
               height: FloatingBottomNavBar.scrollPadding(context).bottom,

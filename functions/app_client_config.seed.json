@@ -1,4 +1,5 @@
 {
+  "_comment": "Upload under Configuration/app_client_config in Firebase RTDB (lingua-us).",
   "heart_system": {
     "allow_credit": true,
     "allow_credit_episode_pass": true,

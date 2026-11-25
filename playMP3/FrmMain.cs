@@ -1633,7 +1633,7 @@ namespace playMP3
                         ["wordHash"] = wordHash,
                         ["lang"] = langCode,
                         ["episodeId"] = episodeId,
-                        ["pathHint"] = "ai_cache/vocabulary/" + wordHash + "/" + langCode,
+                        ["pathHint"] = "ai_cache/vocabulary_by_episode/" + episodeId + "/" + wordHash,
                         ["data"] = payload,
                     });
                 }
@@ -2901,8 +2901,8 @@ namespace playMP3
         }
 
         /// <summary>
-        /// CSV trên episode: <c>g:{grammarPathSegmentEn},v:{vocabularyWordHash}</c> — khớp RTDB
-        /// <c>ai_cache/grammar/{g}/en.json</c> và <c>ai_cache/vocabulary/{v}/en.json</c>.
+        /// CSV trên episode: <c>g:{grammarPathSegmentEn},v:{vocabularyWordHash}</c> — legacy key
+        /// segments; RTDB cache is now <c>grammar_by_episode</c> / <c>vocabulary_by_episode</c> only.
         /// </summary>
         private string BuildGrammarVocabularyCacheKeysCsv(string episodeIdStr)
         {
@@ -3007,7 +3007,7 @@ namespace playMP3
 
                     try
                     {
-                        // Sentence schema or passage dual-map → same path (grammar + grammar_by_episode).
+                        // Sentence schema or passage dual-map → grammar_by_episode only.
                         // Dual payload keeps grammarPoint/explanation for old apps + overall/sentenceAnalyses for new apps.
                         await GrammarFirebaseCacheWriter.PutGrammarCacheAsync(
                             firebaseRtdbBaseUrl, sentence, langCode, episodeId, data, i).ConfigureAwait(true);

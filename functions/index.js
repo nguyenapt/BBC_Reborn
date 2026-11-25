@@ -13,10 +13,10 @@ function ensureAdmin() {
 const FCM_TOPIC = "episodes";
 
 /**
- * Các category có cấu trúc {cat}/{year}/{index} (như 6M/2026/0) — khớp getCategoryData trong app.
- * Không dùng HomePage/* vì thường là cập nhật nguyên list → ít khi chỉ onCreate từng tập.
+ * CEFR levels (A1–C2). Legacy BBC programme codes removed after hard cutover.
+ * FCM handler below remains disabled (playMP3 sends push directly).
  */
-const EPISODE_CATEGORIES = new Set(["6M", "TEWS", "REE","EG"]);
+const EPISODE_CATEGORIES = new Set(["A1", "A2", "B1", "B2", "C1", "C2"]);
 
 /**
  * Ghi log lỗi an toàn — tránh truyền Error thẳng vào logger (có thể gây TypeError trong firebase-functions/logger).

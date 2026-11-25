@@ -33,7 +33,7 @@ function logError(msg) {
 }
 
 /**
- * Callable AI proxy — keys from Secret Manager, routing from RTDB ai_server_config.
+ * Callable AI proxy — keys from Secret Manager, routing from RTDB Configuration/ai_server_config.
  */
 const aiRequest = onCall(
     {
